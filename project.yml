@@ -1,0 +1,56 @@
+name: BabyCare
+options:
+  bundleIdPrefix: com.babycare
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.2"
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_KEY_CFBundleDisplayName: "올케어"
+    INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.healthcare-fitness"
+    ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    version: "11.0.0"
+
+targets:
+  BabyCare:
+    type: application
+    platform: iOS
+    sources:
+      - path: BabyCare
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseStorage
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.babycare.app
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UIUserInterfaceStyle: "Automatic"
+    info:
+      path: BabyCare/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+
+  BabyCareTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: BabyCareTests
+    dependencies:
+      - target: BabyCare
