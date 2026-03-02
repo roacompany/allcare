@@ -81,13 +81,14 @@ struct SettingsView: View {
 
                 // Account Section
                 Section("계정") {
-                    if let email = authVM.currentUserId {
+                    if authVM.isAuthenticated {
                         HStack {
-                            Text("로그인")
+                            Text("계정 ID")
                             Spacer()
-                            Text(email)
+                            Text(authVM.currentUserId ?? "-")
                                 .foregroundStyle(.secondary)
                                 .font(.caption)
+                                .lineLimit(1)
                         }
                     }
 

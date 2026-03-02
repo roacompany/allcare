@@ -26,12 +26,22 @@ final class FirestoreService: Sendable {
         return snapshot.documents.compactMap { try? $0.data(as: Baby.self) }
     }
 
+    /// Baby 삭제 시 하위 컬렉션(activities, growth, diary)도 함께 삭제.
     func deleteBaby(_ babyId: String, userId: String) async throws {
-        try await db.collection(FirestoreCollections.users)
+        let babyRef = db.collection(FirestoreCollections.users)
             .document(userId)
             .collection(FirestoreCollections.babies)
             .document(babyId)
-            .delete()
+
+        // 하위 컬렉션 cascade 삭제
+        for subcollection in [FirestoreCollections.activities, FirestoreCollections.growth, FirestoreCollections.diary] {
+            let docs = try await babyRef.collection(subcollection).getDocuments()
+            for doc in docs.documents {
+                try await doc.reference.delete()
+            }
+        }
+
+        try await babyRef.delete()
     }
 
     // MARK: - Activity

@@ -4,6 +4,7 @@ import Foundation
 final class StatsViewModel {
     var weeklyActivities: [Activity] = []
     var isLoading = false
+    var errorMessage: String?
     var selectedPeriod: StatsPeriod = .week
 
     enum StatsPeriod: String, CaseIterable {
@@ -13,7 +14,7 @@ final class StatsViewModel {
 
     private let firestoreService = FirestoreService.shared
 
-    // MARK: - Feeding Stats
+    // MARK: - Computed Feeding Stats
 
     var feedingActivities: [Activity] {
         weeklyActivities.filter { $0.type.category == .feeding }
@@ -25,8 +26,10 @@ final class StatsViewModel {
     }
 
     var dailyFeedingAmounts: [(date: Date, amount: Double)] {
-        groupByDay(feedingActivities).map { ($0.key, $0.value.compactMap(\.amount).reduce(0, +)) }
-            .sorted { $0.date < $1.date }
+        groupByDay(feedingActivities).map { date, activities in
+            (date, activities.compactMap(\.amount).reduce(0, +))
+        }
+        .sorted { $0.date < $1.date }
     }
 
     var averageFeedingInterval: TimeInterval? {
@@ -39,15 +42,17 @@ final class StatsViewModel {
         return intervals.reduce(0, +) / Double(intervals.count)
     }
 
-    // MARK: - Sleep Stats
+    // MARK: - Computed Sleep Stats
 
     var sleepActivities: [Activity] {
         weeklyActivities.filter { $0.type == .sleep }
     }
 
     var dailySleepDurations: [(date: Date, hours: Double)] {
-        groupByDay(sleepActivities).map { ($0.key, $0.value.compactMap(\.duration).reduce(0, +) / 3600) }
-            .sorted { $0.date < $1.date }
+        groupByDay(sleepActivities).map { date, activities in
+            (date, activities.compactMap(\.duration).reduce(0, +) / 3600)
+        }
+        .sorted { $0.date < $1.date }
     }
 
     var averageSleepHours: Double {
@@ -56,7 +61,7 @@ final class StatsViewModel {
         return durations.map(\.hours).reduce(0, +) / Double(durations.count)
     }
 
-    // MARK: - Diaper Stats
+    // MARK: - Computed Diaper Stats
 
     var diaperActivities: [Activity] {
         weeklyActivities.filter { $0.type.category == .diaper }
@@ -71,6 +76,8 @@ final class StatsViewModel {
 
     func loadStats(userId: String, babyId: String) async {
         isLoading = true
+        defer { isLoading = false }
+
         let calendar = Calendar.current
         let endDate = Date()
         let startDate: Date
@@ -89,8 +96,8 @@ final class StatsViewModel {
             )
         } catch {
             weeklyActivities = []
+            errorMessage = "통계 데이터를 불러오지 못했습니다."
         }
-        isLoading = false
     }
 
     // MARK: - Helper

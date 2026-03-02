@@ -130,51 +130,62 @@ final class ProductViewModel {
     }
 
     func updateProduct(_ product: BabyProduct, userId: String) async {
+        guard let index = products.firstIndex(where: { $0.id == product.id }) else { return }
+
+        let backup = products[index]
         var updated = product
         updated.updatedAt = Date()
+        products[index] = updated // 낙관적 업데이트
+
         do {
             try await firestoreService.saveProduct(updated, userId: userId)
-            if let index = products.firstIndex(where: { $0.id == product.id }) {
-                products[index] = updated
-            }
         } catch {
-            errorMessage = "수정에 실패했습니다."
+            products[index] = backup // 롤백
+            errorMessage = "수정에 실패했습니다: \(error.localizedDescription)"
         }
     }
 
     func useProduct(_ product: BabyProduct, amount: Int, userId: String) async {
-        guard var remaining = product.remainingQuantity else { return }
-        remaining = max(0, remaining - amount)
+        guard let remaining = product.remainingQuantity else { return }
+        let newRemaining = max(0, remaining - amount)
 
         var updated = product
-        updated.remainingQuantity = remaining
+        updated.remainingQuantity = newRemaining
         updated.updatedAt = Date()
-
-        if remaining == 0 {
+        if newRemaining == 0 {
             updated.isActive = false
         }
 
         await updateProduct(updated, userId: userId)
 
+        // 재구매 알림 (업데이트 성공 후에만)
         if updated.isLowStock && updated.reorderReminder {
             let content = UNMutableNotificationContent()
             content.title = "재구매 알림"
-            content.body = "\(product.name) 재고가 부족합니다. (\(remaining)개 남음)"
+            content.body = "\(product.name) 재고가 부족합니다. (\(newRemaining)개 남음)"
             content.sound = .default
             let request = UNNotificationRequest(
                 identifier: "reorder-\(product.id)",
                 content: content,
                 trigger: nil
             )
-            try? await UNUserNotificationCenter.current().add(request)
+            do {
+                try await UNUserNotificationCenter.current().add(request)
+            } catch {
+                // 알림 실패는 치명적이지 않으므로 경고만
+                errorMessage = "재구매 알림 설정에 실패했습니다."
+            }
         }
     }
 
     func deleteProduct(_ product: BabyProduct, userId: String) async {
+        let backup = products
+        products.removeAll { $0.id == product.id }
+
         do {
             try await firestoreService.deleteProduct(product.id, userId: userId)
-            products.removeAll { $0.id == product.id }
         } catch {
+            products = backup // 롤백
             errorMessage = "삭제에 실패했습니다."
         }
     }

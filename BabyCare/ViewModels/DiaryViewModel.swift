@@ -17,23 +17,33 @@ final class DiaryViewModel {
     private let firestoreService = FirestoreService.shared
     private let storageService = StorageService.shared
 
+    // MARK: - Validation
+
+    var isFormValid: Bool {
+        !content.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // MARK: - CRUD
+
     func loadEntries(userId: String, babyId: String) async {
         isLoading = true
+        defer { isLoading = false }
         do {
             entries = try await firestoreService.fetchDiaryEntries(userId: userId, babyId: babyId)
         } catch {
-            errorMessage = "일기를 불러오지 못했습니다."
+            errorMessage = "일기를 불러오지 못했습니다: \(error.localizedDescription)"
         }
-        isLoading = false
     }
 
     func addEntry(userId: String, babyId: String) async {
-        guard !content.trimmingCharacters(in: .whitespaces).isEmpty else {
+        guard isFormValid else {
             errorMessage = "내용을 입력해주세요."
             return
         }
 
         isLoading = true
+        defer { isLoading = false }
+
         var entry = DiaryEntry(
             babyId: babyId,
             date: entryDate,
@@ -42,7 +52,6 @@ final class DiaryViewModel {
         )
 
         do {
-            // Upload photos
             var photoURLs: [String] = []
             for (index, photo) in selectedPhotos.enumerated() {
                 let url = try await storageService.uploadDiaryPhoto(
@@ -58,9 +67,8 @@ final class DiaryViewModel {
             resetForm()
             showAddEntry = false
         } catch {
-            errorMessage = "일기 저장에 실패했습니다."
+            errorMessage = "일기 저장에 실패했습니다: \(error.localizedDescription)"
         }
-        isLoading = false
     }
 
     func resetForm() {

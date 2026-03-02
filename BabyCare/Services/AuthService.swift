@@ -1,45 +1,37 @@
 import Foundation
 import FirebaseAuth
 
-@MainActor
-final class AuthService: ObservableObject {
-    @Published var currentUser: User?
-    @Published var isAuthenticated = false
+/// Firebase Auth 래퍼. ViewModel이 아닌 Service이므로 상태를 직접 노출하지 않고,
+/// AuthViewModel이 auth state listener를 관리한다.
+final class AuthService: Sendable {
+    static let shared = AuthService()
 
-    private var authStateListener: AuthStateDidChangeListenerHandle?
+    private init() {}
 
-    init() {
-        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            Task { @MainActor in
-                self?.currentUser = user
-                self?.isAuthenticated = user != nil
-            }
-        }
-    }
-
-    deinit {
-        if let listener = authStateListener {
-            Auth.auth().removeStateDidChangeListener(listener)
-        }
+    var currentUser: User? {
+        Auth.auth().currentUser
     }
 
     var userId: String? {
         currentUser?.uid
     }
 
-    func signUp(email: String, password: String) async throws {
-        let result = try await Auth.auth().createUser(withEmail: email, password: password)
-        currentUser = result.user
+    var isAuthenticated: Bool {
+        currentUser != nil
     }
 
-    func signIn(email: String, password: String) async throws {
+    func signUp(email: String, password: String) async throws -> User {
+        let result = try await Auth.auth().createUser(withEmail: email, password: password)
+        return result.user
+    }
+
+    func signIn(email: String, password: String) async throws -> User {
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
-        currentUser = result.user
+        return result.user
     }
 
     func signOut() throws {
         try Auth.auth().signOut()
-        currentUser = nil
     }
 
     func resetPassword(email: String) async throws {
@@ -55,6 +47,15 @@ final class AuthService: ObservableObject {
 
     func deleteAccount() async throws {
         try await currentUser?.delete()
-        currentUser = nil
+    }
+
+    func addStateListener(_ handler: @escaping @Sendable (User?) -> Void) -> AuthStateDidChangeListenerHandle {
+        Auth.auth().addStateDidChangeListener { _, user in
+            handler(user)
+        }
+    }
+
+    func removeStateListener(_ handle: AuthStateDidChangeListenerHandle) {
+        Auth.auth().removeStateDidChangeListener(handle)
     }
 }

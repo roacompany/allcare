@@ -12,39 +12,55 @@ final class AuthViewModel {
     var isAuthenticated = false
     var currentUserId: String?
 
-    private let authService = AuthService()
+    private let authService = AuthService.shared
+    private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
-        observeAuthState()
-    }
+        // 초기값 동기화
+        isAuthenticated = authService.isAuthenticated
+        currentUserId = authService.userId
 
-    private func observeAuthState() {
-        Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            Task { @MainActor in
+        // Auth state 실시간 리스너
+        listenerHandle = authService.addStateListener { [weak self] user in
+            Task { @MainActor [weak self] in
                 self?.isAuthenticated = user != nil
                 self?.currentUserId = user?.uid
             }
         }
     }
 
+    deinit {
+        if let handle = listenerHandle {
+            authService.removeStateListener(handle)
+        }
+    }
+
+    // MARK: - Validation
+
+    var isSignInFormValid: Bool {
+        !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty
+    }
+
+    var isSignUpFormValid: Bool {
+        !email.trimmingCharacters(in: .whitespaces).isEmpty
+        && password.count >= 6
+        && password == confirmPassword
+    }
+
+    // MARK: - Actions
+
     func signUp() async {
-        guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "이메일과 비밀번호를 입력해주세요."
-            return
-        }
-        guard password == confirmPassword else {
-            errorMessage = "비밀번호가 일치하지 않습니다."
-            return
-        }
-        guard password.count >= 6 else {
-            errorMessage = "비밀번호는 6자 이상이어야 합니다."
+        guard isSignUpFormValid else {
+            if email.isEmpty { errorMessage = "이메일을 입력해주세요." }
+            else if password.count < 6 { errorMessage = "비밀번호는 6자 이상이어야 합니다." }
+            else if password != confirmPassword { errorMessage = "비밀번호가 일치하지 않습니다." }
             return
         }
 
         isLoading = true
         errorMessage = nil
         do {
-            try await authService.signUp(email: email, password: password)
+            _ = try await authService.signUp(email: email, password: password)
             if !displayName.isEmpty {
                 try await authService.updateDisplayName(displayName)
             }
@@ -55,7 +71,7 @@ final class AuthViewModel {
     }
 
     func signIn() async {
-        guard !email.isEmpty, !password.isEmpty else {
+        guard isSignInFormValid else {
             errorMessage = "이메일과 비밀번호를 입력해주세요."
             return
         }
@@ -63,7 +79,7 @@ final class AuthViewModel {
         isLoading = true
         errorMessage = nil
         do {
-            try await authService.signIn(email: email, password: password)
+            _ = try await authService.signIn(email: email, password: password)
         } catch {
             errorMessage = mapAuthError(error)
         }
@@ -80,12 +96,13 @@ final class AuthViewModel {
     }
 
     func resetPassword() async {
-        guard !email.isEmpty else {
+        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else {
             errorMessage = "이메일을 입력해주세요."
             return
         }
 
         isLoading = true
+        errorMessage = nil
         do {
             try await authService.resetPassword(email: email)
             errorMessage = nil
@@ -117,9 +134,9 @@ final class AuthViewModel {
         case AuthErrorCode.userNotFound.rawValue:
             return "등록되지 않은 이메일입니다."
         case AuthErrorCode.networkError.rawValue:
-            return "네트워크 오류가 발생했습니다."
+            return "네트워크 오류가 발생했습니다. 연결을 확인해주세요."
         default:
-            return "오류: \(error.localizedDescription)"
+            return "오류가 발생했습니다: \(error.localizedDescription)"
         }
     }
 }

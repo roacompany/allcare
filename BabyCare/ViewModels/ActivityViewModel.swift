@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 @MainActor @Observable
 final class ActivityViewModel {
@@ -21,62 +20,72 @@ final class ActivityViewModel {
     var medicationName: String = ""
     var note: String = ""
 
-    // Summary
+    // Latest activities (최근 기록)
     var lastFeeding: Activity?
     var lastSleep: Activity?
     var lastDiaper: Activity?
-    var todayFeedingCount = 0
-    var todaySleepDuration: TimeInterval = 0
-    var todayDiaperCount = 0
-    var todayTotalMl: Double = 0
 
     private let firestoreService = FirestoreService.shared
     private var timerTask: Task<Void, Never>?
 
+    // MARK: - Computed Summaries (중복 상태 제거)
+
+    var todayFeedingCount: Int {
+        todayActivities.filter { $0.type.category == .feeding }.count
+    }
+
+    var todaySleepDuration: TimeInterval {
+        todayActivities.filter { $0.type == .sleep }.compactMap(\.duration).reduce(0, +)
+    }
+
+    var todayDiaperCount: Int {
+        todayActivities.filter { $0.type.category == .diaper }.count
+    }
+
+    var todayTotalMl: Double {
+        todayActivities.filter { $0.type.category == .feeding }.compactMap(\.amount).reduce(0, +)
+    }
+
+    // MARK: - Data Loading
+
     func loadTodayActivities(userId: String, babyId: String) async {
         isLoading = true
+        defer { isLoading = false }
+
         do {
             todayActivities = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId, date: Date()
             )
-            computeSummary()
             await loadLatestActivities(userId: userId, babyId: babyId)
         } catch {
-            errorMessage = "활동 기록을 불러오지 못했습니다."
+            errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
         }
-        isLoading = false
     }
 
     private func loadLatestActivities(userId: String, babyId: String) async {
-        async let feeding = firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBreast)
-        async let bottle = firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBottle)
-        async let sleep = firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .sleep)
-        async let diaper = firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .diaperWet)
+        // 각 쿼리 독립 실행, 개별 에러는 무시 (latest는 보조 정보)
+        async let feedingResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBreast) }
+        async let bottleResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBottle) }
+        async let sleepResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .sleep) }
+        async let diaperResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .diaperWet) }
 
-        let (f, b, s, d) = (try? await feeding, try? await bottle, try? await sleep, try? await diaper)
+        let (f, b, s, d) = await (feedingResult, bottleResult, sleepResult, diaperResult)
 
-        // 가장 최근 수유 (모유/분유 중 더 최근 것)
-        if let f, let b {
+        let feedingVal = try? f.get()
+        let bottleVal = try? b.get()
+
+        // 가장 최근 수유 (모유/분유 중 더 최근)
+        switch (feedingVal, bottleVal) {
+        case let (f?, b?):
             lastFeeding = f.startTime > b.startTime ? f : b
-        } else {
-            lastFeeding = f ?? b
+        default:
+            lastFeeding = feedingVal ?? bottleVal
         }
-        lastSleep = s
-        lastDiaper = d
+        lastSleep = try? s.get()
+        lastDiaper = try? d.get()
     }
 
-    private func computeSummary() {
-        let feedings = todayActivities.filter { $0.type.category == .feeding }
-        todayFeedingCount = feedings.count
-        todayTotalMl = feedings.compactMap(\.amount).reduce(0, +)
-
-        let sleeps = todayActivities.filter { $0.type == .sleep }
-        todaySleepDuration = sleeps.compactMap(\.duration).reduce(0, +)
-
-        todayDiaperCount = todayActivities.filter { $0.type.category == .diaper }.count
-    }
-
-    // MARK: - Timer
+    // MARK: - Timer (스레드 안전)
 
     func startTimer(type: Activity.ActivityType) {
         isTimerRunning = true
@@ -85,12 +94,13 @@ final class ActivityViewModel {
         elapsedTime = 0
 
         timerTask?.cancel()
-        timerTask = Task {
+        timerTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                if let start = timerStartTime {
-                    elapsedTime = Date().timeIntervalSince(start)
-                }
+                guard !Task.isCancelled else { break }
+                // @MainActor 클래스이므로 self 접근은 MainActor에서 실행
+                guard let self, let start = self.timerStartTime else { break }
+                self.elapsedTime = Date().timeIntervalSince(start)
             }
         }
     }
@@ -106,7 +116,19 @@ final class ActivityViewModel {
         return duration
     }
 
-    // MARK: - Save Activity
+    // MARK: - Validation
+
+    var isTemperatureValid: Bool {
+        guard let temp = Double(temperatureInput) else { return false }
+        return temp >= 34.0 && temp <= 43.0
+    }
+
+    var isAmountValid: Bool {
+        guard let ml = Double(amount) else { return false }
+        return ml > 0 && ml <= 500
+    }
+
+    // MARK: - Save Activity (낙관적 업데이트 + 롤백)
 
     func saveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
         var activity = Activity(babyId: babyId, type: type)
@@ -121,12 +143,16 @@ final class ActivityViewModel {
             activity.side = selectedSide
 
         case .feedingBottle:
+            guard isAmountValid else {
+                errorMessage = "수유량을 올바르게 입력해주세요. (1~500ml)"
+                return
+            }
             if isTimerRunning {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
             }
-            activity.amount = Double(amount) ?? 0
+            activity.amount = Double(amount)
 
         case .feedingSolid, .feedingSnack:
             break
@@ -143,6 +169,10 @@ final class ActivityViewModel {
             break
 
         case .temperature:
+            guard isTemperatureValid else {
+                errorMessage = "체온을 올바르게 입력해주세요. (34.0~43.0°C)"
+                return
+            }
             activity.temperature = Double(temperatureInput)
 
         case .medication:
@@ -160,35 +190,45 @@ final class ActivityViewModel {
             activity.note = note
         }
 
+        // 낙관적 업데이트: 먼저 UI 반영
+        todayActivities.insert(activity, at: 0)
+        let rollbackIndex = 0
+
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
-            todayActivities.insert(activity, at: 0)
-            computeSummary()
             await loadLatestActivities(userId: userId, babyId: babyId)
             resetForm()
         } catch {
-            errorMessage = "기록 저장에 실패했습니다."
+            // 롤백: 실패 시 UI에서 제거
+            if rollbackIndex < todayActivities.count, todayActivities[rollbackIndex].id == activity.id {
+                todayActivities.remove(at: rollbackIndex)
+            }
+            errorMessage = "기록 저장에 실패했습니다: \(error.localizedDescription)"
         }
     }
 
     func quickSave(userId: String, babyId: String, type: Activity.ActivityType) async {
         let activity = Activity(babyId: babyId, type: type)
+
+        todayActivities.insert(activity, at: 0)
+
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
-            todayActivities.insert(activity, at: 0)
-            computeSummary()
             await loadLatestActivities(userId: userId, babyId: babyId)
         } catch {
+            todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
         }
     }
 
     func deleteActivity(_ activity: Activity, userId: String) async {
+        let backup = todayActivities
+        todayActivities.removeAll { $0.id == activity.id }
+
         do {
             try await firestoreService.deleteActivity(activity.id, userId: userId, babyId: activity.babyId)
-            todayActivities.removeAll { $0.id == activity.id }
-            computeSummary()
         } catch {
+            todayActivities = backup
             errorMessage = "기록 삭제에 실패했습니다."
         }
     }
@@ -199,5 +239,6 @@ final class ActivityViewModel {
         temperatureInput = ""
         medicationName = ""
         note = ""
+        errorMessage = nil
     }
 }

@@ -7,6 +7,7 @@ final class CalendarViewModel {
     var activitiesForDate: [Activity] = []
     var activityDots: [Date: Set<Activity.ActivityCategory>] = [:]
     var isLoading = false
+    var errorMessage: String?
 
     private let firestoreService = FirestoreService.shared
 
@@ -51,6 +52,8 @@ final class CalendarViewModel {
         else { return }
 
         isLoading = true
+        defer { isLoading = false }
+
         do {
             let activities = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
@@ -66,20 +69,21 @@ final class CalendarViewModel {
             }
             activityDots = dots
         } catch {
-            // silently fail
+            errorMessage = "캘린더 데이터를 불러오지 못했습니다."
         }
-        isLoading = false
     }
 
     func loadActivitiesForDate(userId: String, babyId: String) async {
         isLoading = true
+        defer { isLoading = false }
+
         do {
             activitiesForDate = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId, date: selectedDate
             )
         } catch {
             activitiesForDate = []
+            errorMessage = "해당 날짜의 기록을 불러오지 못했습니다."
         }
-        isLoading = false
     }
 }
