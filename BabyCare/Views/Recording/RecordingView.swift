@@ -250,4 +250,5 @@ struct SaveButton: View {
         .environment(ActivityViewModel())
         .environment(BabyViewModel())
         .environment(AuthViewModel())
+        .environment(ProductViewModel())
 }

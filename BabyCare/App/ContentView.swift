@@ -10,45 +10,98 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authVM.isAuthenticated {
-                mainTabView
-                    .task {
-                        if let userId = authVM.currentUserId {
-                            await babyVM.loadBabies(userId: userId)
-                        }
-                    }
+                if babyVM.babies.isEmpty && !babyVM.isLoading {
+                    onboardingView
+                } else {
+                    mainTabView
+                }
             } else {
                 NavigationStack {
                     LoginView()
                 }
             }
         }
+        .task {
+            if let userId = authVM.currentUserId {
+                await babyVM.loadBabies(userId: userId)
+            }
+        }
     }
 
-    // MARK: - Main Tab View
+    // MARK: - Onboarding
+
+    private var onboardingView: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "heart.circle.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(Color(hex: "FF9FB5"))
+
+                Text("환영합니다!")
+                    .font(.title.weight(.bold))
+
+                Text("아기 정보를 등록하고\n올케어를 시작해보세요")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    babyVM.showAddBaby = true
+                } label: {
+                    Text("아기 등록하기")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(hex: "FF9FB5"))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .padding(.horizontal, 40)
+
+                Spacer()
+            }
+            .sheet(isPresented: Bindable(babyVM).showAddBaby) {
+                AddBabyView()
+            }
+        }
+    }
+
+    // MARK: - Main Tab View (홈 | 기록 | + | 건강 | 설정)
 
     private var mainTabView: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
-                Tab("대시보드", systemImage: "house.fill", value: 0) {
-                    DashboardView()
-                }
+                DashboardView()
+                    .tabItem {
+                        Label("홈", systemImage: "house.fill")
+                    }
+                    .tag(0)
 
-                Tab("캘린더", systemImage: "calendar", value: 1) {
-                    CalendarView()
-                }
+                CalendarView()
+                    .tabItem {
+                        Label("기록", systemImage: "calendar")
+                    }
+                    .tag(1)
 
-                // Spacer tab for center button
-                Tab("기록", systemImage: "plus.circle.fill", value: 2) {
-                    Color.clear
-                }
+                Color.clear
+                    .tabItem {
+                        Label("기록", systemImage: "plus.circle.fill")
+                    }
+                    .tag(2)
 
-                Tab("통계", systemImage: "chart.bar.fill", value: 3) {
-                    StatsView()
-                }
+                HealthView()
+                    .tabItem {
+                        Label("건강", systemImage: "heart.text.clipboard.fill")
+                    }
+                    .tag(3)
 
-                Tab("더보기", systemImage: "ellipsis", value: 4) {
-                    SettingsView()
-                }
+                SettingsView()
+                    .tabItem {
+                        Label("설정", systemImage: "gearshape.fill")
+                    }
+                    .tag(4)
             }
             .onChange(of: selectedTab) { oldValue, newValue in
                 if newValue == 2 {
@@ -57,7 +110,7 @@ struct ContentView: View {
                 }
             }
 
-            // Center floating button
+            // 중앙 플로팅 + 버튼
             Button {
                 showRecording = true
             } label: {

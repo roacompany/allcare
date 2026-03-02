@@ -46,6 +46,50 @@ final class ActivityViewModel {
         todayActivities.filter { $0.type.category == .feeding }.compactMap(\.amount).reduce(0, +)
     }
 
+    // MARK: - Predictions
+
+    var averageFeedingInterval: TimeInterval {
+        let feedings = todayActivities
+            .filter { $0.type.category == .feeding }
+            .sorted { $0.startTime < $1.startTime }
+
+        guard feedings.count >= 2 else {
+            return AppConstants.defaultFeedingIntervalHours * 3600
+        }
+
+        var intervals: [TimeInterval] = []
+        for i in 1..<feedings.count {
+            intervals.append(feedings[i].startTime.timeIntervalSince(feedings[i-1].startTime))
+        }
+        return intervals.reduce(0, +) / Double(intervals.count)
+    }
+
+    var nextFeedingEstimate: Date? {
+        guard let last = lastFeeding else { return nil }
+        return last.startTime.addingTimeInterval(averageFeedingInterval)
+    }
+
+    var nextFeedingText: String? {
+        guard let estimate = nextFeedingEstimate else { return nil }
+        let now = Date()
+        if estimate <= now {
+            return "수유 시간이 지났어요!"
+        }
+        let remaining = estimate.timeIntervalSince(now)
+        let minutes = Int(remaining / 60)
+        let hours = minutes / 60
+        let mins = minutes % 60
+        if hours > 0 {
+            return "약 \(hours)시간 \(mins)분 후"
+        }
+        return "약 \(mins)분 후"
+    }
+
+    var isFeedingOverdue: Bool {
+        guard let estimate = nextFeedingEstimate else { return false }
+        return estimate <= Date()
+    }
+
     // MARK: - Data Loading
 
     func loadTodayActivities(userId: String, babyId: String) async {
@@ -64,25 +108,22 @@ final class ActivityViewModel {
 
     private func loadLatestActivities(userId: String, babyId: String) async {
         // 각 쿼리 독립 실행, 개별 에러는 무시 (latest는 보조 정보)
-        async let feedingResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBreast) }
-        async let bottleResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBottle) }
-        async let sleepResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .sleep) }
-        async let diaperResult = Result { try await firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .diaperWet) }
+        async let feeding = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBreast)
+        async let bottle = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBottle)
+        async let sleepAct = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .sleep)
+        async let diaperAct = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .diaperWet)
 
-        let (f, b, s, d) = await (feedingResult, bottleResult, sleepResult, diaperResult)
-
-        let feedingVal = try? f.get()
-        let bottleVal = try? b.get()
+        let (f, b, s, d) = await (feeding, bottle, sleepAct, diaperAct)
 
         // 가장 최근 수유 (모유/분유 중 더 최근)
-        switch (feedingVal, bottleVal) {
+        switch (f, b) {
         case let (f?, b?):
             lastFeeding = f.startTime > b.startTime ? f : b
         default:
-            lastFeeding = feedingVal ?? bottleVal
+            lastFeeding = f ?? b
         }
-        lastSleep = try? s.get()
-        lastDiaper = try? d.get()
+        lastSleep = s
+        lastDiaper = d
     }
 
     // MARK: - Timer (스레드 안전)

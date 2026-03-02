@@ -13,7 +13,7 @@ final class AuthViewModel {
     var currentUserId: String?
 
     private let authService = AuthService.shared
-    private var listenerHandle: AuthStateDidChangeListenerHandle?
+    nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
         // 초기값 동기화
@@ -22,9 +22,11 @@ final class AuthViewModel {
 
         // Auth state 실시간 리스너
         listenerHandle = authService.addStateListener { [weak self] user in
+            let isAuth = user != nil
+            let uid = user?.uid
             Task { @MainActor [weak self] in
-                self?.isAuthenticated = user != nil
-                self?.currentUserId = user?.uid
+                self?.isAuthenticated = isAuth
+                self?.currentUserId = uid
             }
         }
     }

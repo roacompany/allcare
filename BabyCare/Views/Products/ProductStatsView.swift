@@ -68,7 +68,7 @@ struct ProductStatsView: View {
                     Text("재고 부족")
                     Spacer()
                     Text("\(productVM.lowStockProducts.count)개")
-                        .foregroundStyle(productVM.lowStockProducts.isEmpty ? .secondary : .orange)
+                        .foregroundStyle(productVM.lowStockProducts.isEmpty ? Color.secondary : Color.orange)
                 }
             }
         }

@@ -14,6 +14,7 @@ final class AppState {
     let stats = StatsViewModel()
     let diary = DiaryViewModel()
     let product = ProductViewModel()
+    let health = HealthViewModel()
 
     private init() {}
 }

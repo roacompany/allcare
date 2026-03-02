@@ -7,6 +7,7 @@ struct FeedingRecordView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(ProductViewModel.self) private var productVM
 
     let type: Activity.ActivityType
     var onSaved: (() -> Void)? = nil
@@ -144,6 +145,12 @@ struct FeedingRecordView: View {
         isSaving = true
         Task {
             await activityVM.saveActivity(userId: userId, babyId: baby.id, type: type)
+
+            // 분유 수유 시 재고 자동 차감
+            if type == .feedingBottle, let ml = Double(activityVM.amount), ml > 0 {
+                await productVM.deductFormulaStock(ml: ml, userId: userId)
+            }
+
             isSaving = false
             onSaved?()
         }
@@ -193,4 +200,5 @@ private struct SideButton: View {
         .environment(ActivityViewModel())
         .environment(BabyViewModel())
         .environment(AuthViewModel())
+        .environment(ProductViewModel())
 }

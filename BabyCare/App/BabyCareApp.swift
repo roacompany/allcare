@@ -20,6 +20,7 @@ struct BabyCareApp: App {
                 .environment(appState.stats)
                 .environment(appState.diary)
                 .environment(appState.product)
+                .environment(appState.health)
         }
     }
 }

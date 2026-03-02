@@ -196,6 +196,18 @@ final class ProductViewModel {
         await updateProduct(updated, userId: userId)
     }
 
+    /// 분유 재고 자동 차감 (분유 수유 기록 시 호출)
+    func deductFormulaStock(ml: Double, userId: String) async {
+        // 활성화된 분유 제품 중 재고가 있는 것을 찾음
+        guard let formulaProduct = products.first(where: {
+            $0.category == .formula && $0.isActive && ($0.remainingQuantity ?? 0) > 0
+        }) else { return }
+
+        // ml → 개 단위 변환 (1개 = 약 1회분, 여기선 ml 그대로 차감)
+        let deductAmount = max(1, Int(ml / 100)) // 100ml당 1개 차감
+        await useProduct(formulaProduct, amount: deductAmount, userId: userId)
+    }
+
     func resetForm() {
         name = ""
         brand = ""

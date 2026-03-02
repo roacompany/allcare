@@ -4,7 +4,7 @@ import UIKit
 
 final class StorageService: Sendable {
     static let shared = StorageService()
-    private let storage = Storage.storage()
+    nonisolated(unsafe) private let storage = Storage.storage()
 
     private init() {}
 
