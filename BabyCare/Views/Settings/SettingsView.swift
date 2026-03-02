@@ -50,14 +50,38 @@ struct SettingsView: View {
                     } label: {
                         Label("할 일", systemImage: "checklist")
                     }
+
+                    NavigationLink {
+                        RoutineView()
+                    } label: {
+                        Label("루틴", systemImage: "list.clipboard")
+                    }
+
+                    NavigationLink {
+                        StatsView()
+                    } label: {
+                        Label("통계", systemImage: "chart.bar.fill")
+                    }
                 }
 
                 // App Settings
                 Section("앱 설정") {
                     NavigationLink {
-                        Text("알림 설정")
+                        NotificationSettingsView()
                     } label: {
                         Label("알림", systemImage: "bell.fill")
+                    }
+
+                    NavigationLink {
+                        FamilySharingView()
+                    } label: {
+                        Label("가족 공유", systemImage: "person.2.fill")
+                    }
+
+                    NavigationLink {
+                        AIAdviceView()
+                    } label: {
+                        Label("AI 육아 조언", systemImage: "bubble.left.and.text.bubble.right.fill")
                     }
                 }
 
@@ -102,5 +126,69 @@ struct SettingsView: View {
                 Text("정말 로그아웃 하시겠습니까?")
             }
         }
+    }
+}
+
+// MARK: - NotificationSettingsView
+
+struct NotificationSettingsView: View {
+    @State private var feedingEnabled = NotificationSettings.feedingReminderEnabled
+    @State private var feedingHours = NotificationSettings.feedingIntervalHours
+    @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
+    @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
+
+    private let intervalOptions: [Double] = [1.5, 2, 2.5, 3, 3.5, 4, 5, 6]
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("수유 알림", isOn: $feedingEnabled)
+                    .onChange(of: feedingEnabled) { _, val in
+                        NotificationSettings.feedingReminderEnabled = val
+                        if !val { NotificationService.shared.cancelFeedingReminders() }
+                    }
+
+                if feedingEnabled {
+                    Picker("수유 간격", selection: $feedingHours) {
+                        ForEach(intervalOptions, id: \.self) { hours in
+                            Text(hours.truncatingRemainder(dividingBy: 1) == 0
+                                 ? "\(Int(hours))시간"
+                                 : "\(Int(hours))시간 \(Int(hours.truncatingRemainder(dividingBy: 1) * 60))분")
+                                .tag(hours)
+                        }
+                    }
+                    .onChange(of: feedingHours) { _, val in
+                        NotificationSettings.feedingIntervalHours = val
+                    }
+                }
+            } header: {
+                Text("수유")
+            } footer: {
+                Text("수유 기록 후 설정한 간격이 지나면 알림을 보냅니다.")
+            }
+
+            Section {
+                Toggle("접종 알림", isOn: $vaccinationEnabled)
+                    .onChange(of: vaccinationEnabled) { _, val in
+                        NotificationSettings.vaccinationReminderEnabled = val
+                    }
+            } header: {
+                Text("예방접종")
+            } footer: {
+                Text("예정된 접종 7일 전, 1일 전에 알림을 보냅니다.")
+            }
+
+            Section {
+                Toggle("재구매 알림", isOn: $reorderEnabled)
+                    .onChange(of: reorderEnabled) { _, val in
+                        NotificationSettings.reorderReminderEnabled = val
+                    }
+            } header: {
+                Text("용품")
+            } footer: {
+                Text("용품 재고가 설정한 기준 이하로 떨어지면 알림을 보냅니다.")
+            }
+        }
+        .navigationTitle("알림 설정")
     }
 }

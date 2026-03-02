@@ -7,11 +7,13 @@ struct DiaperRecordView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(ProductViewModel.self) private var productVM
 
     var onSaved: (() -> Void)? = nil
 
     @State private var selectedDiaperType: Activity.ActivityType = .diaperWet
     @State private var isSaving = false
+    @State private var productCandidates: [BabyProduct] = []
 
     private let accentColor = Color(hex: "85C1A3")   // sage green pastel
 
@@ -84,6 +86,21 @@ struct DiaperRecordView: View {
             }
             .padding(.top, 8)
         }
+        .sheet(isPresented: Binding(
+            get: { !productCandidates.isEmpty },
+            set: { if !$0 { productCandidates = [] } }
+        )) {
+            ProductPickerSheet(products: productCandidates) { selected in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    await productVM.deductFromProduct(selected, userId: userId)
+                }
+                productCandidates = []
+                isSaving = false
+                onSaved?()
+            }
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Actions
@@ -93,14 +110,17 @@ struct DiaperRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         isSaving = true
         Task {
-            // quickSave does not handle note; use saveActivity for note support
             await activityVM.saveActivity(
                 userId: userId,
                 babyId: baby.id,
                 type: selectedDiaperType
             )
-            isSaving = false
-            onSaved?()
+            if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: userId) {
+                productCandidates = candidates
+            } else {
+                isSaving = false
+                onSaved?()
+            }
         }
     }
 

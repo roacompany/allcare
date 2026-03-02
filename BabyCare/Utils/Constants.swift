@@ -48,4 +48,6 @@ enum FirestoreCollections {
     static let products = "products"
     static let vaccinations = "vaccinations"
     static let milestones = "milestones"
+    static let invites = "invites"
+    static let sharedAccess = "sharedAccess"
 }

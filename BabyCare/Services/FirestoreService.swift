@@ -1,11 +1,25 @@
 import Foundation
 import FirebaseFirestore
+import OSLog
 
 final class FirestoreService: Sendable {
     static let shared = FirestoreService()
     nonisolated(unsafe) private let db = Firestore.firestore()
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "Firestore")
 
     private init() {}
+
+    /// Firestore 문서 배열 디코딩. 개별 실패는 로깅 후 스킵.
+    private func decodeDocuments<T: Decodable>(_ documents: [QueryDocumentSnapshot], as type: T.Type) -> [T] {
+        documents.compactMap { doc in
+            do {
+                return try doc.data(as: T.self)
+            } catch {
+                Self.logger.warning("Document \(doc.documentID) decode failed: \(error.localizedDescription)")
+                return nil
+            }
+        }
+    }
 
     // MARK: - Baby
 
@@ -23,7 +37,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.babies)
             .order(by: "createdAt", descending: false)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Baby.self) }
+        return decodeDocuments(snapshot.documents, as: Baby.self)
     }
 
     /// Baby 삭제 시 하위 컬렉션(activities, growth, diary)도 함께 삭제.
@@ -68,7 +82,7 @@ final class FirestoreService: Sendable {
             .whereField("startTime", isLessThanOrEqualTo: Timestamp(date: end))
             .order(by: "startTime", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Activity.self) }
+        return decodeDocuments(snapshot.documents, as: Activity.self)
     }
 
     func fetchActivities(userId: String, babyId: String, from startDate: Date, to endDate: Date) async throws -> [Activity] {
@@ -81,7 +95,7 @@ final class FirestoreService: Sendable {
             .whereField("startTime", isLessThanOrEqualTo: Timestamp(date: endDate))
             .order(by: "startTime", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Activity.self) }
+        return decodeDocuments(snapshot.documents, as: Activity.self)
     }
 
     func fetchLatestActivity(userId: String, babyId: String, type: Activity.ActivityType) async throws -> Activity? {
@@ -94,7 +108,7 @@ final class FirestoreService: Sendable {
             .order(by: "startTime", descending: true)
             .limit(to: 1)
             .getDocuments()
-        return snapshot.documents.first.flatMap { try? $0.data(as: Activity.self) }
+        return decodeDocuments(snapshot.documents, as: Activity.self).first
     }
 
     func deleteActivity(_ activityId: String, userId: String, babyId: String) async throws {
@@ -127,7 +141,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.growth)
             .order(by: "date", descending: false)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: GrowthRecord.self) }
+        return decodeDocuments(snapshot.documents, as: GrowthRecord.self)
     }
 
     // MARK: - Diary
@@ -150,7 +164,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.diary)
             .order(by: "date", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: DiaryEntry.self) }
+        return decodeDocuments(snapshot.documents, as: DiaryEntry.self)
     }
 
     // MARK: - Todo
@@ -169,7 +183,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.todos)
             .order(by: "createdAt", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: TodoItem.self) }
+        return decodeDocuments(snapshot.documents, as: TodoItem.self)
     }
 
     func deleteTodo(_ todoId: String, userId: String) async throws {
@@ -196,7 +210,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.routines)
             .order(by: "createdAt", descending: false)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Routine.self) }
+        return decodeDocuments(snapshot.documents, as: Routine.self)
     }
 
     func deleteRoutine(_ routineId: String, userId: String) async throws {
@@ -223,7 +237,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.products)
             .order(by: "updatedAt", descending: true)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: BabyProduct.self) }
+        return decodeDocuments(snapshot.documents, as: BabyProduct.self)
     }
 
     func deleteProduct(_ productId: String, userId: String) async throws {
@@ -268,7 +282,7 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.vaccinations)
             .order(by: "scheduledDate", descending: false)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Vaccination.self) }
+        return decodeDocuments(snapshot.documents, as: Vaccination.self)
     }
 
     // MARK: - Milestone
@@ -305,6 +319,60 @@ final class FirestoreService: Sendable {
             .collection(FirestoreCollections.milestones)
             .order(by: "expectedAgeMonths", descending: false)
             .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Milestone.self) }
+        return decodeDocuments(snapshot.documents, as: Milestone.self)
+    }
+
+    // MARK: - Family Invite
+
+    func saveInvite(_ invite: FamilyInvite) async throws {
+        let ref = db.collection(FirestoreCollections.invites).document(invite.id)
+        try ref.setData(from: invite)
+    }
+
+    func findInviteByCode(_ code: String) async throws -> FamilyInvite? {
+        let snapshot = try await db.collection(FirestoreCollections.invites)
+            .whereField("code", isEqualTo: code)
+            .whereField("isUsed", isEqualTo: false)
+            .limit(to: 1)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: FamilyInvite.self).first
+    }
+
+    func markInviteUsed(_ inviteId: String) async throws {
+        try await db.collection(FirestoreCollections.invites)
+            .document(inviteId)
+            .updateData(["isUsed": true])
+    }
+
+    // MARK: - Shared Access
+
+    func saveSharedAccess(_ access: SharedBabyAccess, userId: String) async throws {
+        let ref = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.sharedAccess)
+            .document(access.id)
+        try ref.setData(from: access)
+    }
+
+    func fetchSharedAccess(userId: String) async throws -> [SharedBabyAccess] {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.sharedAccess)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: SharedBabyAccess.self)
+    }
+
+    func fetchBaby(userId: String, babyId: String) async throws -> Baby? {
+        let doc = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .getDocument()
+        do {
+            return try doc.data(as: Baby.self)
+        } catch {
+            Self.logger.warning("Baby \(babyId) decode failed: \(error.localizedDescription)")
+            return nil
+        }
     }
 }

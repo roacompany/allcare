@@ -60,6 +60,9 @@ struct AddBabyView: View {
                         Task {
                             guard let userId = authVM.currentUserId else { return }
                             await babyVM.addBaby(userId: userId)
+                            if babyVM.errorMessage == nil {
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(!babyVM.isFormValid || babyVM.isLoading)

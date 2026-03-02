@@ -6,6 +6,9 @@ struct StatsView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
 
+    @State private var exportURL: URL?
+    @State private var showShareSheet = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -36,11 +39,38 @@ struct StatsView: View {
                 .padding(.vertical)
             }
             .navigationTitle("통계")
+            .toolbar {
+                Button {
+                    let babyName = babyVM.selectedBaby?.name ?? "아기"
+                    if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
+                        exportURL = url
+                        showShareSheet = true
+                    }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(statsVM.weeklyActivities.isEmpty)
+            }
             .task { await loadStats() }
             .onChange(of: statsVM.selectedPeriod) {
                 Task { await loadStats() }
             }
+            .sheet(isPresented: $showShareSheet) {
+                if let url = exportURL {
+                    ShareSheet(items: [url])
+                }
+            }
         }
+    }
+
+    // MARK: - Share Sheet
+
+    private struct ShareSheet: UIViewControllerRepresentable {
+        let items: [Any]
+        func makeUIViewController(context: Context) -> UIActivityViewController {
+            UIActivityViewController(activityItems: items, applicationActivities: nil)
+        }
+        func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
     }
 
     // MARK: - Feeding Chart

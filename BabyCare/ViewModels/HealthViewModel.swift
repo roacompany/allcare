@@ -39,7 +39,7 @@ final class HealthViewModel {
 
     // MARK: - Load
 
-    func loadAll(userId: String, babyId: String) async {
+    func loadAll(userId: String, babyId: String, babyName: String = "아기") async {
         isLoading = true
         defer { isLoading = false }
 
@@ -49,6 +49,7 @@ final class HealthViewModel {
             let (vax, ms) = try await (vaxResult, msResult)
             vaccinations = vax
             milestones = ms
+            scheduleVaccinationReminders(babyName: babyName)
         } catch {
             errorMessage = "건강 정보를 불러오지 못했습니다: \(error.localizedDescription)"
         }
@@ -106,7 +107,7 @@ final class HealthViewModel {
 
     // MARK: - Schedule Generation
 
-    func generateScheduleIfNeeded(babyId: String, birthDate: Date, userId: String) async {
+    func generateScheduleIfNeeded(babyId: String, birthDate: Date, userId: String, babyName: String = "아기") async {
         guard vaccinations.isEmpty else { return }
 
         let generatedVax = Vaccination.generateSchedule(babyId: babyId, birthDate: birthDate)
@@ -120,10 +121,18 @@ final class HealthViewModel {
             async let saveVax: Void = firestoreService.saveVaccinations(generatedVax, userId: userId)
             async let saveMs: Void = firestoreService.saveMilestones(generatedMs, userId: userId)
             _ = try await (saveVax, saveMs)
+            scheduleVaccinationReminders(babyName: babyName)
         } catch {
             vaccinations = []
             milestones = []
             errorMessage = "예방접종 스케줄 생성에 실패했습니다: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: - Vaccination Reminders
+
+    private func scheduleVaccinationReminders(babyName: String) {
+        let upcoming = vaccinations.filter { !$0.isCompleted && $0.scheduledDate > Date() }
+        NotificationService.shared.scheduleVaccinationReminders(vaccinations: upcoming, babyName: babyName)
     }
 }

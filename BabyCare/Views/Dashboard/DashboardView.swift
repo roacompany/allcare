@@ -8,6 +8,8 @@ struct DashboardView: View {
     @Environment(HealthViewModel.self) private var healthVM
 
     @State private var showBabySelector = false
+    @State private var editingActivity: Activity?
+    @State private var productCandidates: [BabyProduct] = []
 
     private let feedingColor = Color(hex: "FF9FB5")
     private let sleepColor = Color(hex: "9FB5FF")
@@ -20,6 +22,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     alertBannersSection
+                    aiAdviceShortcut
                     predictionSection
                     summaryCardsSection
                     quickActionsSection
@@ -42,6 +45,28 @@ struct DashboardView: View {
         .task {
             await loadData()
         }
+        .sheet(item: $editingActivity) { activity in
+            ActivityEditSheet(activity: activity) { updated in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    await activityVM.updateActivity(updated, userId: userId)
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: Binding(
+            get: { !productCandidates.isEmpty },
+            set: { if !$0 { productCandidates = [] } }
+        )) {
+            ProductPickerSheet(products: productCandidates) { selected in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    await productVM.deductFromProduct(selected, userId: userId)
+                }
+                productCandidates = []
+            }
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Header
@@ -53,19 +78,21 @@ struct DashboardView: View {
             }
         } label: {
             HStack(spacing: 8) {
-                VStack(alignment: .center, spacing: 2) {
-                    if let baby = babyVM.selectedBaby {
+                if let baby = babyVM.selectedBaby {
+                    Text(baby.gender.emoji)
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(baby.name)
                             .font(.headline)
                             .foregroundStyle(.primary)
                         Text(baby.ageText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                    } else {
-                        Text("아기 선택")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
                     }
+                } else {
+                    Text("아기 선택")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
                 }
 
                 if babyVM.babies.count > 1 {
@@ -129,6 +156,40 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - AI Advice Shortcut
+
+    private var aiAdviceShortcut: some View {
+        NavigationLink {
+            AIAdviceView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                    .font(.title3)
+                    .foregroundStyle(.purple)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI 육아 조언")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Text("궁금한 점을 물어보세요")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.purple.opacity(0.06))
+            )
+        }
+    }
+
     // MARK: - Prediction
 
     @ViewBuilder
@@ -170,6 +231,19 @@ struct DashboardView: View {
             HStack(spacing: 12) {
                 sleepSummaryCard
                 diaperSummaryCard
+            }
+
+            NavigationLink {
+                StatsView()
+            } label: {
+                HStack {
+                    Text("통계 자세히 보기")
+                        .font(.caption.weight(.medium))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
@@ -312,14 +386,11 @@ struct DashboardView: View {
                 QuickActionButton(type: .feedingBreast) {
                     await quickSave(type: .feedingBreast)
                 }
-                QuickActionButton(type: .feedingBottle) {
-                    await quickSave(type: .feedingBottle)
-                }
                 QuickActionButton(type: .feedingSolid) {
                     await quickSave(type: .feedingSolid)
                 }
-                QuickActionButton(type: .sleep) {
-                    await quickSave(type: .sleep)
+                QuickActionButton(type: .feedingSnack) {
+                    await quickSave(type: .feedingSnack)
                 }
                 QuickActionButton(type: .diaperWet) {
                     await quickSave(type: .diaperWet)
@@ -327,11 +398,14 @@ struct DashboardView: View {
                 QuickActionButton(type: .diaperDirty) {
                     await quickSave(type: .diaperDirty)
                 }
+                QuickActionButton(type: .diaperBoth) {
+                    await quickSave(type: .diaperBoth)
+                }
                 QuickActionButton(type: .bath) {
                     await quickSave(type: .bath)
                 }
-                QuickActionButton(type: .temperature) {
-                    await quickSave(type: .temperature)
+                QuickActionButton(type: .medication) {
+                    await quickSave(type: .medication)
                 }
             }
         }
@@ -358,6 +432,25 @@ struct DashboardView: View {
                 VStack(spacing: 0) {
                     ForEach(activityVM.todayActivities) { activity in
                         TimelineRow(activity: activity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                editingActivity = activity
+                            }
+                            .contextMenu {
+                                Button {
+                                    editingActivity = activity
+                                } label: {
+                                    Label("시간 수정", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) {
+                                    Task {
+                                        guard let userId = authVM.currentUserId else { return }
+                                        await activityVM.deleteActivity(activity, userId: userId)
+                                    }
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
+                            }
                         if activity.id != activityVM.todayActivities.last?.id {
                             Divider()
                                 .padding(.leading, 56)
@@ -393,9 +486,12 @@ struct DashboardView: View {
         guard let userId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
 
+        // 알림 권한 요청
+        _ = await NotificationService.shared.requestPermission()
+
         // 병렬 로딩: 활동 + 건강 + 용품
         async let loadActivities: Void = activityVM.loadTodayActivities(userId: userId, babyId: baby.id)
-        async let loadHealth: Void = healthVM.loadAll(userId: userId, babyId: baby.id)
+        async let loadHealth: Void = healthVM.loadAll(userId: userId, babyId: baby.id, babyName: baby.name)
         async let loadProducts: Void = productVM.loadProducts(userId: userId)
 
         _ = await (loadActivities, loadHealth, loadProducts)
@@ -404,14 +500,21 @@ struct DashboardView: View {
         await healthVM.generateScheduleIfNeeded(
             babyId: baby.id,
             birthDate: baby.birthDate,
-            userId: userId
+            userId: userId,
+            babyName: baby.name
         )
+
+        // 위젯 데이터 동기화
+        activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
     }
 
     private func quickSave(type: Activity.ActivityType) async {
         guard let userId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         await activityVM.quickSave(userId: userId, babyId: baby.id, type: type)
+        if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
+            productCandidates = candidates
+        }
     }
 }
 
@@ -527,6 +630,94 @@ private struct TimelineRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 4)
+    }
+}
+
+// MARK: - Activity Edit Sheet
+
+struct ActivityEditSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let activity: Activity
+    let onSave: (Activity) -> Void
+
+    @State private var editedStartTime: Date
+    @State private var editedEndTime: Date?
+
+    init(activity: Activity, onSave: @escaping (Activity) -> Void) {
+        self.activity = activity
+        self.onSave = onSave
+        _editedStartTime = State(initialValue: activity.startTime)
+        _editedEndTime = State(initialValue: activity.endTime)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(activity.type.color).opacity(0.18))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: activity.type.icon)
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color(activity.type.color))
+                        }
+                        Text(activity.type.displayName)
+                            .font(.headline)
+                    }
+                }
+
+                Section("시작 시간") {
+                    DatePicker(
+                        "시작",
+                        selection: $editedStartTime,
+                        in: ...Date(),
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                }
+
+                if activity.endTime != nil || activity.duration != nil {
+                    Section("종료 시간") {
+                        DatePicker(
+                            "종료",
+                            selection: Binding(
+                                get: { editedEndTime ?? editedStartTime },
+                                set: { editedEndTime = $0 }
+                            ),
+                            in: editedStartTime...Date(),
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                    }
+                }
+            }
+            .navigationTitle("시간 수정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        var updated = activity
+                        updated.startTime = editedStartTime
+                        if let end = editedEndTime {
+                            updated.endTime = end
+                            updated.duration = end.timeIntervalSince(editedStartTime)
+                        } else if activity.duration != nil {
+                            let duration = (activity.endTime ?? activity.startTime.addingTimeInterval(activity.duration ?? 0))
+                                .timeIntervalSince(activity.startTime)
+                            updated.endTime = editedStartTime.addingTimeInterval(duration)
+                        }
+                        onSave(updated)
+                        dismiss()
+                    }
+                    .bold()
+                }
+            }
+        }
     }
 }
 

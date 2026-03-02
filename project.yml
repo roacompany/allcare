@@ -1,6 +1,6 @@
 name: BabyCare
 options:
-  bundleIdPrefix: com.babycare
+  bundleIdPrefix: com.roacompany
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "16.2"
@@ -10,8 +10,10 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "R24J6R4S7X"
     TARGETED_DEVICE_FAMILY: "1"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "2"
     INFOPLIST_KEY_CFBundleDisplayName: "올케어"
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.healthcare-fitness"
     ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
@@ -34,11 +36,21 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseStorage
+      - target: BabyCareWidgetExtension
+    entitlements:
+      path: BabyCare/BabyCare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.roacompany.allcare
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.babycare.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.roacompany.allcare
+        CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIUserInterfaceStyle: "Automatic"
     info:
       path: BabyCare/Info.plist
@@ -46,6 +58,45 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+  BabyCareWidgetExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: BabyCareWidget
+      - path: BabyCare/Services/WidgetDataStore.swift
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    entitlements:
+      path: BabyCareWidget/BabyCareWidgetExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.roacompany.allcare
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.roacompany.allcare.widget
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: "올케어 위젯"
+        GENERATE_INFOPLIST_FILE: true
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "2"
+        INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    info:
+      path: BabyCareWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
   BabyCareTests:
     type: bundle.unit-test

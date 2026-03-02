@@ -3,22 +3,30 @@ import SwiftUI
 struct SignUpView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
-    // Local confirm password state to mirror authVM.confirmPassword
-    // using @Bindable for two-way binding with @Observable
+    private var bgGradient: [Color] {
+        colorScheme == .dark
+            ? [Color(red: 0.1, green: 0.1, blue: 0.18), Color(red: 0.12, green: 0.1, blue: 0.2)]
+            : [Color(red: 0.94, green: 0.97, blue: 1.0), Color(red: 0.98, green: 0.93, blue: 0.97)]
+    }
+
+    private var accentPurple: Color {
+        colorScheme == .dark
+            ? Color(red: 0.7, green: 0.6, blue: 1.0)
+            : Color(red: 0.55, green: 0.5, blue: 0.85)
+    }
+
+    private var fieldBorder: Color {
+        colorScheme == .dark
+            ? Color(.systemGray4)
+            : Color(red: 0.8, green: 0.8, blue: 0.95)
+    }
 
     var body: some View {
         ZStack {
-            // Pastel background gradient
-            LinearGradient(
-                colors: [
-                    Color(red: 0.94, green: 0.97, blue: 1.0),
-                    Color(red: 0.98, green: 0.93, blue: 0.97)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            LinearGradient(colors: bgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 28) {
@@ -37,11 +45,11 @@ struct SignUpView: View {
 
                         Text("회원가입")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(red: 0.35, green: 0.3, blue: 0.5))
+                            .foregroundStyle(.primary)
 
                         Text("계정을 만들어 아이의 성장을 기록하세요")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
 
@@ -51,36 +59,28 @@ struct SignUpView: View {
                         if let error = authVM.errorMessage {
                             HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.circle.fill")
-                                    .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.4))
+                                    .foregroundStyle(.red)
                                 Text(error)
                                     .font(.footnote)
-                                    .foregroundColor(Color(red: 0.7, green: 0.2, blue: 0.2))
+                                    .foregroundStyle(.red)
                                 Spacer()
                             }
                             .padding(12)
-                            .background(Color(red: 1.0, green: 0.92, blue: 0.92))
+                            .background(.red.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
 
                         @Bindable var vm = authVM
 
                         // Name field
-                        FormField(
-                            label: "이름",
-                            icon: "person.fill",
-                            placeholder: "이름을 입력하세요"
-                        ) {
+                        AuthFormField(label: "이름", icon: "person.fill", borderColor: fieldBorder) {
                             TextField("이름을 입력하세요", text: $vm.displayName)
                                 .textContentType(.name)
                                 .autocorrectionDisabled()
                         }
 
                         // Email field
-                        FormField(
-                            label: "이메일",
-                            icon: "envelope.fill",
-                            placeholder: "이메일 주소를 입력하세요"
-                        ) {
+                        AuthFormField(label: "이메일", icon: "envelope.fill", borderColor: fieldBorder) {
                             TextField("이메일 주소를 입력하세요", text: $vm.email)
                                 .keyboardType(.emailAddress)
                                 .textContentType(.emailAddress)
@@ -89,22 +89,14 @@ struct SignUpView: View {
                         }
 
                         // Password field
-                        FormField(
-                            label: "비밀번호",
-                            icon: "lock.fill",
-                            placeholder: "비밀번호를 입력하세요"
-                        ) {
+                        AuthFormField(label: "비밀번호", icon: "lock.fill", borderColor: fieldBorder) {
                             SecureField("비밀번호를 입력하세요", text: $vm.password)
                                 .textContentType(.newPassword)
                         }
 
                         // Confirm password field
                         VStack(alignment: .leading, spacing: 6) {
-                            FormField(
-                                label: "비밀번호 확인",
-                                icon: "lock.rotation",
-                                placeholder: "비밀번호를 다시 입력하세요"
-                            ) {
+                            AuthFormField(label: "비밀번호 확인", icon: "lock.rotation", borderColor: fieldBorder) {
                                 SecureField("비밀번호를 다시 입력하세요", text: $vm.confirmPassword)
                                     .textContentType(.newPassword)
                             }
@@ -115,10 +107,10 @@ struct SignUpView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: matches ? "checkmark.circle.fill" : "xmark.circle.fill")
                                         .font(.caption)
-                                        .foregroundColor(matches ? Color(red: 0.3, green: 0.75, blue: 0.5) : Color(red: 0.9, green: 0.35, blue: 0.35))
+                                        .foregroundStyle(matches ? .green : .red)
                                     Text(matches ? "비밀번호가 일치합니다" : "비밀번호가 일치하지 않습니다")
                                         .font(.caption)
-                                        .foregroundColor(matches ? Color(red: 0.3, green: 0.65, blue: 0.45) : Color(red: 0.8, green: 0.3, blue: 0.3))
+                                        .foregroundStyle(matches ? .green : .red)
                                 }
                                 .padding(.leading, 4)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -145,7 +137,7 @@ struct SignUpView: View {
                                 }
                                 Text(authVM.isLoading ? "가입 중..." : "회원가입")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(16)
@@ -160,7 +152,7 @@ struct SignUpView: View {
                                 )
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .shadow(color: Color(red: 0.55, green: 0.5, blue: 0.85).opacity(0.35), radius: 8, y: 4)
+                            .shadow(color: accentPurple.opacity(0.35), radius: 8, y: 4)
                         }
                         .disabled(authVM.isLoading || !isFormValid)
                         .opacity(!isFormValid ? 0.6 : 1.0)
@@ -169,26 +161,26 @@ struct SignUpView: View {
                         // Terms notice
                         Text("가입하시면 서비스 이용약관 및 개인정보 처리방침에 동의하시는 것으로 간주됩니다.")
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(24)
-                    .background(Color.white.opacity(0.7))
+                    .background(Color(.secondarySystemBackground).opacity(0.85))
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.06), radius: 16, y: 6)
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.06), radius: 16, y: 6)
                     .padding(.horizontal, 20)
 
                     // Login link
                     HStack(spacing: 4) {
                         Text("이미 계정이 있으신가요?")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
 
                         Button("로그인") {
                             dismiss()
                         }
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(Color(red: 0.55, green: 0.5, blue: 0.85))
+                        .foregroundStyle(accentPurple)
                     }
                     .padding(.bottom, 40)
                 }
@@ -208,7 +200,7 @@ struct SignUpView: View {
                         Text("로그인")
                             .font(.subheadline)
                     }
-                    .foregroundColor(Color(red: 0.55, green: 0.5, blue: 0.85))
+                    .foregroundStyle(accentPurple)
                 }
             }
         }
@@ -227,27 +219,27 @@ struct SignUpView: View {
     }
 }
 
-// MARK: - FormField
+// MARK: - AuthFormField
 
-private struct FormField<Content: View>: View {
+private struct AuthFormField<Content: View>: View {
     let label: String
     let icon: String
-    let placeholder: String
+    var borderColor: Color = Color(.separator)
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(label, systemImage: icon)
                 .font(.footnote.weight(.semibold))
-                .foregroundColor(Color(red: 0.5, green: 0.4, blue: 0.65))
+                .foregroundStyle(.secondary)
 
             content()
                 .padding(14)
-                .background(Color.white.opacity(0.85))
+                .background(Color(.tertiarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(red: 0.8, green: 0.8, blue: 0.95), lineWidth: 1.5)
+                        .stroke(borderColor, lineWidth: 1.5)
                 )
         }
     }
@@ -274,7 +266,7 @@ private struct PasswordStrengthView: View {
             HStack(spacing: 4) {
                 ForEach(0..<3) { index in
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(index < strength.filledBars ? strength.color : Color(white: 0.9))
+                        .fill(index < strength.filledBars ? strength.color : Color(.systemGray4))
                         .frame(height: 4)
                         .animation(.easeInOut(duration: 0.25), value: strength.filledBars)
                 }
@@ -282,7 +274,7 @@ private struct PasswordStrengthView: View {
 
             Text("비밀번호 강도: \(strength.label)")
                 .font(.caption2)
-                .foregroundColor(strength.color)
+                .foregroundStyle(strength.color)
         }
         .padding(.horizontal, 2)
     }
@@ -300,9 +292,9 @@ private struct PasswordStrengthView: View {
 
         var color: Color {
             switch self {
-            case .weak: return Color(red: 0.9, green: 0.35, blue: 0.35)
-            case .medium: return Color(red: 0.95, green: 0.7, blue: 0.2)
-            case .strong: return Color(red: 0.3, green: 0.75, blue: 0.5)
+            case .weak: return .red
+            case .medium: return .orange
+            case .strong: return .green
             }
         }
 

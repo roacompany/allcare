@@ -174,9 +174,11 @@ final class ActivityViewModel {
     func saveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
         var activity = Activity(babyId: babyId, type: type)
 
+        let timerBelongsToMe = isTimerRunning && activeTimerType == type
+
         switch type {
         case .feedingBreast:
-            if isTimerRunning {
+            if timerBelongsToMe {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
@@ -188,7 +190,7 @@ final class ActivityViewModel {
                 errorMessage = "수유량을 올바르게 입력해주세요. (1~500ml)"
                 return
             }
-            if isTimerRunning {
+            if timerBelongsToMe {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
@@ -199,7 +201,7 @@ final class ActivityViewModel {
             break
 
         case .sleep:
-            if isTimerRunning {
+            if timerBelongsToMe {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
@@ -220,7 +222,7 @@ final class ActivityViewModel {
             activity.medicationName = medicationName.isEmpty ? nil : medicationName
 
         case .bath:
-            if isTimerRunning {
+            if timerBelongsToMe {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
@@ -238,6 +240,7 @@ final class ActivityViewModel {
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
             await loadLatestActivities(userId: userId, babyId: babyId)
+            scheduleFeedingReminderIfNeeded(type: type, babyId: babyId)
             resetForm()
         } catch {
             // 롤백: 실패 시 UI에서 제거
@@ -249,16 +252,36 @@ final class ActivityViewModel {
     }
 
     func quickSave(userId: String, babyId: String, type: Activity.ActivityType) async {
-        let activity = Activity(babyId: babyId, type: type)
+        var activity = Activity(babyId: babyId, type: type)
+
+        // 빠른 기록에서도 최소한의 기본값 설정
+        if type == .feedingBreast {
+            activity.side = .left
+        }
 
         todayActivities.insert(activity, at: 0)
 
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
             await loadLatestActivities(userId: userId, babyId: babyId)
+            scheduleFeedingReminderIfNeeded(type: type, babyId: babyId)
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
+        }
+    }
+
+    func updateActivity(_ activity: Activity, userId: String) async {
+        guard let index = todayActivities.firstIndex(where: { $0.id == activity.id }) else { return }
+
+        let backup = todayActivities[index]
+        todayActivities[index] = activity
+
+        do {
+            try await firestoreService.saveActivity(activity, userId: userId)
+        } catch {
+            todayActivities[index] = backup
+            errorMessage = "기록 수정에 실패했습니다."
         }
     }
 
@@ -281,5 +304,41 @@ final class ActivityViewModel {
         medicationName = ""
         note = ""
         errorMessage = nil
+    }
+
+    // MARK: - Feeding Reminder
+
+    private func scheduleFeedingReminderIfNeeded(type: Activity.ActivityType, babyId: String) {
+        guard type.category == .feeding else { return }
+        let minutes = Int(NotificationSettings.feedingIntervalHours * 60)
+        NotificationService.shared.scheduleFeedingReminder(babyName: "아기", afterMinutes: minutes)
+    }
+
+    // MARK: - Widget Data Sync
+
+    func syncWidgetData(babyName: String, babyAge: String) {
+        let lastFeeding = todayActivities
+            .filter { $0.type.category == .feeding }
+            .sorted { $0.startTime > $1.startTime }.first?.startTime
+        let lastFeedingType = todayActivities
+            .filter { $0.type.category == .feeding }
+            .sorted { $0.startTime > $1.startTime }.first?.type.displayName
+        let lastSleep = todayActivities
+            .filter { $0.type == .sleep }
+            .sorted { $0.startTime > $1.startTime }.first?.startTime
+        let lastDiaper = todayActivities
+            .filter { $0.type.category == .diaper }
+            .sorted { $0.startTime > $1.startTime }.first?.startTime
+        let interval = Int(NotificationSettings.feedingIntervalHours * 60)
+
+        WidgetDataStore.update(
+            babyName: babyName,
+            babyAge: babyAge,
+            lastFeeding: lastFeeding,
+            lastFeedingType: lastFeedingType,
+            lastSleep: lastSleep,
+            lastDiaper: lastDiaper,
+            feedingIntervalMinutes: interval
+        )
     }
 }

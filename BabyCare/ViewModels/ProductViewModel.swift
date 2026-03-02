@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 @MainActor @Observable
 final class ProductViewModel {
@@ -196,16 +197,42 @@ final class ProductViewModel {
         await updateProduct(updated, userId: userId)
     }
 
-    /// 분유 재고 자동 차감 (분유 수유 기록 시 호출)
-    func deductFormulaStock(ml: Double, userId: String) async {
-        // 활성화된 분유 제품 중 재고가 있는 것을 찾음
-        guard let formulaProduct = products.first(where: {
-            $0.category == .formula && $0.isActive && ($0.remainingQuantity ?? 0) > 0
-        }) else { return }
+    /// 활동 타입에 해당하는 용품 카테고리
+    func categoryForActivity(_ type: Activity.ActivityType) -> BabyProduct.ProductCategory? {
+        switch type {
+        case .feedingBottle: .formula
+        case .feedingSolid, .feedingSnack: .babyFood
+        case .diaperWet, .diaperDirty, .diaperBoth: .diaper
+        case .bath: .bath
+        case .medication: .medicine
+        default: nil
+        }
+    }
 
-        // ml → 개 단위 변환 (1개 = 약 1회분, 여기선 ml 그대로 차감)
-        let deductAmount = max(1, Int(ml / 100)) // 100ml당 1개 차감
-        await useProduct(formulaProduct, amount: deductAmount, userId: userId)
+    /// 해당 카테고리의 활성 재고 용품 목록
+    func availableProducts(for category: BabyProduct.ProductCategory) -> [BabyProduct] {
+        products.filter { $0.category == category && $0.isActive && ($0.remainingQuantity ?? 0) > 0 }
+    }
+
+    /// 활동 기록에 따른 용품 재고 자동 차감 (용품이 1개면 자동, 없으면 스킵)
+    /// 반환값: 선택이 필요한 용품 목록 (2개 이상일 때). nil이면 처리 완료.
+    @discardableResult
+    func deductStockForActivity(_ type: Activity.ActivityType, userId: String) async -> [BabyProduct]? {
+        guard let category = categoryForActivity(type) else { return nil }
+        let candidates = availableProducts(for: category)
+
+        if candidates.count == 1 {
+            await useProduct(candidates[0], amount: 1, userId: userId)
+            return nil
+        } else if candidates.count > 1 {
+            return candidates // UI에서 선택 필요
+        }
+        return nil // 재고 없음
+    }
+
+    /// 특정 용품에서 직접 차감 (사용자가 선택한 경우)
+    func deductFromProduct(_ product: BabyProduct, userId: String) async {
+        await useProduct(product, amount: 1, userId: userId)
     }
 
     func resetForm() {
@@ -231,5 +258,3 @@ final class ProductViewModel {
         errorMessage = nil
     }
 }
-
-import UserNotifications

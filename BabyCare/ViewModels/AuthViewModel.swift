@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAuth
+import AuthenticationServices
 
 @MainActor @Observable
 final class AuthViewModel {
@@ -112,6 +113,54 @@ final class AuthViewModel {
             errorMessage = mapAuthError(error)
         }
         isLoading = false
+    }
+
+    // MARK: - Apple Sign In
+
+    private(set) var currentNonce: String?
+
+    func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        switch result {
+        case .success(let authorization):
+            guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let idTokenData = appleIDCredential.identityToken,
+                  let idToken = String(data: idTokenData, encoding: .utf8),
+                  let nonce = currentNonce else {
+                errorMessage = "Apple 로그인 정보를 가져올 수 없습니다."
+                return
+            }
+            do {
+                let user = try await authService.signInWithApple(idToken: idToken, nonce: nonce)
+                // Apple에서 이름을 주면 Firebase profile에 저장
+                if let fullName = appleIDCredential.fullName {
+                    let name = [fullName.familyName, fullName.givenName].compactMap { $0 }.joined()
+                    if !name.isEmpty {
+                        try? await authService.updateDisplayName(name)
+                    }
+                }
+                _ = user
+            } catch {
+                errorMessage = mapAuthError(error)
+            }
+        case .failure(let error):
+            // 사용자가 취소한 경우 에러 표시하지 않음
+            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
+                errorMessage = "Apple 로그인에 실패했습니다."
+            }
+        }
+    }
+
+    func prepareAppleNonce() -> String? {
+        guard let nonce = try? AuthService.randomNonceString() else {
+            errorMessage = "인증 준비에 실패했습니다. 다시 시도해주세요."
+            return nil
+        }
+        currentNonce = nonce
+        return AuthService.sha256(nonce)
     }
 
     func clearForm() {

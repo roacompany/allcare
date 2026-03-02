@@ -2,8 +2,11 @@ import SwiftUI
 
 struct CalendarView: View {
     @Environment(CalendarViewModel.self) private var calendarVM
+    @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+
+    @State private var editingActivity: Activity?
 
     private let weekdays = ["월", "화", "수", "목", "금", "토", "일"]
 
@@ -33,6 +36,19 @@ struct CalendarView: View {
             }
             .onChange(of: calendarVM.selectedDate) {
                 Task { await loadDateData() }
+            }
+            .sheet(item: $editingActivity) { activity in
+                ActivityEditSheet(activity: activity) { updated in
+                    Task {
+                        guard let userId = authVM.currentUserId else { return }
+                        await activityVM.updateActivity(updated, userId: userId)
+                        // 캘린더 목록도 갱신
+                        if let index = calendarVM.activitiesForDate.firstIndex(where: { $0.id == updated.id }) {
+                            calendarVM.activitiesForDate[index] = updated
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
             }
         }
     }
@@ -153,6 +169,29 @@ struct CalendarView: View {
                 List {
                     ForEach(calendarVM.activitiesForDate) { activity in
                         ActivityRow(activity: activity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                editingActivity = activity
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        guard let userId = authVM.currentUserId else { return }
+                                        await activityVM.deleteActivity(activity, userId: userId)
+                                        calendarVM.activitiesForDate.removeAll { $0.id == activity.id }
+                                    }
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    editingActivity = activity
+                                } label: {
+                                    Label("수정", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
                     }
                 }
                 .listStyle(.plain)

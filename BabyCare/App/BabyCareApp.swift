@@ -1,13 +1,8 @@
 import SwiftUI
-import FirebaseCore
 
 @main
 struct BabyCareApp: App {
     private let appState = AppState.shared
-
-    init() {
-        FirebaseApp.configure()
-    }
 
     var body: some Scene {
         WindowGroup {
@@ -21,6 +16,8 @@ struct BabyCareApp: App {
                 .environment(appState.diary)
                 .environment(appState.product)
                 .environment(appState.health)
+                .environment(appState.routine)
+                .environment(appState.aiAdvice)
         }
     }
 }

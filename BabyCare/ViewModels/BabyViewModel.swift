@@ -31,7 +31,19 @@ final class BabyViewModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            babies = try await firestoreService.fetchBabies(userId: userId)
+            var allBabies = try await firestoreService.fetchBabies(userId: userId)
+
+            // 공유된 아기도 로드
+            let sharedAccess = try await firestoreService.fetchSharedAccess(userId: userId)
+            for access in sharedAccess {
+                if let baby = try await firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) {
+                    if !allBabies.contains(where: { $0.id == baby.id }) {
+                        allBabies.append(baby)
+                    }
+                }
+            }
+
+            babies = allBabies
             if selectedBaby == nil, let first = babies.first {
                 selectedBaby = first
             }

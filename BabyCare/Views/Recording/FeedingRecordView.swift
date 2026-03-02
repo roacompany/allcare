@@ -13,6 +13,7 @@ struct FeedingRecordView: View {
     var onSaved: (() -> Void)? = nil
 
     @State private var isSaving = false
+    @State private var productCandidates: [BabyProduct] = []
 
     // Accent colour per sub-type
     private var accentColor: Color {
@@ -135,6 +136,21 @@ struct FeedingRecordView: View {
             }
             .padding(.top, 8)
         }
+        .sheet(isPresented: Binding(
+            get: { !productCandidates.isEmpty },
+            set: { if !$0 { productCandidates = [] } }
+        )) {
+            ProductPickerSheet(products: productCandidates) { selected in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    await productVM.deductFromProduct(selected, userId: userId)
+                }
+                productCandidates = []
+                isSaving = false
+                onSaved?()
+            }
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Actions
@@ -145,14 +161,12 @@ struct FeedingRecordView: View {
         isSaving = true
         Task {
             await activityVM.saveActivity(userId: userId, babyId: baby.id, type: type)
-
-            // 분유 수유 시 재고 자동 차감
-            if type == .feedingBottle, let ml = Double(activityVM.amount), ml > 0 {
-                await productVM.deductFormulaStock(ml: ml, userId: userId)
+            if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
+                productCandidates = candidates
+            } else {
+                isSaving = false
+                onSaved?()
             }
-
-            isSaving = false
-            onSaved?()
         }
     }
 }

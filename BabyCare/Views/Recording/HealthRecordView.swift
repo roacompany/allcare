@@ -8,11 +8,13 @@ struct HealthRecordView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(ProductViewModel.self) private var productVM
 
     var onSaved: (() -> Void)? = nil
 
     @State private var selectedHealthType: HealthType = .temperature
     @State private var isSaving = false
+    @State private var productCandidates: [BabyProduct] = []
 
     // MARK: - Health sub-types
     enum HealthType: String, CaseIterable, Identifiable {
@@ -58,12 +60,11 @@ struct HealthRecordView: View {
                 HStack(spacing: 0) {
                     ForEach(HealthType.allCases) { hType in
                         Button {
+                            if activityVM.isTimerRunning {
+                                _ = activityVM.stopTimer()
+                            }
                             withAnimation(.spring(duration: 0.3)) {
                                 selectedHealthType = hType
-                                // Stop any running timer when switching type
-                                if activityVM.isTimerRunning {
-                                    _ = activityVM.stopTimer()
-                                }
                             }
                         } label: {
                             VStack(spacing: 4) {
@@ -123,6 +124,21 @@ struct HealthRecordView: View {
             }
             .padding(.top, 8)
         }
+        .sheet(isPresented: Binding(
+            get: { !productCandidates.isEmpty },
+            set: { if !$0 { productCandidates = [] } }
+        )) {
+            ProductPickerSheet(products: productCandidates) { selected in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    await productVM.deductFromProduct(selected, userId: userId)
+                }
+                productCandidates = []
+                isSaving = false
+                onSaved?()
+            }
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Actions
@@ -137,8 +153,12 @@ struct HealthRecordView: View {
                 babyId: baby.id,
                 type: selectedHealthType.activityType
             )
-            isSaving = false
-            onSaved?()
+            if let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: userId) {
+                productCandidates = candidates
+            } else {
+                isSaving = false
+                onSaved?()
+            }
         }
     }
 }

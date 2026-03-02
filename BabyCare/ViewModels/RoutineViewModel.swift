@@ -1,0 +1,114 @@
+import Foundation
+
+@MainActor @Observable
+final class RoutineViewModel {
+    var routines: [Routine] = []
+    var isLoading = false
+    var errorMessage: String?
+    var showAddRoutine = false
+
+    // Form
+    var routineName = ""
+    var routineItems: [String] = [""]
+
+    private let firestoreService = FirestoreService.shared
+
+    var isFormValid: Bool {
+        !routineName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        routineItems.contains(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
+    }
+
+    // MARK: - Load
+
+    func loadRoutines(userId: String) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            routines = try await firestoreService.fetchRoutines(userId: userId)
+        } catch {
+            errorMessage = "루틴을 불러오지 못했습니다."
+        }
+    }
+
+    // MARK: - Add
+
+    func addRoutine(userId: String, babyId: String?) async {
+        guard isFormValid else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let items = routineItems.enumerated().compactMap { index, title -> Routine.RoutineItem? in
+            let trimmed = title.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return nil }
+            return Routine.RoutineItem(title: trimmed, order: index)
+        }
+
+        let routine = Routine(
+            name: routineName.trimmingCharacters(in: .whitespaces),
+            items: items,
+            babyId: babyId
+        )
+
+        do {
+            try await firestoreService.saveRoutine(routine, userId: userId)
+            routines.append(routine)
+            resetForm()
+            showAddRoutine = false
+        } catch {
+            errorMessage = "루틴 추가에 실패했습니다."
+        }
+    }
+
+    // MARK: - Toggle Item
+
+    func toggleItem(_ routine: Routine, itemId: String, userId: String) async {
+        guard let rIdx = routines.firstIndex(where: { $0.id == routine.id }),
+              let iIdx = routines[rIdx].items.firstIndex(where: { $0.id == itemId }) else { return }
+
+        let backup = routines[rIdx]
+        routines[rIdx].items[iIdx].isCompleted.toggle()
+
+        do {
+            try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
+        } catch {
+            routines[rIdx] = backup
+            errorMessage = "루틴 업데이트에 실패했습니다."
+        }
+    }
+
+    // MARK: - Reset All Items (for new day)
+
+    func resetRoutine(_ routine: Routine, userId: String) async {
+        guard let rIdx = routines.firstIndex(where: { $0.id == routine.id }) else { return }
+        let backup = routines[rIdx]
+        for i in routines[rIdx].items.indices {
+            routines[rIdx].items[i].isCompleted = false
+        }
+        do {
+            try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
+        } catch {
+            routines[rIdx] = backup
+        }
+    }
+
+    // MARK: - Delete
+
+    func deleteRoutine(_ routine: Routine, userId: String) async {
+        let backup = routines
+        routines.removeAll { $0.id == routine.id }
+        do {
+            try await firestoreService.deleteRoutine(routine.id, userId: userId)
+        } catch {
+            routines = backup
+            errorMessage = "루틴 삭제에 실패했습니다."
+        }
+    }
+
+    // MARK: - Form
+
+    func resetForm() {
+        routineName = ""
+        routineItems = [""]
+        errorMessage = nil
+    }
+}
