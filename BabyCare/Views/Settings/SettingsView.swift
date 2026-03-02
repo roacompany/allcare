@@ -37,6 +37,33 @@ struct SettingsView: View {
                     }
                 }
 
+                // Features Section
+                Section("기능") {
+                    NavigationLink {
+                        ProductListView()
+                    } label: {
+                        Label("용품 관리", systemImage: "bag.fill")
+                    }
+
+                    NavigationLink {
+                        TodoView()
+                    } label: {
+                        Label("할 일", systemImage: "checklist")
+                    }
+
+                    NavigationLink {
+                        GrowthView()
+                    } label: {
+                        Label("성장 기록", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+
+                    NavigationLink {
+                        DiaryView()
+                    } label: {
+                        Label("일기", systemImage: "book.fill")
+                    }
+                }
+
                 // App Section
                 Section("앱 설정") {
                     NavigationLink {

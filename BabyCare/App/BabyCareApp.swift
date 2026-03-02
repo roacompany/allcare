@@ -10,6 +10,7 @@ struct BabyCareApp: App {
     @State private var todoVM = TodoViewModel()
     @State private var statsVM = StatsViewModel()
     @State private var diaryVM = DiaryViewModel()
+    @State private var productVM = ProductViewModel()
 
     init() {
         FirebaseApp.configure()
@@ -25,6 +26,7 @@ struct BabyCareApp: App {
                 .environment(todoVM)
                 .environment(statsVM)
                 .environment(diaryVM)
+                .environment(productVM)
                 .preferredColorScheme(nil)
         }
     }

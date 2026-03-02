@@ -45,4 +45,5 @@ enum FirestoreCollections {
     static let diary = "diary"
     static let todos = "todos"
     static let routines = "routines"
+    static let products = "products"
 }
