@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - SleepRecordView
-// Sleep recording: large timer + optional note.
+// Sleep recording: large timer + sleep quality + sleep method + note.
 
 struct SleepRecordView: View {
     @Environment(ActivityViewModel.self) private var activityVM
@@ -35,37 +35,72 @@ struct SleepRecordView: View {
                 TimerView(type: .sleep, accentColor: accentColor)
                     .padding(.vertical, 8)
 
-                // ── Sleep quality hint ─────────────────────────────────────
+                // ── Sleep quality (별도 필드) ─────────────────────────────
                 VStack(alignment: .leading, spacing: 10) {
                     Label("수면 상태", systemImage: "moon.stars.fill")
                         .font(.subheadline.bold())
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: 10) {
-                        ForEach(SleepQuality.allCases) { quality in
-                            QualityChip(
-                                quality: quality,
-                                isSelected: vm.note.hasPrefix(quality.rawValue),
-                                color: accentColor
-                            ) {
-                                // Toggle tag at start of note
-                                if vm.note.hasPrefix(quality.rawValue) {
-                                    vm.note = String(vm.note.dropFirst(quality.rawValue.count))
-                                        .trimmingCharacters(in: .whitespaces)
-                                } else {
-                                    // Remove any previous quality tag
-                                    var cleaned = vm.note
-                                    for q in SleepQuality.allCases {
-                                        if cleaned.hasPrefix(q.rawValue) {
-                                            cleaned = String(cleaned.dropFirst(q.rawValue.count))
-                                                .trimmingCharacters(in: .whitespaces)
-                                        }
-                                    }
-                                    vm.note = cleaned.isEmpty
-                                        ? quality.rawValue
-                                        : "\(quality.rawValue) \(cleaned)"
+                        ForEach(Activity.SleepQualityType.allCases, id: \.self) { quality in
+                            Button {
+                                activityVM.sleepQuality = activityVM.sleepQuality == quality ? nil : quality
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: quality.icon)
+                                        .font(.caption)
+                                    Text(quality.displayName)
+                                        .font(.caption.bold())
                                 }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    activityVM.sleepQuality == quality
+                                        ? accentColor : accentColor.opacity(0.1)
+                                )
+                                .foregroundStyle(
+                                    activityVM.sleepQuality == quality ? .white : accentColor
+                                )
+                                .clipShape(Capsule())
                             }
+                            .animation(.spring(duration: 0.25), value: activityVM.sleepQuality)
+                        }
+                    }
+                }
+                .padding()
+                .background(accentColor.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal)
+
+                // ── Sleep method (잠드는 방법) ───────────────────────────
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("잠드는 방법", systemImage: "zzz")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+
+                    FlowLayout(spacing: 8) {
+                        ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
+                            Button {
+                                activityVM.sleepMethod = activityVM.sleepMethod == method ? nil : method
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: method.icon)
+                                        .font(.caption)
+                                    Text(method.displayName)
+                                        .font(.caption.bold())
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    activityVM.sleepMethod == method
+                                        ? accentColor : accentColor.opacity(0.1)
+                                )
+                                .foregroundStyle(
+                                    activityVM.sleepMethod == method ? .white : accentColor
+                                )
+                                .clipShape(Capsule())
+                            }
+                            .animation(.spring(duration: 0.25), value: activityVM.sleepMethod)
                         }
                     }
                 }
@@ -103,45 +138,43 @@ struct SleepRecordView: View {
     }
 }
 
-// MARK: - SleepQuality (local helper)
+// MARK: - FlowLayout
 
-private enum SleepQuality: String, CaseIterable, Identifiable {
-    case good   = "잘 잠"
-    case fussy  = "뒤척임"
-    case light  = "얕은 수면"
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
 
-    var id: String { rawValue }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = layout(proposal: proposal, subviews: subviews)
+        return result.size
+    }
 
-    var icon: String {
-        switch self {
-        case .good:  "moon.fill"
-        case .fussy: "figure.walk"
-        case .light: "cloud.moon.fill"
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = layout(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
         }
     }
-}
 
-private struct QualityChip: View {
-    let quality: SleepQuality
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
+    private func layout(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
 
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: quality.icon)
-                    .font(.caption)
-                Text(quality.rawValue)
-                    .font(.caption.bold())
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > maxWidth, currentX > 0 {
+                currentX = 0
+                currentY += lineHeight + spacing
+                lineHeight = 0
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isSelected ? color : color.opacity(0.1))
-            .foregroundStyle(isSelected ? .white : color)
-            .clipShape(Capsule())
+            positions.append(CGPoint(x: currentX, y: currentY))
+            lineHeight = max(lineHeight, size.height)
+            currentX += size.width + spacing
         }
-        .animation(.spring(duration: 0.25), value: isSelected)
+
+        return (CGSize(width: maxWidth, height: currentY + lineHeight), positions)
     }
 }
 

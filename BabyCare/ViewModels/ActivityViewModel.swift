@@ -20,6 +20,17 @@ final class ActivityViewModel {
     var medicationName: String = ""
     var note: String = ""
 
+    // 기록 UX 강화 form state
+    var foodName: String = ""
+    var foodAmount: String = ""
+    var foodReaction: Activity.FoodReaction?
+    var stoolColor: Activity.StoolColor?
+    var stoolConsistency: Activity.StoolConsistency?
+    var hasRash: Bool = false
+    var sleepQuality: Activity.SleepQualityType?
+    var sleepMethod: Activity.SleepMethodType?
+    var medicationDosage: String = ""
+
     // Latest activities (최근 기록)
     var lastFeeding: Activity?
     var lastSleep: Activity?
@@ -197,8 +208,14 @@ final class ActivityViewModel {
             }
             activity.amount = Double(amount)
 
-        case .feedingSolid, .feedingSnack:
-            break
+        case .feedingSolid:
+            activity.foodName = foodName.isEmpty ? nil : foodName
+            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
+            activity.foodReaction = foodReaction
+
+        case .feedingSnack:
+            activity.foodName = foodName.isEmpty ? nil : foodName
+            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
 
         case .sleep:
             if timerBelongsToMe {
@@ -207,9 +224,15 @@ final class ActivityViewModel {
                 activity.startTime = Date().addingTimeInterval(-duration)
                 activity.endTime = Date()
             }
+            activity.sleepQuality = sleepQuality
+            activity.sleepMethod = sleepMethod
 
         case .diaperWet, .diaperDirty, .diaperBoth:
-            break
+            if type == .diaperDirty || type == .diaperBoth {
+                activity.stoolColor = stoolColor
+                activity.stoolConsistency = stoolConsistency
+                activity.hasRash = hasRash ? true : nil
+            }
 
         case .temperature:
             guard isTemperatureValid else {
@@ -220,6 +243,7 @@ final class ActivityViewModel {
 
         case .medication:
             activity.medicationName = medicationName.isEmpty ? nil : medicationName
+            activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
 
         case .bath:
             if timerBelongsToMe {
@@ -304,6 +328,15 @@ final class ActivityViewModel {
         medicationName = ""
         note = ""
         errorMessage = nil
+        foodName = ""
+        foodAmount = ""
+        foodReaction = nil
+        stoolColor = nil
+        stoolConsistency = nil
+        hasRash = false
+        sleepQuality = nil
+        sleepMethod = nil
+        medicationDosage = ""
     }
 
     // MARK: - Feeding Reminder

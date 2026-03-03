@@ -52,6 +52,48 @@ struct ActivityRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    if let dosage = activity.medicationDosage {
+                        Text(dosage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let food = activity.foodName {
+                        Text(food)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    if let foodAmt = activity.foodAmount {
+                        Text(foodAmt)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let reaction = activity.foodReaction {
+                        Text(reaction.displayName)
+                            .font(.caption)
+                            .foregroundStyle(reaction.needsAttention ? .red : .secondary)
+                    }
+
+                    if let color = activity.stoolColor {
+                        HStack(spacing: 2) {
+                            Circle()
+                                .fill(Color(hex: color.colorHex))
+                                .frame(width: 10, height: 10)
+                            Text(color.displayName)
+                                .font(.caption)
+                                .foregroundStyle(color.needsAttention ? .red : .secondary)
+                        }
+                    }
+
+                    if let quality = activity.sleepQuality {
+                        Text(quality.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 

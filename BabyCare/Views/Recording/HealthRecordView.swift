@@ -248,6 +248,7 @@ private struct MedicationSection: View {
     let accentColor: Color
 
     private let suggestions = ["타이레놀", "이부프로펜", "콧물약", "소화제", "영양제"]
+    private let dosageChips = ["2.5ml", "5ml", "10ml", "반정", "1정"]
 
     var body: some View {
         @Bindable var vm = activityVM
@@ -287,6 +288,42 @@ private struct MedicationSection: View {
                         )
                         .clipShape(Capsule())
                     }
+                }
+            }
+
+            Divider()
+
+            // 용량 입력
+            Label("용량", systemImage: "drop.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+
+            TextField("용량 입력 (예: 5ml)", text: $vm.medicationDosage)
+                .padding(14)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Text("자주 사용하는 용량")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+
+            HStack(spacing: 8) {
+                ForEach(dosageChips, id: \.self) { dosage in
+                    Button(dosage) {
+                        activityVM.medicationDosage = activityVM.medicationDosage == dosage ? "" : dosage
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        activityVM.medicationDosage == dosage
+                            ? accentColor
+                            : accentColor.opacity(0.1)
+                    )
+                    .foregroundStyle(
+                        activityVM.medicationDosage == dosage ? .white : accentColor
+                    )
+                    .clipShape(Capsule())
                 }
             }
         }

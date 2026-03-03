@@ -15,6 +15,17 @@ struct Activity: Identifiable, Codable, Hashable {
     var medicationName: String?
     var createdAt: Date
 
+    // 기록 UX 강화 필드 (모두 optional — Firestore 호환, 마이그레이션 불필요)
+    var foodName: String?
+    var foodAmount: String?
+    var foodReaction: FoodReaction?
+    var stoolColor: StoolColor?
+    var stoolConsistency: StoolConsistency?
+    var hasRash: Bool?
+    var sleepQuality: SleepQualityType?
+    var sleepMethod: SleepMethodType?
+    var medicationDosage: String?
+
     enum ActivityType: String, Codable, CaseIterable {
         case feedingBreast = "feeding_breast"
         case feedingBottle = "feeding_bottle"
@@ -129,6 +140,136 @@ struct Activity: Identifiable, Codable, Hashable {
         }
     }
 
+    // MARK: - 이유식 반응
+
+    enum FoodReaction: String, Codable, CaseIterable {
+        case good, normal, refused, allergy
+
+        var displayName: String {
+            switch self {
+            case .good: "잘 먹음"
+            case .normal: "보통"
+            case .refused: "안 먹음"
+            case .allergy: "알레르기 반응"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .good: "hand.thumbsup.fill"
+            case .normal: "minus.circle.fill"
+            case .refused: "hand.thumbsdown.fill"
+            case .allergy: "exclamationmark.triangle.fill"
+            }
+        }
+
+        var needsAttention: Bool { self == .allergy }
+    }
+
+    // MARK: - 대변 색상
+
+    enum StoolColor: String, Codable, CaseIterable {
+        case yellow, green, brown, dark, red, white
+
+        var displayName: String {
+            switch self {
+            case .yellow: "노란색"
+            case .green: "녹색"
+            case .brown: "갈색"
+            case .dark: "짙은색"
+            case .red: "붉은색"
+            case .white: "흰색"
+            }
+        }
+
+        var colorHex: String {
+            switch self {
+            case .yellow: "DAA520"
+            case .green: "4CAF50"
+            case .brown: "8B4513"
+            case .dark: "3E2723"
+            case .red: "D32F2F"
+            case .white: "E0E0E0"
+            }
+        }
+
+        var needsAttention: Bool {
+            self == .red || self == .white
+        }
+    }
+
+    // MARK: - 대변 농도
+
+    enum StoolConsistency: String, Codable, CaseIterable {
+        case watery, soft, normal, hard
+
+        var displayName: String {
+            switch self {
+            case .watery: "묽음"
+            case .soft: "무름"
+            case .normal: "보통"
+            case .hard: "딱딱함"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .watery: "drop.fill"
+            case .soft: "cloud.fill"
+            case .normal: "circle.fill"
+            case .hard: "diamond.fill"
+            }
+        }
+    }
+
+    // MARK: - 수면 질
+
+    enum SleepQualityType: String, Codable, CaseIterable {
+        case good, fussy, light
+
+        var displayName: String {
+            switch self {
+            case .good: "잘 잠"
+            case .fussy: "뒤척임"
+            case .light: "얕은 수면"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .good: "moon.fill"
+            case .fussy: "figure.walk"
+            case .light: "cloud.moon.fill"
+            }
+        }
+    }
+
+    // MARK: - 잠드는 방법
+
+    enum SleepMethodType: String, Codable, CaseIterable {
+        case selfSettled, nursing, holding, stroller, carSeat
+
+        var displayName: String {
+            switch self {
+            case .selfSettled: "스스로"
+            case .nursing: "수유 중"
+            case .holding: "안아서"
+            case .stroller: "유모차"
+            case .carSeat: "카시트"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .selfSettled: "bed.double.fill"
+            case .nursing: "figure.and.child.holdinghands"
+            case .holding: "hands.and.sparkles.fill"
+            case .stroller: "stroller.fill"
+            case .carSeat: "car.fill"
+            }
+        }
+    }
+
     var durationText: String? {
         guard let duration else { return nil }
         let hours = Int(duration) / 3600
@@ -157,7 +298,16 @@ struct Activity: Identifiable, Codable, Hashable {
         photoURL: String? = nil,
         temperature: Double? = nil,
         medicationName: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        foodName: String? = nil,
+        foodAmount: String? = nil,
+        foodReaction: FoodReaction? = nil,
+        stoolColor: StoolColor? = nil,
+        stoolConsistency: StoolConsistency? = nil,
+        hasRash: Bool? = nil,
+        sleepQuality: SleepQualityType? = nil,
+        sleepMethod: SleepMethodType? = nil,
+        medicationDosage: String? = nil
     ) {
         self.id = id
         self.babyId = babyId
@@ -172,5 +322,14 @@ struct Activity: Identifiable, Codable, Hashable {
         self.temperature = temperature
         self.medicationName = medicationName
         self.createdAt = createdAt
+        self.foodName = foodName
+        self.foodAmount = foodAmount
+        self.foodReaction = foodReaction
+        self.stoolColor = stoolColor
+        self.stoolConsistency = stoolConsistency
+        self.hasRash = hasRash
+        self.sleepQuality = sleepQuality
+        self.sleepMethod = sleepMethod
+        self.medicationDosage = medicationDosage
     }
 }
