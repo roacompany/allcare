@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://roacompany.github.io/allcare/sitemap.xml
