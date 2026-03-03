@@ -18,6 +18,8 @@ final class AppState {
     let routine: RoutineViewModel
     let aiAdvice: AIAdviceViewModel
     let announcement: AnnouncementViewModel
+    let patternReport: PatternReportViewModel
+    let purchase: PurchaseViewModel
 
     private init() {
         // Firebase는 AppDelegate에서 초기화됨
@@ -33,5 +35,7 @@ final class AppState {
         routine = RoutineViewModel()
         aiAdvice = AIAdviceViewModel()
         announcement = AnnouncementViewModel()
+        patternReport = PatternReportViewModel()
+        purchase = PurchaseViewModel()
     }
 }

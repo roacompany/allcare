@@ -52,4 +52,34 @@ enum FirestoreCollections {
     static let sharedAccess = "sharedAccess"
     static let fcmTokens = "fcmTokens"
     static let announcements = "announcements"
+    static let hospitalVisits = "hospitalVisits"
+    static let purchases = "purchases"
+}
+
+enum CoupangConfig {
+    private static let affiliateCode = "AF5256637"
+    private static let subId = "babycareapp"
+    private static let baseURL = "https://link.coupang.com/re/AFFTDP"
+
+    static func searchURL(keyword: String) -> URL? {
+        let encoded = keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? keyword
+        return URL(string: "\(baseURL)?lptag=\(affiliateCode)&subid=\(subId)&pageKey=\(encoded)")
+    }
+
+    static func defaultKeyword(for category: BabyProduct.ProductCategory) -> String {
+        switch category {
+        case .diaper: "아기 기저귀"
+        case .formula: "분유"
+        case .babyFood: "이유식"
+        case .skincare: "아기 로션"
+        case .medicine: "아기 상비약"
+        case .clothes: "아기 옷"
+        case .toy: "아기 장난감"
+        case .feeding: "아기 젖병"
+        case .bath: "아기 목욕용품"
+        case .bedding: "아기 침구"
+        case .gear: "유모차"
+        case .other: "아기 용품"
+        }
+    }
 }

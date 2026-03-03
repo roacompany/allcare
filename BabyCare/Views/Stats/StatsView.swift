@@ -40,16 +40,29 @@ struct StatsView: View {
             }
             .navigationTitle("통계")
             .toolbar {
-                Button {
-                    let babyName = babyVM.selectedBaby?.name ?? "아기"
-                    if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
-                        exportURL = url
-                        showShareSheet = true
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        PatternReportView()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "waveform.path.ecg")
+                            Text("패턴 분석")
+                        }
+                        .font(.subheadline)
                     }
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
                 }
-                .disabled(statsVM.weeklyActivities.isEmpty)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        let babyName = babyVM.selectedBaby?.name ?? "아기"
+                        if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
+                            exportURL = url
+                            showShareSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(statsVM.weeklyActivities.isEmpty)
+                }
             }
             .task { await loadStats() }
             .onChange(of: statsVM.selectedPeriod) {

@@ -100,6 +100,12 @@ struct HealthRecordView: View {
                 .padding(.horizontal)
                 .animation(.spring(duration: 0.3), value: selectedHealthType)
 
+                // ── Time adjustment ───────────────────────────────────────
+                TimeAdjustmentSection(
+                    accentColor: accent,
+                    showEndTime: selectedHealthType == .bath
+                )
+
                 // ── Content area ───────────────────────────────────────────
                 Group {
                     switch selectedHealthType {

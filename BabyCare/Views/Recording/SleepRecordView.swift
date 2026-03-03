@@ -31,6 +31,9 @@ struct SleepRecordView: View {
                 }
                 .padding(.horizontal)
 
+                // ── Time adjustment ───────────────────────────────────────
+                TimeAdjustmentSection(accentColor: accentColor, showEndTime: true)
+
                 // ── Timer ──────────────────────────────────────────────────
                 TimerView(type: .sleep, accentColor: accentColor)
                     .padding(.vertical, 8)

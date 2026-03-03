@@ -43,6 +43,21 @@ struct HealthView: View {
                         }
                         .buttonStyle(.plain)
 
+                        // 병원 기록
+                        NavigationLink {
+                            HospitalVisitListView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "building.2.fill",
+                                iconColor: Color(hex: "82B1FF"),
+                                title: "병원 기록",
+                                subtitle: hospitalVisitSubtitle,
+                                badge: healthVM.upcomingVisits.isEmpty ? nil : "\(healthVM.upcomingVisits.count) 예정",
+                                badgeColor: .blue
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                         // 성장기록
                         NavigationLink {
                             GrowthView()
@@ -69,6 +84,21 @@ struct HealthView: View {
                                 subtitle: milestoneSubtitle,
                                 badge: nil,
                                 badgeColor: .clear
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        // 소리
+                        NavigationLink {
+                            SoundPlayerView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "speaker.wave.2.fill",
+                                iconColor: .blue,
+                                title: "아기 소리",
+                                subtitle: soundSubtitle,
+                                badge: SoundPlayerService.shared.isPlaying ? "재생 중" : nil,
+                                badgeColor: .blue
                             )
                         }
                         .buttonStyle(.plain)
@@ -115,6 +145,25 @@ struct HealthView: View {
         let total = healthVM.milestones.count
         if total == 0 { return "이정표 없음" }
         return "\(achieved)/\(total) 달성"
+    }
+
+    private var soundSubtitle: String {
+        if let sound = SoundPlayerService.shared.currentSound {
+            return "\(sound.name) 재생 중"
+        }
+        return "백색소음, 자장가, 자연소리"
+    }
+
+    private var hospitalVisitSubtitle: String {
+        let total = healthVM.hospitalVisits.count
+        if total == 0 { return "병원 방문 기록을 추가해보세요" }
+        let upcoming = healthVM.upcomingVisits.count
+        if upcoming > 0 {
+            if let next = healthVM.nextVisit {
+                return "다음 방문: \(DateFormatters.shortDate.string(from: next.visitDate))"
+            }
+        }
+        return "총 \(total)건 기록"
     }
 }
 

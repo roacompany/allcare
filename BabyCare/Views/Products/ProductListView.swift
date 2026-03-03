@@ -60,6 +60,13 @@ struct ProductListView: View {
                         Label("지출 통계", systemImage: "chart.pie.fill")
                     }
                 }
+                ToolbarItem(placement: .secondaryAction) {
+                    NavigationLink {
+                        PurchaseHistoryView()
+                    } label: {
+                        Label("구매 분석", systemImage: "chart.bar.xaxis")
+                    }
+                }
             }
             .sheet(isPresented: $vm.showAddProduct) {
                 AddProductView()

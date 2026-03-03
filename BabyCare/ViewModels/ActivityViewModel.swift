@@ -20,6 +20,11 @@ final class ActivityViewModel {
     var medicationName: String = ""
     var note: String = ""
 
+    // 시간 조정 (베이비타임 스타일)
+    var manualStartTime: Date = Date()
+    var manualEndTime: Date?
+    var isTimeAdjusted = false   // 사용자가 시간을 직접 변경했는지
+
     // 기록 UX 강화 form state
     var foodName: String = ""
     var foodAmount: String = ""
@@ -245,6 +250,15 @@ final class ActivityViewModel {
             }
         }
 
+        // 수동 시간 조정 (타이머보다 우선)
+        if isTimeAdjusted {
+            activity.startTime = manualStartTime
+            if let endTime = manualEndTime {
+                activity.endTime = endTime
+                activity.duration = endTime.timeIntervalSince(manualStartTime)
+            }
+        }
+
         if !note.isEmpty {
             activity.note = note
         }
@@ -264,6 +278,20 @@ final class ActivityViewModel {
                 todayActivities.remove(at: rollbackIndex)
             }
             errorMessage = "기록 저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
+    func savePrebuiltActivity(_ activity: Activity, userId: String) async {
+        todayActivities.insert(activity, at: 0)
+
+        do {
+            try await firestoreService.saveActivity(activity, userId: userId)
+            deriveLatestActivities()
+            scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
+        } catch {
+            todayActivities.removeAll { $0.id == activity.id }
+            errorMessage = "기록 저장에 실패했습니다."
         }
     }
 
@@ -329,6 +357,9 @@ final class ActivityViewModel {
         sleepQuality = nil
         sleepMethod = nil
         medicationDosage = ""
+        manualStartTime = Date()
+        manualEndTime = nil
+        isTimeAdjusted = false
     }
 
     // MARK: - Activity Reminder

@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var editingActivity: Activity?
     @State private var productCandidates: [BabyProduct] = []
     @State private var savedActivityType: Activity.ActivityType?
+    @State private var quickInputType: Activity.ActivityType?
 
     private let feedingColor = Color(hex: "FF9FB5")
     private let sleepColor = Color(hex: "9FB5FF")
@@ -27,6 +28,7 @@ struct DashboardView: View {
                     AnnouncementBanner()
                     alertBannersSection
                     quickActionsSection
+                    soundShortcutCard
                     predictionSection
                     summaryCardsSection
                     aiAdviceShortcut
@@ -77,6 +79,12 @@ struct DashboardView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .padding(.top, 8)
             }
+        }
+        .sheet(item: $quickInputType) { type in
+            QuickInputSheet(type: type) { activity in
+                Task { await quickSaveWithData(activity) }
+            }
+            .presentationDetents([.medium])
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
@@ -161,12 +169,17 @@ struct DashboardView: View {
             }
 
             // 재고 부족 알림
-            if !productVM.lowStockProducts.isEmpty {
-                DashboardAlertBanner(
-                    icon: "bag.fill",
-                    message: "재고 부족: \(productVM.lowStockProducts.map(\.name).joined(separator: ", "))",
-                    color: Color(hex: "FF9F9F")
-                )
+            ForEach(productVM.lowStockProducts.prefix(2)) { product in
+                NavigationLink {
+                    ProductDetailView(product: product)
+                } label: {
+                    DashboardAlertBanner(
+                        icon: "bag.fill",
+                        message: "재고 부족: \(product.name)",
+                        color: Color(hex: "FF9F9F")
+                    )
+                }
+                .buttonStyle(.plain)
             }
 
             // 유통기한 임박 알림
@@ -214,6 +227,95 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - Sound Shortcut
+
+    private var soundShortcutCard: some View {
+        let player = SoundPlayerService.shared
+
+        return Group {
+            if player.isPlaying, let sound = player.currentSound {
+                // 재생 중: 미니 플레이어
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.15))
+                            .frame(width: 42, height: 42)
+                        Image(systemName: sound.icon)
+                            .font(.system(size: 18))
+                            .foregroundStyle(.blue)
+                            .symbolEffect(.pulse, isActive: true)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(sound.name)
+                            .font(.subheadline.weight(.medium))
+                        if let timer = player.timerText {
+                            Text("타이머 \(timer)")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        } else {
+                            Text("재생 중")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button { player.togglePlayPause() } label: {
+                        Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { player.stop() } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.blue.opacity(0.06))
+                )
+            } else {
+                // 미재생: 소리 바로가기
+                NavigationLink {
+                    SoundPlayerView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.title3)
+                            .foregroundStyle(.blue)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("아기 소리")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary)
+                            Text("백색소음, 자장가 등")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.blue.opacity(0.06))
+                    )
+                }
+            }
+        }
+    }
+
     // MARK: - Prediction
 
     @ViewBuilder
@@ -257,17 +359,34 @@ struct DashboardView: View {
                 diaperSummaryCard
             }
 
-            NavigationLink {
-                StatsView()
-            } label: {
-                HStack {
-                    Text("통계 자세히 보기")
-                        .font(.caption.weight(.medium))
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
+            HStack {
+                NavigationLink {
+                    StatsView()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("통계")
+                            .font(.caption.weight(.medium))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+
+                Spacer()
+
+                NavigationLink {
+                    PatternReportView()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.caption2)
+                        Text("패턴 분석")
+                            .font(.caption.weight(.medium))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.purple)
+                }
             }
         }
     }
@@ -515,6 +634,12 @@ struct DashboardView: View {
     }
 
     private func quickSave(type: Activity.ActivityType) async {
+        // 추가 입력이 필요한 타입은 미니 입력 시트 표시
+        if type.needsQuickInput {
+            quickInputType = type
+            return
+        }
+
         guard let userId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         await activityVM.quickSave(userId: userId, babyId: baby.id, type: type)
@@ -533,6 +658,21 @@ struct DashboardView: View {
 
         if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
             productCandidates = candidates
+        }
+    }
+
+    private func quickSaveWithData(_ activity: Activity) async {
+        guard let userId = authVM.currentUserId else { return }
+        await activityVM.savePrebuiltActivity(activity, userId: userId)
+
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        withAnimation(.spring(duration: 0.3)) {
+            savedActivityType = activity.type
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { savedActivityType = nil }
         }
     }
 }

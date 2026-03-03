@@ -4,6 +4,7 @@ import Foundation
 final class HealthViewModel {
     var vaccinations: [Vaccination] = []
     var milestones: [Milestone] = []
+    var hospitalVisits: [HospitalVisit] = []
     var isLoading = false
     var errorMessage: String?
 
@@ -37,6 +38,21 @@ final class HealthViewModel {
         milestones.filter { !$0.isAchieved }
     }
 
+    // MARK: - Computed: Hospital Visits
+
+    var upcomingVisits: [HospitalVisit] {
+        hospitalVisits.filter { $0.isUpcoming }
+            .sorted { $0.visitDate < $1.visitDate }
+    }
+
+    var pastVisits: [HospitalVisit] {
+        hospitalVisits.filter { $0.isPast }
+    }
+
+    var nextVisit: HospitalVisit? {
+        upcomingVisits.first
+    }
+
     // MARK: - Load
 
     func loadAll(userId: String, babyId: String, babyName: String = "아기") async {
@@ -46,9 +62,11 @@ final class HealthViewModel {
         do {
             async let vaxResult = firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
             async let msResult = firestoreService.fetchMilestones(userId: userId, babyId: babyId)
-            let (vax, ms) = try await (vaxResult, msResult)
+            async let hvResult = firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
+            let (vax, ms, hv) = try await (vaxResult, msResult, hvResult)
             vaccinations = vax
             milestones = ms
+            hospitalVisits = hv
             scheduleVaccinationReminders(babyName: babyName)
         } catch {
             errorMessage = "건강 정보를 불러오지 못했습니다: \(error.localizedDescription)"
@@ -131,6 +149,39 @@ final class HealthViewModel {
             if needVax { vaccinations = [] }
             if needMs { milestones = [] }
             errorMessage = "스케줄 생성에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Hospital Visit Actions
+
+    func saveHospitalVisit(_ visit: HospitalVisit, userId: String) async {
+        // Optimistic update
+        if let idx = hospitalVisits.firstIndex(where: { $0.id == visit.id }) {
+            hospitalVisits[idx] = visit
+        } else {
+            hospitalVisits.append(visit)
+            hospitalVisits.sort { $0.visitDate > $1.visitDate }
+        }
+
+        RecentHospitals.add(visit.hospitalName)
+
+        do {
+            try await firestoreService.saveHospitalVisit(visit, userId: userId)
+        } catch {
+            hospitalVisits.removeAll { $0.id == visit.id }
+            errorMessage = "병원 기록 저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    func deleteHospitalVisit(_ visit: HospitalVisit, userId: String) async {
+        let original = hospitalVisits
+        hospitalVisits.removeAll { $0.id == visit.id }
+
+        do {
+            try await firestoreService.deleteHospitalVisit(visit.id, userId: userId, babyId: visit.babyId)
+        } catch {
+            hospitalVisits = original
+            errorMessage = "병원 기록 삭제에 실패했습니다: \(error.localizedDescription)"
         }
     }
 

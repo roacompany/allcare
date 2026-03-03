@@ -31,6 +31,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>coupang</string>
+	</array>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>병원 방문 및 예방접종 일정을 캘린더에 추가하기 위해 접근 권한이 필요합니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

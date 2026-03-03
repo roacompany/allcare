@@ -322,6 +322,39 @@ final class FirestoreService: Sendable {
         return decodeDocuments(snapshot.documents, as: Milestone.self)
     }
 
+    // MARK: - Hospital Visit
+
+    func saveHospitalVisit(_ visit: HospitalVisit, userId: String) async throws {
+        let ref = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(visit.babyId)
+            .collection(FirestoreCollections.hospitalVisits)
+            .document(visit.id)
+        try ref.setData(from: visit)
+    }
+
+    func fetchHospitalVisits(userId: String, babyId: String) async throws -> [HospitalVisit] {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.hospitalVisits)
+            .order(by: "visitDate", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: HospitalVisit.self)
+    }
+
+    func deleteHospitalVisit(_ visitId: String, userId: String, babyId: String) async throws {
+        try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.hospitalVisits)
+            .document(visitId)
+            .delete()
+    }
+
     // MARK: - Family Invite
 
     func saveInvite(_ invite: FamilyInvite) async throws {
@@ -404,6 +437,44 @@ final class FirestoreService: Sendable {
         let snapshot = try await db.collection(FirestoreCollections.users)
             .getDocuments()
         return snapshot.count
+    }
+
+    // MARK: - Purchase Records
+
+    func savePurchaseRecord(_ record: PurchaseRecord, userId: String) async throws {
+        let ref = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.purchases)
+            .document(record.id)
+        try ref.setData(from: record)
+    }
+
+    func fetchPurchaseRecords(userId: String) async throws -> [PurchaseRecord] {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.purchases)
+            .order(by: "purchaseDate", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: PurchaseRecord.self)
+    }
+
+    func fetchPurchaseRecords(userId: String, from startDate: Date, to endDate: Date) async throws -> [PurchaseRecord] {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.purchases)
+            .whereField("purchaseDate", isGreaterThanOrEqualTo: Timestamp(date: startDate))
+            .whereField("purchaseDate", isLessThanOrEqualTo: Timestamp(date: endDate))
+            .order(by: "purchaseDate", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: PurchaseRecord.self)
+    }
+
+    func deletePurchaseRecord(_ recordId: String, userId: String) async throws {
+        try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.purchases)
+            .document(recordId)
+            .delete()
     }
 
     // MARK: - Baby (single)

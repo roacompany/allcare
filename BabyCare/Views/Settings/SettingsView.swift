@@ -59,9 +59,21 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
+                        PurchaseHistoryView()
+                    } label: {
+                        Label("구매 분석", systemImage: "chart.bar.xaxis")
+                    }
+
+                    NavigationLink {
                         StatsView()
                     } label: {
                         Label("통계", systemImage: "chart.bar.fill")
+                    }
+
+                    NavigationLink {
+                        SoundPlayerView()
+                    } label: {
+                        Label("소리", systemImage: "speaker.wave.2.fill")
                     }
                 }
 

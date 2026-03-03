@@ -26,7 +26,8 @@ struct Activity: Identifiable, Codable, Hashable {
     var sleepMethod: SleepMethodType?
     var medicationDosage: String?
 
-    enum ActivityType: String, Codable, CaseIterable {
+    enum ActivityType: String, Codable, CaseIterable, Identifiable {
+        var id: String { rawValue }
         case feedingBreast = "feeding_breast"
         case feedingBottle = "feeding_bottle"
         case feedingSolid = "feeding_solid"
@@ -106,6 +107,15 @@ struct Activity: Identifiable, Codable, Hashable {
         var needsAmount: Bool {
             switch self {
             case .feedingBottle:
+                return true
+            default:
+                return false
+            }
+        }
+
+        var needsQuickInput: Bool {
+            switch self {
+            case .temperature, .medication, .feedingBottle:
                 return true
             default:
                 return false

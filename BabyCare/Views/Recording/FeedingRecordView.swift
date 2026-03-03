@@ -32,6 +32,10 @@ struct FeedingRecordView: View {
         ScrollView {
             VStack(spacing: 20) {
                 typeHeader
+                TimeAdjustmentSection(
+                    accentColor: accentColor,
+                    showEndTime: type.needsTimer
+                )
                 timerSection
                 breastSideSection
                 foodSections

@@ -40,6 +40,9 @@ struct DiaperRecordView: View {
                 }
                 .padding(.horizontal)
 
+                // ── Time adjustment ───────────────────────────────────────
+                TimeAdjustmentSection(accentColor: accentColor)
+
                 // ── Type cards ─────────────────────────────────────────────
                 VStack(spacing: 12) {
                     ForEach(diaperTypes, id: \.0) { (type, label, icon) in

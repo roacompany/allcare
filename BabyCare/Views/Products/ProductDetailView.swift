@@ -3,11 +3,15 @@ import SwiftUI
 struct ProductDetailView: View {
     let product: BabyProduct
     @Environment(ProductViewModel.self) private var productVM
+    @Environment(PurchaseViewModel.self) private var purchaseVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
 
     @State private var showDeleteAlert = false
     @State private var useAmount = 1
+    @State private var showSafari = false
+    @State private var safariURL: URL?
+    @State private var showAddPurchase = false
 
     var body: some View {
         List {
@@ -86,6 +90,86 @@ struct ProductDetailView: View {
                             Text("\(threshold)개 이하")
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                }
+            }
+
+            // Low stock banner
+            if product.isLowStock {
+                Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("재고가 부족합니다")
+                                .font(.subheadline.weight(.medium))
+                            if let remaining = product.remainingQuantity {
+                                Text("\(remaining)개 남음")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.orange.opacity(0.08))
+            }
+
+            // 추천 상품
+            RecommendedProductsSection(
+                product: product,
+                safariURL: $safariURL,
+                showSafari: $showSafari
+            )
+
+            // 구매 관리
+            Section("구매 관리") {
+                Button {
+                    if let url = CoupangAffiliateService.searchURL(for: product) {
+                        safariURL = url
+                        showSafari = true
+                    }
+                } label: {
+                    Label("직접 검색", systemImage: "magnifyingglass")
+                }
+
+                Button {
+                    showAddPurchase = true
+                } label: {
+                    Label {
+                        Text("구매 기록 추가")
+                    } icon: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                let productRecords = purchaseVM.recordsForProduct(product.id)
+                if !productRecords.isEmpty {
+                    NavigationLink {
+                        productPurchaseHistory(productRecords)
+                    } label: {
+                        Label {
+                            HStack {
+                                Text("구매 이력")
+                                Spacer()
+                                Text("\(productRecords.count)건")
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(.purple)
+                        }
+                    }
+                }
+
+                if let avgDays = purchaseVM.averageReorderDays(for: product.id) {
+                    HStack {
+                        Label("평균 재주문 주기", systemImage: "calendar.badge.clock")
+                        Spacer()
+                        Text("약 \(avgDays)일")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -225,5 +309,56 @@ struct ProductDetailView: View {
         } message: {
             Text("'\(product.name)'을(를) 삭제하시겠습니까?")
         }
+        .sheet(isPresented: $showSafari) {
+            if let url = safariURL {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
+        }
+        .sheet(isPresented: $showAddPurchase) {
+            AddPurchaseRecordView(product: product)
+        }
+        .task {
+            guard let userId = authVM.currentUserId else { return }
+            if purchaseVM.records.isEmpty {
+                await purchaseVM.loadRecords(userId: userId)
+            }
+        }
+    }
+
+    private func productPurchaseHistory(_ records: [PurchaseRecord]) -> some View {
+        List {
+            ForEach(records) { record in
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(record.store)
+                            .font(.subheadline.weight(.medium))
+                        Text(DateFormatters.shortDate.string(from: record.purchaseDate))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formattedPrice(record.price * record.quantity))
+                            .font(.subheadline.monospacedDigit())
+                        if record.quantity > 1 {
+                            Text("\(record.quantity)개")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("구매 이력")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func formattedPrice(_ price: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return (formatter.string(from: NSNumber(value: price)) ?? "\(price)") + "원"
     }
 }
