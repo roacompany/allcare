@@ -55,6 +55,9 @@ struct StatsView: View {
             .onChange(of: statsVM.selectedPeriod) {
                 Task { await loadStats() }
             }
+            .onChange(of: babyVM.selectedBaby?.id) {
+                Task { await loadStats() }
+            }
             .sheet(isPresented: $showShareSheet) {
                 if let url = exportURL {
                     ShareSheet(items: [url])

@@ -40,6 +40,13 @@ struct DiaryView: View {
                       let babyId = babyVM.selectedBaby?.id else { return }
                 await diaryVM.loadEntries(userId: userId, babyId: babyId)
             }
+            .onChange(of: babyVM.selectedBaby?.id) {
+                Task {
+                    guard let userId = authVM.currentUserId,
+                          let babyId = babyVM.selectedBaby?.id else { return }
+                    await diaryVM.loadEntries(userId: userId, babyId: babyId)
+                }
+            }
         }
     }
 }
@@ -147,10 +154,12 @@ struct AddDiaryView: View {
                             guard let userId = authVM.currentUserId,
                                   let babyId = babyVM.selectedBaby?.id else { return }
                             await diaryVM.addEntry(userId: userId, babyId: babyId)
-                            dismiss()
+                            if diaryVM.errorMessage == nil {
+                                dismiss()
+                            }
                         }
                     }
-                    .disabled(diaryVM.content.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(diaryVM.content.trimmingCharacters(in: .whitespaces).isEmpty || diaryVM.isLoading)
                 }
             }
         }

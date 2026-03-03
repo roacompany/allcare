@@ -111,6 +111,14 @@ struct GrowthView: View {
                 addRecordSheet
             }
             .task { await loadRecords() }
+            .onChange(of: babyVM.selectedBaby?.id) {
+                Task { await loadRecords() }
+            }
+            .alert("오류", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text(saveError ?? "")
+            }
         }
     }
 
@@ -207,6 +215,8 @@ struct GrowthView: View {
         isLoading = false
     }
 
+    @State private var saveError: String?
+
     private func saveRecord() async {
         guard let userId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
@@ -219,12 +229,16 @@ struct GrowthView: View {
             headCircumference: Double(headCircumference)
         )
 
-        try? await firestoreService.saveGrowthRecord(record, userId: userId)
-        records.append(record)
-        records.sort { $0.date < $1.date }
-        showAddRecord = false
-        height = ""
-        weight = ""
-        headCircumference = ""
+        do {
+            try await firestoreService.saveGrowthRecord(record, userId: userId)
+            records.append(record)
+            records.sort { $0.date < $1.date }
+            showAddRecord = false
+            height = ""
+            weight = ""
+            headCircumference = ""
+        } catch {
+            saveError = "저장에 실패했습니다: \(error.localizedDescription)"
+        }
     }
 }

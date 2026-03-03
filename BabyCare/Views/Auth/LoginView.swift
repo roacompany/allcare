@@ -291,9 +291,11 @@ private struct ForgotPasswordSheet: View {
                         }
 
                         Button {
+                            let previousEmail = authVM.email
                             authVM.email = resetEmail
                             Task {
                                 await authVM.resetPassword()
+                                authVM.email = previousEmail
                                 isSent = true
                             }
                         } label: {

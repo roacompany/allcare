@@ -96,7 +96,9 @@ struct SleepRecordView: View {
         Task {
             await activityVM.saveActivity(userId: userId, babyId: baby.id, type: .sleep)
             isSaving = false
-            onSaved?()
+            if activityVM.errorMessage == nil {
+                onSaved?()
+            }
         }
     }
 }

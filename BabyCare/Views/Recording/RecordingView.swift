@@ -77,6 +77,14 @@ struct RecordingView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
+        .alert("오류", isPresented: Binding(
+            get: { activityVM.errorMessage != nil },
+            set: { if !$0 { activityVM.errorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) { }
+        } message: {
+            Text(activityVM.errorMessage ?? "")
+        }
     }
 }
 

@@ -31,7 +31,7 @@ enum AIService {
         request.timeoutInterval = 30
 
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-haiku-4-5-20251022",
             "max_tokens": 1024,
             "system": systemPrompt,
             "messages": messages.map { ["role": $0.role, "content": $0.content] }

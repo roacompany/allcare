@@ -37,6 +37,9 @@ struct CalendarView: View {
             .onChange(of: calendarVM.selectedDate) {
                 Task { await loadDateData() }
             }
+            .onChange(of: babyVM.selectedBaby?.id) {
+                Task { await loadData() }
+            }
             .sheet(item: $editingActivity) { activity in
                 ActivityEditSheet(activity: activity) { updated in
                     Task {

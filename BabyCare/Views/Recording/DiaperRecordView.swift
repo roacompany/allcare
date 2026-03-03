@@ -115,6 +115,10 @@ struct DiaperRecordView: View {
                 babyId: baby.id,
                 type: selectedDiaperType
             )
+            guard activityVM.errorMessage == nil else {
+                isSaving = false
+                return
+            }
             if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: userId) {
                 productCandidates = candidates
             } else {

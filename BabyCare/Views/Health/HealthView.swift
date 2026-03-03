@@ -103,6 +103,13 @@ struct HealthView: View {
                     userId: userId
                 )
             }
+            .onChange(of: babyVM.selectedBaby?.id) {
+                Task {
+                    guard let userId = authVM.currentUserId,
+                          let baby = babyVM.selectedBaby else { return }
+                    await healthVM.loadAll(userId: userId, babyId: baby.id)
+                }
+            }
         }
     }
 

@@ -161,6 +161,10 @@ struct FeedingRecordView: View {
         isSaving = true
         Task {
             await activityVM.saveActivity(userId: userId, babyId: baby.id, type: type)
+            guard activityVM.errorMessage == nil else {
+                isSaving = false
+                return
+            }
             if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
                 productCandidates = candidates
             } else {

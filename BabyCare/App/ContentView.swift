@@ -27,7 +27,16 @@ struct ContentView: View {
 
             Group {
                 if authVM.isAuthenticated {
-                    if babyVM.babies.isEmpty && !babyVM.isLoading {
+                    if babyVM.isLoading && babyVM.babies.isEmpty {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .controlSize(.large)
+                            Text("데이터를 불러오는 중...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if babyVM.babies.isEmpty {
                         onboardingView
                     } else {
                         mainTabView
@@ -142,7 +151,6 @@ struct ContentView: View {
             .offset(y: -60)
         }
         .sheet(isPresented: $showRecording, onDismiss: {
-            if activityVM.isTimerRunning { _ = activityVM.stopTimer() }
             activityVM.resetForm()
         }) {
             RecordingView()

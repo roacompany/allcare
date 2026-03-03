@@ -153,6 +153,10 @@ struct HealthRecordView: View {
                 babyId: baby.id,
                 type: selectedHealthType.activityType
             )
+            guard activityVM.errorMessage == nil else {
+                isSaving = false
+                return
+            }
             if let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: userId) {
                 productCandidates = candidates
             } else {
