@@ -35,73 +35,37 @@ struct SleepRecordView: View {
                 TimerView(type: .sleep, accentColor: accentColor)
                     .padding(.vertical, 8)
 
-                // ── 수면 상태 (별도 필드) ──────────────────────────────────
+                // ── Sleep quality hint ─────────────────────────────────────
                 VStack(alignment: .leading, spacing: 10) {
                     Label("수면 상태", systemImage: "moon.stars.fill")
                         .font(.subheadline.bold())
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: 10) {
-                        ForEach(Activity.SleepQualityType.allCases, id: \.self) { quality in
-                            Button {
-                                withAnimation(.spring(duration: 0.25)) {
-                                    activityVM.sleepQuality = activityVM.sleepQuality == quality ? nil : quality
+                        ForEach(SleepQuality.allCases) { quality in
+                            QualityChip(
+                                quality: quality,
+                                isSelected: vm.note.hasPrefix(quality.rawValue),
+                                color: accentColor
+                            ) {
+                                // Toggle tag at start of note
+                                if vm.note.hasPrefix(quality.rawValue) {
+                                    vm.note = String(vm.note.dropFirst(quality.rawValue.count))
+                                        .trimmingCharacters(in: .whitespaces)
+                                } else {
+                                    // Remove any previous quality tag
+                                    var cleaned = vm.note
+                                    for q in SleepQuality.allCases {
+                                        if cleaned.hasPrefix(q.rawValue) {
+                                            cleaned = String(cleaned.dropFirst(q.rawValue.count))
+                                                .trimmingCharacters(in: .whitespaces)
+                                        }
+                                    }
+                                    vm.note = cleaned.isEmpty
+                                        ? quality.rawValue
+                                        : "\(quality.rawValue) \(cleaned)"
                                 }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: quality.icon)
-                                        .font(.caption)
-                                    Text(quality.displayName)
-                                        .font(.caption.bold())
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(activityVM.sleepQuality == quality ? accentColor : accentColor.opacity(0.1))
-                                .foregroundStyle(activityVM.sleepQuality == quality ? .white : accentColor)
-                                .clipShape(Capsule())
                             }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding()
-                .background(accentColor.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal)
-
-                // ── 수면 장소 ────────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("수면 장소", systemImage: "bed.double.fill")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 8) {
-                        ForEach(Activity.SleepLocationType.allCases, id: \.self) { location in
-                            Button {
-                                withAnimation(.spring(duration: 0.25)) {
-                                    activityVM.sleepLocation = activityVM.sleepLocation == location ? nil : location
-                                }
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Image(systemName: location.icon)
-                                        .font(.body)
-                                    Text(location.displayName)
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(
-                                    activityVM.sleepLocation == location
-                                        ? accentColor : accentColor.opacity(0.08)
-                                )
-                                .foregroundStyle(
-                                    activityVM.sleepLocation == location ? .white : accentColor
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -136,6 +100,48 @@ struct SleepRecordView: View {
                 onSaved?()
             }
         }
+    }
+}
+
+// MARK: - SleepQuality (local helper)
+
+private enum SleepQuality: String, CaseIterable, Identifiable {
+    case good   = "잘 잠"
+    case fussy  = "뒤척임"
+    case light  = "얕은 수면"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .good:  "moon.fill"
+        case .fussy: "figure.walk"
+        case .light: "cloud.moon.fill"
+        }
+    }
+}
+
+private struct QualityChip: View {
+    let quality: SleepQuality
+    let isSelected: Bool
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: quality.icon)
+                    .font(.caption)
+                Text(quality.rawValue)
+                    .font(.caption.bold())
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? color : color.opacity(0.1))
+            .foregroundStyle(isSelected ? .white : color)
+            .clipShape(Capsule())
+        }
+        .animation(.spring(duration: 0.25), value: isSelected)
     }
 }
 
