@@ -6,7 +6,6 @@ struct MilestoneListView: View {
     @Environment(BabyViewModel.self) private var babyVM
 
     @State private var selectedMilestone: Milestone?
-    @State private var showDetailSheet = false
     @State private var filterMode: FilterMode = .all
 
     enum FilterMode: String, CaseIterable {
@@ -55,7 +54,6 @@ struct MilestoneListView: View {
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedMilestone = milestone
-                                    showDetailSheet = true
                                 }
                         }
                     } header: {
@@ -73,13 +71,11 @@ struct MilestoneListView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("발달이정표")
         .navigationBarTitleDisplayMode(.large)
-        .sheet(isPresented: $showDetailSheet) {
-            if let ms = selectedMilestone {
-                MilestoneDetailSheet(milestone: ms, babyAgeMonths: babyAgeMonths) { achievedDate in
-                    guard let userId = authVM.currentUserId else { return }
-                    Task {
-                        await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
-                    }
+        .sheet(item: $selectedMilestone) { ms in
+            MilestoneDetailSheet(milestone: ms, babyAgeMonths: babyAgeMonths) { achievedDate in
+                guard let userId = authVM.currentUserId else { return }
+                Task {
+                    await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
                 }
             }
         }

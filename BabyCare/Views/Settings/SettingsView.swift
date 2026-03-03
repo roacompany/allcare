@@ -185,11 +185,40 @@ struct NotificationSettingsView: View {
             // 활동별 알림
             Section {
                 ForEach($rules) { $rule in
-                    ActivityReminderRow(
-                        rule: $rule,
-                        intervalOptions: intervalOptions,
-                        onUpdate: { saveRules() }
-                    )
+                    Toggle(isOn: $rule.enabled) {
+                        HStack(spacing: 10) {
+                            if let type = rule.type {
+                                Image(systemName: type.icon)
+                                    .font(.body)
+                                    .foregroundStyle(Color(type.color))
+                                    .frame(width: 24)
+                            }
+                            Text(rule.displayName)
+                        }
+                    }
+                    .onChange(of: rule.enabled) { _, newVal in
+                        saveRules()
+                        if !newVal, let type = rule.type {
+                            NotificationService.shared.cancelActivityReminder(type: type)
+                        }
+                    }
+
+                    if rule.enabled {
+                        Picker(selection: $rule.intervalMinutes) {
+                            ForEach(intervalOptions, id: \.self) { mins in
+                                Text(intervalLabel(mins)).tag(mins)
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Color.clear.frame(width: 24)
+                                Text("알림 간격")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .onChange(of: rule.intervalMinutes) { _, _ in
+                            saveRules()
+                        }
+                    }
                 }
             } header: {
                 Text("활동 기록 알림")
@@ -256,6 +285,17 @@ struct NotificationSettingsView: View {
         ActivityReminderSettings.rules = rules
     }
 
+    private func intervalLabel(_ minutes: Int) -> String {
+        if minutes >= 1440 {
+            return "\(minutes / 1440)일"
+        } else if minutes >= 60 {
+            let h = minutes / 60
+            let m = minutes % 60
+            return m == 0 ? "\(h)시간" : "\(h)시간 \(m)분"
+        }
+        return "\(minutes)분"
+    }
+
     private func toggleVaccinationDay(_ day: Int) {
         if vaccinationDays.contains(day) {
             guard vaccinationDays.count > 1 else { return }
@@ -273,57 +313,6 @@ struct NotificationSettingsView: View {
         case 1: "1일 전"
         default: "\(day)일 전"
         }
-    }
-}
-
-// MARK: - Activity Reminder Row
-
-private struct ActivityReminderRow: View {
-    @Binding var rule: ActivityReminderRule
-    let intervalOptions: [Int]
-    let onUpdate: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                if let type = rule.type {
-                    Image(systemName: type.icon)
-                        .font(.body)
-                        .foregroundStyle(Color(type.color))
-                        .frame(width: 28)
-                }
-                Toggle(rule.displayName, isOn: $rule.enabled)
-                    .onChange(of: rule.enabled) { _, newVal in
-                        onUpdate()
-                        if !newVal, let type = rule.type {
-                            NotificationService.shared.cancelActivityReminder(type: type)
-                        }
-                    }
-            }
-
-            if rule.enabled {
-                Picker("간격", selection: $rule.intervalMinutes) {
-                    ForEach(intervalOptions, id: \.self) { mins in
-                        Text(intervalLabel(mins)).tag(mins)
-                    }
-                }
-                .pickerStyle(.menu)
-                .onChange(of: rule.intervalMinutes) { _, _ in
-                    onUpdate()
-                }
-            }
-        }
-    }
-
-    private func intervalLabel(_ minutes: Int) -> String {
-        if minutes >= 1440 {
-            return "\(minutes / 1440)일"
-        } else if minutes >= 60 {
-            let h = minutes / 60
-            let m = minutes % 60
-            return m == 0 ? "\(h)시간" : "\(h)시간 \(m)분"
-        }
-        return "\(minutes)분"
     }
 }
 
