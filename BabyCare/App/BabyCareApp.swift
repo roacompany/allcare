@@ -1,9 +1,18 @@
 import SwiftUI
+import FirebaseCore
 
 @main
 struct BabyCareApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    private let appState = AppState.shared
+    private let appState: AppState
+
+    init() {
+        // AppState → AuthViewModel → Auth.auth() 호출 전에 Firebase 초기화 필수
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+        appState = AppState.shared
+    }
 
     var body: some Scene {
         WindowGroup {
