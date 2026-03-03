@@ -89,6 +89,12 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
+                        QuickRecordSettingsView()
+                    } label: {
+                        Label("빠른 기록 설정", systemImage: "square.grid.2x2.fill")
+                    }
+
+                    NavigationLink {
                         NotificationSettingsView()
                     } label: {
                         Label("알림", systemImage: "bell.fill")
@@ -165,52 +171,73 @@ struct SettingsView: View {
 // MARK: - NotificationSettingsView
 
 struct NotificationSettingsView: View {
-    @State private var feedingEnabled = NotificationSettings.feedingReminderEnabled
-    @State private var feedingHours = NotificationSettings.feedingIntervalHours
+    @State private var rules = ActivityReminderSettings.rules
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
+    @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
 
-    private let intervalOptions: [Double] = [1.5, 2, 2.5, 3, 3.5, 4, 5, 6]
+    private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
+
+    private let vaccinationDayOptions: [Int] = [0, 1, 3, 7, 14, 30]
 
     var body: some View {
         List {
+            // 활동별 알림
             Section {
-                Toggle("수유 알림", isOn: $feedingEnabled)
-                    .onChange(of: feedingEnabled) { _, val in
-                        NotificationSettings.feedingReminderEnabled = val
-                        if !val { NotificationService.shared.cancelFeedingReminders() }
-                    }
-
-                if feedingEnabled {
-                    Picker("수유 간격", selection: $feedingHours) {
-                        ForEach(intervalOptions, id: \.self) { hours in
-                            Text(hours.truncatingRemainder(dividingBy: 1) == 0
-                                 ? "\(Int(hours))시간"
-                                 : "\(Int(hours))시간 \(Int(hours.truncatingRemainder(dividingBy: 1) * 60))분")
-                                .tag(hours)
-                        }
-                    }
-                    .onChange(of: feedingHours) { _, val in
-                        NotificationSettings.feedingIntervalHours = val
-                    }
+                ForEach($rules) { $rule in
+                    ActivityReminderRow(
+                        rule: $rule,
+                        intervalOptions: intervalOptions,
+                        onUpdate: { saveRules() }
+                    )
                 }
             } header: {
-                Text("수유")
+                Text("활동 기록 알림")
             } footer: {
-                Text("수유 기록 후 설정한 간격이 지나면 알림을 보냅니다.")
+                Text("기록 후 설정한 시간이 지나면 알림을 보냅니다. 원하는 활동만 켜세요.")
             }
 
+            // 접종 알림
             Section {
                 Toggle("접종 알림", isOn: $vaccinationEnabled)
                     .onChange(of: vaccinationEnabled) { _, val in
                         NotificationSettings.vaccinationReminderEnabled = val
                     }
+
+                if vaccinationEnabled {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("알림 시점")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        FlowLayout(spacing: 8) {
+                            ForEach(vaccinationDayOptions, id: \.self) { day in
+                                let isSelected = vaccinationDays.contains(day)
+                                Button {
+                                    toggleVaccinationDay(day)
+                                } label: {
+                                    Text(vaccinationDayLabel(day))
+                                        .font(.caption.weight(.medium))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(isSelected ? Color.blue.opacity(0.15) : Color.secondary.opacity(0.1))
+                                        )
+                                        .foregroundStyle(isSelected ? .blue : .secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             } header: {
                 Text("예방접종")
             } footer: {
-                Text("예정된 접종 7일 전, 1일 전에 알림을 보냅니다.")
+                Text("예정된 접종일 기준, 선택한 시점에 알림을 보냅니다.")
             }
 
+            // 재구매
             Section {
                 Toggle("재구매 알림", isOn: $reorderEnabled)
                     .onChange(of: reorderEnabled) { _, val in
@@ -223,5 +250,119 @@ struct NotificationSettingsView: View {
             }
         }
         .navigationTitle("알림 설정")
+    }
+
+    private func saveRules() {
+        ActivityReminderSettings.rules = rules
+    }
+
+    private func toggleVaccinationDay(_ day: Int) {
+        if vaccinationDays.contains(day) {
+            guard vaccinationDays.count > 1 else { return }
+            vaccinationDays.removeAll { $0 == day }
+        } else {
+            vaccinationDays.append(day)
+            vaccinationDays.sort(by: >)
+        }
+        NotificationSettings.vaccinationDaysBefore = vaccinationDays
+    }
+
+    private func vaccinationDayLabel(_ day: Int) -> String {
+        switch day {
+        case 0: "당일"
+        case 1: "1일 전"
+        default: "\(day)일 전"
+        }
+    }
+}
+
+// MARK: - Activity Reminder Row
+
+private struct ActivityReminderRow: View {
+    @Binding var rule: ActivityReminderRule
+    let intervalOptions: [Int]
+    let onUpdate: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                if let type = rule.type {
+                    Image(systemName: type.icon)
+                        .font(.body)
+                        .foregroundStyle(Color(type.color))
+                        .frame(width: 28)
+                }
+                Toggle(rule.displayName, isOn: $rule.enabled)
+                    .onChange(of: rule.enabled) { _, newVal in
+                        onUpdate()
+                        if !newVal, let type = rule.type {
+                            NotificationService.shared.cancelActivityReminder(type: type)
+                        }
+                    }
+            }
+
+            if rule.enabled {
+                Picker("간격", selection: $rule.intervalMinutes) {
+                    ForEach(intervalOptions, id: \.self) { mins in
+                        Text(intervalLabel(mins)).tag(mins)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: rule.intervalMinutes) { _, _ in
+                    onUpdate()
+                }
+            }
+        }
+    }
+
+    private func intervalLabel(_ minutes: Int) -> String {
+        if minutes >= 1440 {
+            return "\(minutes / 1440)일"
+        } else if minutes >= 60 {
+            let h = minutes / 60
+            let m = minutes % 60
+            return m == 0 ? "\(h)시간" : "\(h)시간 \(m)분"
+        }
+        return "\(minutes)분"
+    }
+}
+
+// MARK: - FlowLayout
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+        }
+
+        return (CGSize(width: maxWidth, height: y + rowHeight), positions)
     }
 }

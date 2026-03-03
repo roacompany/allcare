@@ -24,9 +24,86 @@ enum NotificationSettings {
         set { defaults.set(newValue, forKey: "vaccinationReminderEnabled") }
     }
 
+    static var vaccinationDaysBefore: [Int] {
+        get {
+            guard let data = defaults.data(forKey: "vaccinationDaysBefore"),
+                  let days = try? JSONDecoder().decode([Int].self, from: data) else {
+                return [7, 1]
+            }
+            return days
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                defaults.set(data, forKey: "vaccinationDaysBefore")
+            }
+        }
+    }
+
     static var reorderReminderEnabled: Bool {
         get { defaults.object(forKey: "reorderReminderEnabled") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "reorderReminderEnabled") }
+    }
+}
+
+// MARK: - Activity Reminder Rules (활동별 알림 규칙)
+
+struct ActivityReminderRule: Codable, Identifiable {
+    var id: String { activityType }
+    var activityType: String  // Activity.ActivityType.rawValue
+    var enabled: Bool
+    var intervalMinutes: Int  // 기록 후 N분 뒤 알림
+
+    var type: Activity.ActivityType? {
+        Activity.ActivityType(rawValue: activityType)
+    }
+
+    var displayName: String { type?.displayName ?? activityType }
+    var icon: String { type?.icon ?? "bell.fill" }
+    var color: String { type?.color ?? "feedingColor" }
+}
+
+enum ActivityReminderSettings {
+    nonisolated(unsafe) private static let defaults = UserDefaults.standard
+    private static let key = "activityReminderRules"
+
+    static let defaultRules: [ActivityReminderRule] = [
+        ActivityReminderRule(activityType: "feeding_breast", enabled: true, intervalMinutes: 180),
+        ActivityReminderRule(activityType: "feeding_bottle", enabled: true, intervalMinutes: 180),
+        ActivityReminderRule(activityType: "feeding_solid", enabled: false, intervalMinutes: 240),
+        ActivityReminderRule(activityType: "feeding_snack", enabled: false, intervalMinutes: 180),
+        ActivityReminderRule(activityType: "sleep", enabled: false, intervalMinutes: 120),
+        ActivityReminderRule(activityType: "diaper_wet", enabled: false, intervalMinutes: 120),
+        ActivityReminderRule(activityType: "diaper_dirty", enabled: false, intervalMinutes: 120),
+        ActivityReminderRule(activityType: "diaper_both", enabled: false, intervalMinutes: 120),
+        ActivityReminderRule(activityType: "bath", enabled: false, intervalMinutes: 1440),
+        ActivityReminderRule(activityType: "medication", enabled: false, intervalMinutes: 480),
+    ]
+
+    static var rules: [ActivityReminderRule] {
+        get {
+            guard let data = defaults.data(forKey: key),
+                  let decoded = try? JSONDecoder().decode([ActivityReminderRule].self, from: data) else {
+                return defaultRules
+            }
+            return decoded
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                defaults.set(data, forKey: key)
+            }
+        }
+    }
+
+    static func rule(for type: Activity.ActivityType) -> ActivityReminderRule? {
+        rules.first { $0.activityType == type.rawValue }
+    }
+
+    static func updateRule(_ updated: ActivityReminderRule) {
+        var current = rules
+        if let idx = current.firstIndex(where: { $0.activityType == updated.activityType }) {
+            current[idx] = updated
+        }
+        rules = current
     }
 }
 
@@ -48,19 +125,22 @@ final class NotificationService {
         }
     }
 
-    // MARK: - Feeding Reminder
+    // MARK: - Activity Reminder (범용)
 
-    func scheduleFeedingReminder(babyName: String, afterMinutes: Int) {
-        guard NotificationSettings.feedingReminderEnabled else { return }
+    func scheduleActivityReminder(type: Activity.ActivityType, babyName: String, afterMinutes: Int) {
+        guard let rule = ActivityReminderSettings.rule(for: type), rule.enabled else { return }
 
-        // 이전 수유 알림 취소 후 새로 예약
-        cancelFeedingReminders()
+        let identifier = "activity-\(type.rawValue)"
+
+        // 이전 같은 타입 알림 취소 후 새로 예약
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
 
         let content = UNMutableNotificationContent()
-        content.title = "수유 시간"
-        content.body = "\(babyName)의 다음 수유 시간이에요!"
+        content.title = "\(type.displayName) 알림"
+        content.body = "\(babyName)의 \(type.displayName) 시간이에요!"
         content.sound = .default
-        content.categoryIdentifier = "FEEDING_REMINDER"
+        content.categoryIdentifier = "ACTIVITY_REMINDER"
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: TimeInterval(afterMinutes * 60),
@@ -68,7 +148,7 @@ final class NotificationService {
         )
 
         let request = UNNotificationRequest(
-            identifier: "feeding-reminder",
+            identifier: identifier,
             content: content,
             trigger: trigger
         )
@@ -76,6 +156,12 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    func cancelActivityReminder(type: Activity.ActivityType) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["activity-\(type.rawValue)"])
+    }
+
+    // 하위 호환: 기존 feeding-reminder 정리
     func cancelFeedingReminders() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["feeding-reminder"])
@@ -90,42 +176,26 @@ final class NotificationService {
         cancelVaccinationReminders(vaccinations: vaccinations)
 
         let center = UNUserNotificationCenter.current()
+        let daysBefore = NotificationSettings.vaccinationDaysBefore
 
         for vaccination in vaccinations where !vaccination.isCompleted {
             let scheduledDate = vaccination.scheduledDate
 
-            // D-7 알림
-            if let d7 = Calendar.current.date(byAdding: .day, value: -7, to: scheduledDate),
-               d7 > Date() {
+            for days in daysBefore {
+                guard let alertDate = Calendar.current.date(byAdding: .day, value: -days, to: scheduledDate),
+                      alertDate > Date() else { continue }
+
                 let content = UNMutableNotificationContent()
-                content.title = "접종 예정 (7일 전)"
-                content.body = "\(babyName)의 \(vaccination.vaccine.displayName) \(vaccination.doseNumber)차 접종이 7일 후입니다."
+                let dayText = days == 0 ? "오늘" : days == 1 ? "내일" : "\(days)일 전"
+                content.title = "접종 예정 (\(dayText))"
+                content.body = "\(babyName)의 \(vaccination.vaccine.displayName) \(vaccination.doseNumber)차 접종이 \(days == 0 ? "오늘" : "\(days)일 후")입니다."
                 content.sound = .default
                 content.categoryIdentifier = "VACCINATION_REMINDER"
 
-                let components = Calendar.current.dateComponents([.year, .month, .day, .hour], from: d7)
+                let components = Calendar.current.dateComponents([.year, .month, .day, .hour], from: alertDate)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                 let request = UNNotificationRequest(
-                    identifier: "vacc-d7-\(vaccination.id)",
-                    content: content,
-                    trigger: trigger
-                )
-                center.add(request)
-            }
-
-            // D-1 알림
-            if let d1 = Calendar.current.date(byAdding: .day, value: -1, to: scheduledDate),
-               d1 > Date() {
-                let content = UNMutableNotificationContent()
-                content.title = "접종 예정 (내일)"
-                content.body = "\(babyName)의 \(vaccination.vaccine.displayName) \(vaccination.doseNumber)차 접종이 내일입니다."
-                content.sound = .default
-                content.categoryIdentifier = "VACCINATION_REMINDER"
-
-                let components = Calendar.current.dateComponents([.year, .month, .day, .hour], from: d1)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                let request = UNNotificationRequest(
-                    identifier: "vacc-d1-\(vaccination.id)",
+                    identifier: "vacc-d\(days)-\(vaccination.id)",
                     content: content,
                     trigger: trigger
                 )
@@ -135,7 +205,10 @@ final class NotificationService {
     }
 
     func cancelVaccinationReminders(vaccinations: [Vaccination]) {
-        let ids = vaccinations.flatMap { ["vacc-d7-\($0.id)", "vacc-d1-\($0.id)"] }
+        let daysBefore = NotificationSettings.vaccinationDaysBefore
+        let ids = vaccinations.flatMap { vacc in
+            daysBefore.map { "vacc-d\($0)-\(vacc.id)" }
+        }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 

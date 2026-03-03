@@ -84,10 +84,10 @@ final class HealthViewModel {
 
     // MARK: - Milestone Actions
 
-    func toggleMilestone(_ milestone: Milestone, userId: String) async {
+    func toggleMilestone(_ milestone: Milestone, userId: String, achievedDate: Date? = nil) async {
         var updated = milestone
         updated.isAchieved = !milestone.isAchieved
-        updated.achievedDate = updated.isAchieved ? Date() : nil
+        updated.achievedDate = updated.isAchieved ? (achievedDate ?? Date()) : nil
 
         // Optimistic update
         if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
@@ -108,24 +108,29 @@ final class HealthViewModel {
     // MARK: - Schedule Generation
 
     func generateScheduleIfNeeded(babyId: String, birthDate: Date, userId: String, babyName: String = "아기") async {
-        guard vaccinations.isEmpty else { return }
+        let needVax = vaccinations.isEmpty
+        let needMs = milestones.isEmpty
+        guard needVax || needMs else { return }
 
-        let generatedVax = Vaccination.generateSchedule(babyId: babyId, birthDate: birthDate)
-        let generatedMs = Milestone.generateChecklist(babyId: babyId)
+        let generatedVax = needVax ? Vaccination.generateSchedule(babyId: babyId, birthDate: birthDate) : []
+        let generatedMs = needMs ? Milestone.generateChecklist(babyId: babyId) : []
 
         // Optimistic update
-        vaccinations = generatedVax
-        milestones = generatedMs
+        if needVax { vaccinations = generatedVax }
+        if needMs { milestones = generatedMs }
 
         do {
-            async let saveVax: Void = firestoreService.saveVaccinations(generatedVax, userId: userId)
-            async let saveMs: Void = firestoreService.saveMilestones(generatedMs, userId: userId)
-            _ = try await (saveVax, saveMs)
+            if needVax {
+                try await firestoreService.saveVaccinations(generatedVax, userId: userId)
+            }
+            if needMs {
+                try await firestoreService.saveMilestones(generatedMs, userId: userId)
+            }
             scheduleVaccinationReminders(babyName: babyName)
         } catch {
-            vaccinations = []
-            milestones = []
-            errorMessage = "예방접종 스케줄 생성에 실패했습니다: \(error.localizedDescription)"
+            if needVax { vaccinations = [] }
+            if needMs { milestones = [] }
+            errorMessage = "스케줄 생성에 실패했습니다: \(error.localizedDescription)"
         }
     }
 

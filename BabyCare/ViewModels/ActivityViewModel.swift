@@ -111,30 +111,22 @@ final class ActivityViewModel {
             todayActivities = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId, date: Date()
             )
-            await loadLatestActivities(userId: userId, babyId: babyId)
+            deriveLatestActivities()
         } catch {
             errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
         }
     }
 
-    private func loadLatestActivities(userId: String, babyId: String) async {
-        // 각 쿼리 독립 실행, 개별 에러는 무시 (latest는 보조 정보)
-        async let feeding = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBreast)
-        async let bottle = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .feedingBottle)
-        async let sleepAct = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .sleep)
-        async let diaperAct = try? firestoreService.fetchLatestActivity(userId: userId, babyId: babyId, type: .diaperWet)
+    /// todayActivities에서 최근 수유/수면/기저귀를 추출 (Firestore 추가 쿼리 없음)
+    private func deriveLatestActivities() {
+        let feedings = todayActivities.filter { $0.type.category == .feeding }
+        lastFeeding = feedings.max(by: { $0.startTime < $1.startTime })
 
-        let (f, b, s, d) = await (feeding, bottle, sleepAct, diaperAct)
+        let sleeps = todayActivities.filter { $0.type == .sleep }
+        lastSleep = sleeps.max(by: { $0.startTime < $1.startTime })
 
-        // 가장 최근 수유 (모유/분유 중 더 최근)
-        switch (f, b) {
-        case let (f?, b?):
-            lastFeeding = f.startTime > b.startTime ? f : b
-        default:
-            lastFeeding = f ?? b
-        }
-        lastSleep = s
-        lastDiaper = d
+        let diapers = todayActivities.filter { $0.type.category == .diaper }
+        lastDiaper = diapers.max(by: { $0.startTime < $1.startTime })
     }
 
     // MARK: - Timer (스레드 안전)
@@ -263,8 +255,8 @@ final class ActivityViewModel {
 
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
-            await loadLatestActivities(userId: userId, babyId: babyId)
-            scheduleFeedingReminderIfNeeded(type: type, babyId: babyId)
+            deriveLatestActivities()
+            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
             resetForm()
         } catch {
             // 롤백: 실패 시 UI에서 제거
@@ -287,8 +279,8 @@ final class ActivityViewModel {
 
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
-            await loadLatestActivities(userId: userId, babyId: babyId)
-            scheduleFeedingReminderIfNeeded(type: type, babyId: babyId)
+            deriveLatestActivities()
+            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
@@ -339,37 +331,23 @@ final class ActivityViewModel {
         medicationDosage = ""
     }
 
-    // MARK: - Feeding Reminder
+    // MARK: - Activity Reminder
 
-    private func scheduleFeedingReminderIfNeeded(type: Activity.ActivityType, babyId: String) {
-        guard type.category == .feeding else { return }
-        let minutes = Int(NotificationSettings.feedingIntervalHours * 60)
-        NotificationService.shared.scheduleFeedingReminder(babyName: "아기", afterMinutes: minutes)
+    private func scheduleActivityReminderIfNeeded(type: Activity.ActivityType, babyName: String) {
+        guard let rule = ActivityReminderSettings.rule(for: type), rule.enabled else { return }
+        NotificationService.shared.scheduleActivityReminder(
+            type: type, babyName: babyName, afterMinutes: rule.intervalMinutes
+        )
     }
 
     // MARK: - Widget Data Sync
 
     func syncWidgetData(babyName: String, babyAge: String) {
-        let sortedFeedings = todayActivities
-            .filter { $0.type.category == .feeding }
-            .sorted { $0.startTime > $1.startTime }
-        let lastFeeding = sortedFeedings.first?.startTime
-        let lastFeedingType = sortedFeedings.first?.type.displayName
-
-        let sortedSleep = todayActivities
-            .filter { $0.type == .sleep }
-            .sorted { $0.startTime > $1.startTime }
-        let lastSleep = sortedSleep.first?.startTime
-
-        let lastDiaper = todayActivities
-            .filter { $0.type.category == .diaper }
-            .sorted { $0.startTime > $1.startTime }.first?.startTime
-
         let interval = Int(NotificationSettings.feedingIntervalHours * 60)
 
-        // 오늘 요약 데이터
+        // 오늘 요약 데이터 — lastFeeding/lastSleep/lastDiaper 프로퍼티 재사용
         let sleepMinutes = Int(todaySleepDuration / 60)
-        let sleepDurationText = sortedSleep.first?.durationText
+        let sleepDurationText = lastSleep?.durationText
 
         // 최근 5개 활동 → WidgetActivity 변환
         let recent = todayActivities
@@ -397,10 +375,10 @@ final class ActivityViewModel {
         WidgetDataStore.update(
             babyName: babyName,
             babyAge: babyAge,
-            lastFeeding: lastFeeding,
-            lastFeedingType: lastFeedingType,
-            lastSleep: lastSleep,
-            lastDiaper: lastDiaper,
+            lastFeeding: lastFeeding?.startTime,
+            lastFeedingType: lastFeeding?.type.displayName,
+            lastSleep: lastSleep?.startTime,
+            lastDiaper: lastDiaper?.startTime,
             feedingIntervalMinutes: interval,
             todayFeedingCount: todayFeedingCount,
             todaySleepMinutes: sleepMinutes,

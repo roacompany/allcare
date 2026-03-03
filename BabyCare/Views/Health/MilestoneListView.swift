@@ -7,23 +7,51 @@ struct MilestoneListView: View {
 
     @State private var selectedMilestone: Milestone?
     @State private var showDetailSheet = false
+    @State private var filterMode: FilterMode = .all
+
+    enum FilterMode: String, CaseIterable {
+        case all = "전체"
+        case current = "현재 시기"
+        case overdue = "지연"
+        case achieved = "달성"
+    }
+
+    private var babyAgeMonths: Int {
+        guard let baby = babyVM.selectedBaby else { return 0 }
+        let months = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 0
+        return max(0, months)
+    }
 
     var body: some View {
         List {
+            // 현재 아기 나이 + 진행률 요약
+            ageSummarySection
+
+            // 필터 피커
+            Picker("필터", selection: $filterMode) {
+                ForEach(FilterMode.allCases, id: \.self) { mode in
+                    Text(filterLabel(mode)).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowSeparator(.hidden)
+
+            // 카테고리별 섹션
             ForEach(Milestone.MilestoneCategory.allCases, id: \.self) { category in
-                let items = milestones(for: category)
+                let items = filteredMilestones(for: category)
                 if !items.isEmpty {
                     Section {
                         CategoryProgressBar(
                             category: category,
-                            achieved: items.filter(\.isAchieved).count,
-                            total: items.count
+                            achieved: allMilestones(for: category).filter(\.isAchieved).count,
+                            total: allMilestones(for: category).count
                         )
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowSeparator(.hidden)
 
                         ForEach(items) { milestone in
-                            MilestoneRow(milestone: milestone)
+                            MilestoneRow(milestone: milestone, babyAgeMonths: babyAgeMonths)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectedMilestone = milestone
@@ -47,19 +75,10 @@ struct MilestoneListView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showDetailSheet) {
             if let ms = selectedMilestone {
-                MilestoneDetailSheet(milestone: ms) { achievedDate in
+                MilestoneDetailSheet(milestone: ms, babyAgeMonths: babyAgeMonths) { achievedDate in
                     guard let userId = authVM.currentUserId else { return }
                     Task {
-                        await healthVM.toggleMilestone(ms, userId: userId)
-                        // If we're marking achieved with a specific date, update it
-                        if let date = achievedDate, !ms.isAchieved {
-                            if let idx = healthVM.milestones.firstIndex(where: { $0.id == ms.id }) {
-                                var updated = healthVM.milestones[idx]
-                                updated.achievedDate = date
-                                healthVM.milestones[idx] = updated
-                                try? await FirestoreService.shared.saveMilestone(updated, userId: userId)
-                            }
-                        }
+                        await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
                     }
                 }
             }
@@ -74,10 +93,90 @@ struct MilestoneListView: View {
         }
     }
 
-    private func milestones(for category: Milestone.MilestoneCategory) -> [Milestone] {
+    // MARK: - Age Summary
+
+    private var ageSummarySection: some View {
+        let total = healthVM.milestones.count
+        let achieved = healthVM.achievedMilestones.count
+        let overdue = healthVM.milestones.filter { !$0.isAchieved && ($0.expectedAgeMonths ?? 99) < babyAgeMonths }.count
+
+        return VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let baby = babyVM.selectedBaby {
+                        Text("\(baby.name) · 생후 \(babyAgeMonths)개월")
+                            .font(.headline)
+                    }
+                    Text("\(achieved)/\(total) 달성")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if overdue > 0 {
+                    Text("확인 필요 \(overdue)건")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(.orange))
+                }
+            }
+
+            // 전체 진행 바
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "4CAF50"))
+                        .frame(width: total > 0 ? geo.size.width * Double(achieved) / Double(total) : 0, height: 8)
+                        .animation(.easeInOut(duration: 0.4), value: achieved)
+                }
+            }
+            .frame(height: 8)
+        }
+        .padding(.vertical, 4)
+        .listRowSeparator(.hidden)
+    }
+
+    // MARK: - Helpers
+
+    private func allMilestones(for category: Milestone.MilestoneCategory) -> [Milestone] {
         healthVM.milestones
             .filter { $0.category == category }
             .sorted { ($0.expectedAgeMonths ?? 0) < ($1.expectedAgeMonths ?? 0) }
+    }
+
+    private func filteredMilestones(for category: Milestone.MilestoneCategory) -> [Milestone] {
+        let all = allMilestones(for: category)
+        switch filterMode {
+        case .all:
+            return all
+        case .current:
+            // 현재 나이 ±3개월
+            return all.filter { ms in
+                guard let m = ms.expectedAgeMonths, !ms.isAchieved else { return false }
+                return m >= max(0, babyAgeMonths - 3) && m <= babyAgeMonths + 3
+            }
+        case .overdue:
+            return all.filter { ms in
+                !ms.isAchieved && (ms.expectedAgeMonths ?? 99) < babyAgeMonths
+            }
+        case .achieved:
+            return all.filter(\.isAchieved)
+        }
+    }
+
+    private func filterLabel(_ mode: FilterMode) -> String {
+        switch mode {
+        case .all: return "전체"
+        case .current: return "현재"
+        case .overdue:
+            let count = healthVM.milestones.filter { !$0.isAchieved && ($0.expectedAgeMonths ?? 99) < babyAgeMonths }.count
+            return count > 0 ? "지연 \(count)" : "지연"
+        case .achieved: return "달성"
+        }
     }
 }
 
@@ -133,23 +232,58 @@ private struct CategoryProgressBar: View {
 
 private struct MilestoneRow: View {
     let milestone: Milestone
+    let babyAgeMonths: Int
+
+    private var isOverdue: Bool {
+        !milestone.isAchieved && (milestone.expectedAgeMonths ?? 99) < babyAgeMonths
+    }
+
+    private var isCurrent: Bool {
+        guard let m = milestone.expectedAgeMonths, !milestone.isAchieved else { return false }
+        return m >= babyAgeMonths && m <= babyAgeMonths + 3
+    }
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: milestone.isAchieved ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(milestone.isAchieved ? Color(hex: "4CAF50") : Color.secondary)
+                .foregroundStyle(iconColor)
                 .font(.title3)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(milestone.title)
-                    .font(.subheadline.weight(.medium))
-                    .strikethrough(milestone.isAchieved, color: .secondary)
-                    .foregroundStyle(milestone.isAchieved ? .secondary : .primary)
+                HStack(spacing: 6) {
+                    Text(milestone.title)
+                        .font(.subheadline.weight(.medium))
+                        .strikethrough(milestone.isAchieved, color: .secondary)
+                        .foregroundStyle(milestone.isAchieved ? .secondary : .primary)
+
+                    if isOverdue {
+                        Text("지연")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(.orange))
+                    } else if isCurrent {
+                        Text("지금")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(.blue))
+                    }
+                }
 
                 if let months = milestone.expectedAgeMonths {
-                    Text("기대 발달 시기: 생후 \(months)개월")
+                    Text("생후 \(months)개월")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                if let desc = milestone.description {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
 
                 if milestone.isAchieved, let date = milestone.achievedDate {
@@ -169,17 +303,27 @@ private struct MilestoneRow: View {
         }
         .padding(.vertical, 2)
     }
+
+    private var iconColor: Color {
+        if milestone.isAchieved { return Color(hex: "4CAF50") }
+        if isOverdue { return .orange }
+        return .secondary
+    }
 }
 
 // MARK: - Milestone Detail Sheet
 
 private struct MilestoneDetailSheet: View {
     let milestone: Milestone
+    let babyAgeMonths: Int
     let onToggle: (Date?) -> Void
 
     @Environment(\.dismiss) private var dismiss
-
     @State private var achievedDate = Date()
+
+    private var isOverdue: Bool {
+        !milestone.isAchieved && (milestone.expectedAgeMonths ?? 99) < babyAgeMonths
+    }
 
     var body: some View {
         NavigationStack {
@@ -201,12 +345,17 @@ private struct MilestoneDetailSheet: View {
                             Spacer()
                             Text("생후 \(months)개월")
                                 .foregroundStyle(.secondary)
+                            if isOverdue {
+                                Text("(지연)")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
                         }
                     }
 
                     if let desc = milestone.description {
                         Text(desc)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }

@@ -407,29 +407,10 @@ struct DashboardView: View {
                 .foregroundStyle(.primary)
 
             LazyVGrid(columns: gridColumns, spacing: 10) {
-                QuickActionButton(type: .feedingBreast) {
-                    await quickSave(type: .feedingBreast)
-                }
-                QuickActionButton(type: .feedingSolid) {
-                    await quickSave(type: .feedingSolid)
-                }
-                QuickActionButton(type: .feedingSnack) {
-                    await quickSave(type: .feedingSnack)
-                }
-                QuickActionButton(type: .diaperWet) {
-                    await quickSave(type: .diaperWet)
-                }
-                QuickActionButton(type: .diaperDirty) {
-                    await quickSave(type: .diaperDirty)
-                }
-                QuickActionButton(type: .diaperBoth) {
-                    await quickSave(type: .diaperBoth)
-                }
-                QuickActionButton(type: .bath) {
-                    await quickSave(type: .bath)
-                }
-                QuickActionButton(type: .medication) {
-                    await quickSave(type: .medication)
+                ForEach(QuickRecordSettings.enabledTypes, id: \.self) { type in
+                    QuickActionButton(type: type) {
+                        await quickSave(type: type)
+                    }
                 }
             }
         }
@@ -510,8 +491,8 @@ struct DashboardView: View {
         guard let userId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
 
-        // 알림 권한 요청
-        _ = await NotificationService.shared.requestPermission()
+        // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
+        Task { _ = await NotificationService.shared.requestPermission() }
 
         // 병렬 로딩: 활동 + 건강 + 용품 + 공지
         async let loadActivities: Void = activityVM.loadTodayActivities(userId: userId, babyId: baby.id)

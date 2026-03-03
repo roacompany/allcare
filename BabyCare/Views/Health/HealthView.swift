@@ -93,16 +93,6 @@ struct HealthView: View {
                 .padding(.vertical)
             }
             .navigationTitle("건강")
-            .task {
-                guard let userId = authVM.currentUserId,
-                      let baby = babyVM.selectedBaby else { return }
-                await healthVM.loadAll(userId: userId, babyId: baby.id)
-                await healthVM.generateScheduleIfNeeded(
-                    babyId: baby.id,
-                    birthDate: baby.birthDate,
-                    userId: userId
-                )
-            }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
                     guard let userId = authVM.currentUserId,
