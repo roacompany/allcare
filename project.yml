@@ -36,6 +36,8 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseStorage
+      - package: Firebase
+        product: FirebaseMessaging
       - target: BabyCareWidgetExtension
     entitlements:
       path: BabyCare/BabyCare.entitlements
@@ -44,6 +46,7 @@ targets:
           - group.com.roacompany.allcare
         com.apple.developer.applesignin:
           - Default
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.roacompany.allcare
@@ -58,6 +61,8 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - remote-notification
         ITSAppUsesNonExemptEncryption: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

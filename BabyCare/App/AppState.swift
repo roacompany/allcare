@@ -1,5 +1,4 @@
 import Foundation
-import FirebaseCore
 
 /// 앱 전체에서 공유되는 싱글톤 상태 컨테이너.
 /// @State가 아닌 static 인스턴스로 ViewModel 생명주기를 앱과 동일하게 유지.
@@ -18,11 +17,10 @@ final class AppState {
     let health: HealthViewModel
     let routine: RoutineViewModel
     let aiAdvice: AIAdviceViewModel
+    let announcement: AnnouncementViewModel
 
     private init() {
-        // Firebase를 ViewModel 생성 전에 반드시 초기화
-        FirebaseApp.configure()
-
+        // Firebase는 AppDelegate에서 초기화됨
         auth = AuthViewModel()
         baby = BabyViewModel()
         activity = ActivityViewModel()
@@ -34,5 +32,6 @@ final class AppState {
         health = HealthViewModel()
         routine = RoutineViewModel()
         aiAdvice = AIAdviceViewModel()
+        announcement = AnnouncementViewModel()
     }
 }

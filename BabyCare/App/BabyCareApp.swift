@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct BabyCareApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let appState = AppState.shared
 
     var body: some Scene {
@@ -18,6 +19,7 @@ struct BabyCareApp: App {
                 .environment(appState.health)
                 .environment(appState.routine)
                 .environment(appState.aiAdvice)
+                .environment(appState.announcement)
         }
     }
 }

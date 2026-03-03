@@ -362,6 +362,52 @@ final class FirestoreService: Sendable {
         return decodeDocuments(snapshot.documents, as: SharedBabyAccess.self)
     }
 
+    // MARK: - Announcements
+
+    func fetchActiveAnnouncements() async throws -> [Announcement] {
+        let snapshot = try await db.collection(FirestoreCollections.announcements)
+            .whereField("isActive", isEqualTo: true)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 20)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: Announcement.self)
+    }
+
+    // MARK: - Admin: Announcements
+
+    func fetchAllAnnouncements() async throws -> [Announcement] {
+        let snapshot = try await db.collection(FirestoreCollections.announcements)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: Announcement.self)
+    }
+
+    func saveAnnouncement(_ announcement: Announcement) async throws {
+        if let id = announcement.id {
+            let ref = db.collection(FirestoreCollections.announcements).document(id)
+            try ref.setData(from: announcement)
+        } else {
+            let ref = db.collection(FirestoreCollections.announcements).document()
+            try ref.setData(from: announcement)
+        }
+    }
+
+    func deleteAnnouncement(_ id: String) async throws {
+        try await db.collection(FirestoreCollections.announcements)
+            .document(id)
+            .delete()
+    }
+
+    // MARK: - Admin: User Count
+
+    func fetchUserCount() async throws -> Int {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .getDocuments()
+        return snapshot.count
+    }
+
+    // MARK: - Baby (single)
+
     func fetchBaby(userId: String, babyId: String) async throws -> Baby? {
         let doc = try await db.collection(FirestoreCollections.users)
             .document(userId)

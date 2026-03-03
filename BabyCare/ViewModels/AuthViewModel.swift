@@ -90,6 +90,9 @@ final class AuthViewModel {
     }
 
     func signOut() {
+        Task {
+            await FCMTokenService.shared.deleteToken()
+        }
         do {
             try authService.signOut()
             clearForm()

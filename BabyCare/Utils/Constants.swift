@@ -50,4 +50,6 @@ enum FirestoreCollections {
     static let milestones = "milestones"
     static let invites = "invites"
     static let sharedAccess = "sharedAccess"
+    static let fcmTokens = "fcmTokens"
+    static let announcements = "announcements"
 }

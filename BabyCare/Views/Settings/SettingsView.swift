@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
+    @Environment(AnnouncementViewModel.self) private var announcementVM
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
@@ -67,6 +68,27 @@ struct SettingsView: View {
                 // App Settings
                 Section("앱 설정") {
                     NavigationLink {
+                        AnnouncementListView()
+                    } label: {
+                        Label {
+                            HStack {
+                                Text("공지사항")
+                                Spacer()
+                                if announcementVM.hasUnread {
+                                    Text("\(announcementVM.unreadCount)")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(.red))
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: "megaphone.fill")
+                        }
+                    }
+
+                    NavigationLink {
                         NotificationSettingsView()
                     } label: {
                         Label("알림", systemImage: "bell.fill")
@@ -82,6 +104,17 @@ struct SettingsView: View {
                         AIAdviceView()
                     } label: {
                         Label("AI 육아 조언", systemImage: "bubble.left.and.text.bubble.right.fill")
+                    }
+                }
+
+                // Admin (visible only to admin users)
+                if AdminConfig.isAdmin(authVM.currentUserId) {
+                    Section("관리자") {
+                        NavigationLink {
+                            AdminDashboardView()
+                        } label: {
+                            Label("관리자 패널", systemImage: "shield.fill")
+                        }
                     }
                 }
 
