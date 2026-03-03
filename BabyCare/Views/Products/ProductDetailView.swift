@@ -116,13 +116,6 @@ struct ProductDetailView: View {
                 .listRowBackground(Color.orange.opacity(0.08))
             }
 
-            // 추천 상품
-            RecommendedProductsSection(
-                product: product,
-                safariURL: $safariURL,
-                showSafari: $showSafari
-            )
-
             // 구매 관리
             Section("구매 관리") {
                 Button {
@@ -131,7 +124,7 @@ struct ProductDetailView: View {
                         showSafari = true
                     }
                 } label: {
-                    Label("직접 검색", systemImage: "magnifyingglass")
+                    Label("쿠팡에서 검색", systemImage: "magnifyingglass")
                 }
 
                 Button {
