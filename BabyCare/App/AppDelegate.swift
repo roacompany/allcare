@@ -9,7 +9,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        FirebaseApp.configure()
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
 
         // FCM 델리게이트
         Messaging.messaging().delegate = self

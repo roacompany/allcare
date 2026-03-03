@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAuth
+import FirebaseCore
 import AuthenticationServices
 
 @MainActor @Observable
@@ -17,9 +18,11 @@ final class AuthViewModel {
     nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
-        // 초기값 동기화
-        isAuthenticated = authService.isAuthenticated
-        currentUserId = authService.userId
+        // Firebase가 초기화된 경우에만 Auth 접근
+        if FirebaseApp.app() != nil {
+            isAuthenticated = authService.isAuthenticated
+            currentUserId = authService.userId
+        }
 
         // Auth state 실시간 리스너
         listenerHandle = authService.addStateListener { [weak self] user in
