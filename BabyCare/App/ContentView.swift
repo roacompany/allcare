@@ -8,6 +8,9 @@ struct ContentView: View {
 
     @State private var selectedTab = 0
     @State private var showRecording = false
+    @State private var initialRecordingCategory: Activity.ActivityCategory?
+
+    @Binding var deepLinkDestination: DeepLinkRouter.Destination?
 
     private let networkMonitor = NetworkMonitor.shared
 
@@ -57,6 +60,43 @@ struct ContentView: View {
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
             if isAuth, let userId = authVM.currentUserId {
                 Task { await babyVM.loadBabies(userId: userId) }
+            }
+        }
+        .onChange(of: deepLinkDestination) { _, destination in
+            guard let destination else { return }
+            handleDeepLink(destination)
+            deepLinkDestination = nil
+        }
+    }
+
+    // MARK: - Deep Link Handling
+
+    private func handleDeepLink(_ destination: DeepLinkRouter.Destination) {
+        guard authVM.isAuthenticated, !babyVM.babies.isEmpty else { return }
+
+        switch destination {
+        case .record:
+            initialRecordingCategory = nil
+            showRecording = true
+
+        case .recordCategory(let category):
+            switch category {
+            case .feeding: initialRecordingCategory = .feeding
+            case .sleep:   initialRecordingCategory = .sleep
+            case .diaper:  initialRecordingCategory = .diaper
+            }
+            showRecording = true
+
+        case .quickSave(let quickType):
+            guard let userId = authVM.currentUserId,
+                  let baby = babyVM.selectedBaby else { return }
+            let activityType: Activity.ActivityType = switch quickType {
+            case .feedingBreast: .feedingBreast
+            case .diaperWet: .diaperWet
+            }
+            Task {
+                await activityVM.quickSave(userId: userId, babyId: baby.id, type: activityType)
+                activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
             }
         }
     }
@@ -141,13 +181,15 @@ struct ContentView: View {
                 // + 탭 선택 → sheet 열고 이전 탭으로 복원
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 selectedTab = oldValue
+                initialRecordingCategory = nil
                 showRecording = true
             }
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()
+            initialRecordingCategory = nil
         }) {
-            RecordingView()
+            RecordingView(initialCategory: initialRecordingCategory)
         }
     }
 }

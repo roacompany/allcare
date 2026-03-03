@@ -11,6 +11,9 @@ struct RecordingView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
 
+    /// 외부에서 초기 카테고리 주입 (딥링크용)
+    var initialCategory: Activity.ActivityCategory?
+
     // Selected tab
     @State private var selectedCategory: Activity.ActivityCategory = .feeding
 
@@ -77,6 +80,11 @@ struct RecordingView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
+        .onAppear {
+            if let initialCategory {
+                selectedCategory = initialCategory
+            }
+        }
         .alert("오류", isPresented: Binding(
             get: { activityVM.errorMessage != nil },
             set: { if !$0 { activityVM.errorMessage = nil } }
@@ -315,7 +323,7 @@ struct ProductPickerSheet: View {
 // MARK: - Preview
 
 #Preview {
-    RecordingView()
+    RecordingView(initialCategory: nil)
         .environment(ActivityViewModel())
         .environment(BabyViewModel())
         .environment(AuthViewModel())

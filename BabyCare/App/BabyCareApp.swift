@@ -14,9 +14,11 @@ struct BabyCareApp: App {
         appState = AppState.shared
     }
 
+    @State private var deepLinkDestination: DeepLinkRouter.Destination?
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(deepLinkDestination: $deepLinkDestination)
                 .environment(appState.auth)
                 .environment(appState.baby)
                 .environment(appState.activity)
@@ -29,6 +31,9 @@ struct BabyCareApp: App {
                 .environment(appState.routine)
                 .environment(appState.aiAdvice)
                 .environment(appState.announcement)
+                .onOpenURL { url in
+                    deepLinkDestination = DeepLinkRouter.destination(from: url)
+                }
         }
     }
 }

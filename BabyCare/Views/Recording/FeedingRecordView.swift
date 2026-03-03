@@ -31,117 +31,15 @@ struct FeedingRecordView: View {
 
         ScrollView {
             VStack(spacing: 20) {
+                typeHeader
+                timerSection
+                breastSideSection
+                foodSections
+                bottleAmountSection(vm: vm)
 
-                // ── Type header ────────────────────────────────────────────
-                HStack(spacing: 10) {
-                    Image(systemName: type.icon)
-                        .font(.title2)
-                        .foregroundStyle(accentColor)
-                    Text(type.displayName)
-                        .font(.title3.bold())
-                        .foregroundStyle(.primary)
-                    Spacer()
-                }
-                .padding(.horizontal)
-
-                // ── Timer (breast / bottle only) ───────────────────────────
-                if type.needsTimer {
-                    TimerView(type: type, accentColor: accentColor)
-                        .padding(.vertical, 8)
-                }
-
-                // ── Breast side selector ───────────────────────────────────
-                if type == .feedingBreast {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("수유 방향", systemImage: "arrow.left.arrow.right")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 12) {
-                            ForEach(Activity.BreastSide.allCases, id: \.self) { side in
-                                SideButton(
-                                    side: side,
-                                    isSelected: activityVM.selectedSide == side,
-                                    color: accentColor
-                                ) {
-                                    activityVM.selectedSide = side
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(accentColor.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal)
-                }
-
-                // ── Solid food details (이유식) ─────────────────────────
-                if type == .feedingSolid {
-                    SolidFoodSection(accentColor: accentColor)
-                        .padding(.horizontal)
-                }
-
-                // ── Snack details (간식) ─────────────────────────────────
-                if type == .feedingSnack {
-                    SnackSection(accentColor: accentColor)
-                        .padding(.horizontal)
-                }
-
-                // ── Amount input (bottle only) ───────────────────────────
-                if type == .feedingBottle {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("섭취량 (ml)", systemImage: "drop.fill")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.secondary)
-
-                        HStack {
-                            TextField("0", text: $vm.amount)
-                                .keyboardType(.numberPad)
-                                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity)
-
-                            Text("ml")
-                                .font(.title3.bold())
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(.regularMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                        // Quick-fill buttons
-                        HStack(spacing: 8) {
-                            ForEach([60, 80, 100, 120, 150, 180], id: \.self) { ml in
-                                Button("\(ml)") {
-                                    activityVM.amount = "\(ml)"
-                                }
-                                .font(.system(size: 13, weight: .medium))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    activityVM.amount == "\(ml)"
-                                        ? accentColor
-                                        : accentColor.opacity(0.1)
-                                )
-                                .foregroundStyle(
-                                    activityVM.amount == "\(ml)" ? .white : accentColor
-                                )
-                                .clipShape(Capsule())
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(accentColor.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal)
-                }
-
-                // ── Note ───────────────────────────────────────────────────
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
 
-                // ── Save button ────────────────────────────────────────────
                 SaveButton(isSaving: isSaving, color: accentColor, action: save)
                     .padding(.horizontal)
                     .padding(.bottom, 16)
@@ -162,6 +60,123 @@ struct FeedingRecordView: View {
                 onSaved?()
             }
             .presentationDetents([.medium])
+        }
+    }
+
+    // MARK: - Body Sections
+
+    private var typeHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: type.icon)
+                .font(.title2)
+                .foregroundStyle(accentColor)
+            Text(type.displayName)
+                .font(.title3.bold())
+                .foregroundStyle(.primary)
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var timerSection: some View {
+        if type.needsTimer {
+            TimerView(type: type, accentColor: accentColor)
+                .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var breastSideSection: some View {
+        if type == .feedingBreast {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("수유 방향", systemImage: "arrow.left.arrow.right")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 12) {
+                    ForEach(Activity.BreastSide.allCases, id: \.self) { side in
+                        SideButton(
+                            side: side,
+                            isSelected: activityVM.selectedSide == side,
+                            color: accentColor
+                        ) {
+                            activityVM.selectedSide = side
+                        }
+                    }
+                }
+            }
+            .padding()
+            .background(accentColor.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private var foodSections: some View {
+        if type == .feedingSolid {
+            SolidFoodSection(accentColor: accentColor)
+                .padding(.horizontal)
+        }
+        if type == .feedingSnack {
+            SnackSection(accentColor: accentColor)
+                .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private func bottleAmountSection(vm: ActivityViewModel) -> some View {
+        if type == .feedingBottle {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("섭취량 (ml)", systemImage: "drop.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    TextField("0", text: Bindable(vm).amount)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+
+                    Text("ml")
+                        .font(.title3.bold())
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                quickFillButtons
+            }
+            .padding()
+            .background(accentColor.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal)
+        }
+    }
+
+    private var quickFillButtons: some View {
+        HStack(spacing: 8) {
+            ForEach([60, 80, 100, 120, 150, 180], id: \.self) { ml in
+                Button("\(ml)") {
+                    activityVM.amount = "\(ml)"
+                }
+                .font(.system(size: 13, weight: .medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    activityVM.amount == "\(ml)"
+                        ? accentColor
+                        : accentColor.opacity(0.1)
+                )
+                .foregroundStyle(
+                    activityVM.amount == "\(ml)" ? .white : accentColor
+                )
+                .clipShape(Capsule())
+            }
         }
     }
 

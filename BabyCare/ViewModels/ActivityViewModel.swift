@@ -350,19 +350,49 @@ final class ActivityViewModel {
     // MARK: - Widget Data Sync
 
     func syncWidgetData(babyName: String, babyAge: String) {
-        let lastFeeding = todayActivities
+        let sortedFeedings = todayActivities
             .filter { $0.type.category == .feeding }
-            .sorted { $0.startTime > $1.startTime }.first?.startTime
-        let lastFeedingType = todayActivities
-            .filter { $0.type.category == .feeding }
-            .sorted { $0.startTime > $1.startTime }.first?.type.displayName
-        let lastSleep = todayActivities
+            .sorted { $0.startTime > $1.startTime }
+        let lastFeeding = sortedFeedings.first?.startTime
+        let lastFeedingType = sortedFeedings.first?.type.displayName
+
+        let sortedSleep = todayActivities
             .filter { $0.type == .sleep }
-            .sorted { $0.startTime > $1.startTime }.first?.startTime
+            .sorted { $0.startTime > $1.startTime }
+        let lastSleep = sortedSleep.first?.startTime
+
         let lastDiaper = todayActivities
             .filter { $0.type.category == .diaper }
             .sorted { $0.startTime > $1.startTime }.first?.startTime
+
         let interval = Int(NotificationSettings.feedingIntervalHours * 60)
+
+        // 오늘 요약 데이터
+        let sleepMinutes = Int(todaySleepDuration / 60)
+        let sleepDurationText = sortedSleep.first?.durationText
+
+        // 최근 5개 활동 → WidgetActivity 변환
+        let recent = todayActivities
+            .sorted { $0.startTime > $1.startTime }
+            .prefix(5)
+            .map { activity -> WidgetActivity in
+                let detail: String? = activity.durationText ?? activity.amountText
+                let colorHex: String
+                switch activity.type.category {
+                case .feeding: colorHex = "#FF9FB5"
+                case .sleep:   colorHex = "#7B9FE8"
+                case .diaper:  colorHex = "#85C1A3"
+                case .health:  colorHex = "#F4845F"
+                }
+                return WidgetActivity(
+                    typeRaw: activity.type.rawValue,
+                    displayName: activity.type.displayName,
+                    icon: activity.type.icon,
+                    colorHex: colorHex,
+                    startTime: activity.startTime,
+                    detail: detail
+                )
+            }
 
         WidgetDataStore.update(
             babyName: babyName,
@@ -371,7 +401,13 @@ final class ActivityViewModel {
             lastFeedingType: lastFeedingType,
             lastSleep: lastSleep,
             lastDiaper: lastDiaper,
-            feedingIntervalMinutes: interval
+            feedingIntervalMinutes: interval,
+            todayFeedingCount: todayFeedingCount,
+            todaySleepMinutes: sleepMinutes,
+            todayDiaperCount: todayDiaperCount,
+            todayTotalMl: todayTotalMl,
+            recentActivities: Array(recent),
+            lastSleepDuration: sleepDurationText
         )
     }
 }

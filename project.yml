@@ -38,6 +38,7 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseMessaging
+      - sdk: WidgetKit.framework
       - target: BabyCareWidgetExtension
     entitlements:
       path: BabyCare/BabyCare.entitlements
@@ -64,6 +65,10 @@ targets:
         UIBackgroundModes:
           - remote-notification
         ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - babycare
+            CFBundleURLName: com.roacompany.allcare.deeplink
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
