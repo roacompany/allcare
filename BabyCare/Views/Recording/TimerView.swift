@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - TimerView
 // Reusable circular timer component. Reads / writes ActivityViewModel state.
@@ -96,9 +97,11 @@ struct TimerView: View {
         if isActiveTimer {
             _ = activityVM.stopTimer()
             isPulsing = false
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         } else {
             activityVM.startTimer(type: type)
             isPulsing = true
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         }
     }
 }

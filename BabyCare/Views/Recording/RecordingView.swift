@@ -232,7 +232,10 @@ struct SaveButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            action()
+        } label: {
             HStack(spacing: 10) {
                 if isSaving {
                     ProgressView()

@@ -7,6 +7,7 @@ final class CalendarViewModel {
     var activitiesForDate: [Activity] = []
     var activityDots: [Date: Set<Activity.ActivityCategory>] = [:]
     var isLoading = false
+    var isLoadingDate = false
     var errorMessage: String?
 
     private let firestoreService = FirestoreService.shared
@@ -74,8 +75,8 @@ final class CalendarViewModel {
     }
 
     func loadActivitiesForDate(userId: String, babyId: String) async {
-        isLoading = true
-        defer { isLoading = false }
+        isLoadingDate = true
+        defer { isLoadingDate = false }
 
         do {
             activitiesForDate = try await firestoreService.fetchActivities(

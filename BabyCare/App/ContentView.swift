@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @Environment(AuthViewModel.self) private var authVM
@@ -130,12 +131,13 @@ struct ContentView: View {
         }
         .overlay(alignment: .bottom) {
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showRecording = true
             } label: {
                 Image(systemName: "plus")
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
+                    .frame(width: 52, height: 52)
                     .background(
                         Circle()
                             .fill(
@@ -148,7 +150,7 @@ struct ContentView: View {
                             .shadow(color: Color(hex: "FF9FB5").opacity(0.4), radius: 8, y: 4)
                     )
             }
-            .offset(y: -60)
+            .offset(y: -28)
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()

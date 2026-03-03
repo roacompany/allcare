@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     @Environment(ActivityViewModel.self) private var activityVM
@@ -6,10 +7,12 @@ struct DashboardView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(ProductViewModel.self) private var productVM
     @Environment(HealthViewModel.self) private var healthVM
+    @Environment(AnnouncementViewModel.self) private var announcementVM
 
     @State private var showBabySelector = false
     @State private var editingActivity: Activity?
     @State private var productCandidates: [BabyProduct] = []
+    @State private var savedActivityType: Activity.ActivityType?
 
     private let feedingColor = Color(hex: "FF9FB5")
     private let sleepColor = Color(hex: "9FB5FF")
@@ -21,11 +24,12 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    AnnouncementBanner()
                     alertBannersSection
-                    aiAdviceShortcut
+                    quickActionsSection
                     predictionSection
                     summaryCardsSection
-                    quickActionsSection
+                    aiAdviceShortcut
                     timelineSection
                 }
                 .padding(.horizontal, 16)
@@ -53,6 +57,26 @@ struct DashboardView: View {
                 }
             }
             .presentationDetents([.medium])
+        }
+        .overlay(alignment: .top) {
+            if let type = savedActivityType {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.white)
+                    Text("\(type.displayName) 저장됨")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color(type.color))
+                        .shadow(color: Color(type.color).opacity(0.4), radius: 8, y: 4)
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.top, 8)
+            }
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
@@ -489,12 +513,13 @@ struct DashboardView: View {
         // 알림 권한 요청
         _ = await NotificationService.shared.requestPermission()
 
-        // 병렬 로딩: 활동 + 건강 + 용품
+        // 병렬 로딩: 활동 + 건강 + 용품 + 공지
         async let loadActivities: Void = activityVM.loadTodayActivities(userId: userId, babyId: baby.id)
         async let loadHealth: Void = healthVM.loadAll(userId: userId, babyId: baby.id, babyName: baby.name)
         async let loadProducts: Void = productVM.loadProducts(userId: userId)
+        async let loadAnnouncements: Void = announcementVM.loadAnnouncements()
 
-        _ = await (loadActivities, loadHealth, loadProducts)
+        _ = await (loadActivities, loadHealth, loadProducts, loadAnnouncements)
 
         // 스케줄 자동 생성 (필요 시)
         await healthVM.generateScheduleIfNeeded(
@@ -512,6 +537,19 @@ struct DashboardView: View {
         guard let userId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         await activityVM.quickSave(userId: userId, babyId: baby.id, type: type)
+
+        // 성공 피드백: 햅틱 + 토스트
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        withAnimation(.spring(duration: 0.3)) {
+            savedActivityType = type
+        }
+        // 1.5초 후 토스트 제거
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { savedActivityType = nil }
+        }
+
         if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
             productCandidates = candidates
         }
@@ -552,6 +590,7 @@ private struct QuickActionButton: View {
 
     var body: some View {
         Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             Task { await action() }
         } label: {
             VStack(spacing: 6) {
@@ -730,4 +769,5 @@ struct ActivityEditSheet: View {
         .environment(AuthViewModel())
         .environment(ProductViewModel())
         .environment(HealthViewModel())
+        .environment(AnnouncementViewModel())
 }

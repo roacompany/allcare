@@ -161,7 +161,17 @@ struct CalendarView: View {
 
     private var activitiesList: some View {
         Group {
-            if calendarVM.activitiesForDate.isEmpty {
+            if calendarVM.isLoadingDate {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("기록을 불러오는 중...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 40)
+            } else if calendarVM.activitiesForDate.isEmpty {
                 EmptyStateView(
                     icon: "calendar",
                     title: "기록 없음",
