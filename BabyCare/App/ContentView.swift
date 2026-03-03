@@ -117,40 +117,32 @@ struct ContentView: View {
                 }
                 .tag(1)
 
+            // 중간 자리: 빈 뷰 (+ 버튼 역할)
+            Color.clear
+                .tabItem {
+                    Label("기록하기", systemImage: "plus.circle.fill")
+                }
+                .tag(2)
+
             HealthView()
                 .tabItem {
                     Label("건강", systemImage: "heart.text.clipboard.fill")
                 }
-                .tag(2)
+                .tag(3)
 
             SettingsView()
                 .tabItem {
                     Label("설정", systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(4)
         }
-        .overlay(alignment: .bottom) {
-            Button {
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == 2 {
+                // + 탭 선택 → sheet 열고 이전 탭으로 복원
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                selectedTab = oldValue
                 showRecording = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 52, height: 52)
-                    .background(
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "FF9FB5"), Color(hex: "FFB5C2")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: Color(hex: "FF9FB5").opacity(0.4), radius: 8, y: 4)
-                    )
             }
-            .offset(y: -28)
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()
