@@ -15,6 +15,25 @@ struct Activity: Identifiable, Codable, Hashable {
     var medicationName: String?
     var createdAt: Date
 
+    // ── 이유식/간식 상세 ─────────────────────────────────────
+    var foodName: String?
+    var solidStage: SolidStage?
+    var foodAmount: String?           // "50g", "3숟가락" 등 자유 입력
+    var allergyReaction: Bool?
+
+    // ── 기저귀 상세 ──────────────────────────────────────────
+    var stoolColor: StoolColor?
+    var stoolConsistency: StoolConsistency?
+    var hasRash: Bool?
+
+    // ── 수면 상세 ────────────────────────────────────────────
+    var sleepQuality: SleepQualityType?
+    var sleepLocation: SleepLocationType?
+
+    // ── 건강 상세 ────────────────────────────────────────────
+    var medicationDosage: String?     // "5ml", "1정" 등
+    var bathWaterTemp: Double?
+
     enum ActivityType: String, Codable, CaseIterable {
         case feedingBreast = "feeding_breast"
         case feedingBottle = "feeding_bottle"
@@ -102,6 +121,147 @@ struct Activity: Identifiable, Codable, Hashable {
         }
     }
 
+    // MARK: - 이유식 단계
+    enum SolidStage: String, Codable, CaseIterable {
+        case early    = "early"     // 초기 (4~6개월)
+        case mid      = "mid"       // 중기 (7~8개월)
+        case late     = "late"      // 후기 (9~11개월)
+        case complete = "complete"  // 완료기 (12개월~)
+
+        var displayName: String {
+            switch self {
+            case .early:    "초기"
+            case .mid:      "중기"
+            case .late:     "후기"
+            case .complete: "완료기"
+            }
+        }
+
+        var ageHint: String {
+            switch self {
+            case .early:    "4~6개월"
+            case .mid:      "7~8개월"
+            case .late:     "9~11개월"
+            case .complete: "12개월~"
+            }
+        }
+    }
+
+    // MARK: - 대변 색상
+    enum StoolColor: String, Codable, CaseIterable {
+        case yellow    = "yellow"
+        case green     = "green"
+        case brown     = "brown"
+        case dark      = "dark"
+        case red       = "red"       // 혈변 — 의사 상담 필요
+        case white     = "white"     // 백색변 — 즉시 진료
+
+        var displayName: String {
+            switch self {
+            case .yellow: "노란색"
+            case .green:  "녹색"
+            case .brown:  "갈색"
+            case .dark:   "짙은색"
+            case .red:    "붉은색"
+            case .white:  "흰색"
+            }
+        }
+
+        var colorHex: String {
+            switch self {
+            case .yellow: "E8C547"
+            case .green:  "6B9E5E"
+            case .brown:  "8B6914"
+            case .dark:   "4A3728"
+            case .red:    "C94444"
+            case .white:  "E8E4DE"
+            }
+        }
+
+        /// 의료 주의가 필요한 색상
+        var needsAttention: Bool {
+            self == .red || self == .white
+        }
+    }
+
+    // MARK: - 대변 상태
+    enum StoolConsistency: String, Codable, CaseIterable {
+        case watery  = "watery"
+        case soft    = "soft"
+        case normal  = "normal"
+        case hard    = "hard"
+
+        var displayName: String {
+            switch self {
+            case .watery: "묽음"
+            case .soft:   "무름"
+            case .normal: "보통"
+            case .hard:   "딱딱함"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .watery: "drop.fill"
+            case .soft:   "cloud.fill"
+            case .normal: "circle.fill"
+            case .hard:   "square.fill"
+            }
+        }
+    }
+
+    // MARK: - 수면 질
+    enum SleepQualityType: String, Codable, CaseIterable {
+        case good  = "good"
+        case fussy = "fussy"
+        case light = "light"
+
+        var displayName: String {
+            switch self {
+            case .good:  "잘 잠"
+            case .fussy: "뒤척임"
+            case .light: "얕은 수면"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .good:  "moon.fill"
+            case .fussy: "figure.walk"
+            case .light: "cloud.moon.fill"
+            }
+        }
+    }
+
+    // MARK: - 수면 장소
+    enum SleepLocationType: String, Codable, CaseIterable {
+        case crib      = "crib"
+        case bed       = "bed"
+        case stroller  = "stroller"
+        case carSeat   = "car_seat"
+        case arms      = "arms"
+
+        var displayName: String {
+            switch self {
+            case .crib:     "아기침대"
+            case .bed:      "부모침대"
+            case .stroller: "유모차"
+            case .carSeat:  "카시트"
+            case .arms:     "안아서"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .crib:     "bed.double.fill"
+            case .bed:      "bed.double"
+            case .stroller: "figure.walk"
+            case .carSeat:  "car.fill"
+            case .arms:     "figure.and.child.holdinghands"
+            }
+        }
+    }
+
     enum BreastSide: String, Codable, CaseIterable {
         case left = "L"
         case right = "R"
@@ -157,7 +317,18 @@ struct Activity: Identifiable, Codable, Hashable {
         photoURL: String? = nil,
         temperature: Double? = nil,
         medicationName: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        foodName: String? = nil,
+        solidStage: SolidStage? = nil,
+        foodAmount: String? = nil,
+        allergyReaction: Bool? = nil,
+        stoolColor: StoolColor? = nil,
+        stoolConsistency: StoolConsistency? = nil,
+        hasRash: Bool? = nil,
+        sleepQuality: SleepQualityType? = nil,
+        sleepLocation: SleepLocationType? = nil,
+        medicationDosage: String? = nil,
+        bathWaterTemp: Double? = nil
     ) {
         self.id = id
         self.babyId = babyId
@@ -172,5 +343,16 @@ struct Activity: Identifiable, Codable, Hashable {
         self.temperature = temperature
         self.medicationName = medicationName
         self.createdAt = createdAt
+        self.foodName = foodName
+        self.solidStage = solidStage
+        self.foodAmount = foodAmount
+        self.allergyReaction = allergyReaction
+        self.stoolColor = stoolColor
+        self.stoolConsistency = stoolConsistency
+        self.hasRash = hasRash
+        self.sleepQuality = sleepQuality
+        self.sleepLocation = sleepLocation
+        self.medicationDosage = medicationDosage
+        self.bathWaterTemp = bathWaterTemp
     }
 }

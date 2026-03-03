@@ -52,6 +52,53 @@ struct ActivityRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    if let dosage = activity.medicationDosage {
+                        Text(dosage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let food = activity.foodName {
+                        Text(food)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let foodAmt = activity.foodAmount {
+                        Text(foodAmt)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let quality = activity.sleepQuality {
+                        Text(quality.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let color = activity.stoolColor {
+                        HStack(spacing: 2) {
+                            Circle()
+                                .fill(Color(hex: color.colorHex))
+                                .frame(width: 8, height: 8)
+                            Text(color.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if activity.allergyReaction == true {
+                        Label("알레르기", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    if activity.hasRash == true {
+                        Label("발진", systemImage: "bandage.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
 

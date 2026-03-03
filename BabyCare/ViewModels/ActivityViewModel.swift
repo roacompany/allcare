@@ -20,6 +20,25 @@ final class ActivityViewModel {
     var medicationName: String = ""
     var note: String = ""
 
+    // 이유식/간식 form state
+    var foodName: String = ""
+    var solidStage: Activity.SolidStage = .early
+    var foodAmount: String = ""
+    var allergyReaction: Bool = false
+
+    // 기저귀 form state
+    var stoolColor: Activity.StoolColor? = nil
+    var stoolConsistency: Activity.StoolConsistency? = nil
+    var hasRash: Bool = false
+
+    // 수면 form state
+    var sleepQuality: Activity.SleepQualityType? = nil
+    var sleepLocation: Activity.SleepLocationType? = nil
+
+    // 건강 form state
+    var medicationDosage: String = ""
+    var bathWaterTemp: String = ""
+
     // Latest activities (최근 기록)
     var lastFeeding: Activity?
     var lastSleep: Activity?
@@ -197,8 +216,15 @@ final class ActivityViewModel {
             }
             activity.amount = Double(amount)
 
-        case .feedingSolid, .feedingSnack:
-            break
+        case .feedingSolid:
+            activity.foodName = foodName.isEmpty ? nil : foodName
+            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
+            activity.solidStage = solidStage
+            activity.allergyReaction = allergyReaction ? true : nil
+
+        case .feedingSnack:
+            activity.foodName = foodName.isEmpty ? nil : foodName
+            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
 
         case .sleep:
             if timerBelongsToMe {
@@ -207,9 +233,16 @@ final class ActivityViewModel {
                 activity.startTime = Date().addingTimeInterval(-duration)
                 activity.endTime = Date()
             }
+            activity.sleepQuality = sleepQuality
+            activity.sleepLocation = sleepLocation
 
-        case .diaperWet, .diaperDirty, .diaperBoth:
-            break
+        case .diaperWet:
+            activity.hasRash = hasRash ? true : nil
+
+        case .diaperDirty, .diaperBoth:
+            activity.stoolColor = stoolColor
+            activity.stoolConsistency = stoolConsistency
+            activity.hasRash = hasRash ? true : nil
 
         case .temperature:
             guard isTemperatureValid else {
@@ -220,12 +253,16 @@ final class ActivityViewModel {
 
         case .medication:
             activity.medicationName = medicationName.isEmpty ? nil : medicationName
+            activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
 
         case .bath:
             if timerBelongsToMe {
                 let duration = stopTimer()
                 activity.duration = duration
                 activity.startTime = Date().addingTimeInterval(-duration)
+            }
+            if let temp = Double(bathWaterTemp), temp > 0 {
+                activity.bathWaterTemp = temp
             }
         }
 
@@ -304,6 +341,21 @@ final class ActivityViewModel {
         medicationName = ""
         note = ""
         errorMessage = nil
+
+        foodName = ""
+        solidStage = .early
+        foodAmount = ""
+        allergyReaction = false
+
+        stoolColor = nil
+        stoolConsistency = nil
+        hasRash = false
+
+        sleepQuality = nil
+        sleepLocation = nil
+
+        medicationDosage = ""
+        bathWaterTemp = ""
     }
 
     // MARK: - Feeding Reminder

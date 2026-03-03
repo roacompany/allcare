@@ -247,43 +247,80 @@ private struct MedicationSection: View {
     @Environment(ActivityViewModel.self) private var activityVM
     let accentColor: Color
 
-    private let suggestions = ["타이레놀", "이부프로펜", "콧물약", "소화제", "영양제"]
+    private let suggestions = ["타이레놀", "이부프로펜", "콧물약", "소화제", "영양제", "유산균", "비타민D"]
+    private let dosagePresets = ["2.5ml", "5ml", "10ml", "반정", "1정"]
 
     var body: some View {
         @Bindable var vm = activityVM
 
-        VStack(alignment: .leading, spacing: 12) {
-            Label("투약 정보", systemImage: "pills.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+        VStack(spacing: 16) {
+            // ── 약 이름 ──────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 12) {
+                Label("투약 정보", systemImage: "pills.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
 
-            TextField("약 이름 입력", text: $vm.medicationName)
-                .padding(14)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .font(.body)
+                TextField("약 이름 입력", text: $vm.medicationName)
+                    .padding(14)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .font(.body)
 
-            // Suggestion chips
-            Text("자주 사용하는 약")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                Text("자주 사용하는 약")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(suggestions, id: \.self) { name in
+                            Button(name) {
+                                activityVM.medicationName = name
+                            }
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(
+                                activityVM.medicationName == name
+                                    ? accentColor
+                                    : accentColor.opacity(0.1)
+                            )
+                            .foregroundStyle(
+                                activityVM.medicationName == name ? .white : accentColor
+                            )
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            // ── 용량 ────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 10) {
+                Label("용량", systemImage: "eyedropper.halffull")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+
+                TextField("예: 5ml, 1정", text: $vm.medicationDosage)
+                    .padding(14)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .font(.body)
+
                 HStack(spacing: 8) {
-                    ForEach(suggestions, id: \.self) { name in
-                        Button(name) {
-                            activityVM.medicationName = name
+                    ForEach(dosagePresets, id: \.self) { dose in
+                        Button(dose) {
+                            activityVM.medicationDosage = dose
                         }
                         .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
                         .background(
-                            activityVM.medicationName == name
-                                ? accentColor
-                                : accentColor.opacity(0.1)
+                            activityVM.medicationDosage == dose
+                                ? accentColor : accentColor.opacity(0.1)
                         )
                         .foregroundStyle(
-                            activityVM.medicationName == name ? .white : accentColor
+                            activityVM.medicationDosage == dose ? .white : accentColor
                         )
                         .clipShape(Capsule())
                     }
@@ -300,16 +337,75 @@ private struct MedicationSection: View {
 // MARK: - BathSection
 
 private struct BathSection: View {
+    @Environment(ActivityViewModel.self) private var activityVM
     let accentColor: Color
 
-    var body: some View {
-        VStack(spacing: 8) {
-            TimerView(type: .bath, accentColor: accentColor)
-                .padding(.vertical, 4)
+    private let tempPresets = ["37", "38", "39", "40"]
 
-            Text("목욕 시작 시 타이머를 켜세요")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    var body: some View {
+        @Bindable var vm = activityVM
+
+        VStack(spacing: 16) {
+            // ── 타이머 ──────────────────────────────────────────
+            VStack(spacing: 8) {
+                TimerView(type: .bath, accentColor: accentColor)
+                    .padding(.vertical, 4)
+
+                Text("목욕 시작 시 타이머를 켜세요")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            // ── 수온 ────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 10) {
+                Label("수온", systemImage: "thermometer.snowflake")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    TextField("38", text: $vm.bathWaterTemp)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+
+                    Text("°C")
+                        .font(.title3.bold())
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(tempPresets, id: \.self) { temp in
+                        Button("\(temp)°C") {
+                            activityVM.bathWaterTemp = temp
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            activityVM.bathWaterTemp == temp
+                                ? accentColor : accentColor.opacity(0.1)
+                        )
+                        .foregroundStyle(
+                            activityVM.bathWaterTemp == temp ? .white : accentColor
+                        )
+                        .clipShape(Capsule())
+                    }
+                }
+
+                // 적정 수온 안내
+                if let temp = Double(activityVM.bathWaterTemp) {
+                    HStack(spacing: 6) {
+                        Image(systemName: temp >= 37 && temp <= 39 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        Text(temp >= 37 && temp <= 39 ? "적정 수온이에요" : temp < 37 ? "수온이 낮아요" : "수온이 높아요")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(temp >= 37 && temp <= 39 ? .green : .orange)
+                    .transition(.opacity)
+                }
+            }
         }
         .padding()
         .background(accentColor.opacity(0.06))
