@@ -1,0 +1,101 @@
+default_platform(:ios)
+
+platform :ios do
+
+  # TestFlight 업로드 (Archive는 Xcode에서 수동으로 먼저 실행)
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: "2LSXRAHPW7",
+      issuer_id: "b70eb6de-e25a-47a1-8021-28872df65d61",
+      key_filepath: "~/.appstoreconnect/private_keys/AuthKey_2LSXRAHPW7.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      ipa: Dir.glob("/Users/roque/BabyCare/build/export_v2.0.0/*.ipa").first
+    )
+  end
+
+  # 스크린샷 업로드
+  lane :upload_screenshots do
+    api_key = app_store_connect_api_key(
+      key_id: "2LSXRAHPW7",
+      issuer_id: "b70eb6de-e25a-47a1-8021-28872df65d61",
+      key_filepath: "~/.appstoreconnect/private_keys/AuthKey_2LSXRAHPW7.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    deliver(
+      api_key: api_key,
+      app_identifier: "com.roacompany.allcare",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      overwrite_screenshots: true,
+      screenshots_path: "fastlane/screenshots",
+      force: true,
+      submit_for_review: false,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  # Archive + Export + Upload 통합 (keychain 접근 가능한 환경에서 실행)
+  lane :archive_and_upload do
+    api_key = app_store_connect_api_key(
+      key_id: "2LSXRAHPW7",
+      issuer_id: "b70eb6de-e25a-47a1-8021-28872df65d61",
+      key_filepath: "~/.appstoreconnect/private_keys/AuthKey_2LSXRAHPW7.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      scheme: "BabyCare",
+      configuration: "Release",
+      export_method: "app-store",
+      export_team_id: "R24J6R4S7X",
+      output_directory: "/Users/roque/BabyCare/build/export_v2.0.0",
+      archive_path: "/Users/roque/BabyCare/build/BabyCare_v2.0.0.xcarchive",
+      include_symbols: true,
+      export_options: {
+        method: "app-store-connect",
+        teamID: "R24J6R4S7X",
+        uploadSymbols: true,
+        destination: "export"
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  # 심사 재제출
+  lane :resubmit do
+    api_key = app_store_connect_api_key(
+      key_id: "2LSXRAHPW7",
+      issuer_id: "b70eb6de-e25a-47a1-8021-28872df65d61",
+      key_filepath: "~/.appstoreconnect/private_keys/AuthKey_2LSXRAHPW7.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    deliver(
+      api_key: api_key,
+      app_identifier: "com.roacompany.allcare",
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: true,
+      submit_for_review: true,
+      force: true,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: false
+      }
+    )
+  end
+end

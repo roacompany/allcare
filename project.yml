@@ -11,9 +11,9 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: "R24J6R4S7X"
-    TARGETED_DEVICE_FAMILY: "1"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "15"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    MARKETING_VERSION: "2.0.0"
+    CURRENT_PROJECT_VERSION: "20"
     INFOPLIST_KEY_CFBundleDisplayName: "베이비케어"
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.healthcare-fitness"
     ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
@@ -47,7 +47,6 @@ targets:
           - group.com.roacompany.allcare
         com.apple.developer.applesignin:
           - Default
-        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.roacompany.allcare
@@ -101,10 +100,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.roacompany.allcare.widget
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "6.0"
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_CFBundleDisplayName: "올케어 위젯"
         GENERATE_INFOPLIST_FILE: true
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "2.0.0"
         CURRENT_PROJECT_VERSION: "15"
         INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
     info:
@@ -118,7 +117,41 @@ targets:
   BabyCareTests:
     type: bundle.unit-test
     platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
     sources:
       - path: BabyCareTests
     dependencies:
       - target: BabyCare
+
+  BabyCareUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: BabyCareUITests
+    dependencies:
+      - target: BabyCare
+
+schemes:
+  BabyCare:
+    build:
+      targets:
+        BabyCare: all
+    run:
+      config: Debug
+      storeKitConfiguration: BabyCare/BabyCare.storekit
+    test:
+      config: Debug
+      targets:
+        - BabyCareTests
+        - BabyCareUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
