@@ -24,13 +24,13 @@
       --label-quaternary: #3C3C434D;
       --separator: #3C3C4336;
       --fill: #78788033;
-      --tint: #FF2D55;
-      --tint-light: #FF2D5520;
+      --tint: #FF9FB5;
+      --tint-light: #FF9FB520;
       --blue: #007AFF;
       --green: #34C759;
       --orange: #FF9500;
       --purple: #AF52DE;
-      --pink: #FF2D55;
+      --pink: #FF9FB5;
       --indigo: #5856D6;
       --card-radius: 16px;
       --section-radius: 20px;
@@ -49,7 +49,7 @@
         --label-quaternary: #EBEBF54D;
         --separator: #54545899;
         --fill: #78788052;
-        --tint-light: #FF2D5530;
+        --tint-light: #FF9FB530;
       }
     }
 
@@ -139,11 +139,12 @@
     .hero-icon {
       width: 80px; height: 80px;
       border-radius: 18px;
-      background: linear-gradient(145deg, #FF2D55, #FF6482);
-      display: flex; align-items: center; justify-content: center;
       margin: 0 auto 20px;
-      font-size: 40px;
-      box-shadow: 0 4px 16px rgba(255,45,85,0.25);
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(255,159,181,0.25);
+    }
+    .hero-icon img {
+      width: 100%; height: 100%; object-fit: cover;
     }
     .hero .large-title {
       margin-bottom: 8px;
@@ -314,7 +315,7 @@
     .premium-container::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, rgba(255,45,85,0.08), rgba(175,82,222,0.08));
+      background: linear-gradient(135deg, rgba(255,159,181,0.08), rgba(175,82,222,0.08));
       pointer-events: none;
     }
     .premium-badge {
@@ -354,7 +355,7 @@
       margin-left: auto;
       font-size: 12px; font-weight: 600;
       color: var(--tint);
-      background: rgba(255,45,85,0.15);
+      background: rgba(255,159,181,0.15);
       padding: 4px 10px; border-radius: 100px;
     }
     .premium-cta {
@@ -487,7 +488,7 @@
   <!-- HERO -->
   <section class="hero">
     <div class="container">
-      <div class="hero-icon">&#x1F476;</div>
+      <div class="hero-icon"><img src="appicon_180.png" alt="베이비케어"></div>
       <h1 class="large-title">베이비케어</h1>
       <p class="subheadline hero-subtitle">우리 아이의 모든 순간을 기록하세요</p>
       <div class="hero-pills">
@@ -520,36 +521,36 @@
       </div>
       <div class="group-inset fade-in">
         <div class="group-row">
-          <div class="row-icon pink">&#x1F37C;</div>
+          <div class="row-icon pink">🍼</div>
           <div class="row-content">
             <div class="headline">수유</div>
             <div class="footnote">모유, 분유, 이유식, 간식. 타이머와 좌우 구분</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon blue">&#x1F634;</div>
+          <div class="row-icon blue">🌙</div>
           <div class="row-content">
             <div class="headline">수면</div>
             <div class="footnote">수면 시간, 질, 재우는 방법까지 기록</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon green">&#x1F9F7;</div>
+          <div class="row-icon green">👶</div>
           <div class="row-content">
             <div class="headline">기저귀</div>
             <div class="footnote">소변, 대변, 혼합 구분. 색상과 질감 기록</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon orange">&#x1F321;</div>
+          <div class="row-icon orange">🌡️</div>
           <div class="row-content">
-            <div class="headline">목욕 &middot; 체온 &middot; 투약</div>
+            <div class="headline">목욕 · 체온 · 투약</div>
             <div class="footnote">건강 관련 기록을 빠르게</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
       </div>
     </div>
@@ -565,25 +566,25 @@
       <div class="widget-grid fade-in">
         <div class="widget-card">
           <div class="widget-accent pink-bg"></div>
-          <div class="widget-icon">&#x1F489;</div>
+          <div class="widget-icon">💉</div>
           <div class="headline">예방접종</div>
           <div class="footnote">국가 필수 일정 자동 생성과 D-day 알림</div>
         </div>
         <div class="widget-card">
           <div class="widget-accent green-bg"></div>
-          <div class="widget-icon">&#x2B50;</div>
+          <div class="widget-icon">✅</div>
           <div class="headline">발달이정표</div>
           <div class="footnote">35개 항목 체크리스트</div>
         </div>
         <div class="widget-card">
           <div class="widget-accent blue-bg"></div>
-          <div class="widget-icon">&#x1F4C8;</div>
+          <div class="widget-icon">📈</div>
           <div class="headline">성장 곡선</div>
           <div class="footnote">WHO 기준 백분위 비교</div>
         </div>
         <div class="widget-card">
           <div class="widget-accent orange-bg"></div>
-          <div class="widget-icon">&#x1F3E5;</div>
+          <div class="widget-icon">🏥</div>
           <div class="headline">병원 기록</div>
           <div class="footnote">진단, 처방, 비용 관리</div>
         </div>
@@ -636,52 +637,52 @@
       </div>
       <div class="group-inset fade-in">
         <div class="group-row">
-          <div class="row-icon purple">&#x1F4AC;</div>
+          <div class="row-icon purple">💬</div>
           <div class="row-content">
             <div class="headline">AI 육아 조언</div>
             <div class="footnote">아이 나이와 기록 기반 맞춤형 조언</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon indigo">&#x1F4F1;</div>
+          <div class="row-icon indigo">📱</div>
           <div class="row-content">
             <div class="headline">위젯 6종</div>
             <div class="footnote">홈 화면과 잠금화면에서 바로 확인</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon green">&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F476;</div>
+          <div class="row-icon green">👨‍👩‍👧</div>
           <div class="row-content">
             <div class="headline">가족 공유</div>
             <div class="footnote">초대 코드로 실시간 동기화</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon blue">&#x1F4CA;</div>
+          <div class="row-icon blue">📊</div>
           <div class="row-content">
-            <div class="headline">통계 &middot; 패턴 리포트</div>
+            <div class="headline">통계 · 패턴 리포트</div>
             <div class="footnote">일별, 주별, 월별 차트로 패턴 파악</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon orange">&#x1F4D6;</div>
+          <div class="row-icon orange">📖</div>
           <div class="row-content">
             <div class="headline">육아 일기</div>
             <div class="footnote">사진과 함께 기록하는 소중한 추억</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
         <div class="group-row">
-          <div class="row-icon pink">&#x1F514;</div>
+          <div class="row-icon pink">🔔</div>
           <div class="row-content">
             <div class="headline">맞춤 알림</div>
             <div class="footnote">활동별 간격, 접종일, 루틴 리마인더</div>
           </div>
-          <span class="row-chevron">&#x203A;</span>
+          <span class="row-chevron">›</span>
         </div>
       </div>
     </div>
@@ -749,21 +750,21 @@
       </div>
       <div class="group-inset fade-in">
         <div class="trust-row">
-          <div class="trust-icon">&#x1F512;</div>
+          <div class="trust-icon">🔒</div>
           <div class="row-content">
             <div class="headline">암호화 전송</div>
             <div class="footnote">모든 데이터는 SSL/TLS로 암호화됩니다</div>
           </div>
         </div>
         <div class="trust-row">
-          <div class="trust-icon">&#x1F6E1;</div>
+          <div class="trust-icon">🛡️</div>
           <div class="row-content">
             <div class="headline">제3자 미제공</div>
             <div class="footnote">개인정보를 외부에 제공하지 않습니다</div>
           </div>
         </div>
         <div class="trust-row">
-          <div class="trust-icon">&#x1F5D1;</div>
+          <div class="trust-icon">🗑️</div>
           <div class="row-content">
             <div class="headline">완전한 삭제</div>
             <div class="footnote">계정 삭제 시 모든 데이터가 즉시 삭제됩니다</div>
