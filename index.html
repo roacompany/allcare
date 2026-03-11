@@ -182,11 +182,10 @@
     .download-btn:active { opacity: 0.7; }
     .download-btn svg { width: 20px; height: 20px; fill: #FFFFFF; }
 
-    /* ===== PHONE MOCKUP (iOS style) ===== */
+    /* ===== DEVICE FRAME (Real screenshot) ===== */
     .device-frame {
       width: 240px;
       margin: 32px auto 0;
-      perspective: 800px;
     }
     .device {
       background: #1C1C1E;
@@ -198,59 +197,42 @@
         0 0 0 0.5px rgba(0,0,0,0.2);
     }
     .device-screen {
-      background: var(--system-bg);
       border-radius: 28px;
       overflow: hidden;
-      aspect-ratio: 9/19.5;
     }
-    .screen-status {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 24px 0;
-      font-size: 12px; font-weight: 600; color: var(--label);
+    .device-screen img {
+      width: 100%; height: auto; display: block;
     }
-    .dynamic-island {
-      width: 90px; height: 26px;
-      background: #000;
-      border-radius: 20px;
-      margin: 0 auto 8px;
+
+    /* ===== SCREENSHOT SHOWCASE ===== */
+    .screenshot-scroll {
+      display: flex; gap: 16px;
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      padding: 0 16px 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
-    .screen-content { padding: 4px 14px 10px; }
-    .screen-greeting {
-      font-size: 11px; color: var(--label-tertiary);
-      margin-bottom: 2px;
+    .screenshot-scroll::-webkit-scrollbar { display: none; }
+    .screenshot-item {
+      flex: 0 0 200px;
+      scroll-snap-align: center;
     }
-    .screen-title {
-      font-size: 16px; font-weight: 700; letter-spacing: -0.4px;
-      margin-bottom: 10px;
+    .screenshot-device {
+      background: #1C1C1E;
+      border-radius: 28px;
+      padding: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
     }
-    .screen-card {
-      background: var(--secondary-bg);
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-bottom: 6px;
-      display: flex; align-items: center; gap: 10px;
+    .screenshot-device img {
+      width: 100%; height: auto; display: block;
+      border-radius: 22px;
     }
-    .screen-card-icon {
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
+    .screenshot-label {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 13px; font-weight: 500;
+      color: var(--label-tertiary);
     }
-    .sc-pink { background: #FF2D5520; }
-    .sc-blue { background: #007AFF20; }
-    .sc-green { background: #34C75920; }
-    .sc-orange { background: #FF950020; }
-    .screen-card-text { font-size: 9px; color: var(--label-secondary); line-height: 1.4; }
-    .screen-card-text strong { font-size: 10px; color: var(--label); display: block; }
-    .screen-tabbar {
-      display: flex; justify-content: space-around;
-      padding: 6px 0 2px;
-      border-top: 0.5px solid var(--separator);
-      margin-top: 6px;
-    }
-    .tab-item { text-align: center; font-size: 8px; color: var(--label-quaternary); }
-    .tab-item.active { color: var(--tint); }
-    .tab-item span { font-size: 14px; display: block; }
 
     /* ===== GROUPED SECTIONS (iOS Settings style) ===== */
     .grouped-section {
@@ -518,42 +500,11 @@
         App Store
       </a>
 
-      <!-- Device Mockup -->
+      <!-- Device with real screenshot -->
       <div class="device-frame">
         <div class="device">
           <div class="device-screen">
-            <div class="screen-status">
-              <span>9:41</span>
-              <span style="letter-spacing: 3px;">&#x25CF;&#x25CF;&#x25CF;&#x25CF;</span>
-            </div>
-            <div class="dynamic-island"></div>
-            <div class="screen-content">
-              <div class="screen-greeting">좋은 아침이에요</div>
-              <div class="screen-title">지우의 하루</div>
-              <div class="screen-card">
-                <div class="screen-card-icon sc-pink">&#x1F37C;</div>
-                <div class="screen-card-text"><strong>마지막 수유</strong>30분 전 &middot; 분유 120ml</div>
-              </div>
-              <div class="screen-card">
-                <div class="screen-card-icon sc-blue">&#x1F634;</div>
-                <div class="screen-card-text"><strong>수면</strong>오늘 총 9시간 40분</div>
-              </div>
-              <div class="screen-card">
-                <div class="screen-card-icon sc-green">&#x1F9F7;</div>
-                <div class="screen-card-text"><strong>기저귀</strong>오늘 5회 교체</div>
-              </div>
-              <div class="screen-card">
-                <div class="screen-card-icon sc-orange">&#x1F4C8;</div>
-                <div class="screen-card-text"><strong>성장 곡선</strong>백분위 72%</div>
-              </div>
-            </div>
-            <div class="screen-tabbar">
-              <div class="tab-item active"><span>&#x1F3E0;</span>홈</div>
-              <div class="tab-item"><span>&#x1F4C5;</span>기록</div>
-              <div class="tab-item"><span>&#x2795;</span></div>
-              <div class="tab-item"><span>&#x2764;&#xFE0F;</span>건강</div>
-              <div class="tab-item"><span>&#x2699;&#xFE0F;</span>설정</div>
-            </div>
+            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드" loading="eager">
           </div>
         </div>
       </div>
@@ -636,6 +587,42 @@
           <div class="headline">병원 기록</div>
           <div class="footnote">진단, 처방, 비용 관리</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SCREENSHOTS -->
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">앱 미리보기</h2>
+        <p class="footnote">실제 앱 화면을 확인하세요</p>
+      </div>
+    </div>
+    <div class="screenshot-scroll fade-in">
+      <div class="screenshot-item">
+        <div class="screenshot-device">
+          <img src="screenshots/iphone_01_dashboard.png" alt="대시보드" loading="lazy">
+        </div>
+        <div class="screenshot-label">대시보드</div>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-device">
+          <img src="screenshots/iphone_02_recording.png" alt="기록하기" loading="lazy">
+        </div>
+        <div class="screenshot-label">기록하기</div>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-device">
+          <img src="screenshots/iphone_03_health.png" alt="건강 관리" loading="lazy">
+        </div>
+        <div class="screenshot-label">건강 관리</div>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-device">
+          <img src="screenshots/iphone_6.7_03_calendar.png" alt="캘린더" loading="lazy">
+        </div>
+        <div class="screenshot-label">캘린더</div>
       </div>
     </div>
   </div>
