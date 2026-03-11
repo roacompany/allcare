@@ -31,7 +31,7 @@
   <meta name="apple-itunes-app" content="app-id=6759935352, app-argument=https://roacompany.github.io/allcare/">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="베이비케어">
-  <link rel="preload" as="image" href="screenshots/iphone_01_dashboard.png" fetchpriority="high">
+  <link rel="preload" as="image" href="screenshots/iphone_01_dashboard.webp" type="image/webp" fetchpriority="high">
   <meta name="color-scheme" content="light dark">
   <script type="application/ld+json">
   {
@@ -198,7 +198,7 @@
       color: var(--label);
     }
     .nav-btn {
-      color: var(--tint); font-size: 17px; font-weight: 400;
+      color: var(--tint); font-size: 17px; font-weight: 600;
       text-decoration: none; letter-spacing: -0.41px;
       padding: 8px 0;
     }
@@ -230,7 +230,7 @@
       margin-bottom: 8px;
     }
     .hero-subtitle {
-      color: var(--label-tertiary);
+      color: var(--label-secondary);
       margin-bottom: 24px;
     }
     .hero-pills {
@@ -245,7 +245,7 @@
       font-size: 13px; font-weight: 500;
       color: var(--label-secondary);
     }
-    .pill.accent { background: var(--tint-light); color: var(--tint); }
+    .pill.accent { background: var(--tint-light); color: #E0788E; }
 
     /* iOS-style Download Button */
     .download-btn {
@@ -505,8 +505,8 @@
       text-align: center;
       padding: 24px 16px 40px;
     }
-    footer p { font-size: 12px; color: var(--label-quaternary); margin-bottom: 4px; }
-    footer a { color: var(--label-tertiary); text-decoration: none; font-size: 12px; }
+    footer p { font-size: 12px; color: var(--label-secondary); margin-bottom: 4px; }
+    footer a { color: var(--label-secondary); text-decoration: none; font-size: 12px; }
     footer a:hover { text-decoration: underline; }
     .footer-links { margin: 8px 0; display: flex; justify-content: center; gap: 16px; }
 
@@ -585,7 +585,7 @@
   <!-- HERO -->
   <section class="hero" aria-label="앱 소개">
     <div class="container">
-      <div class="hero-icon"><img src="appicon_180.png" alt="베이비케어"></div>
+      <div class="hero-icon"><picture><source srcset="appicon_180.webp" type="image/webp"><img src="appicon_180.png" alt="베이비케어 앱 아이콘" width="80" height="80"></picture></div>
       <h1 class="large-title">베이비케어</h1>
       <p class="subheadline hero-subtitle">우리 아이의 모든 순간을 기록하세요</p>
       <div class="hero-pills">
@@ -602,7 +602,10 @@
       <div class="device-frame">
         <div class="device">
           <div class="device-screen">
-            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="eager" fetchpriority="high" width="220" height="476">
+            <picture>
+              <source srcset="screenshots/iphone_01_dashboard.webp" type="image/webp">
+              <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="eager" fetchpriority="high" width="220" height="476">
+            </picture>
           </div>
         </div>
       </div>
@@ -700,25 +703,37 @@
     <div class="screenshot-scroll fade-in">
       <div class="screenshot-item">
         <div class="screenshot-device">
-          <img src="screenshots/iphone_01_dashboard.png" alt="대시보드" loading="lazy">
+          <picture>
+            <source srcset="screenshots/iphone_01_dashboard.webp" type="image/webp">
+            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="lazy" width="200" height="433">
+          </picture>
         </div>
         <div class="screenshot-label">대시보드</div>
       </div>
       <div class="screenshot-item">
         <div class="screenshot-device">
-          <img src="screenshots/iphone_02_recording.png" alt="기록하기" loading="lazy">
+          <picture>
+            <source srcset="screenshots/iphone_02_recording.webp" type="image/webp">
+            <img src="screenshots/iphone_02_recording.png" alt="베이비케어 기록하기 화면" loading="lazy" width="200" height="433">
+          </picture>
         </div>
         <div class="screenshot-label">기록하기</div>
       </div>
       <div class="screenshot-item">
         <div class="screenshot-device">
-          <img src="screenshots/iphone_03_health.png" alt="건강 관리" loading="lazy">
+          <picture>
+            <source srcset="screenshots/iphone_03_health.webp" type="image/webp">
+            <img src="screenshots/iphone_03_health.png" alt="베이비케어 건강 관리 화면" loading="lazy" width="200" height="433">
+          </picture>
         </div>
         <div class="screenshot-label">건강 관리</div>
       </div>
       <div class="screenshot-item">
         <div class="screenshot-device">
-          <img src="screenshots/iphone_6.7_03_calendar.png" alt="캘린더" loading="lazy">
+          <picture>
+            <source srcset="screenshots/iphone_6.7_03_calendar.webp" type="image/webp">
+            <img src="screenshots/iphone_6.7_03_calendar.png" alt="베이비케어 캘린더 화면" loading="lazy" width="200" height="433">
+          </picture>
         </div>
         <div class="screenshot-label">캘린더</div>
       </div>
