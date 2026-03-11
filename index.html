@@ -105,6 +105,8 @@
       --separator: #3C3C4336;
       --fill: #78788033;
       --tint: #FF9FB5;
+      --tint-text: #B8405D;
+      --tint-btn: #D96B85;
       --tint-light: #FF9FB520;
       --blue: #007AFF;
       --green: #34C759;
@@ -129,6 +131,8 @@
         --label-quaternary: #EBEBF54D;
         --separator: #54545899;
         --fill: #78788052;
+        --tint-text: #FFB0C4;
+        --tint-btn: #FF9FB5;
         --tint-light: #FF9FB530;
       }
     }
@@ -198,7 +202,7 @@
       color: var(--label);
     }
     .nav-btn {
-      color: var(--tint); font-size: 17px; font-weight: 600;
+      color: var(--tint-text); font-size: 17px; font-weight: 600;
       text-decoration: none; letter-spacing: -0.41px;
       padding: 8px 0;
     }
@@ -245,12 +249,12 @@
       font-size: 13px; font-weight: 500;
       color: var(--label-secondary);
     }
-    .pill.accent { background: var(--tint-light); color: #E0788E; }
+    .pill.accent { background: var(--tint-light); color: var(--tint-text); }
 
     /* iOS-style Download Button */
     .download-btn {
       display: inline-flex; align-items: center; gap: 8px;
-      background: var(--tint);
+      background: var(--tint-btn);
       color: #FFFFFF;
       border: none; border-radius: 100px;
       padding: 14px 32px;
@@ -440,7 +444,7 @@
     }
     .premium-cta {
       display: block; width: 100%; text-align: center;
-      background: var(--tint);
+      background: var(--tint-btn);
       color: #FFFFFF; text-decoration: none;
       padding: 14px; border-radius: 14px;
       font-size: 17px; font-weight: 600;
@@ -526,7 +530,7 @@
     }
     .sticky-bottom a {
       display: block; text-align: center;
-      background: var(--tint); color: #FFFFFF;
+      background: var(--tint-btn); color: #FFFFFF;
       padding: 14px; border-radius: 14px;
       font-size: 17px; font-weight: 600;
       text-decoration: none;
