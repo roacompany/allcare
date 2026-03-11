@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>베이비케어 - 우리아이 성장기록</title>
   <meta name="description" content="수유, 수면, 기저귀, 건강, 병원 기록까지 우리 아이의 모든 성장을 한 곳에서 기록하세요.">
-  <meta name="keywords" content="육아 기록, 아기 성장, 수유 기록, 수면 기록, 예방접종, 베이비케어, 육아 앱">
+  <meta name="keywords" content="육아 기록, 아기 성장, 수유 기록, 수면 기록, 예방접종, 베이비케어, 육아 앱, 아기 건강기록, 성장곡선, AI 육아 조언">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="ROA Company">
+  <meta http-equiv="content-language" content="ko-KR">
   <meta property="og:title" content="베이비케어 - 우리아이 성장기록">
   <meta property="og:description" content="수유, 수면, 기저귀부터 AI 육아 조언까지. 우리 아이의 모든 순간을 기록하세요.">
   <meta property="og:type" content="website">
@@ -19,19 +22,33 @@
   <meta name="twitter:title" content="베이비케어 - 우리아이 성장기록">
   <meta name="twitter:description" content="수유, 수면, 기저귀부터 AI 육아 조언까지. 우리 아이의 모든 순간을 기록하세요.">
   <meta name="twitter:image" content="https://roacompany.github.io/allcare/og-image.png">
+  <meta name="twitter:image:alt" content="베이비케어 앱 미리보기 화면">
+  <meta property="og:image:alt" content="베이비케어 앱 미리보기 화면">
   <link rel="canonical" href="https://roacompany.github.io/allcare/">
   <link rel="apple-touch-icon" href="appicon_180.png">
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="theme-color" content="#FF9FB5">
-  <meta name="apple-itunes-app" content="app-id=6759935352">
+  <meta name="apple-itunes-app" content="app-id=6759935352, app-argument=https://roacompany.github.io/allcare/">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="베이비케어">
+  <link rel="preload" as="image" href="screenshots/iphone_01_dashboard.png" fetchpriority="high">
   <meta name="color-scheme" content="light dark">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
+    "@type": "MobileApplication",
     "name": "베이비케어 - 우리아이 성장기록",
-    "operatingSystem": "iOS 17+",
+    "operatingSystem": "iOS",
     "applicationCategory": "HealthApplication",
+    "softwareVersion": "2.0.0",
+    "countriesSupported": "KR",
+    "inLanguage": "ko",
+    "featureList": "수유 기록, 수면 기록, 기저귀 기록, 성장 곡선, 예방접종, AI 조언, 가족 공유, 위젯",
+    "screenshot": [
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_01_dashboard.png"},
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_02_recording.png"},
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_03_health.png"}
+    ],
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -40,15 +57,39 @@
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "ratingCount": "12"
+      "ratingCount": "12",
+      "bestRating": "5",
+      "worstRating": "1"
     },
     "description": "수유, 수면, 기저귀, 건강, 병원 기록까지 우리 아이의 모든 성장을 한 곳에서 기록하세요.",
     "url": "https://roacompany.github.io/allcare/",
-    "downloadUrl": "https://apps.apple.com/app/id6759935352",
+    "downloadUrl": "https://apps.apple.com/kr/app/id6759935352",
+    "installUrl": "https://apps.apple.com/kr/app/id6759935352",
     "author": {
       "@type": "Organization",
-      "name": "ROA Company"
+      "name": "ROA Company",
+      "url": "https://roacompany.github.io"
     }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "베이비케어 공식 사이트",
+    "url": "https://roacompany.github.io/allcare/"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "홈",
+      "item": "https://roacompany.github.io/allcare/"
+    }]
   }
   </script>
   <style>
@@ -514,18 +555,35 @@
       .review-scroll { padding: 0 0 8px; }
       .grouped-section .container { padding: 0; }
     }
+    .skip-link {
+      position: absolute; left: -9999px; top: auto;
+      width: 1px; height: 1px; overflow: hidden;
+      z-index: 999;
+    }
+    .skip-link:focus {
+      position: fixed; top: 8px; left: 8px;
+      width: auto; height: auto;
+      background: var(--tint); color: #fff;
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
 
+  <a href="#main" class="skip-link">본문으로 바로가기</a>
+
   <!-- NAV -->
-  <nav id="nav">
+  <nav id="nav" aria-label="메인 내비게이션">
     <span class="nav-title">베이비케어</span>
-    <a href="https://apps.apple.com/app/id6759935352" class="nav-btn">받기</a>
+    <a href="https://apps.apple.com/kr/app/id6759935352" class="nav-btn" rel="noopener">받기</a>
   </nav>
 
+  <main id="main">
+
   <!-- HERO -->
-  <section class="hero">
+  <section class="hero" aria-label="앱 소개">
     <div class="container">
       <div class="hero-icon"><img src="appicon_180.png" alt="베이비케어"></div>
       <h1 class="large-title">베이비케어</h1>
@@ -535,8 +593,8 @@
         <span class="pill accent">&#x2605; 4.8</span>
         <span class="pill">무료</span>
       </div>
-      <a href="https://apps.apple.com/app/id6759935352" class="download-btn">
-        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      <a href="https://apps.apple.com/kr/app/id6759935352" class="download-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true" role="img"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
         App Store
       </a>
 
@@ -544,7 +602,7 @@
       <div class="device-frame">
         <div class="device">
           <div class="device-screen">
-            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드" loading="eager">
+            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="eager" fetchpriority="high" width="220" height="476">
           </div>
         </div>
       </div>
@@ -749,7 +807,7 @@
           <span class="period">/ 월</span>
           <span class="trial-badge">3회 무료 체험</span>
         </div>
-        <a href="https://apps.apple.com/app/id6759935352" class="premium-cta">시작하기</a>
+        <a href="https://apps.apple.com/kr/app/id6759935352" class="premium-cta">시작하기</a>
       </div>
     </div>
   </div>
@@ -817,11 +875,13 @@
   <div class="final-section">
     <h2 class="title1 fade-in">지금 시작하세요</h2>
     <p class="subheadline fade-in">우리 아이의 소중한 순간을 놓치지 마세요</p>
-    <a href="https://apps.apple.com/app/id6759935352" class="download-btn fade-in">
-      <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+    <a href="https://apps.apple.com/kr/app/id6759935352" class="download-btn fade-in">
+      <svg viewBox="0 0 24 24" aria-hidden="true" role="img"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
       App Store에서 다운로드
     </a>
   </div>
+
+  </main>
 
   <!-- FOOTER -->
   <footer>
@@ -835,7 +895,7 @@
 
   <!-- STICKY BOTTOM -->
   <div class="sticky-bottom" id="stickyBottom">
-    <a href="https://apps.apple.com/app/id6759935352">무료 다운로드</a>
+    <a href="https://apps.apple.com/kr/app/id6759935352">무료 다운로드</a>
   </div>
 
   <script>
