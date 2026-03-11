@@ -4,451 +4,493 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>베이비케어 - 우리아이 성장기록</title>
-  <meta name="description" content="수유, 수면, 기저귀, 건강, 병원 기록까지 우리 아이의 모든 성장을 한 곳에서 기록하세요. AI 육아 조언과 병원 방문 리포트까지.">
+  <meta name="description" content="수유, 수면, 기저귀, 건강, 병원 기록까지 우리 아이의 모든 성장을 한 곳에서 기록하세요.">
   <meta name="keywords" content="육아 기록, 아기 성장, 수유 기록, 수면 기록, 예방접종, 베이비케어, 육아 앱">
   <meta property="og:title" content="베이비케어 - 우리아이 성장기록">
   <meta property="og:description" content="수유, 수면, 기저귀부터 AI 육아 조언까지. 우리 아이의 모든 순간을 기록하세요.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://roacompany.github.io/allcare/">
   <meta name="apple-itunes-app" content="app-id=6759935352">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="color-scheme" content="light dark">
   <style>
     :root {
-      --pink: #FF9FB5;
-      --pink-dark: #E8879D;
-      --pink-light: #FFD5DD;
-      --pink-bg: #FFF8FA;
-      --purple: #C4A0E8;
-      --blue: #7EB8E0;
-      --text: #1A1A2E;
-      --text-sub: #6B7280;
-      --bg: #FFFFFF;
-      --radius: 20px;
+      --system-bg: #FFFFFF;
+      --secondary-bg: #F2F2F7;
+      --tertiary-bg: #FFFFFF;
+      --grouped-bg: #F2F2F7;
+      --label: #000000;
+      --label-secondary: #3C3C43;
+      --label-tertiary: #3C3C4399;
+      --label-quaternary: #3C3C434D;
+      --separator: #3C3C4336;
+      --fill: #78788033;
+      --tint: #FF2D55;
+      --tint-light: #FF2D5520;
+      --blue: #007AFF;
+      --green: #34C759;
+      --orange: #FF9500;
+      --purple: #AF52DE;
+      --pink: #FF2D55;
+      --indigo: #5856D6;
+      --card-radius: 16px;
+      --section-radius: 20px;
+      --system-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --system-bg: #000000;
+        --secondary-bg: #1C1C1E;
+        --tertiary-bg: #2C2C2E;
+        --grouped-bg: #000000;
+        --label: #FFFFFF;
+        --label-secondary: #EBEBF5;
+        --label-tertiary: #EBEBF599;
+        --label-quaternary: #EBEBF54D;
+        --separator: #54545899;
+        --fill: #78788052;
+        --tint-light: #FF2D5530;
+      }
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: var(--text);
-      background: var(--bg);
+      font-family: var(--system-font);
+      background: var(--grouped-bg);
+      color: var(--label);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
 
-    /* ===== NAV ===== */
+    /* ===== TYPOGRAPHY (iOS 17 Scale) ===== */
+    .large-title {
+      font-size: 34px; font-weight: 700; letter-spacing: 0.37px; line-height: 1.2;
+    }
+    .title1 {
+      font-size: 28px; font-weight: 700; letter-spacing: 0.36px; line-height: 1.2;
+    }
+    .title2 {
+      font-size: 22px; font-weight: 700; letter-spacing: 0.35px; line-height: 1.27;
+    }
+    .title3 {
+      font-size: 20px; font-weight: 600; letter-spacing: 0.38px; line-height: 1.25;
+    }
+    .headline {
+      font-size: 17px; font-weight: 600; letter-spacing: -0.41px; line-height: 1.3;
+    }
+    .body-text {
+      font-size: 17px; font-weight: 400; letter-spacing: -0.41px; line-height: 1.47;
+    }
+    .callout {
+      font-size: 16px; font-weight: 400; letter-spacing: -0.32px; line-height: 1.375;
+    }
+    .subheadline {
+      font-size: 15px; font-weight: 400; letter-spacing: -0.24px; line-height: 1.33;
+    }
+    .footnote {
+      font-size: 13px; font-weight: 400; letter-spacing: -0.08px; line-height: 1.38;
+    }
+    .caption1 {
+      font-size: 12px; font-weight: 400; letter-spacing: 0; line-height: 1.33;
+    }
+    .caption2 {
+      font-size: 11px; font-weight: 400; letter-spacing: 0.07px; line-height: 1.18;
+    }
+
+    /* ===== NAV (iOS Navigation Bar) ===== */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      padding: 0 24px;
-      height: 56px;
+      height: 48px;
       display: flex; align-items: center; justify-content: space-between;
-      transition: box-shadow 0.3s;
+      padding: 0 16px;
+      background: rgba(249,249,249,0.94);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 0.5px solid var(--separator);
     }
-    nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.06); }
-    .nav-logo {
-      font-size: 1.1rem; font-weight: 800; color: var(--pink);
-      display: flex; align-items: center; gap: 8px;
+    @media (prefers-color-scheme: dark) {
+      nav { background: rgba(29,29,31,0.94); }
     }
-    .nav-logo span { font-size: 1.4rem; }
-    .nav-cta {
-      background: var(--pink); color: white; border: none; border-radius: 100px;
-      padding: 8px 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-      text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+    .nav-title {
+      font-size: 17px; font-weight: 600; letter-spacing: -0.41px;
+      color: var(--label);
     }
-    .nav-cta:hover { transform: scale(1.03); box-shadow: 0 4px 16px rgba(255,159,181,0.4); }
+    .nav-btn {
+      color: var(--tint); font-size: 17px; font-weight: 400;
+      text-decoration: none; letter-spacing: -0.41px;
+      padding: 8px 0;
+    }
+
+    /* ===== CONTENT CONTAINER ===== */
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
 
     /* ===== HERO ===== */
     .hero {
-      padding: 120px 24px 80px;
+      padding: 80px 0 48px;
       text-align: center;
-      background: linear-gradient(180deg, var(--pink-bg) 0%, var(--bg) 100%);
-      position: relative;
-      overflow: hidden;
+      background: var(--system-bg);
     }
-    .hero::before {
-      content: '';
-      position: absolute; top: -100px; left: -100px;
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(255,159,181,0.12) 0%, transparent 70%);
-      border-radius: 50%;
+    .hero-icon {
+      width: 80px; height: 80px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #FF2D55, #FF6482);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 40px;
+      box-shadow: 0 4px 16px rgba(255,45,85,0.25);
     }
-    .hero::after {
-      content: '';
-      position: absolute; top: 50px; right: -150px;
-      width: 350px; height: 350px;
-      background: radial-gradient(circle, rgba(196,160,232,0.1) 0%, transparent 70%);
-      border-radius: 50%;
+    .hero .large-title {
+      margin-bottom: 8px;
     }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: white; border: 1px solid #FFE0E6;
-      border-radius: 100px; padding: 6px 16px;
-      font-size: 0.8rem; color: var(--pink-dark); font-weight: 600;
+    .hero-subtitle {
+      color: var(--label-tertiary);
       margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(255,159,181,0.12);
     }
-    .hero h1 {
-      font-size: clamp(2rem, 6vw, 3.2rem);
-      font-weight: 800;
-      line-height: 1.3;
-      margin-bottom: 16px;
-      letter-spacing: -0.02em;
+    .hero-pills {
+      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 28px;
     }
-    .hero h1 .gradient {
-      background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--fill);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 13px; font-weight: 500;
+      color: var(--label-secondary);
     }
-    .hero-desc {
-      font-size: clamp(1rem, 2.5vw, 1.2rem);
-      color: var(--text-sub);
-      max-width: 480px;
-      margin: 0 auto 32px;
-      line-height: 1.7;
-    }
-    .hero-cta-group {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-    }
-    .hero-cta {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: linear-gradient(135deg, var(--pink) 0%, var(--pink-dark) 100%);
-      color: white; text-decoration: none;
-      padding: 16px 36px; border-radius: 100px;
-      font-size: 1.05rem; font-weight: 700;
-      box-shadow: 0 8px 32px rgba(255,159,181,0.35);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,159,181,0.45); }
-    .hero-cta svg { width: 22px; height: 22px; }
-    .hero-sub { font-size: 0.8rem; color: var(--text-sub); }
+    .pill.accent { background: var(--tint-light); color: var(--tint); }
 
-    /* ===== PHONE MOCKUP ===== */
-    .phone-mockup {
-      width: 260px; height: 520px;
-      margin: 48px auto 0;
-      background: #1A1A2E;
-      border-radius: 40px;
-      padding: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
-      position: relative;
-      z-index: 1;
+    /* iOS-style Download Button */
+    .download-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--tint);
+      color: #FFFFFF;
+      border: none; border-radius: 100px;
+      padding: 14px 32px;
+      font-size: 17px; font-weight: 600;
+      letter-spacing: -0.41px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
     }
-    .phone-screen {
-      width: 100%; height: 100%;
-      background: linear-gradient(180deg, #FFF5F7 0%, #FFFFFF 30%);
-      border-radius: 30px;
+    .download-btn:active { opacity: 0.7; }
+    .download-btn svg { width: 20px; height: 20px; fill: #FFFFFF; }
+
+    /* ===== PHONE MOCKUP (iOS style) ===== */
+    .device-frame {
+      width: 240px;
+      margin: 32px auto 0;
+      perspective: 800px;
+    }
+    .device {
+      background: #1C1C1E;
+      border-radius: 36px;
+      padding: 10px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.1) inset,
+        0 20px 60px rgba(0,0,0,0.2),
+        0 0 0 0.5px rgba(0,0,0,0.2);
+    }
+    .device-screen {
+      background: var(--system-bg);
+      border-radius: 28px;
       overflow: hidden;
-      display: flex; flex-direction: column;
+      aspect-ratio: 9/19.5;
     }
-    .phone-status {
+    .screen-status {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 20px 4px; font-size: 0.65rem; font-weight: 600; color: #333;
+      padding: 10px 24px 0;
+      font-size: 12px; font-weight: 600; color: var(--label);
     }
-    .phone-notch {
-      width: 100px; height: 28px;
-      background: #1A1A2E;
-      border-radius: 0 0 20px 20px;
-      margin: 0 auto;
-      position: relative; top: -4px;
+    .dynamic-island {
+      width: 90px; height: 26px;
+      background: #000;
+      border-radius: 20px;
+      margin: 0 auto 8px;
     }
-    .phone-content {
-      flex: 1; padding: 12px 16px;
-      display: flex; flex-direction: column; gap: 10px;
+    .screen-content { padding: 4px 14px 10px; }
+    .screen-greeting {
+      font-size: 11px; color: var(--label-tertiary);
+      margin-bottom: 2px;
     }
-    .phone-greeting { font-size: 0.75rem; color: var(--text-sub); }
-    .phone-greeting strong { color: var(--text); font-size: 0.85rem; display: block; margin-top: 2px; }
-    .phone-card-mini {
-      background: white; border-radius: 14px; padding: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    .screen-title {
+      font-size: 16px; font-weight: 700; letter-spacing: -0.4px;
+      margin-bottom: 10px;
+    }
+    .screen-card {
+      background: var(--secondary-bg);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
       display: flex; align-items: center; gap: 10px;
     }
-    .phone-card-mini .emoji { font-size: 1.3rem; }
-    .phone-card-mini .info { font-size: 0.65rem; color: var(--text-sub); line-height: 1.4; }
-    .phone-card-mini .info strong { color: var(--text); font-size: 0.7rem; display: block; }
-    .phone-tabs {
+    .screen-card-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .sc-pink { background: #FF2D5520; }
+    .sc-blue { background: #007AFF20; }
+    .sc-green { background: #34C75920; }
+    .sc-orange { background: #FF950020; }
+    .screen-card-text { font-size: 9px; color: var(--label-secondary); line-height: 1.4; }
+    .screen-card-text strong { font-size: 10px; color: var(--label); display: block; }
+    .screen-tabbar {
       display: flex; justify-content: space-around;
-      padding: 8px 0; border-top: 1px solid #F0F0F0;
-      font-size: 0.55rem; color: #CCC;
+      padding: 6px 0 2px;
+      border-top: 0.5px solid var(--separator);
+      margin-top: 6px;
     }
-    .phone-tabs .active { color: var(--pink); }
-    .phone-tab-item { text-align: center; font-size: 0.5rem; }
-    .phone-tab-item span { font-size: 0.85rem; display: block; margin-bottom: 2px; }
+    .tab-item { text-align: center; font-size: 8px; color: var(--label-quaternary); }
+    .tab-item.active { color: var(--tint); }
+    .tab-item span { font-size: 14px; display: block; }
 
-    /* ===== SOCIAL PROOF ===== */
-    .social-proof {
-      display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
-      padding: 40px 24px;
-      border-top: 1px solid #F5F5F5;
-      border-bottom: 1px solid #F5F5F5;
-      background: var(--pink-bg);
+    /* ===== GROUPED SECTIONS (iOS Settings style) ===== */
+    .grouped-section {
+      padding: 32px 0;
     }
-    .proof-item { text-align: center; }
-    .proof-value { font-size: 1.5rem; font-weight: 800; color: var(--pink-dark); }
-    .proof-label { font-size: 0.8rem; color: var(--text-sub); margin-top: 2px; }
-
-    /* ===== SECTIONS ===== */
-    section { padding: 80px 24px; }
-    .section-header { text-align: center; margin-bottom: 56px; }
-    .section-tag {
-      display: inline-block;
-      font-size: 0.75rem; font-weight: 700; color: var(--pink);
-      background: rgba(255,159,181,0.1);
-      padding: 4px 14px; border-radius: 100px;
-      margin-bottom: 12px; letter-spacing: 0.05em;
+    .group-header {
+      padding: 0 16px 8px;
     }
-    .section-header h2 {
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      font-weight: 800; letter-spacing: -0.02em;
-      margin-bottom: 12px;
+    .group-header .title2 { margin-bottom: 4px; }
+    .group-header p { color: var(--label-tertiary); }
+    .group-inset {
+      background: var(--tertiary-bg);
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      margin: 0 16px;
     }
-    .section-header p {
-      font-size: 1rem; color: var(--text-sub);
-      max-width: 500px; margin: 0 auto; line-height: 1.6;
+    .group-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 0.5px solid var(--separator);
     }
-
-    /* ===== FEATURE ROWS ===== */
-    .feature-row {
-      display: flex; align-items: center; gap: 56px;
-      max-width: 900px; margin: 0 auto 64px;
-    }
-    .feature-row.reverse { flex-direction: row-reverse; }
-    .feature-visual {
-      flex: 0 0 200px;
-      height: 200px;
-      border-radius: var(--radius);
+    .group-row:last-child { border-bottom: none; }
+    .row-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 4.5rem;
-      position: relative;
+      font-size: 18px; flex-shrink: 0;
     }
-    .feature-visual.v1 { background: linear-gradient(135deg, #FFF0F3, #FFE0E6); }
-    .feature-visual.v2 { background: linear-gradient(135deg, #EEF2FF, #E0E7FF); }
-    .feature-visual.v3 { background: linear-gradient(135deg, #ECFDF5, #D1FAE5); }
-    .feature-visual.v4 { background: linear-gradient(135deg, #FFF7ED, #FFEDD5); }
-    .feature-text { flex: 1; }
-    .feature-text h3 {
-      font-size: 1.4rem; font-weight: 700;
-      margin-bottom: 12px;
-    }
-    .feature-text p {
-      font-size: 0.95rem; color: var(--text-sub);
-      line-height: 1.7; margin-bottom: 16px;
-    }
-    .feature-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-    .feature-tags span {
-      font-size: 0.75rem; font-weight: 500;
-      padding: 4px 12px; border-radius: 100px;
-      background: #F5F5F5; color: var(--text-sub);
-    }
+    .row-icon.pink { background: var(--pink); color: white; }
+    .row-icon.blue { background: var(--blue); color: white; }
+    .row-icon.green { background: var(--green); color: white; }
+    .row-icon.orange { background: var(--orange); color: white; }
+    .row-icon.purple { background: var(--purple); color: white; }
+    .row-icon.indigo { background: var(--indigo); color: white; }
+    .row-content { flex: 1; min-width: 0; }
+    .row-content .headline { margin-bottom: 2px; }
+    .row-content .footnote { color: var(--label-tertiary); }
+    .row-chevron { color: var(--label-quaternary); font-size: 14px; }
 
-    /* ===== FEATURE GRID ===== */
-    .feature-grid {
+    /* ===== WIDGET-STYLE CARDS ===== */
+    .widget-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      max-width: 900px;
-      margin: 0 auto;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 0 16px;
     }
-    .grid-card {
-      background: var(--pink-bg);
-      border-radius: var(--radius);
+    .widget-card {
+      background: var(--tertiary-bg);
+      border-radius: var(--card-radius);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .widget-card.span-2 { grid-column: span 2; }
+    .widget-card .widget-icon { font-size: 24px; margin-bottom: 8px; }
+    .widget-card .headline { margin-bottom: 4px; }
+    .widget-card .footnote { color: var(--label-tertiary); line-height: 1.5; }
+    .widget-card .widget-accent {
+      position: absolute; top: -20px; right: -20px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: 0.08;
+    }
+    .widget-accent.pink-bg { background: var(--pink); }
+    .widget-accent.blue-bg { background: var(--blue); }
+    .widget-accent.green-bg { background: var(--green); }
+    .widget-accent.orange-bg { background: var(--orange); }
+    .widget-accent.purple-bg { background: var(--purple); }
+
+    /* ===== PREMIUM CARD (Material style) ===== */
+    .premium-container {
+      margin: 0 16px;
+      border-radius: var(--section-radius);
+      background: linear-gradient(145deg, #1C1C1E, #2C2C2E);
       padding: 28px 24px;
-      transition: transform 0.2s;
+      position: relative;
+      overflow: hidden;
     }
-    .grid-card:hover { transform: translateY(-4px); }
-    .grid-card .icon {
-      width: 48px; height: 48px;
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem;
+    .premium-container::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, rgba(255,45,85,0.08), rgba(175,82,222,0.08));
+      pointer-events: none;
+    }
+    .premium-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.7);
       margin-bottom: 16px;
     }
-    .grid-card .icon.pink { background: #FFE0E6; }
-    .grid-card .icon.blue { background: #DBEAFE; }
-    .grid-card .icon.green { background: #D1FAE5; }
-    .grid-card .icon.purple { background: #EDE9FE; }
-    .grid-card .icon.orange { background: #FFEDD5; }
-    .grid-card .icon.cyan { background: #CFFAFE; }
-    .grid-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
-    .grid-card p { font-size: 0.85rem; color: var(--text-sub); line-height: 1.6; }
-
-    /* ===== PREMIUM ===== */
-    .premium-section { background: linear-gradient(180deg, #1A1A2E 0%, #2D1B4E 100%); color: white; }
-    .premium-section .section-tag { background: rgba(255,255,255,0.1); color: #FFD5DD; }
-    .premium-section .section-header h2 { color: white; }
-    .premium-section .section-header p { color: rgba(255,255,255,0.6); }
-    .premium-card {
-      max-width: 560px; margin: 0 auto;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius);
-      padding: 36px 32px;
-      backdrop-filter: blur(10px);
+    .premium-container .title2 { color: #FFFFFF; margin-bottom: 6px; }
+    .premium-container .subheadline { color: rgba(255,255,255,0.5); margin-bottom: 20px; }
+    .premium-list { list-style: none; margin-bottom: 24px; }
+    .premium-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      font-size: 15px; color: rgba(255,255,255,0.85);
     }
-    .premium-price {
-      text-align: center; margin-bottom: 28px;
-    }
-    .premium-price .amount {
-      font-size: 2.2rem; font-weight: 800;
-    }
-    .premium-price .period {
-      font-size: 0.9rem; color: rgba(255,255,255,0.5); margin-left: 4px;
-    }
-    .premium-price .trial {
-      display: inline-block;
-      font-size: 0.8rem; color: #FFD5DD;
-      background: rgba(255,159,181,0.2);
-      padding: 4px 14px; border-radius: 100px;
-      margin-top: 8px;
-    }
-    .premium-features { list-style: none; margin-bottom: 28px; }
-    .premium-features li {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 10px 0;
-      font-size: 0.95rem;
-      color: rgba(255,255,255,0.85);
-    }
-    .premium-features li::before {
-      content: '✓';
-      flex-shrink: 0;
-      width: 24px; height: 24px;
-      background: rgba(255,159,181,0.2);
-      color: var(--pink);
+    .premium-list li::before {
+      content: ''; width: 6px; height: 6px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; font-weight: 700;
+      background: var(--tint);
+      flex-shrink: 0;
+    }
+    .premium-price-row {
+      display: flex; align-items: baseline; gap: 4px;
+      margin-bottom: 16px;
+    }
+    .premium-price-row .amount {
+      font-size: 28px; font-weight: 700; color: #FFFFFF;
+    }
+    .premium-price-row .period {
+      font-size: 15px; color: rgba(255,255,255,0.4);
+    }
+    .premium-price-row .trial-badge {
+      margin-left: auto;
+      font-size: 12px; font-weight: 600;
+      color: var(--tint);
+      background: rgba(255,45,85,0.15);
+      padding: 4px 10px; border-radius: 100px;
     }
     .premium-cta {
       display: block; width: 100%; text-align: center;
-      background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
-      color: white; text-decoration: none;
-      padding: 16px; border-radius: 14px;
-      font-size: 1rem; font-weight: 700;
+      background: var(--tint);
+      color: #FFFFFF; text-decoration: none;
+      padding: 14px; border-radius: 14px;
+      font-size: 17px; font-weight: 600;
+      letter-spacing: -0.41px;
       border: none; cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .premium-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(196,160,232,0.4); }
 
-    /* ===== TESTIMONIALS ===== */
-    .testimonial-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      max-width: 900px;
-      margin: 0 auto;
+    /* ===== REVIEW CARDS ===== */
+    .review-scroll {
+      display: flex; gap: 12px;
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      padding: 0 16px 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
-    .testimonial-card {
-      background: white;
-      border: 1px solid #F0F0F0;
-      border-radius: var(--radius);
-      padding: 28px 24px;
+    .review-scroll::-webkit-scrollbar { display: none; }
+    .review-card {
+      flex: 0 0 280px;
+      scroll-snap-align: start;
+      background: var(--tertiary-bg);
+      border-radius: var(--card-radius);
+      padding: 20px;
     }
-    .testimonial-stars { color: #FBBF24; font-size: 0.9rem; margin-bottom: 12px; letter-spacing: 2px; }
-    .testimonial-card blockquote {
-      font-size: 0.9rem; color: var(--text);
-      line-height: 1.7; margin-bottom: 16px;
+    .review-stars { color: #FF9500; font-size: 12px; letter-spacing: 1px; margin-bottom: 10px; }
+    .review-card blockquote {
+      font-size: 15px; font-weight: 400;
+      letter-spacing: -0.24px; line-height: 1.47;
+      color: var(--label);
+      margin-bottom: 12px;
       font-style: normal;
     }
-    .testimonial-author {
-      font-size: 0.8rem; color: var(--text-sub); font-weight: 600;
-    }
+    .review-author { font-size: 13px; color: var(--label-tertiary); }
 
-    /* ===== TRUST ===== */
-    .trust-section { background: var(--pink-bg); }
-    .trust-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 24px;
-      max-width: 800px;
-      margin: 0 auto;
+    /* ===== TRUST (Inline grouped) ===== */
+    .trust-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 0.5px solid var(--separator);
     }
-    .trust-item {
-      text-align: center;
-      padding: 24px;
+    .trust-row:last-child { border-bottom: none; }
+    .trust-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      background: var(--fill);
     }
-    .trust-item .icon { font-size: 2rem; margin-bottom: 12px; }
-    .trust-item h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
-    .trust-item p { font-size: 0.8rem; color: var(--text-sub); line-height: 1.6; }
 
     /* ===== FINAL CTA ===== */
-    .final-cta {
+    .final-section {
       text-align: center;
-      padding: 80px 24px;
-      background: linear-gradient(180deg, var(--bg) 0%, var(--pink-bg) 100%);
+      padding: 48px 16px 32px;
     }
-    .final-cta h2 {
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      font-weight: 800; margin-bottom: 12px;
-    }
-    .final-cta p {
-      font-size: 1rem; color: var(--text-sub);
-      margin-bottom: 32px;
+    .final-section .title1 { margin-bottom: 8px; }
+    .final-section .subheadline {
+      color: var(--label-tertiary);
+      margin-bottom: 24px;
     }
 
     /* ===== FOOTER ===== */
     footer {
       text-align: center;
-      padding: 40px 24px;
-      background: #FAFAFA;
-      border-top: 1px solid #F0F0F0;
+      padding: 24px 16px 40px;
     }
-    footer p { font-size: 0.8rem; color: #999; margin-bottom: 4px; }
-    footer a { color: var(--pink); text-decoration: none; }
+    footer p { font-size: 12px; color: var(--label-quaternary); margin-bottom: 4px; }
+    footer a { color: var(--label-tertiary); text-decoration: none; font-size: 12px; }
     footer a:hover { text-decoration: underline; }
-    .footer-links { margin: 12px 0; }
-    .footer-links a { margin: 0 10px; font-size: 0.8rem; }
+    .footer-links { margin: 8px 0; display: flex; justify-content: center; gap: 16px; }
 
-    /* ===== STICKY MOBILE CTA ===== */
-    .sticky-cta {
+    /* ===== STICKY BOTTOM (iOS style) ===== */
+    .sticky-bottom {
       display: none;
-      position: fixed; bottom: 0; left: 0; right: 0;
-      z-index: 99;
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(0,0,0,0.06);
-      padding: 12px 20px;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 99;
+      background: rgba(249,249,249,0.94);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-top: 0.5px solid var(--separator);
+      padding: 10px 16px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
     }
-    .sticky-cta a {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
-      color: white; text-decoration: none;
+    @media (prefers-color-scheme: dark) {
+      .sticky-bottom { background: rgba(29,29,31,0.94); }
+    }
+    .sticky-bottom a {
+      display: block; text-align: center;
+      background: var(--tint); color: #FFFFFF;
       padding: 14px; border-radius: 14px;
-      font-size: 1rem; font-weight: 700;
-      box-shadow: 0 4px 20px rgba(255,159,181,0.3);
+      font-size: 17px; font-weight: 600;
+      text-decoration: none;
     }
 
-    /* ===== ANIMATIONS ===== */
-    .fade-up {
-      opacity: 0; transform: translateY(30px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+    /* ===== FADE ANIMATION ===== */
+    .fade-in {
+      opacity: 0; transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
 
     /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-      .hero { padding: 100px 20px 60px; }
-      .phone-mockup { width: 220px; height: 440px; border-radius: 34px; }
-      .phone-notch { width: 80px; height: 24px; }
-      .feature-row { flex-direction: column !important; gap: 24px; text-align: center; }
-      .feature-visual { flex: 0 0 160px; width: 160px; height: 160px; margin: 0 auto; font-size: 3.5rem; }
-      .feature-tags { justify-content: center; }
-      .social-proof { gap: 24px; }
-      .premium-card { padding: 28px 20px; }
-      .sticky-cta { display: block; }
-      .final-cta { padding-bottom: 120px; }
+    @media (max-width: 390px) {
+      .widget-grid { grid-template-columns: 1fr; }
+      .widget-card.span-2 { grid-column: span 1; }
     }
-    @media (max-width: 400px) {
-      .phone-mockup { width: 200px; height: 400px; }
-      .social-proof { gap: 16px; }
-      .proof-value { font-size: 1.2rem; }
+    @media (max-width: 768px) {
+      .sticky-bottom { display: block; }
+      footer { padding-bottom: 100px; }
+    }
+    @media (min-width: 769px) {
+      .container { max-width: 680px; }
+      .group-inset, .widget-grid, .premium-container { margin: 0; }
+      .group-header { padding-left: 0; }
+      .review-scroll { padding: 0 0 8px; }
+      .grouped-section .container { padding: 0; }
     }
   </style>
 </head>
@@ -456,312 +498,335 @@
 
   <!-- NAV -->
   <nav id="nav">
-    <div class="nav-logo">
-      <span>&#x1F476;</span> 베이비케어
-    </div>
-    <a href="https://apps.apple.com/app/id6759935352" class="nav-cta">다운로드</a>
+    <span class="nav-title">베이비케어</span>
+    <a href="https://apps.apple.com/app/id6759935352" class="nav-btn">받기</a>
   </nav>
 
   <!-- HERO -->
-  <div class="hero">
-    <div class="hero-badge">&#x2728; iOS 무료 앱</div>
-    <h1>우리 아이의 모든 순간,<br><span class="gradient">함께 기록해요</span></h1>
-    <p class="hero-desc">수유, 수면, 기저귀부터 예방접종, 성장 곡선, AI 육아 조언까지.<br>한 앱에서 모든 육아를 관리하세요.</p>
-    <div class="hero-cta-group">
-      <a href="https://apps.apple.com/app/id6759935352" class="hero-cta">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-        App Store에서 다운로드
+  <section class="hero">
+    <div class="container">
+      <div class="hero-icon">&#x1F476;</div>
+      <h1 class="large-title">베이비케어</h1>
+      <p class="subheadline hero-subtitle">우리 아이의 모든 순간을 기록하세요</p>
+      <div class="hero-pills">
+        <span class="pill">iOS 17+</span>
+        <span class="pill accent">&#x2605; 4.8</span>
+        <span class="pill">무료</span>
+      </div>
+      <a href="https://apps.apple.com/app/id6759935352" class="download-btn">
+        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        App Store
       </a>
-      <span class="hero-sub">iOS 17 이상 &middot; 가족 공유 지원</span>
-    </div>
 
-    <!-- Phone Mockup -->
-    <div class="phone-mockup">
-      <div class="phone-screen">
-        <div class="phone-status">
-          <span>9:41</span>
-          <span>&#x1F4F6; &#x1F50B;</span>
-        </div>
-        <div class="phone-notch"></div>
-        <div class="phone-content">
-          <div class="phone-greeting">
-            좋은 아침이에요 &#x1F44B;
-            <strong>지우의 하루</strong>
+      <!-- Device Mockup -->
+      <div class="device-frame">
+        <div class="device">
+          <div class="device-screen">
+            <div class="screen-status">
+              <span>9:41</span>
+              <span style="letter-spacing: 3px;">&#x25CF;&#x25CF;&#x25CF;&#x25CF;</span>
+            </div>
+            <div class="dynamic-island"></div>
+            <div class="screen-content">
+              <div class="screen-greeting">좋은 아침이에요</div>
+              <div class="screen-title">지우의 하루</div>
+              <div class="screen-card">
+                <div class="screen-card-icon sc-pink">&#x1F37C;</div>
+                <div class="screen-card-text"><strong>마지막 수유</strong>30분 전 &middot; 분유 120ml</div>
+              </div>
+              <div class="screen-card">
+                <div class="screen-card-icon sc-blue">&#x1F634;</div>
+                <div class="screen-card-text"><strong>수면</strong>오늘 총 9시간 40분</div>
+              </div>
+              <div class="screen-card">
+                <div class="screen-card-icon sc-green">&#x1F9F7;</div>
+                <div class="screen-card-text"><strong>기저귀</strong>오늘 5회 교체</div>
+              </div>
+              <div class="screen-card">
+                <div class="screen-card-icon sc-orange">&#x1F4C8;</div>
+                <div class="screen-card-text"><strong>성장 곡선</strong>백분위 72%</div>
+              </div>
+            </div>
+            <div class="screen-tabbar">
+              <div class="tab-item active"><span>&#x1F3E0;</span>홈</div>
+              <div class="tab-item"><span>&#x1F4C5;</span>기록</div>
+              <div class="tab-item"><span>&#x2795;</span></div>
+              <div class="tab-item"><span>&#x2764;&#xFE0F;</span>건강</div>
+              <div class="tab-item"><span>&#x2699;&#xFE0F;</span>설정</div>
+            </div>
           </div>
-          <div class="phone-card-mini">
-            <span class="emoji">&#x1F37C;</span>
-            <div class="info"><strong>마지막 수유</strong>30분 전 &middot; 분유 120ml</div>
-          </div>
-          <div class="phone-card-mini">
-            <span class="emoji">&#x1F634;</span>
-            <div class="info"><strong>수면</strong>오늘 총 9시간 40분</div>
-          </div>
-          <div class="phone-card-mini">
-            <span class="emoji">&#x1F9F7;</span>
-            <div class="info"><strong>기저귀</strong>오늘 5회 교체</div>
-          </div>
-          <div class="phone-card-mini">
-            <span class="emoji">&#x1F4C8;</span>
-            <div class="info"><strong>성장 곡선</strong>백분위 72% (정상)</div>
-          </div>
-        </div>
-        <div class="phone-tabs">
-          <div class="phone-tab-item active"><span>&#x1F3E0;</span>홈</div>
-          <div class="phone-tab-item"><span>&#x1F4C5;</span>기록</div>
-          <div class="phone-tab-item"><span>&#x2795;</span></div>
-          <div class="phone-tab-item"><span>&#x2764;</span>건강</div>
-          <div class="phone-tab-item"><span>&#x2699;</span>설정</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SOCIAL PROOF -->
-  <div class="social-proof">
-    <div class="proof-item">
-      <div class="proof-value">&#x2B50; 4.8</div>
-      <div class="proof-label">App Store 평점</div>
-    </div>
-    <div class="proof-item">
-      <div class="proof-value">20+</div>
-      <div class="proof-label">핵심 기능</div>
-    </div>
-    <div class="proof-item">
-      <div class="proof-value">6종</div>
-      <div class="proof-label">홈 &middot; 잠금화면 위젯</div>
-    </div>
-    <div class="proof-item">
-      <div class="proof-value">100%</div>
-      <div class="proof-label">무료 핵심 기능</div>
-    </div>
-  </div>
-
-  <!-- CORE FEATURES -->
-  <section>
-    <div class="section-header fade-up">
-      <span class="section-tag">핵심 기능</span>
-      <h2>원탭으로 빠르게, 타이머로 정확하게</h2>
-      <p>바쁜 육아 중에도 손쉽게 기록할 수 있도록 설계했어요</p>
-    </div>
-
-    <div class="feature-row fade-up">
-      <div class="feature-visual v1">&#x1F37C;</div>
-      <div class="feature-text">
-        <h3>수유 &middot; 수면 &middot; 기저귀</h3>
-        <p>모유, 분유, 이유식부터 수면 패턴, 기저귀 교체까지. 타이머와 빠른 기록으로 몇 초 만에 기록하고, 일별 통계로 패턴을 파악하세요.</p>
-        <div class="feature-tags">
-          <span>&#x23F1; 타이머</span>
-          <span>&#x1F4CA; 일별 통계</span>
-          <span>&#x1F514; 맞춤 알림</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="feature-row reverse fade-up">
-      <div class="feature-visual v2">&#x1F489;</div>
-      <div class="feature-text">
-        <h3>예방접종 &middot; 발달이정표</h3>
-        <p>국가 필수 예방접종 일정을 자동으로 생성하고, 접종일 알림을 보내드려요. 35개 발달이정표로 우리 아이의 성장을 체크하세요.</p>
-        <div class="feature-tags">
-          <span>&#x1F4C5; 자동 일정</span>
-          <span>&#x2B50; 35개 이정표</span>
-          <span>&#x1F514; D-day 알림</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="feature-row fade-up">
-      <div class="feature-visual v3">&#x1F4C8;</div>
-      <div class="feature-text">
-        <h3>성장 곡선 &middot; 통계</h3>
-        <p>키, 몸무게, 머리둘레를 기록하면 WHO 성장 곡선과 자동 비교합니다. 일별/주별/월별 활동 통계를 차트로 한눈에 확인하세요.</p>
-        <div class="feature-tags">
-          <span>&#x1F30D; WHO 기준</span>
-          <span>&#x1F4CA; 백분위</span>
-          <span>&#x1F4C8; 추이 차트</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="feature-row reverse fade-up">
-      <div class="feature-visual v4">&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F476;</div>
-      <div class="feature-text">
-        <h3>가족 공유</h3>
-        <p>초대 코드 하나로 배우자, 조부모님을 초대하세요. 모든 기록이 실시간으로 동기화되어 온 가족이 함께 육아에 참여할 수 있어요.</p>
-        <div class="feature-tags">
-          <span>&#x1F517; 초대 코드</span>
-          <span>&#x1F504; 실시간 동기화</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- MORE FEATURES -->
-  <section style="background: #FAFAFA; padding-top: 64px;">
-    <div class="section-header fade-up">
-      <span class="section-tag">더 많은 기능</span>
-      <h2>기록을 넘어, 일상을 관리하세요</h2>
+  <!-- CORE FEATURES (Grouped List) -->
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">빠른 기록</h2>
+        <p class="footnote">원탭으로 빠르게, 타이머로 정확하게</p>
+      </div>
+      <div class="group-inset fade-in">
+        <div class="group-row">
+          <div class="row-icon pink">&#x1F37C;</div>
+          <div class="row-content">
+            <div class="headline">수유</div>
+            <div class="footnote">모유, 분유, 이유식, 간식. 타이머와 좌우 구분</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon blue">&#x1F634;</div>
+          <div class="row-content">
+            <div class="headline">수면</div>
+            <div class="footnote">수면 시간, 질, 재우는 방법까지 기록</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon green">&#x1F9F7;</div>
+          <div class="row-content">
+            <div class="headline">기저귀</div>
+            <div class="footnote">소변, 대변, 혼합 구분. 색상과 질감 기록</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon orange">&#x1F321;</div>
+          <div class="row-content">
+            <div class="headline">목욕 &middot; 체온 &middot; 투약</div>
+            <div class="footnote">건강 관련 기록을 빠르게</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="feature-grid fade-up">
-      <div class="grid-card">
-        <div class="icon pink">&#x1F4D6;</div>
-        <h4>육아 일기</h4>
-        <p>사진과 함께 아이의 하루를 기록하는 소중한 추억 저장소</p>
+  <!-- HEALTH FEATURES (Widget Grid) -->
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">건강 관리</h2>
+        <p class="footnote">예방접종부터 성장 곡선까지</p>
       </div>
-      <div class="grid-card">
-        <div class="icon blue">&#x1F3E5;</div>
-        <h4>병원 기록</h4>
-        <p>진료, 검진, 응급 방문별 기록. 진단, 처방, 비용까지 관리</p>
-      </div>
-      <div class="grid-card">
-        <div class="icon green">&#x2705;</div>
-        <h4>할 일 &middot; 루틴</h4>
-        <p>반복 루틴과 할 일 관리로 규칙적인 육아를 도와줍니다</p>
-      </div>
-      <div class="grid-card">
-        <div class="icon purple">&#x1F4AC;</div>
-        <h4>AI 육아 조언</h4>
-        <p>아이 나이와 기록을 기반으로 맞춤형 육아 조언을 제공</p>
-      </div>
-      <div class="grid-card">
-        <div class="icon orange">&#x1F4F1;</div>
-        <h4>위젯 6종</h4>
-        <p>홈 화면과 잠금화면에서 마지막 활동을 바로 확인</p>
-      </div>
-      <div class="grid-card">
-        <div class="icon cyan">&#x1F6CD;</div>
-        <h4>용품 관리</h4>
-        <p>분유, 기저귀 재고 관리와 재구매 알림을 받으세요</p>
+      <div class="widget-grid fade-in">
+        <div class="widget-card">
+          <div class="widget-accent pink-bg"></div>
+          <div class="widget-icon">&#x1F489;</div>
+          <div class="headline">예방접종</div>
+          <div class="footnote">국가 필수 일정 자동 생성과 D-day 알림</div>
+        </div>
+        <div class="widget-card">
+          <div class="widget-accent green-bg"></div>
+          <div class="widget-icon">&#x2B50;</div>
+          <div class="headline">발달이정표</div>
+          <div class="footnote">35개 항목 체크리스트</div>
+        </div>
+        <div class="widget-card">
+          <div class="widget-accent blue-bg"></div>
+          <div class="widget-icon">&#x1F4C8;</div>
+          <div class="headline">성장 곡선</div>
+          <div class="footnote">WHO 기준 백분위 비교</div>
+        </div>
+        <div class="widget-card">
+          <div class="widget-accent orange-bg"></div>
+          <div class="widget-icon">&#x1F3E5;</div>
+          <div class="headline">병원 기록</div>
+          <div class="footnote">진단, 처방, 비용 관리</div>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+
+  <!-- MORE FEATURES (Grouped List) -->
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">스마트 육아</h2>
+        <p class="footnote">기록을 넘어, 일상을 관리하세요</p>
+      </div>
+      <div class="group-inset fade-in">
+        <div class="group-row">
+          <div class="row-icon purple">&#x1F4AC;</div>
+          <div class="row-content">
+            <div class="headline">AI 육아 조언</div>
+            <div class="footnote">아이 나이와 기록 기반 맞춤형 조언</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon indigo">&#x1F4F1;</div>
+          <div class="row-content">
+            <div class="headline">위젯 6종</div>
+            <div class="footnote">홈 화면과 잠금화면에서 바로 확인</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon green">&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F476;</div>
+          <div class="row-content">
+            <div class="headline">가족 공유</div>
+            <div class="footnote">초대 코드로 실시간 동기화</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon blue">&#x1F4CA;</div>
+          <div class="row-content">
+            <div class="headline">통계 &middot; 패턴 리포트</div>
+            <div class="footnote">일별, 주별, 월별 차트로 패턴 파악</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon orange">&#x1F4D6;</div>
+          <div class="row-content">
+            <div class="headline">육아 일기</div>
+            <div class="footnote">사진과 함께 기록하는 소중한 추억</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+        <div class="group-row">
+          <div class="row-icon pink">&#x1F514;</div>
+          <div class="row-content">
+            <div class="headline">맞춤 알림</div>
+            <div class="footnote">활동별 간격, 접종일, 루틴 리마인더</div>
+          </div>
+          <span class="row-chevron">&#x203A;</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- PREMIUM -->
-  <section class="premium-section">
-    <div class="section-header fade-up">
-      <span class="section-tag">PREMIUM</span>
-      <h2>병원 방문을 더 스마트하게</h2>
-      <p>AI가 아이의 기록을 분석해 병원 방문 리포트를 준비해드려요</p>
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">프리미엄</h2>
+        <p class="footnote">병원 방문을 더 스마트하게</p>
+      </div>
+      <div class="premium-container fade-in">
+        <div class="premium-badge">&#x2728; Premium</div>
+        <h3 class="title2">병원 방문 AI 리포트</h3>
+        <p class="subheadline">아이의 기록을 AI가 분석해<br>의사에게 물어볼 내용을 정리해드려요</p>
+        <ul class="premium-list">
+          <li>기록 자동 분석 리포트</li>
+          <li>맞춤 질문 체크리스트</li>
+          <li>방문 전날 준비 알림</li>
+          <li>리포트 히스토리 보관</li>
+        </ul>
+        <div class="premium-price-row">
+          <span class="amount">&#x20A9;1,100</span>
+          <span class="period">/ 월</span>
+          <span class="trial-badge">3회 무료 체험</span>
+        </div>
+        <a href="https://apps.apple.com/app/id6759935352" class="premium-cta">시작하기</a>
+      </div>
     </div>
+  </div>
 
-    <div class="premium-card fade-up">
-      <div class="premium-price">
-        <span class="amount">&#x20A9;1,100</span><span class="period">/ 월</span>
-        <br>
-        <span class="trial">무료 체험 3회 제공</span>
+  <!-- REVIEWS -->
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">후기</h2>
       </div>
-      <ul class="premium-features">
-        <li>병원 방문 AI 리포트 &mdash; 기록 자동 분석</li>
-        <li>맞춤 질문 체크리스트 &mdash; 의사에게 물어볼 내용 정리</li>
-        <li>방문 전날 알림 &mdash; 리포트 준비 완료 알림</li>
-        <li>리포트 히스토리 &mdash; 이전 방문 기록 언제든 확인</li>
-      </ul>
-      <a href="https://apps.apple.com/app/id6759935352" class="premium-cta">앱에서 시작하기</a>
-    </div>
-  </section>
-
-  <!-- TESTIMONIALS -->
-  <section>
-    <div class="section-header fade-up">
-      <span class="section-tag">사용자 후기</span>
-      <h2>부모님들의 이야기</h2>
-    </div>
-
-    <div class="testimonial-grid fade-up">
-      <div class="testimonial-card">
-        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>"첫 아이라 모든 게 불안했는데, 수유 간격이랑 수면 패턴을 기록하니까 규칙이 보여서 안심이 돼요."</blockquote>
-        <div class="testimonial-author">&#x1F469; 서연맘 &middot; 생후 4개월</div>
-      </div>
-      <div class="testimonial-card">
-        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>"남편이랑 가족 공유로 같이 쓰고 있어요. 누가 언제 수유했는지 바로 보여서 정말 편해요."</blockquote>
-        <div class="testimonial-author">&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F476; 지우네 가족 &middot; 생후 8개월</div>
-      </div>
-      <div class="testimonial-card">
-        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>"예방접종 알림이 정말 유용해요. 병원 가기 전에 뭘 맞아야 하는지 바로 확인할 수 있어서 좋아요."</blockquote>
-        <div class="testimonial-author">&#x1F469; 하은맘 &middot; 생후 14개월</div>
+      <div class="review-scroll fade-in">
+        <div class="review-card">
+          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"수유 간격이랑 수면 패턴을 기록하니까 규칙이 보여서 안심이 돼요. 첫 아이라 불안했는데 많이 도움돼요."</blockquote>
+          <div class="review-author">서연맘 &middot; 생후 4개월</div>
+        </div>
+        <div class="review-card">
+          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"남편이랑 가족 공유로 같이 쓰고 있어요. 누가 언제 수유했는지 바로 보이니까 정말 편해요."</blockquote>
+          <div class="review-author">지우네 가족 &middot; 생후 8개월</div>
+        </div>
+        <div class="review-card">
+          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"예방접종 알림이 정말 유용해요. 병원 가기 전에 뭘 맞아야 하는지 바로 확인할 수 있어서 좋아요."</blockquote>
+          <div class="review-author">하은맘 &middot; 생후 14개월</div>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
 
   <!-- TRUST -->
-  <section class="trust-section">
-    <div class="section-header fade-up">
-      <span class="section-tag">안심하고 사용하세요</span>
-      <h2>소중한 데이터, 안전하게 보호합니다</h2>
+  <div class="grouped-section">
+    <div class="container">
+      <div class="group-header fade-in">
+        <h2 class="title2">개인정보 보호</h2>
+        <p class="footnote">소중한 데이터를 안전하게 보호합니다</p>
+      </div>
+      <div class="group-inset fade-in">
+        <div class="trust-row">
+          <div class="trust-icon">&#x1F512;</div>
+          <div class="row-content">
+            <div class="headline">암호화 전송</div>
+            <div class="footnote">모든 데이터는 SSL/TLS로 암호화됩니다</div>
+          </div>
+        </div>
+        <div class="trust-row">
+          <div class="trust-icon">&#x1F6E1;</div>
+          <div class="row-content">
+            <div class="headline">제3자 미제공</div>
+            <div class="footnote">개인정보를 외부에 제공하지 않습니다</div>
+          </div>
+        </div>
+        <div class="trust-row">
+          <div class="trust-icon">&#x1F5D1;</div>
+          <div class="row-content">
+            <div class="headline">완전한 삭제</div>
+            <div class="footnote">계정 삭제 시 모든 데이터가 즉시 삭제됩니다</div>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <div class="trust-grid fade-up">
-      <div class="trust-item">
-        <div class="icon">&#x1F512;</div>
-        <h4>데이터 암호화</h4>
-        <p>모든 데이터는 SSL/TLS로 암호화되어 전송되고 Firebase 보안 규칙으로 보호됩니다</p>
-      </div>
-      <div class="trust-item">
-        <div class="icon">&#x1F6E1;</div>
-        <h4>개인정보 보호</h4>
-        <p>개인정보 처리방침을 준수하며, 제3자에게 데이터를 제공하지 않습니다</p>
-      </div>
-      <div class="trust-item">
-        <div class="icon">&#x1F5D1;</div>
-        <h4>완전한 삭제</h4>
-        <p>계정 삭제 시 모든 데이터가 즉시 삭제되며 복구되지 않습니다</p>
-      </div>
-    </div>
-  </section>
+  </div>
 
   <!-- FINAL CTA -->
-  <div class="final-cta">
-    <h2 class="fade-up">지금 시작하세요</h2>
-    <p class="fade-up">우리 아이의 소중한 순간을 놓치지 마세요</p>
-    <a href="https://apps.apple.com/app/id6759935352" class="hero-cta fade-up">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+  <div class="final-section">
+    <h2 class="title1 fade-in">지금 시작하세요</h2>
+    <p class="subheadline fade-in">우리 아이의 소중한 순간을 놓치지 마세요</p>
+    <a href="https://apps.apple.com/app/id6759935352" class="download-btn fade-in">
+      <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
       App Store에서 다운로드
     </a>
   </div>
 
   <!-- FOOTER -->
   <footer>
-    <p>&copy; 2025 ROA Company. All rights reserved.</p>
+    <p>&copy; 2025 ROA Company</p>
     <div class="footer-links">
-      <a href="terms.html">서비스 이용약관</a>
+      <a href="terms.html">이용약관</a>
       <a href="privacy.html">개인정보처리방침</a>
     </div>
-    <p style="margin-top: 8px;">문의: wjj911015@icloud.com</p>
+    <p style="margin-top: 8px;">wjj911015@icloud.com</p>
   </footer>
 
-  <!-- STICKY MOBILE CTA -->
-  <div class="sticky-cta" id="stickyCta">
-    <a href="https://apps.apple.com/app/id6759935352">
-      &#xF8FF; 무료 다운로드
-    </a>
+  <!-- STICKY BOTTOM -->
+  <div class="sticky-bottom" id="stickyBottom">
+    <a href="https://apps.apple.com/app/id6759935352">무료 다운로드</a>
   </div>
 
   <script>
-    // Nav scroll effect
-    const nav = document.getElementById('nav');
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('scrolled', window.scrollY > 10);
-    });
-
-    // Sticky CTA visibility
-    const stickyCta = document.getElementById('stickyCta');
-    const hero = document.querySelector('.hero');
-    const observer = new IntersectionObserver(([e]) => {
-      stickyCta.style.transform = e.isIntersecting ? 'translateY(100%)' : 'translateY(0)';
-      stickyCta.style.transition = 'transform 0.3s ease';
+    // Sticky visibility
+    const sticky = document.getElementById('stickyBottom');
+    const heroEl = document.querySelector('.hero');
+    const stickyObs = new IntersectionObserver(([e]) => {
+      sticky.style.transform = e.isIntersecting ? 'translateY(100%)' : 'translateY(0)';
+      sticky.style.transition = 'transform 0.3s ease';
     }, { threshold: 0 });
-    observer.observe(hero);
+    stickyObs.observe(heroEl);
 
-    // Fade-up animation
-    const fadeEls = document.querySelectorAll('.fade-up');
-    const fadeObserver = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    fadeEls.forEach(el => fadeObserver.observe(el));
+    // Fade-in
+    const fadeEls = document.querySelectorAll('.fade-in');
+    const fadeObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+    fadeEls.forEach(el => fadeObs.observe(el));
   </script>
 </body>
 </html>
