@@ -4,13 +4,66 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
+    @Environment(SubscriptionViewModel.self) private var subscriptionVM
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
+    @State private var showDeleteAccountAlert = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
             List {
+                // 구독 상태
+                Section {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "star.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.yellow)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                if subscriptionVM.premiumStatus.isPremium {
+                                    Text("프리미엄 구독 중")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("모든 프리미엄 기능을 이용 중입니다")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else if subscriptionVM.premiumStatus.canUseTrial {
+                                    Text("베이비케어 프리미엄")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("무료 체험 \(subscriptionVM.premiumStatus.trialRemaining)회 남음")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                } else {
+                                    Text("베이비케어 프리미엄")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("월 ₩1,100으로 AI 리포트 이용")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if !subscriptionVM.premiumStatus.isPremium {
+                                Text("구독")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(.pink, in: Capsule())
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .sheet(isPresented: $showPaywall) {
+                    PremiumPaywallView()
+                }
+
                 // Baby Management
                 Section("아기 관리") {
                     ForEach(babyVM.babies) { baby in
@@ -154,13 +207,29 @@ struct SettingsView: View {
                     } label: {
                         Label("로그아웃", systemImage: "rectangle.portrait.and.arrow.right")
                     }
+
+                    Button(role: .destructive) {
+                        showDeleteAccountAlert = true
+                    } label: {
+                        Label("계정 삭제", systemImage: "person.crop.circle.badge.minus")
+                    }
+                }
+
+                Section("법적 고지") {
+                    Link(destination: URL(string: "https://roacompany.github.io/allcare/privacy.html")!) {
+                        Label("개인정보 처리방침", systemImage: "hand.raised.fill")
+                    }
+
+                    Link(destination: URL(string: "https://roacompany.github.io/allcare/terms.html")!) {
+                        Label("서비스 이용약관", systemImage: "doc.text.fill")
+                    }
                 }
 
                 Section("정보") {
                     HStack {
                         Text("버전")
                         Spacer()
-                        Text("1.0.0").foregroundStyle(.secondary)
+                        Text("2.0.0").foregroundStyle(.secondary)
                     }
                 }
             }
@@ -176,194 +245,23 @@ struct SettingsView: View {
             } message: {
                 Text("정말 로그아웃 하시겠습니까?")
             }
-        }
-    }
-}
-
-// MARK: - NotificationSettingsView
-
-struct NotificationSettingsView: View {
-    @State private var rules = ActivityReminderSettings.rules
-    @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
-    @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
-    @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
-
-    private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
-
-    private let vaccinationDayOptions: [Int] = [0, 1, 3, 7, 14, 30]
-
-    var body: some View {
-        List {
-            // 활동별 알림
-            Section {
-                ForEach($rules) { $rule in
-                    Toggle(isOn: $rule.enabled) {
-                        HStack(spacing: 10) {
-                            if let type = rule.type {
-                                Image(systemName: type.icon)
-                                    .font(.body)
-                                    .foregroundStyle(Color(type.color))
-                                    .frame(width: 24)
-                            }
-                            Text(rule.displayName)
-                        }
-                    }
-                    .onChange(of: rule.enabled) { _, newVal in
-                        saveRules()
-                        if !newVal, let type = rule.type {
-                            NotificationService.shared.cancelActivityReminder(type: type)
-                        }
-                    }
-
-                    if rule.enabled {
-                        Picker(selection: $rule.intervalMinutes) {
-                            ForEach(intervalOptions, id: \.self) { mins in
-                                Text(intervalLabel(mins)).tag(mins)
-                            }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Color.clear.frame(width: 24)
-                                Text("알림 간격")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .onChange(of: rule.intervalMinutes) { _, _ in
-                            saveRules()
-                        }
-                    }
+            .alert("계정 삭제", isPresented: $showDeleteAccountAlert) {
+                Button("취소", role: .cancel) {}
+                Button("계정 삭제", role: .destructive) {
+                    Task { await authVM.deleteAccount() }
                 }
-            } header: {
-                Text("활동 기록 알림")
-            } footer: {
-                Text("기록 후 설정한 시간이 지나면 알림을 보냅니다. 원하는 활동만 켜세요.")
-            }
-
-            // 접종 알림
-            Section {
-                Toggle("접종 알림", isOn: $vaccinationEnabled)
-                    .onChange(of: vaccinationEnabled) { _, val in
-                        NotificationSettings.vaccinationReminderEnabled = val
-                    }
-
-                if vaccinationEnabled {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("알림 시점")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        FlowLayout(spacing: 8) {
-                            ForEach(vaccinationDayOptions, id: \.self) { day in
-                                let isSelected = vaccinationDays.contains(day)
-                                Button {
-                                    toggleVaccinationDay(day)
-                                } label: {
-                                    Text(vaccinationDayLabel(day))
-                                        .font(.caption.weight(.medium))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            Capsule()
-                                                .fill(isSelected ? Color.blue.opacity(0.15) : Color.secondary.opacity(0.1))
-                                        )
-                                        .foregroundStyle(isSelected ? .blue : .secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+            } message: {
+                if subscriptionVM.premiumStatus.isPremium {
+                    Text("계정을 삭제하면 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.\n\n삭제 전에 설정 > 통계에서 데이터를 내보낼 수 있습니다.\n\n⚠️ 구독이 활성 상태입니다. 계정 삭제 후에도 구독 요금이 청구될 수 있으니, 설정 앱 > Apple ID > 구독에서 먼저 해지해주세요.\n\n정말 삭제하시겠습니까?")
+                } else {
+                    Text("계정을 삭제하면 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.\n\n삭제 전에 설정 > 통계에서 데이터를 내보낼 수 있습니다.\n\n정말 삭제하시겠습니까?")
                 }
-            } header: {
-                Text("예방접종")
-            } footer: {
-                Text("예정된 접종일 기준, 선택한 시점에 알림을 보냅니다.")
             }
-
-            // 재구매
-            Section {
-                Toggle("재구매 알림", isOn: $reorderEnabled)
-                    .onChange(of: reorderEnabled) { _, val in
-                        NotificationSettings.reorderReminderEnabled = val
-                    }
-            } header: {
-                Text("용품")
-            } footer: {
-                Text("용품 재고가 설정한 기준 이하로 떨어지면 알림을 보냅니다.")
+            .alert("오류", isPresented: .init(get: { authVM.errorMessage != nil }, set: { if !$0 { authVM.errorMessage = nil } })) {
+                Button("확인") { authVM.errorMessage = nil }
+            } message: {
+                Text(authVM.errorMessage ?? "")
             }
         }
-        .navigationTitle("알림 설정")
-    }
-
-    private func saveRules() {
-        ActivityReminderSettings.rules = rules
-    }
-
-    private func intervalLabel(_ minutes: Int) -> String {
-        if minutes >= 1440 {
-            return "\(minutes / 1440)일"
-        } else if minutes >= 60 {
-            let h = minutes / 60
-            let m = minutes % 60
-            return m == 0 ? "\(h)시간" : "\(h)시간 \(m)분"
-        }
-        return "\(minutes)분"
-    }
-
-    private func toggleVaccinationDay(_ day: Int) {
-        if vaccinationDays.contains(day) {
-            guard vaccinationDays.count > 1 else { return }
-            vaccinationDays.removeAll { $0 == day }
-        } else {
-            vaccinationDays.append(day)
-            vaccinationDays.sort(by: >)
-        }
-        NotificationSettings.vaccinationDaysBefore = vaccinationDays
-    }
-
-    private func vaccinationDayLabel(_ day: Int) -> String {
-        switch day {
-        case 0: "당일"
-        case 1: "1일 전"
-        default: "\(day)일 전"
-        }
-    }
-}
-
-// MARK: - FlowLayout
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-        }
-
-        return (CGSize(width: maxWidth, height: y + rowHeight), positions)
     }
 }

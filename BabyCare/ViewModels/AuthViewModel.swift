@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseCore
+import FirebaseFirestore
 import AuthenticationServices
 
 @MainActor @Observable
@@ -18,6 +19,13 @@ final class AuthViewModel {
     nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
+        // UI 테스트 모드: Firebase 없이 인증 완료 상태로 시작
+        if CommandLine.arguments.contains("UI_TESTING") {
+            isAuthenticated = true
+            currentUserId = "ui-test-user"
+            return
+        }
+
         // Firebase가 초기화된 경우에만 Auth 접근
         if FirebaseApp.app() != nil {
             isAuthenticated = authService.isAuthenticated
@@ -102,6 +110,54 @@ final class AuthViewModel {
         } catch {
             errorMessage = "로그아웃에 실패했습니다."
         }
+    }
+
+    func deleteAccount() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            // 1. Auth 계정 먼저 삭제 (requiresRecentLogin 에러 발생 가능)
+            //    실패하면 데이터 손실 없이 중단됨
+            let userId = currentUserId
+            try await authService.deleteAccount()
+            // 2. Auth 삭제 성공 후 데이터 정리 (실패해도 계정은 이미 삭제됨)
+            await FCMTokenService.shared.deleteToken()
+            if let userId {
+                try? await deleteUserData(userId: userId)
+            }
+            clearForm()
+        } catch {
+            let nsError = error as NSError
+            if nsError.code == AuthErrorCode.requiresRecentLogin.rawValue {
+                errorMessage = "보안을 위해 재로그인이 필요합니다. 로그아웃 후 다시 로그인해주세요."
+            } else {
+                errorMessage = "계정 삭제에 실패했습니다: \(error.localizedDescription)"
+            }
+        }
+        isLoading = false
+    }
+
+    private func deleteUserData(userId: String) async throws {
+        let db = FirebaseFirestore.Firestore.firestore()
+        let userDoc = db.collection("users").document(userId)
+        let subcollections = ["premiumStatus", "babies", "activities", "hospitalVisits", "vaccinations", "milestones", "diaryEntries", "todos", "routines", "products", "purchaseRecords", "familySharing"]
+        // 배치 쓰기로 원자적 삭제 (최대 500개)
+        var batch = db.batch()
+        var count = 0
+        for name in subcollections {
+            let snapshot = try await userDoc.collection(name).getDocuments()
+            for doc in snapshot.documents {
+                batch.deleteDocument(doc.reference)
+                count += 1
+                if count >= 400 {
+                    try await batch.commit()
+                    batch = db.batch()
+                    count = 0
+                }
+            }
+        }
+        batch.deleteDocument(userDoc)
+        try await batch.commit()
     }
 
     func resetPassword() async {
