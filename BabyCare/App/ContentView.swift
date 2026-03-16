@@ -5,7 +5,6 @@ struct ContentView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
-
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -63,7 +62,9 @@ struct ContentView: View {
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
             if isAuth, let userId = authVM.currentUserId {
-                Task { await babyVM.loadBabies(userId: userId) }
+                Task {
+                    await babyVM.loadBabies(userId: userId)
+                }
             }
         }
         .onChange(of: deepLinkDestination) { _, destination in

@@ -4,66 +4,14 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
-    @Environment(SubscriptionViewModel.self) private var subscriptionVM
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
-    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
             List {
-                // 구독 상태
-                Section {
-                    Button {
-                        showPaywall = true
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "star.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.yellow)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                if subscriptionVM.premiumStatus.isPremium {
-                                    Text("프리미엄 구독 중")
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("모든 프리미엄 기능을 이용 중입니다")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                } else if subscriptionVM.premiumStatus.canUseTrial {
-                                    Text("베이비케어 프리미엄")
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("무료 체험 \(subscriptionVM.premiumStatus.trialRemaining)회 남음")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                } else {
-                                    Text("베이비케어 프리미엄")
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("월 ₩1,100으로 AI 리포트 이용")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            if !subscriptionVM.premiumStatus.isPremium {
-                                Text("구독")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(.pink, in: Capsule())
-                            }
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-                .sheet(isPresented: $showPaywall) {
-                    PremiumPaywallView()
-                }
-
                 // Baby Management
                 Section("아기 관리") {
                     ForEach(babyVM.babies) { baby in
@@ -251,11 +199,7 @@ struct SettingsView: View {
                     Task { await authVM.deleteAccount() }
                 }
             } message: {
-                if subscriptionVM.premiumStatus.isPremium {
-                    Text("계정을 삭제하면 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.\n\n삭제 전에 설정 > 통계에서 데이터를 내보낼 수 있습니다.\n\n⚠️ 구독이 활성 상태입니다. 계정 삭제 후에도 구독 요금이 청구될 수 있으니, 설정 앱 > Apple ID > 구독에서 먼저 해지해주세요.\n\n정말 삭제하시겠습니까?")
-                } else {
-                    Text("계정을 삭제하면 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.\n\n삭제 전에 설정 > 통계에서 데이터를 내보낼 수 있습니다.\n\n정말 삭제하시겠습니까?")
-                }
+                Text("계정을 삭제하면 모든 기록이 영구적으로 삭제되며 복구할 수 없습니다.\n\n삭제 전에 설정 > 통계에서 데이터를 내보낼 수 있습니다.\n\n정말 삭제하시겠습니까?")
             }
             .alert("오류", isPresented: .init(get: { authVM.errorMessage != nil }, set: { if !$0 { authVM.errorMessage = nil } })) {
                 Button("확인") { authVM.errorMessage = nil }
