@@ -19,9 +19,9 @@ struct FeedingRecordView: View {
     private var accentColor: Color {
         switch type {
         case .feedingBreast:  .pink
-        case .feedingBottle:  Color(hex: "7B9FE8")  // soft blue
-        case .feedingSolid:   Color(hex: "F4A261")  // warm orange
-        case .feedingSnack:   Color(hex: "7CB77E")  // sage green
+        case .feedingBottle:  AppColors.indigoColor
+        case .feedingSolid:   AppColors.warmOrangeColor
+        case .feedingSnack:   AppColors.sageColor
         default:              .pink
         }
     }
@@ -30,6 +30,7 @@ struct FeedingRecordView: View {
         @Bindable var vm = activityVM
 
         ScrollView {
+
             VStack(spacing: 20) {
                 typeHeader
                 TimeAdjustmentSection(
@@ -49,6 +50,18 @@ struct FeedingRecordView: View {
                     .padding(.bottom, 16)
             }
             .padding(.top, 8)
+        }
+        .onAppear {
+            // 모유수유: 이전 기록의 반대편 자동 제안
+            if type == .feedingBreast {
+                if let lastSide = activityVM.lastFeeding?.side {
+                    switch lastSide {
+                    case .left:  activityVM.selectedSide = .right
+                    case .right: activityVM.selectedSide = .left
+                    case .both:  break
+                    }
+                }
+            }
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
@@ -94,9 +107,17 @@ struct FeedingRecordView: View {
     private var breastSideSection: some View {
         if type == .feedingBreast {
             VStack(alignment: .leading, spacing: 10) {
-                Label("수유 방향", systemImage: "arrow.left.arrow.right")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Label("수유 방향", systemImage: "arrow.left.arrow.right")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if let lastSide = activityVM.lastFeeding?.side, lastSide != .both {
+                        Text("이전: \(lastSide == .left ? "왼쪽" : "오른쪽")")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
 
                 HStack(spacing: 12) {
                     ForEach(Activity.BreastSide.allCases, id: \.self) { side in
@@ -169,8 +190,8 @@ struct FeedingRecordView: View {
                     activityVM.amount = "\(ml)"
                 }
                 .font(.system(size: 13, weight: .medium))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
                 .background(
                     activityVM.amount == "\(ml)"
                         ? accentColor
@@ -204,312 +225,4 @@ struct FeedingRecordView: View {
             }
         }
     }
-}
-
-// MARK: - SolidFoodSection (이유식)
-
-private struct SolidFoodSection: View {
-    @Environment(ActivityViewModel.self) private var activityVM
-    let accentColor: Color
-
-    private let ingredientChips = ["쌀미음", "감자", "고구마", "당근", "브로콜리", "소고기", "닭고기", "바나나", "사과", "두부"]
-    private let amountChips = ["1숟가락", "3숟가락", "5숟가락", "30g", "50g", "80g", "100g"]
-
-    var body: some View {
-        @Bindable var vm = activityVM
-
-        VStack(alignment: .leading, spacing: 16) {
-            // 음식명
-            VStack(alignment: .leading, spacing: 8) {
-                Label("음식 이름", systemImage: "fork.knife")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                TextField("음식 이름 입력", text: $vm.foodName)
-                    .padding(14)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                Text("자주 쓰는 재료")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-
-                FlowLayout(spacing: 8) {
-                    ForEach(ingredientChips, id: \.self) { chip in
-                        Button(chip) {
-                            if activityVM.foodName.isEmpty {
-                                activityVM.foodName = chip
-                            } else if !activityVM.foodName.contains(chip) {
-                                activityVM.foodName += ", \(chip)"
-                            }
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            activityVM.foodName.contains(chip)
-                                ? accentColor : accentColor.opacity(0.1)
-                        )
-                        .foregroundStyle(
-                            activityVM.foodName.contains(chip) ? .white : accentColor
-                        )
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-
-            Divider()
-
-            // 섭취량
-            VStack(alignment: .leading, spacing: 8) {
-                Label("섭취량", systemImage: "chart.bar.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                FlowLayout(spacing: 8) {
-                    ForEach(amountChips, id: \.self) { chip in
-                        Button(chip) {
-                            activityVM.foodAmount = activityVM.foodAmount == chip ? "" : chip
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            activityVM.foodAmount == chip
-                                ? accentColor : accentColor.opacity(0.1)
-                        )
-                        .foregroundStyle(
-                            activityVM.foodAmount == chip ? .white : accentColor
-                        )
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-
-            Divider()
-
-            // 반응
-            VStack(alignment: .leading, spacing: 8) {
-                Label("아기 반응", systemImage: "face.smiling.inverse")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 8) {
-                    ForEach(Activity.FoodReaction.allCases, id: \.self) { reaction in
-                        Button {
-                            activityVM.foodReaction = activityVM.foodReaction == reaction ? nil : reaction
-                        } label: {
-                            VStack(spacing: 4) {
-                                Image(systemName: reaction.icon)
-                                    .font(.body)
-                                Text(reaction.displayName)
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                activityVM.foodReaction == reaction
-                                    ? (reaction == .allergy ? Color.red : accentColor)
-                                    : (reaction == .allergy ? Color.red.opacity(0.08) : accentColor.opacity(0.08))
-                            )
-                            .foregroundStyle(
-                                activityVM.foodReaction == reaction
-                                    ? .white
-                                    : (reaction == .allergy ? .red : accentColor)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                    }
-                }
-
-                // 알레르기 경고 배너
-                if activityVM.foodReaction == .allergy {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.white)
-                        Text("알레르기 반응이 의심됩니다. 소아과 상담을 권장합니다.")
-                            .font(.caption.bold())
-                            .foregroundStyle(.white)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-        }
-        .padding()
-        .background(accentColor.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .animation(.spring(duration: 0.3), value: activityVM.foodReaction)
-    }
-}
-
-// MARK: - SnackSection (간식)
-
-private struct SnackSection: View {
-    @Environment(ActivityViewModel.self) private var activityVM
-    let accentColor: Color
-
-    private let snackChips = ["과일", "떡뻥", "퓨레", "요거트", "치즈", "빵"]
-    private let amountChips = ["조금", "반개", "1개", "한줌"]
-
-    var body: some View {
-        @Bindable var vm = activityVM
-
-        VStack(alignment: .leading, spacing: 16) {
-            // 음식명
-            VStack(alignment: .leading, spacing: 8) {
-                Label("간식 이름", systemImage: "carrot.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                TextField("간식 이름 입력", text: $vm.foodName)
-                    .padding(14)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                Text("자주 쓰는 간식")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-
-                FlowLayout(spacing: 8) {
-                    ForEach(snackChips, id: \.self) { chip in
-                        Button(chip) {
-                            activityVM.foodName = activityVM.foodName == chip ? "" : chip
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            activityVM.foodName == chip
-                                ? accentColor : accentColor.opacity(0.1)
-                        )
-                        .foregroundStyle(
-                            activityVM.foodName == chip ? .white : accentColor
-                        )
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-
-            Divider()
-
-            // 섭취량
-            VStack(alignment: .leading, spacing: 8) {
-                Label("섭취량", systemImage: "chart.bar.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 8) {
-                    ForEach(amountChips, id: \.self) { chip in
-                        Button(chip) {
-                            activityVM.foodAmount = activityVM.foodAmount == chip ? "" : chip
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            activityVM.foodAmount == chip
-                                ? accentColor : accentColor.opacity(0.1)
-                        )
-                        .foregroundStyle(
-                            activityVM.foodAmount == chip ? .white : accentColor
-                        )
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(accentColor.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-// MARK: - FlowLayout (칩 정렬용)
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = layout(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = layout(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func layout(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var lineHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > maxWidth, currentX > 0 {
-                currentX = 0
-                currentY += lineHeight + spacing
-                lineHeight = 0
-            }
-            positions.append(CGPoint(x: currentX, y: currentY))
-            lineHeight = max(lineHeight, size.height)
-            currentX += size.width + spacing
-        }
-
-        return (CGSize(width: maxWidth, height: currentY + lineHeight), positions)
-    }
-}
-
-// MARK: - SideButton
-
-private struct SideButton: View {
-    let side: Activity.BreastSide
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: sideIcon)
-                    .font(.title3)
-                Text(side.displayName)
-                    .font(.caption.bold())
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(isSelected ? color : color.opacity(0.08))
-            .foregroundStyle(isSelected ? .white : color)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? color : .clear, lineWidth: 2)
-            )
-        }
-        .animation(.spring(duration: 0.25), value: isSelected)
-    }
-
-    private var sideIcon: String {
-        switch side {
-        case .left:  "arrow.left"
-        case .right: "arrow.right"
-        case .both:  "arrow.left.arrow.right"
-        }
-    }
-}
-
-#Preview {
-    FeedingRecordView(type: .feedingBreast)
-        .environment(ActivityViewModel())
-        .environment(BabyViewModel())
-        .environment(AuthViewModel())
-        .environment(ProductViewModel())
 }

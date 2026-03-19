@@ -36,7 +36,7 @@ struct GrowthView: View {
                             chartSection(
                                 title: "몸무게 (kg)",
                                 icon: "scalemass.fill",
-                                color: Color(hex: "FF9FB5"),
+                                color: AppColors.feedingColor,
                                 data: records.compactMap { r in
                                     r.weight.map { (r.date, $0) }
                                 }
@@ -48,7 +48,7 @@ struct GrowthView: View {
                             chartSection(
                                 title: "키 (cm)",
                                 icon: "ruler.fill",
-                                color: Color(hex: "9FB5FF"),
+                                color: AppColors.sleepColor,
                                 data: records.compactMap { r in
                                     r.height.map { (r.date, $0) }
                                 }
@@ -60,7 +60,7 @@ struct GrowthView: View {
                             chartSection(
                                 title: "머리둘레 (cm)",
                                 icon: "circle.dashed",
-                                color: Color(hex: "9FDFBF"),
+                                color: AppColors.healthColor,
                                 data: records.compactMap { r in
                                     r.headCircumference.map { (r.date, $0) }
                                 }

@@ -100,7 +100,7 @@ final class PatternReportViewModel {
                 systemPrompt: systemPrompt,
                 apiKey: apiKey
             )
-            aiInsight = response
+            aiInsight = AIGuardrailService.filter(response)
         } catch {
             errorMessage = error.localizedDescription
         }

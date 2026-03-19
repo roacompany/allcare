@@ -15,10 +15,12 @@ struct BabyCareApp: App {
     }
 
     @State private var deepLinkDestination: DeepLinkRouter.Destination?
+    private let themeManager = ThemeManager.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView(deepLinkDestination: $deepLinkDestination)
+                .environment(themeManager)
                 .environment(appState.auth)
                 .environment(appState.baby)
                 .environment(appState.activity)
@@ -36,6 +38,9 @@ struct BabyCareApp: App {
                 .environment(appState.hospitalReport)
                 .onOpenURL { url in
                     deepLinkDestination = DeepLinkRouter.destination(from: url)
+                }
+                .task {
+                    themeManager.applyAppearance()
                 }
         }
     }

@@ -71,7 +71,7 @@ struct VaccinationListView: View {
                         VaccinationRow(vaccination: vax)
                     }
                 } header: {
-                    SectionHeader(title: "완료", color: Color(hex: "4CAF50"))
+                    SectionHeader(title: "완료", color: AppColors.successColor)
                 }
             }
         }
@@ -146,7 +146,7 @@ private struct VaccinationRow: View {
     }
 
     private var statusColor: Color {
-        if vaccination.isCompleted { return Color(hex: "4CAF50") }
+        if vaccination.isCompleted { return AppColors.successColor }
         if vaccination.isOverdue { return .red }
         if vaccination.isDueSoon { return .orange }
         return .secondary

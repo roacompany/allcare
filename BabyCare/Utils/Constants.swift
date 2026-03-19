@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum AppColors {
+    // MARK: - Activity Colors (Asset Catalog, 다크 모드 대응)
     static let feedingColor = Color("feedingColor")
     static let sleepColor = Color("sleepColor")
     static let diaperColor = Color("diaperColor")
@@ -9,6 +10,20 @@ enum AppColors {
     static let temperatureColor = Color("temperatureColor")
     static let medicationColor = Color("medicationColor")
 
+    // MARK: - Semantic Colors (Asset Catalog, 다크 모드 대응)
+    static let background = Color("backgroundColor")
+    static let cardBackground = Color("cardBackground")
+    static let primaryAccent = Color("primaryAccent")
+    static let successColor = Color("successColor")       // #4CAF50
+    static let healthColor = Color("healthColor")          // #9FDFBF
+    static let coralColor = Color("coralColor")            // #F4845F
+    static let indigoColor = Color("indigoColor")          // #7B9FE8
+    static let sageColor = Color("sageColor")              // #85C1A3
+    static let warmOrangeColor = Color("warmOrangeColor")  // #F4A261
+    static let skyBlueColor = Color("skyBlueColor")        // #5CB8E4
+    static let softPurpleColor = Color("softPurpleColor")  // #A078D4
+
+    // MARK: - Pastel Colors (다크 모드에서 opacity로 자동 대응)
     static let pastelPink = Color(hex: "FFB5C2")
     static let pastelBlue = Color(hex: "B5D5FF")
     static let pastelMint = Color(hex: "B5FFD9")
@@ -16,17 +31,14 @@ enum AppColors {
     static let pastelPurple = Color(hex: "D9B5FF")
     static let pastelOrange = Color(hex: "FFDAB5")
 
-    static let feedingDefault = Color(hex: "FF9FB5")
-    static let sleepDefault = Color(hex: "9FB5FF")
-    static let diaperDefault = Color(hex: "FFD59F")
-    static let solidDefault = Color(hex: "9FDFBF")
-    static let bathDefault = Color(hex: "9FD5FF")
-    static let temperatureDefault = Color(hex: "FF9F9F")
-    static let medicationDefault = Color(hex: "D59FFF")
-
-    static let background = Color("backgroundColor")
-    static let cardBackground = Color("cardBackground")
-    static let primaryAccent = Color("primaryAccent")
+    // MARK: - Default Activity Colors (시맨틱 별칭)
+    static let feedingDefault = feedingColor
+    static let sleepDefault = sleepColor
+    static let diaperDefault = diaperColor
+    static let solidDefault = solidColor
+    static let bathDefault = bathColor
+    static let temperatureDefault = temperatureColor
+    static let medicationDefault = medicationColor
 }
 
 enum AppConstants {

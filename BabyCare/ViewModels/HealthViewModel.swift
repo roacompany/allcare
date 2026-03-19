@@ -8,6 +8,7 @@ final class HealthViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    private var currentBabyName: String = "아기"
     private let firestoreService = FirestoreService.shared
 
     // MARK: - Computed: Vaccinations
@@ -56,6 +57,7 @@ final class HealthViewModel {
     // MARK: - Load
 
     func loadAll(userId: String, babyId: String, babyName: String = "아기") async {
+        currentBabyName = babyName
         isLoading = true
         defer { isLoading = false }
 
@@ -167,6 +169,11 @@ final class HealthViewModel {
 
         do {
             try await firestoreService.saveHospitalVisit(visit, userId: userId)
+            // D-1 알림 예약 (예정된 방문만)
+            let targetDate = visit.scheduledDate ?? visit.visitDate
+            if targetDate > Date() {
+                NotificationService.shared.scheduleHospitalVisitReminder(visit: visit, babyName: currentBabyName)
+            }
         } catch {
             hospitalVisits.removeAll { $0.id == visit.id }
             errorMessage = "병원 기록 저장에 실패했습니다: \(error.localizedDescription)"
@@ -179,6 +186,7 @@ final class HealthViewModel {
 
         do {
             try await firestoreService.deleteHospitalVisit(visit.id, userId: userId, babyId: visit.babyId)
+            NotificationService.shared.cancelHospitalVisitReminder(visitId: visit.id)
         } catch {
             hospitalVisits = original
             errorMessage = "병원 기록 삭제에 실패했습니다: \(error.localizedDescription)"

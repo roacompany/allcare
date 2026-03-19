@@ -34,7 +34,7 @@ struct HealthView: View {
                         } label: {
                             HealthSectionCard(
                                 icon: "syringe.fill",
-                                iconColor: Color(hex: "FF9FB5"),
+                                iconColor: AppColors.feedingColor,
                                 title: "예방접종",
                                 subtitle: vaccinationSubtitle,
                                 badge: healthVM.overdueVaccinations.isEmpty ? nil : "\(healthVM.overdueVaccinations.count) 지연",
@@ -49,7 +49,7 @@ struct HealthView: View {
                         } label: {
                             HealthSectionCard(
                                 icon: "building.2.fill",
-                                iconColor: Color(hex: "82B1FF"),
+                                iconColor: AppColors.indigoColor,
                                 title: "병원 기록",
                                 subtitle: hospitalVisitSubtitle,
                                 badge: healthVM.upcomingVisits.isEmpty ? nil : "\(healthVM.upcomingVisits.count) 예정",
@@ -64,7 +64,7 @@ struct HealthView: View {
                         } label: {
                             HealthSectionCard(
                                 icon: "chart.line.uptrend.xyaxis",
-                                iconColor: Color(hex: "9FB5FF"),
+                                iconColor: AppColors.sleepColor,
                                 title: "성장기록",
                                 subtitle: "키, 몸무게, 머리둘레",
                                 badge: nil,
@@ -79,7 +79,7 @@ struct HealthView: View {
                         } label: {
                             HealthSectionCard(
                                 icon: "star.fill",
-                                iconColor: Color(hex: "FFD59F"),
+                                iconColor: AppColors.diaperColor,
                                 title: "발달이정표",
                                 subtitle: milestoneSubtitle,
                                 badge: nil,
@@ -109,7 +109,7 @@ struct HealthView: View {
                         } label: {
                             HealthSectionCard(
                                 icon: "book.fill",
-                                iconColor: Color(hex: "9FDFBF"),
+                                iconColor: AppColors.healthColor,
                                 title: "일기",
                                 subtitle: "아기의 하루를 기록해보세요",
                                 badge: nil,

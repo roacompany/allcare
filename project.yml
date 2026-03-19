@@ -6,6 +6,7 @@ options:
   xcodeVersion: "16.2"
   groupSortPosition: top
   generateEmptyDirectories: true
+  developmentLanguage: ko
 
 settings:
   base:
@@ -65,6 +66,7 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UIBackgroundModes:
           - remote-notification
+        NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false
         LSApplicationQueriesSchemes:
           - coupang
@@ -87,6 +89,7 @@ targets:
     sources:
       - path: BabyCareWidget
       - path: BabyCare/Services/WidgetDataStore.swift
+      - path: BabyCare/Models/FeedingTimerAttributes.swift
     dependencies:
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
@@ -111,6 +114,7 @@ targets:
       properties:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSSupportsLiveActivities: true
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 

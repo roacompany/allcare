@@ -130,18 +130,18 @@ struct SoundItem: Identifiable, Hashable {
     static let all: [SoundItem] = [
         // 백색소음
         SoundItem(id: "white_noise", name: "화이트 노이즈", icon: "waveform", fileName: "white_noise.wav", category: .whiteNoise),
-        SoundItem(id: "pink_noise", name: "핑크 노이즈", icon: "waveform.badge.minus", fileName: "pink_noise.wav", category: .whiteNoise),
+        SoundItem(id: "pink_noise", name: "핑크 노이즈", icon: "waveform.badge.minus", fileName: "pink_noise.mp3", category: .whiteNoise),
         // 자연
-        SoundItem(id: "rain", name: "빗소리", icon: "cloud.rain.fill", fileName: "rain.wav", category: .nature),
-        SoundItem(id: "ocean", name: "파도소리", icon: "water.waves", fileName: "ocean.wav", category: .nature),
-        SoundItem(id: "birds", name: "새소리", icon: "bird.fill", fileName: "birds.wav", category: .nature),
+        SoundItem(id: "rain", name: "빗소리", icon: "cloud.rain.fill", fileName: "rain.mp3", category: .nature),
+        SoundItem(id: "ocean", name: "파도소리", icon: "water.waves", fileName: "ocean.mp3", category: .nature),
+        SoundItem(id: "birds", name: "새소리", icon: "bird.fill", fileName: "birds.mp3", category: .nature),
         // 생활
-        SoundItem(id: "heartbeat", name: "심장박동", icon: "heart.fill", fileName: "heartbeat.wav", category: .life),
-        SoundItem(id: "fan", name: "선풍기", icon: "fan.fill", fileName: "fan.wav", category: .life),
-        SoundItem(id: "shushing", name: "쉬 소리", icon: "mouth.fill", fileName: "shushing.wav", category: .life),
+        SoundItem(id: "heartbeat", name: "심장박동", icon: "heart.fill", fileName: "heartbeat.mp3", category: .life),
+        SoundItem(id: "fan", name: "선풍기", icon: "fan.fill", fileName: "fan.mp3", category: .life),
+        SoundItem(id: "shushing", name: "쉬 소리", icon: "mouth.fill", fileName: "shushing.mp3", category: .life),
         // 음악
-        SoundItem(id: "lullaby", name: "자장가", icon: "moon.stars.fill", fileName: "lullaby.wav", category: .music),
-        SoundItem(id: "music_box", name: "오르골", icon: "music.note.list", fileName: "music_box.wav", category: .music),
+        SoundItem(id: "lullaby", name: "자장가", icon: "moon.stars.fill", fileName: "lullaby.mp3", category: .music),
+        SoundItem(id: "music_box", name: "오르골", icon: "music.note.list", fileName: "music_box.mp3", category: .music),
     ]
 
     static func byCategory() -> [(SoundItem.SoundCategory, [SoundItem])] {

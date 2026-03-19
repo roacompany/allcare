@@ -115,7 +115,7 @@ struct ContentView: View {
 
                 Image(systemName: "heart.circle.fill")
                     .font(.system(size: 80))
-                    .foregroundStyle(Color(hex: "FF9FB5"))
+                    .foregroundStyle(AppColors.primaryAccent)
 
                 Text("환영합니다!")
                     .font(.title.weight(.bold))
@@ -133,7 +133,7 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color(hex: "FF9FB5"))
+                        .background(AppColors.primaryAccent)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .padding(.horizontal, 40)

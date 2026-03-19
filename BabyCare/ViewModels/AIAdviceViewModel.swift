@@ -77,7 +77,8 @@ final class AIAdviceViewModel {
                 apiKey: apiKey
             )
 
-            messages.append(ChatMessage(role: .assistant, content: response))
+            let filtered = AIGuardrailService.filter(response)
+            messages.append(ChatMessage(role: .assistant, content: filtered))
         } catch {
             errorMessage = error.localizedDescription
         }

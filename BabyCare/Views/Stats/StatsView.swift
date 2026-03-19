@@ -8,6 +8,8 @@ struct StatsView: View {
 
     @State private var exportURL: URL?
     @State private var showShareSheet = false
+    @State private var showExportOptions = false
+    @State private var isGeneratingPDF = false
 
     var body: some View {
         NavigationStack {
@@ -52,16 +54,30 @@ struct StatsView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        let babyName = babyVM.selectedBaby?.name ?? "아기"
-                        if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
-                            exportURL = url
-                            showShareSheet = true
+                    Menu {
+                        Button {
+                            let babyName = babyVM.selectedBaby?.name ?? "아기"
+                            if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
+                                exportURL = url
+                                showShareSheet = true
+                            }
+                        } label: {
+                            Label("CSV 내보내기", systemImage: "tablecells")
+                        }
+
+                        Button {
+                            Task { await generatePDFReport() }
+                        } label: {
+                            Label("PDF 리포트 (소아과용)", systemImage: "doc.richtext")
                         }
                     } label: {
-                        Image(systemName: "square.and.arrow.up")
+                        if isGeneratingPDF {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
-                    .disabled(statsVM.weeklyActivities.isEmpty)
+                    .disabled(statsVM.weeklyActivities.isEmpty || isGeneratingPDF)
                 }
             }
             .task { await loadStats() }
@@ -95,7 +111,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("수유", systemImage: "cup.and.saucer.fill")
                 .font(.headline)
-                .foregroundStyle(Color(hex: "FF9FB5"))
+                .foregroundStyle(AppColors.feedingColor)
 
             if statsVM.dailyFeedingCounts.isEmpty {
                 Text("데이터 없음")
@@ -109,7 +125,7 @@ struct StatsView: View {
                         x: .value("날짜", item.date, unit: .day),
                         y: .value("횟수", item.count)
                     )
-                    .foregroundStyle(Color(hex: "FF9FB5").gradient)
+                    .foregroundStyle(AppColors.feedingColor.gradient)
                     .cornerRadius(4)
                 }
                 .chartYAxisLabel("회")
@@ -139,7 +155,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("수면", systemImage: "moon.zzz.fill")
                 .font(.headline)
-                .foregroundStyle(Color(hex: "9FB5FF"))
+                .foregroundStyle(AppColors.sleepColor)
 
             if statsVM.dailySleepDurations.isEmpty {
                 Text("데이터 없음")
@@ -153,7 +169,7 @@ struct StatsView: View {
                         x: .value("날짜", item.date, unit: .day),
                         y: .value("시간", item.hours)
                     )
-                    .foregroundStyle(Color(hex: "9FB5FF").gradient)
+                    .foregroundStyle(AppColors.sleepColor.gradient)
                     .cornerRadius(4)
                 }
                 .chartYAxisLabel("시간")
@@ -181,7 +197,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("기저귀", systemImage: "humidity.fill")
                 .font(.headline)
-                .foregroundStyle(Color(hex: "FFD59F"))
+                .foregroundStyle(AppColors.diaperColor)
 
             if statsVM.dailyDiaperCounts.isEmpty {
                 Text("데이터 없음")
@@ -195,7 +211,7 @@ struct StatsView: View {
                         x: .value("날짜", item.date, unit: .day),
                         y: .value("횟수", item.count)
                     )
-                    .foregroundStyle(Color(hex: "FFD59F").gradient)
+                    .foregroundStyle(AppColors.diaperColor.gradient)
                     .cornerRadius(4)
                 }
                 .chartYAxisLabel("회")
@@ -212,5 +228,35 @@ struct StatsView: View {
         guard let userId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
         await statsVM.loadStats(userId: userId, babyId: babyId)
+    }
+
+    private func generatePDFReport() async {
+        guard let baby = babyVM.selectedBaby,
+              let userId = authVM.currentUserId else { return }
+
+        isGeneratingPDF = true
+        defer { isGeneratingPDF = false }
+
+        let periodDays = statsVM.selectedPeriod == .week ? 7 : 30
+
+        // Fetch growth records for the report
+        var growthRecords: [GrowthRecord] = []
+        do {
+            growthRecords = try await FirestoreService.shared.fetchGrowthRecords(
+                userId: userId, babyId: baby.id
+            )
+        } catch {
+            // Growth records are optional for the report
+        }
+
+        if let url = PDFReportService.generateReport(
+            baby: baby,
+            activities: statsVM.weeklyActivities,
+            growthRecords: growthRecords,
+            periodDays: periodDays
+        ) {
+            exportURL = url
+            showShareSheet = true
+        }
     }
 }

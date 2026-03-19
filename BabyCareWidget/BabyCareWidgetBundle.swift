@@ -6,6 +6,7 @@ struct BabyCareWidgetBundle: WidgetBundle {
     var body: some Widget {
         BabyCareHomeWidget()
         BabyCareLockScreenWidget()
+        FeedingTimerLiveActivity()
     }
 }
 

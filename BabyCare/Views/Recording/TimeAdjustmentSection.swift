@@ -125,7 +125,9 @@ struct TimeAdjustmentSection: View {
                                 get: { vm.manualEndTime != nil },
                                 set: {
                                     if $0 {
-                                        vm.manualEndTime = Date()
+                                        // 시작 시간 이후인 현재 시각을 기본값으로 설정
+                                        let now = Date()
+                                        vm.manualEndTime = now > vm.manualStartTime ? now : vm.manualStartTime.addingTimeInterval(60)
                                         vm.isTimeAdjusted = true
                                     } else {
                                         vm.manualEndTime = nil
@@ -189,9 +191,9 @@ struct TimeAdjustmentSection: View {
             activityVM.manualStartTime = date
             activityVM.isTimeAdjusted = label != "지금"
         }
-        .font(.system(size: 12, weight: .medium))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .font(.system(size: 13, weight: .medium))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(accentColor.opacity(0.12))
         .foregroundStyle(accentColor)
         .clipShape(Capsule())

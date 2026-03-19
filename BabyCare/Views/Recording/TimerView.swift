@@ -13,6 +13,7 @@ struct TimerView: View {
 
     // Local animation state
     @State private var isPulsing = false
+    @State private var stoppedDuration: TimeInterval = 0
 
     var body: some View {
         VStack(spacing: 24) {
@@ -90,15 +91,19 @@ struct TimerView: View {
         if isActiveTimer {
             return activityVM.elapsedTime.formattedDuration
         }
+        if stoppedDuration > 0 {
+            return stoppedDuration.formattedDuration
+        }
         return "00:00"
     }
 
     private func toggleTimer() {
         if isActiveTimer {
-            _ = activityVM.stopTimer()
+            stoppedDuration = activityVM.stopTimer()
             isPulsing = false
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         } else {
+            stoppedDuration = 0
             activityVM.startTimer(type: type)
             isPulsing = true
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()

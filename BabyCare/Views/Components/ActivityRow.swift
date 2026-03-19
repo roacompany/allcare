@@ -109,10 +109,10 @@ struct ActivityRow: View {
 
     private func colorForType(_ type: Activity.ActivityType) -> Color {
         switch type.category {
-        case .feeding: Color(hex: "FF9FB5")
-        case .sleep: Color(hex: "9FB5FF")
-        case .diaper: Color(hex: "FFD59F")
-        case .health: Color(hex: "D59FFF")
+        case .feeding: AppColors.feedingColor
+        case .sleep: AppColors.sleepColor
+        case .diaper: AppColors.diaperColor
+        case .health: AppColors.medicationColor
         }
     }
 }

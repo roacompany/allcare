@@ -125,7 +125,7 @@ struct MilestoneListView: View {
                         .fill(Color.secondary.opacity(0.15))
                         .frame(height: 8)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(hex: "4CAF50"))
+                        .fill(AppColors.successColor)
                         .frame(width: total > 0 ? geo.size.width * Double(achieved) / Double(total) : 0, height: 8)
                         .animation(.easeInOut(duration: 0.4), value: achieved)
                 }
@@ -215,184 +215,11 @@ private struct CategoryProgressBar: View {
 
     private var progressColor: Color {
         switch category {
-        case .motor: Color(hex: "FF9FB5")
-        case .cognitive: Color(hex: "9FB5FF")
-        case .language: Color(hex: "FFD59F")
-        case .social: Color(hex: "9FDFBF")
-        case .selfCare: Color(hex: "D59FFF")
-        }
-    }
-}
-
-// MARK: - Milestone Row
-
-private struct MilestoneRow: View {
-    let milestone: Milestone
-    let babyAgeMonths: Int
-
-    private var isOverdue: Bool {
-        !milestone.isAchieved && (milestone.expectedAgeMonths ?? 99) < babyAgeMonths
-    }
-
-    private var isCurrent: Bool {
-        guard let m = milestone.expectedAgeMonths, !milestone.isAchieved else { return false }
-        return m >= babyAgeMonths && m <= babyAgeMonths + 3
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: milestone.isAchieved ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(iconColor)
-                .font(.title3)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(milestone.title)
-                        .font(.subheadline.weight(.medium))
-                        .strikethrough(milestone.isAchieved, color: .secondary)
-                        .foregroundStyle(milestone.isAchieved ? .secondary : .primary)
-
-                    if isOverdue {
-                        Text("지연")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(.orange))
-                    } else if isCurrent {
-                        Text("지금")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(.blue))
-                    }
-                }
-
-                if let months = milestone.expectedAgeMonths {
-                    Text("생후 \(months)개월")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let desc = milestone.description {
-                    Text(desc)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                }
-
-                if milestone.isAchieved, let date = milestone.achievedDate {
-                    Text("달성일: \(DateFormatters.shortDate.string(from: date))")
-                        .font(.caption)
-                        .foregroundStyle(Color(hex: "4CAF50"))
-                }
-            }
-
-            Spacer()
-
-            if milestone.isAchieved {
-                Image(systemName: "star.fill")
-                    .font(.caption)
-                    .foregroundStyle(Color(hex: "FFD59F"))
-            }
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var iconColor: Color {
-        if milestone.isAchieved { return Color(hex: "4CAF50") }
-        if isOverdue { return .orange }
-        return .secondary
-    }
-}
-
-// MARK: - Milestone Detail Sheet
-
-private struct MilestoneDetailSheet: View {
-    let milestone: Milestone
-    let babyAgeMonths: Int
-    let onToggle: (Date?) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var achievedDate = Date()
-
-    private var isOverdue: Bool {
-        !milestone.isAchieved && (milestone.expectedAgeMonths ?? 99) < babyAgeMonths
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("이정표 정보") {
-                    HStack {
-                        Image(systemName: milestone.category.icon)
-                            .foregroundStyle(.secondary)
-                        Text(milestone.category.displayName)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text(milestone.title)
-                        .font(.headline)
-
-                    if let months = milestone.expectedAgeMonths {
-                        HStack {
-                            Text("기대 시기")
-                            Spacer()
-                            Text("생후 \(months)개월")
-                                .foregroundStyle(.secondary)
-                            if isOverdue {
-                                Text("(지연)")
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
-                            }
-                        }
-                    }
-
-                    if let desc = milestone.description {
-                        Text(desc)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if !milestone.isAchieved {
-                    Section("달성일") {
-                        DatePicker(
-                            "달성한 날짜",
-                            selection: $achievedDate,
-                            in: ...Date(),
-                            displayedComponents: .date
-                        )
-                        .environment(\.locale, Locale(identifier: "ko_KR"))
-                    }
-                } else {
-                    if let date = milestone.achievedDate {
-                        Section {
-                            HStack {
-                                Text("달성일")
-                                Spacer()
-                                Text(DateFormatters.shortDate.string(from: date))
-                                    .foregroundStyle(Color(hex: "4CAF50"))
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle(milestone.isAchieved ? "달성 취소" : "달성 기록")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(milestone.isAchieved ? "달성 취소" : "달성") {
-                        onToggle(milestone.isAchieved ? nil : achievedDate)
-                        dismiss()
-                    }
-                    .foregroundStyle(milestone.isAchieved ? .red : Color(hex: "4CAF50"))
-                }
-            }
+        case .motor: AppColors.feedingColor
+        case .cognitive: AppColors.sleepColor
+        case .language: AppColors.diaperColor
+        case .social: AppColors.healthColor
+        case .selfCare: AppColors.medicationColor
         }
     }
 }

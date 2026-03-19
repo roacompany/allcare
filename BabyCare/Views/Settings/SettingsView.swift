@@ -4,6 +4,7 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
+    @Environment(ThemeManager.self) private var themeManager
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
@@ -76,6 +77,17 @@ struct SettingsView: View {
                     } label: {
                         Label("소리", systemImage: "speaker.wave.2.fill")
                     }
+                }
+
+                // 화면 모드
+                Section("화면 모드") {
+                    @Bindable var tm = themeManager
+                    Picker("화면 모드", selection: $tm.currentMode) {
+                        ForEach(ThemeManager.AppearanceMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
 
                 // App Settings

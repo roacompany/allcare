@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct SignUpView: View {
     @Environment(AuthViewModel.self) private var authVM
@@ -159,16 +160,51 @@ struct SignUpView: View {
                         .animation(.easeInOut(duration: 0.2), value: authVM.isLoading)
 
                         // Terms notice
-                        Text("가입하시면 서비스 이용약관 및 개인정보 처리방침에 동의하시는 것으로 간주됩니다.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 2) {
+                            Text("가입하시면 아래에 동의하시는 것으로 간주됩니다.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                Link("서비스 이용약관", destination: URL(string: "https://roacompany.github.io/allcare/terms.html")!)
+                                    .font(.caption2)
+                                Text("및")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                Link("개인정보 처리방침", destination: URL(string: "https://roacompany.github.io/allcare/privacy.html")!)
+                                    .font(.caption2)
+                            }
+                        }
+                        .multilineTextAlignment(.center)
                     }
                     .padding(24)
                     .background(Color(.secondarySystemBackground).opacity(0.85))
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.06), radius: 16, y: 6)
                     .padding(.horizontal, 20)
+
+                    // Apple Sign In
+                    VStack(spacing: 12) {
+                        HStack {
+                            Rectangle().fill(Color(.separator)).frame(height: 0.5)
+                            Text("또는")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Rectangle().fill(Color(.separator)).frame(height: 0.5)
+                        }
+                        .padding(.horizontal, 20)
+
+                        SignInWithAppleButton(.signUp) { request in
+                            guard let hashedNonce = authVM.prepareAppleNonce() else { return }
+                            request.requestedScopes = [.fullName, .email]
+                            request.nonce = hashedNonce
+                        } onCompletion: { result in
+                            Task { await authVM.handleAppleSignIn(result: result) }
+                        }
+                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                        .frame(height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 20)
+                    }
 
                     // Login link
                     HStack(spacing: 4) {
@@ -216,101 +252,5 @@ struct SignUpView: View {
         !authVM.email.isEmpty &&
         authVM.password.count >= 6 &&
         authVM.password == authVM.confirmPassword
-    }
-}
-
-// MARK: - AuthFormField
-
-private struct AuthFormField<Content: View>: View {
-    let label: String
-    let icon: String
-    var borderColor: Color = Color(.separator)
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(label, systemImage: icon)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            content()
-                .padding(14)
-                .background(Color(.tertiarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(borderColor, lineWidth: 1.5)
-                )
-        }
-    }
-}
-
-// MARK: - Password Strength View
-
-private struct PasswordStrengthView: View {
-    let password: String
-
-    private var strength: PasswordStrength {
-        if password.count < 6 { return .weak }
-        let hasUpper = password.contains(where: \.isUppercase)
-        let hasNumber = password.contains(where: \.isNumber)
-        let hasSpecial = password.contains(where: { "!@#$%^&*()_+-=[]{}|;':\",./<>?".contains($0) })
-        let score = [hasUpper, hasNumber, hasSpecial].filter { $0 }.count
-        if password.count >= 12 && score >= 2 { return .strong }
-        if password.count >= 8 && score >= 1 { return .medium }
-        return .weak
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                ForEach(0..<3) { index in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(index < strength.filledBars ? strength.color : Color(.systemGray4))
-                        .frame(height: 4)
-                        .animation(.easeInOut(duration: 0.25), value: strength.filledBars)
-                }
-            }
-
-            Text("비밀번호 강도: \(strength.label)")
-                .font(.caption2)
-                .foregroundStyle(strength.color)
-        }
-        .padding(.horizontal, 2)
-    }
-
-    private enum PasswordStrength {
-        case weak, medium, strong
-
-        var filledBars: Int {
-            switch self {
-            case .weak: return 1
-            case .medium: return 2
-            case .strong: return 3
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .weak: return .red
-            case .medium: return .orange
-            case .strong: return .green
-            }
-        }
-
-        var label: String {
-            switch self {
-            case .weak: return "약함"
-            case .medium: return "보통"
-            case .strong: return "강함"
-            }
-        }
-    }
-}
-
-#Preview {
-    NavigationStack {
-        SignUpView()
-            .environment(AuthViewModel())
     }
 }

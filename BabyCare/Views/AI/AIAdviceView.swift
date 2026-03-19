@@ -76,6 +76,12 @@ struct AIAdviceView: View {
                     Text("주제를 선택하거나 직접 질문해보세요")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    Text("AI 조언은 참고용이며 의료 전문가의 진단이나 처방을 대체하지 않습니다.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 24)
+                        .multilineTextAlignment(.center)
                 }
                 .padding(.top, 40)
 
@@ -175,17 +181,41 @@ private struct ChatBubble: View {
         HStack {
             if message.role == .user { Spacer(minLength: 60) }
 
-            Text(message.content)
-                .font(.body)
-                .padding(12)
-                .background(message.role == .user
-                    ? Color.pink.opacity(0.15)
-                    : Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                if message.role == .assistant {
+                    AIGeneratedLabel()
+                }
+
+                Text(message.content)
+                    .font(.body)
+                    .padding(12)
+                    .background(message.role == .user
+                        ? Color.pink.opacity(0.15)
+                        : Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
 
             if message.role == .assistant { Spacer(minLength: 60) }
         }
         .padding(.horizontal)
+    }
+}
+
+// MARK: - AI Generated Label
+
+struct AIGeneratedLabel: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 9))
+            Text(AIGuardrailService.aiLabel)
+                .font(.system(size: 10, weight: .medium))
+        }
+        .foregroundStyle(.purple)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.purple.opacity(0.1))
+        .clipShape(Capsule())
     }
 }
 

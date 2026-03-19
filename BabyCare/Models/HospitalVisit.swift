@@ -13,6 +13,7 @@ struct HospitalVisit: Identifiable, Codable, Hashable {
     var prescription: String?
     var cost: Int?
     var nextVisitDate: Date?
+    var scheduledDate: Date?
     var note: String?
     var createdAt: Date
 
@@ -91,6 +92,7 @@ struct HospitalVisit: Identifiable, Codable, Hashable {
         prescription: String? = nil,
         cost: Int? = nil,
         nextVisitDate: Date? = nil,
+        scheduledDate: Date? = nil,
         note: String? = nil,
         createdAt: Date = Date()
     ) {
@@ -106,6 +108,7 @@ struct HospitalVisit: Identifiable, Codable, Hashable {
         self.prescription = prescription
         self.cost = cost
         self.nextVisitDate = nextVisitDate
+        self.scheduledDate = scheduledDate
         self.note = note
         self.createdAt = createdAt
     }

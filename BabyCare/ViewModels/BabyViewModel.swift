@@ -28,6 +28,19 @@ final class BabyViewModel {
     // MARK: - CRUD
 
     func loadBabies(userId: String) async {
+        // UI 테스트 모드: 즉시 목 데이터 사용
+        if CommandLine.arguments.contains("UI_TESTING") {
+            let mockBaby = Baby(
+                id: "mock-baby-id",
+                name: "테스트 아기",
+                birthDate: Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date(),
+                gender: .female
+            )
+            babies = [mockBaby]
+            selectedBaby = mockBaby
+            return
+        }
+
         isLoading = true
         defer { isLoading = false }
         do {
