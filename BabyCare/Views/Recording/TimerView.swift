@@ -68,6 +68,7 @@ struct TimerView: View {
                 HStack(spacing: 8) {
                     Image(systemName: isActiveTimer ? "stop.fill" : "play.fill")
                         .font(.system(size: 18, weight: .semibold))
+                        .accessibilityHidden(true)
                     Text(isActiveTimer ? "정지" : "시작")
                         .font(.system(size: 18, weight: .semibold))
                 }
@@ -78,6 +79,7 @@ struct TimerView: View {
                 .shadow(color: isActiveTimer ? accentColor.opacity(0.35) : .clear, radius: 8, y: 4)
             }
             .animation(.spring(duration: 0.3), value: isActiveTimer)
+            .accessibilityLabel(isActiveTimer ? "타이머 정지. 현재 \(displayTime)" : "타이머 시작")
         }
     }
 

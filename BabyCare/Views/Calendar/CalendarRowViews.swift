@@ -12,7 +12,7 @@ struct CalendarHospitalRow: View {
                     .fill(Color(hex: visit.visitType.color).opacity(0.2))
                     .frame(width: 36, height: 36)
                 Image(systemName: visit.visitType.icon)
-                    .font(.system(size: 14))
+                    .font(.footnote)
                     .foregroundStyle(Color(hex: visit.visitType.color))
             }
 
@@ -21,7 +21,7 @@ struct CalendarHospitalRow: View {
                     Text(visit.hospitalName)
                         .font(.subheadline.weight(.medium))
                     Text(visit.visitType.displayName)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -57,7 +57,7 @@ struct CalendarVaccinationRow: View {
                     .fill(AppColors.coralColor.opacity(0.2))
                     .frame(width: 36, height: 36)
                 Image(systemName: "syringe.fill")
-                    .font(.system(size: 14))
+                    .font(.footnote)
                     .foregroundStyle(AppColors.coralColor)
             }
 

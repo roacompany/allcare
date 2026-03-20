@@ -19,6 +19,7 @@ struct DiaperTypeCard: View {
                     Image(systemName: icon)
                         .font(.title3)
                         .foregroundStyle(isSelected ? .white : color)
+                        .accessibilityHidden(true)
                 }
 
                 Text(label)
@@ -32,6 +33,7 @@ struct DiaperTypeCard: View {
                         .font(.title3)
                         .foregroundStyle(color)
                         .transition(.scale.combined(with: .opacity))
+                        .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, 16)
@@ -51,6 +53,7 @@ struct DiaperTypeCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isSelected ? "\(label), 선택됨" : label)
     }
 }
 

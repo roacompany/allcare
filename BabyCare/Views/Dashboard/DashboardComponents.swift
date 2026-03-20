@@ -43,17 +43,19 @@ struct QuickActionButton: View {
                         .fill(Color(type.color).opacity(0.15))
                         .frame(height: 52)
                     Image(systemName: type.icon)
-                        .font(.system(size: 22))
+                        .font(.title3)
                         .foregroundStyle(Color(type.color))
+                        .accessibilityHidden(true)
                 }
                 Text(type.displayName)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(type.displayName) 빠른 기록")
         .scaleEffect(isPressed ? 0.93 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
         .simultaneousGesture(
@@ -76,8 +78,9 @@ struct TimelineRow: View {
                     .fill(Color(activity.type.color).opacity(0.18))
                     .frame(width: 40, height: 40)
                 Image(systemName: activity.type.icon)
-                    .font(.system(size: 18))
+                    .font(.body)
                     .foregroundStyle(Color(activity.type.color))
+                    .accessibilityHidden(true)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -113,5 +116,13 @@ struct TimelineRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel({
+            var parts = [activity.type.displayName]
+            if let durationText = activity.durationText { parts.append(durationText) }
+            if let amountText = activity.amountText { parts.append(amountText) }
+            parts.append(activity.startTime.timeAgo())
+            return parts.joined(separator: ", ")
+        }())
     }
 }

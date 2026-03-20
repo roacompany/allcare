@@ -75,6 +75,7 @@ extension DashboardView {
             Image(systemName: "list.bullet.clipboard")
                 .font(.system(size: 40))
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
             Text("활동이 없습니다")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

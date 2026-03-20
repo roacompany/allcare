@@ -83,8 +83,9 @@ extension DashboardView {
                     .fill(feedingColor.opacity(0.2))
                     .frame(width: 48, height: 48)
                 Image(systemName: "cup.and.saucer.fill")
-                    .font(.system(size: 22))
+                    .font(.title3)
                     .foregroundStyle(feedingColor)
+                    .accessibilityHidden(true)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -120,6 +121,12 @@ extension DashboardView {
             }
         }
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel({
+            let lastText = activityVM.lastFeeding.map { "마지막 수유 \($0.startTime.timeAgo())" } ?? "수유 기록 없음"
+            let mlText = activityVM.todayTotalMl > 0 ? ", \(Int(activityVM.todayTotalMl))ml" : ""
+            return "수유 요약. \(lastText). 오늘 \(activityVM.todayFeedingCount)회\(mlText)"
+        }())
     }
 
     var sleepSummaryCard: some View {
@@ -130,8 +137,9 @@ extension DashboardView {
                         .fill(sleepColor.opacity(0.2))
                         .frame(width: 38, height: 38)
                     Image(systemName: "moon.zzz.fill")
-                        .font(.system(size: 18))
+                        .font(.body)
                         .foregroundStyle(sleepColor)
+                        .accessibilityHidden(true)
                 }
                 Spacer()
                 Text("오늘")
@@ -161,6 +169,12 @@ extension DashboardView {
                 .foregroundStyle(.primary)
         }
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel({
+            let lastText = activityVM.lastSleep.map { "마지막 수면 \($0.startTime.timeAgo())" } ?? "수면 기록 없음"
+            let durText = activityVM.todaySleepDuration > 0 ? activityVM.todaySleepDuration.shortDuration : "0분"
+            return "수면 요약. \(lastText). 오늘 \(durText)"
+        }())
     }
 
     var diaperSummaryCard: some View {
@@ -171,8 +185,9 @@ extension DashboardView {
                         .fill(diaperColor.opacity(0.2))
                         .frame(width: 38, height: 38)
                     Image(systemName: "humidity.fill")
-                        .font(.system(size: 18))
+                        .font(.body)
                         .foregroundStyle(diaperColor)
+                        .accessibilityHidden(true)
                 }
                 Spacer()
                 Text("오늘")
@@ -200,6 +215,11 @@ extension DashboardView {
                 .foregroundStyle(.primary)
         }
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel({
+            let lastText = activityVM.lastDiaper.map { "마지막 기저귀 \($0.startTime.timeAgo())" } ?? "기저귀 기록 없음"
+            return "기저귀 요약. \(lastText). 오늘 \(activityVM.todayDiaperCount)회"
+        }())
     }
 
 

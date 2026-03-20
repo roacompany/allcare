@@ -17,11 +17,11 @@ struct QuickRecordSettingsView: View {
                                     .fill(Color(type.color).opacity(0.15))
                                     .frame(height: 52)
                                 Image(systemName: type.icon)
-                                    .font(.system(size: 22))
+                                    .font(.title3)
                                     .foregroundStyle(Color(type.color))
                             }
                             Text(type.displayName)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.caption.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)

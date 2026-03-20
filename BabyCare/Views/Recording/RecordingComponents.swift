@@ -19,6 +19,7 @@ struct CategoryTabBar: View {
                     VStack(spacing: 5) {
                         Image(systemName: categoryIcon(category))
                             .font(.system(size: 20))
+                            .accessibilityHidden(true)
                         Text(category.displayName)
                             .font(.caption.bold())
                     }
@@ -33,6 +34,8 @@ struct CategoryTabBar: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(category.displayName)
+                .accessibilityAddTraits(selected == category ? [.isSelected] : [])
             }
         }
     }
@@ -80,6 +83,7 @@ struct FeedingSubPicker: View {
                     VStack(spacing: 4) {
                         Image(systemName: icon)
                             .font(.body)
+                            .accessibilityHidden(true)
                         Text(label)
                             .font(.system(size: 11, weight: .semibold))
                             .lineLimit(1)
@@ -96,6 +100,8 @@ struct FeedingSubPicker: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(label)
+                .accessibilityAddTraits(selected == type ? [.isSelected] : [])
             }
         }
     }
