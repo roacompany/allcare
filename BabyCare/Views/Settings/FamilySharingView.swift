@@ -89,8 +89,12 @@ struct FamilySharingView: View {
                             Button(role: .destructive) {
                                 Task {
                                     guard let userId = authVM.currentUserId else { return }
-                                    try? await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
-                                    sharedAccess.removeAll { $0.id == access.id }
+                                    do {
+                                        try await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
+                                        sharedAccess.removeAll { $0.id == access.id }
+                                    } catch {
+                                        message = "공유 삭제에 실패했습니다. 다시 시도해 주세요."
+                                    }
                                 }
                             } label: {
                                 Label("삭제", systemImage: "trash")
@@ -118,6 +122,10 @@ struct FamilySharingView: View {
                 sharedAccess.append(access)
             })
             .presentationDetents([.medium])
+        }
+        .onChange(of: sharedAccess.count) { _, _ in
+            guard let userId = authVM.currentUserId else { return }
+            Task { await babyVM.loadBabies(userId: userId) }
         }
     }
 
@@ -247,7 +255,6 @@ private struct JoinFamilySheet: View {
             // markInviteUsed 실패해도 참여 성공 처리
             try? await firestoreService.markInviteUsed(invite.id)
             onJoin(access)
-            await babyVM.loadBabies(userId: userId)
             dismiss()
         } catch {
             errorMessage = "참여에 실패했습니다."

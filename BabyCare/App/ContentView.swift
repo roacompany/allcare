@@ -57,12 +57,14 @@ struct ContentView: View {
         }
         .task {
             if let userId = authVM.currentUserId {
+                await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
             }
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
             if isAuth, let userId = authVM.currentUserId {
                 Task {
+                    await authVM.migrateFamilySharingIfNeeded(userId: userId)
                     await babyVM.loadBabies(userId: userId)
                 }
             }

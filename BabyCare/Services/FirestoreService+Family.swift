@@ -48,11 +48,24 @@ extension FirestoreService {
             let expectedId = "\(access.ownerUserId)_\(access.babyId)"
 
             if doc.documentID != expectedId {
-                // Legacy UUID document — re-save under new ID then delete old one
-                access.id = expectedId
+                // Legacy UUID document — migrate to new composite ID
+                // Check if new document already exists to avoid duplicates
                 let newRef = collectionRef.document(expectedId)
-                try? newRef.setData(from: access)
-                try? await doc.reference.delete()
+                let newSnapshot = try await newRef.getDocument()
+                if newSnapshot.exists {
+                    // New document already present; delete stale legacy doc and skip
+                    try? await doc.reference.delete()
+                    continue
+                }
+                // Write new document first; only delete old if write succeeds
+                access.id = expectedId
+                do {
+                    try newRef.setData(from: access)
+                    try? await doc.reference.delete()
+                } catch {
+                    // Write failed — keep legacy doc and skip adding to results
+                    continue
+                }
             }
 
             results.append(access)

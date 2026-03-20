@@ -63,6 +63,8 @@ service cloud.firestore {
             && resource.data.isUsed == false
           )
         );
+      // 소유자만 삭제
+      allow delete: if request.auth != null && resource.data.ownerUserId == request.auth.uid;
     }
 
     // --- 공지사항: 인증 사용자 읽기, 관리자만 쓰기 ---
