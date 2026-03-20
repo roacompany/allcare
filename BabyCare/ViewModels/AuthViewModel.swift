@@ -140,7 +140,8 @@ final class AuthViewModel {
     private func deleteUserData(userId: String) async throws {
         let db = FirebaseFirestore.Firestore.firestore()
         let userDoc = db.collection("users").document(userId)
-        let subcollections = ["premiumStatus", "babies", "activities", "hospitalVisits", "vaccinations", "milestones", "diaryEntries", "todos", "routines", "products", "purchaseRecords", "familySharing"]
+        // "familySharing"(구형) + "sharedAccess"(신형) 모두 삭제
+        let subcollections = ["premiumStatus", "babies", "activities", "hospitalVisits", "vaccinations", "milestones", "diaryEntries", "todos", "routines", "products", "purchaseRecords", "sharedAccess", "familySharing"]
         // 배치 쓰기로 원자적 삭제 (최대 500개)
         var batch = db.batch()
         var count = 0
@@ -158,6 +159,24 @@ final class AuthViewModel {
         }
         batch.deleteDocument(userDoc)
         try await batch.commit()
+    }
+
+    /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션
+    func migrateFamilySharingIfNeeded(userId: String) async {
+        let db = FirebaseFirestore.Firestore.firestore()
+        let userDoc = db.collection("users").document(userId)
+        let legacyRef = userDoc.collection("familySharing")
+        let newRef = userDoc.collection("sharedAccess")
+
+        guard let snapshot = try? await legacyRef.getDocuments(),
+              !snapshot.documents.isEmpty else { return }
+
+        for doc in snapshot.documents {
+            // 신형 컬렉션에 복사 후 구형 삭제
+            let data = doc.data()
+            try? await newRef.document(doc.documentID).setData(data)
+            try? await doc.reference.delete()
+        }
     }
 
     func resetPassword() async {

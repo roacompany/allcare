@@ -85,6 +85,17 @@ struct FamilySharingView: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                         }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                Task {
+                                    guard let userId = authVM.currentUserId else { return }
+                                    try? await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
+                                    sharedAccess.removeAll { $0.id == access.id }
+                                }
+                            } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
@@ -105,11 +116,6 @@ struct FamilySharingView: View {
         .sheet(isPresented: $showJoinSheet) {
             JoinFamilySheet(onJoin: { access in
                 sharedAccess.append(access)
-                // 공유된 아기를 로드
-                Task {
-                    guard let userId = authVM.currentUserId else { return }
-                    await babyVM.loadBabies(userId: userId)
-                }
             })
             .presentationDetents([.medium])
         }
@@ -138,6 +144,7 @@ struct FamilySharingView: View {
 
 private struct JoinFamilySheet: View {
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) private var babyVM
     @Environment(\.dismiss) private var dismiss
     let onJoin: (SharedBabyAccess) -> Void
 
@@ -220,14 +227,27 @@ private struct JoinFamilySheet: View {
                 return
             }
 
+            // 중복 참여 검사
+            let isDuplicate = try await firestoreService.checkDuplicateAccess(
+                userId: userId,
+                ownerUserId: invite.ownerUserId,
+                babyId: invite.babyId
+            )
+            guard !isDuplicate else {
+                errorMessage = "이미 참여한 아기입니다."
+                return
+            }
+
             let access = SharedBabyAccess(
                 ownerUserId: invite.ownerUserId,
                 babyId: invite.babyId,
                 babyName: invite.babyName
             )
             try await firestoreService.saveSharedAccess(access, userId: userId)
-            try await firestoreService.markInviteUsed(invite.id)
+            // markInviteUsed 실패해도 참여 성공 처리
+            try? await firestoreService.markInviteUsed(invite.id)
             onJoin(access)
+            await babyVM.loadBabies(userId: userId)
             dismiss()
         } catch {
             errorMessage = "참여에 실패했습니다."
