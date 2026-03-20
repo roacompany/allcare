@@ -88,6 +88,21 @@ struct HealthView: View {
                         }
                         .buttonStyle(.plain)
 
+                        // 이유식 가이드
+                        NavigationLink {
+                            BabyFoodGuideView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "fork.knife",
+                                iconColor: AppColors.warmOrangeColor,
+                                title: "이유식 가이드",
+                                subtitle: babyFoodSubtitle,
+                                badge: nil,
+                                badgeColor: .clear
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                         // 소리
                         NavigationLink {
                             SoundPlayerView()
@@ -112,6 +127,21 @@ struct HealthView: View {
                                 iconColor: AppColors.healthColor,
                                 title: "일기",
                                 subtitle: "아기의 하루를 기록해보세요",
+                                badge: nil,
+                                badgeColor: .clear
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        // 발달 콘텐츠
+                        NavigationLink {
+                            DevelopmentContentView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "lightbulb.fill",
+                                iconColor: AppColors.warmOrangeColor,
+                                title: "발달 콘텐츠",
+                                subtitle: "놀이·수면·멘탈케어·성장 인사이트",
                                 badge: nil,
                                 badgeColor: .clear
                             )
@@ -152,6 +182,15 @@ struct HealthView: View {
             return "\(sound.name) 재생 중"
         }
         return "백색소음, 자장가, 자연소리"
+    }
+
+    private var babyFoodSubtitle: String {
+        guard let baby = babyVM.selectedBaby else { return "단계별 레시피 가이드" }
+        let months = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 0
+        if let stage = BabyFoodStage.allCases.first(where: { $0.contains(ageInMonths: months) }) {
+            return "\(stage.monthRangeText) · \(stage.subtitle)"
+        }
+        return "단계별 레시피 가이드"
     }
 
     private var hospitalVisitSubtitle: String {
@@ -210,6 +249,7 @@ private struct HealthSectionCard: View {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundStyle(iconColor)
+                    .accessibilityHidden(true)
             }
 
             VStack(alignment: .leading, spacing: 4) {
