@@ -35,11 +35,48 @@ extension FirestoreService {
     }
 
     func fetchSharedAccess(userId: String) async throws -> [SharedBabyAccess] {
-        let snapshot = try await db.collection(FirestoreCollections.users)
+        let collectionRef = db.collection(FirestoreCollections.users)
             .document(userId)
             .collection(FirestoreCollections.sharedAccess)
-            .getDocuments()
-        return decodeDocuments(snapshot.documents, as: SharedBabyAccess.self)
+
+        // Try fetching all documents; migrate legacy UUID-keyed docs on the fly
+        let snapshot = try await collectionRef.getDocuments()
+        var results: [SharedBabyAccess] = []
+
+        for doc in snapshot.documents {
+            guard var access = try? doc.data(as: SharedBabyAccess.self) else { continue }
+            let expectedId = "\(access.ownerUserId)_\(access.babyId)"
+
+            if doc.documentID != expectedId {
+                // Legacy UUID document — re-save under new ID then delete old one
+                access.id = expectedId
+                let newRef = collectionRef.document(expectedId)
+                try? newRef.setData(from: access)
+                try? await doc.reference.delete()
+            }
+
+            results.append(access)
+        }
+
+        return results
+    }
+
+    func removeSharedAccess(accessId: String, userId: String) async throws {
+        try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.sharedAccess)
+            .document(accessId)
+            .delete()
+    }
+
+    func checkDuplicateAccess(userId: String, ownerUserId: String, babyId: String) async throws -> Bool {
+        let docId = "\(ownerUserId)_\(babyId)"
+        let docRef = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.sharedAccess)
+            .document(docId)
+        let snapshot = try await docRef.getDocument()
+        return snapshot.exists
     }
 
     // MARK: - Announcements

@@ -53,9 +53,16 @@ service cloud.firestore {
       // 소유자만 생성 (ownerUserId == 본인)
       allow create: if request.auth != null
         && request.resource.data.ownerUserId == request.auth.uid;
-      // 소유자만 수정 (isUsed 마킹 등)
+      // 소유자만 수정 또는 인증 사용자가 isUsed만 true로 변경
       allow update: if request.auth != null
-        && resource.data.ownerUserId == request.auth.uid;
+        && (
+          resource.data.ownerUserId == request.auth.uid
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["isUsed"])
+            && request.resource.data.isUsed == true
+            && resource.data.isUsed == false
+          )
+        );
     }
 
     // --- 공지사항: 인증 사용자 읽기, 관리자만 쓰기 ---

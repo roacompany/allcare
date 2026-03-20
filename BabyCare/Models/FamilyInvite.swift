@@ -45,14 +45,14 @@ struct SharedBabyAccess: Identifiable, Codable {
     var joinedAt: Date
 
     init(
-        id: String = UUID().uuidString,
+        id: String? = nil,
         ownerUserId: String,
         babyId: String,
         babyName: String,
         role: String = "editor",
         joinedAt: Date = Date()
     ) {
-        self.id = id
+        self.id = id ?? "\(ownerUserId)_\(babyId)"
         self.ownerUserId = ownerUserId
         self.babyId = babyId
         self.babyName = babyName
