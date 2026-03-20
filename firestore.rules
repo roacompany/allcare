@@ -24,7 +24,7 @@ service cloud.firestore {
         }
       }
 
-      // todos, routines, products — 본인만
+      // 사용자 레벨 서브컬렉션 — 본인만
       match /todos/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
@@ -32,6 +32,24 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
       match /products/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /hospitalVisits/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /vaccinations/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /milestones/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /diary/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /purchases/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /premiumStatus/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
