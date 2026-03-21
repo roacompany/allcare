@@ -24,9 +24,23 @@ struct HospitalVisitListView: View {
         Task { await healthVM.deleteHospitalVisit(visit, userId: userId) }
     }
 
+    private var totalCost: Int {
+        healthVM.hospitalVisits.compactMap(\.cost).reduce(0, +)
+    }
+
     @ViewBuilder
     private var visitList: some View {
         List {
+            if totalCost > 0 {
+                Section {
+                    HStack {
+                        Label("총 진료비", systemImage: "wonsign.circle")
+                        Spacer()
+                        Text("₩\(totalCost.formatted())")
+                            .font(.headline)
+                    }
+                }
+            }
             upcomingSection
             pastSection
             if healthVM.hospitalVisits.isEmpty {
@@ -81,6 +95,17 @@ struct HospitalVisitListView: View {
                     HospitalVisitRow(visit: visit)
                         .contentShape(Rectangle())
                         .onTapGesture { selectedVisit = visit }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { startReport(for: visit) } label: {
+                                Label("AI 리포트", systemImage: "brain.fill")
+                            }
+                            .tint(.purple)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) { deleteVisit(visit) } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
+                        }
                 }
             }
         }

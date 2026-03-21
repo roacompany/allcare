@@ -167,6 +167,35 @@ final class NotificationService {
             .removePendingNotificationRequests(withIdentifiers: ["hospital-d1-\(visitId)"])
     }
 
+    // MARK: - Hospital Reminder (직접 예약)
+
+    func scheduleHospitalReminder(visitId: String, hospitalName: String, visitDate: Date) {
+        guard visitDate > Date(),
+              let reminderDate = Calendar.current.date(byAdding: .day, value: -1, to: visitDate),
+              reminderDate > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "내일 병원 방문"
+        content.body = "\(hospitalName) 방문이 내일입니다. AI 리포트를 확인해보세요."
+        content.sound = .default
+
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: reminderDate)
+        components.hour = 9
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "hospital_\(visitId)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelHospitalReminder(visitId: String) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["hospital_\(visitId)"])
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {

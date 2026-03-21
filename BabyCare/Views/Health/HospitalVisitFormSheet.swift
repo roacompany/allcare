@@ -10,6 +10,7 @@ struct HospitalVisitFormSheet: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(BabyViewModel.self) var babyVM
+    @Environment(HealthViewModel.self) var healthVM
 
     @State var visitType: HospitalVisit.VisitType = .sick
     @State var hospitalName = ""
@@ -80,6 +81,22 @@ struct HospitalVisitFormSheet: View {
                                         .foregroundStyle(.primary)
                                 }
                             }
+                        }
+                    }
+
+                    if !healthVM.recentHospitalNames.isEmpty && hospitalName.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(healthVM.recentHospitalNames, id: \.self) { name in
+                                    Button(name) { hospitalName = name }
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.vertical, 2)
                         }
                     }
 
@@ -189,6 +206,9 @@ struct HospitalVisitFormSheet: View {
             .alert("기록 삭제", isPresented: $showDeleteAlert) {
                 Button("취소", role: .cancel) {}
                 Button("삭제", role: .destructive) {
+                    if let visitId = existingVisit?.id {
+                        NotificationService.shared.cancelHospitalReminder(visitId: visitId)
+                    }
                     onDelete?()
                     dismiss()
                 }

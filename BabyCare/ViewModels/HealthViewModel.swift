@@ -54,6 +54,10 @@ final class HealthViewModel {
         upcomingVisits.first
     }
 
+    var recentHospitalNames: [String] {
+        Array(Set(hospitalVisits.map(\.hospitalName).filter { !$0.isEmpty })).sorted()
+    }
+
     // MARK: - Load
 
     func loadAll(userId: String, babyId: String, babyName: String = "아기") async {

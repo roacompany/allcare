@@ -25,6 +25,15 @@ extension HospitalVisitFormSheet {
         let visit = buildVisit()
         onSave(visit)
 
+        // D-1 알림 예약 (scheduledDate 또는 nextVisitDate가 있으면)
+        if let scheduledTarget = visit.scheduledDate ?? visit.nextVisitDate, scheduledTarget > Date() {
+            NotificationService.shared.scheduleHospitalReminder(
+                visitId: visit.id,
+                hospitalName: visit.hospitalName,
+                visitDate: scheduledTarget
+            )
+        }
+
         if addToCalendar {
             let babyName = babyVM.selectedBaby?.name ?? "아기"
             Task {
