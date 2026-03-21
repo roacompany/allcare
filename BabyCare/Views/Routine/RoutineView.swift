@@ -23,13 +23,14 @@ struct RoutineView: View {
         .navigationTitle("루틴")
         .toolbar {
             Button {
+                routineVM.resetForm()
                 routineVM.showAddRoutine = true
             } label: {
                 Image(systemName: "plus")
             }
         }
         .sheet(isPresented: Bindable(routineVM).showAddRoutine) {
-            AddRoutineSheet()
+            RoutineFormSheet()
         }
         .task {
             guard let userId = authVM.currentUserId else { return }
@@ -44,6 +45,8 @@ private struct RoutineSection: View {
     @Environment(RoutineViewModel.self) private var routineVM
     @Environment(AuthViewModel.self) private var authVM
     let routine: Routine
+
+    @State private var showEditSheet = false
 
     private var completedCount: Int {
         routine.items.filter(\.isCompleted).count
@@ -75,6 +78,10 @@ private struct RoutineSection: View {
         } header: {
             HStack {
                 Text(routine.name)
+                    .onTapGesture {
+                        routineVM.startEditing(routine)
+                        showEditSheet = true
+                    }
                 Spacer()
                 Text("\(completedCount)/\(routine.items.count)")
                     .font(.caption)
@@ -105,16 +112,21 @@ private struct RoutineSection: View {
                 }
             }
         }
+        .sheet(isPresented: $showEditSheet) {
+            RoutineFormSheet()
+        }
     }
 }
 
-// MARK: - Add Routine Sheet
+// MARK: - Routine Form Sheet (추가 + 수정 통합)
 
-private struct AddRoutineSheet: View {
+private struct RoutineFormSheet: View {
     @Environment(RoutineViewModel.self) private var routineVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(\.dismiss) private var dismiss
+
+    private var isEditing: Bool { routineVM.editingRoutine != nil }
 
     var body: some View {
         @Bindable var vm = routineVM
@@ -148,7 +160,7 @@ private struct AddRoutineSheet: View {
                     }
                 }
             }
-            .navigationTitle("루틴 추가")
+            .navigationTitle(isEditing ? "루틴 수정" : "루틴 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -161,7 +173,11 @@ private struct AddRoutineSheet: View {
                     Button("저장") {
                         Task {
                             guard let userId = authVM.currentUserId else { return }
-                            await routineVM.addRoutine(userId: userId, babyId: babyVM.selectedBaby?.id)
+                            if isEditing {
+                                await routineVM.updateRoutine(userId: userId)
+                            } else {
+                                await routineVM.addRoutine(userId: userId, babyId: babyVM.selectedBaby?.id)
+                            }
                             if routineVM.errorMessage == nil {
                                 dismiss()
                             }

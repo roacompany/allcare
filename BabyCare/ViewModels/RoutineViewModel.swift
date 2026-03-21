@@ -10,6 +10,7 @@ final class RoutineViewModel {
     // Form
     var routineName = ""
     var routineItems: [String] = [""]
+    var editingRoutine: Routine?
 
     private let firestoreService = FirestoreService.shared
 
@@ -27,6 +28,54 @@ final class RoutineViewModel {
             routines = try await firestoreService.fetchRoutines(userId: userId)
         } catch {
             errorMessage = "루틴을 불러오지 못했습니다."
+        }
+    }
+
+    // MARK: - Edit Form
+
+    func startEditing(_ routine: Routine) {
+        editingRoutine = routine
+        routineName = routine.name
+        routineItems = routine.items
+            .sorted(by: { $0.order < $1.order })
+            .map(\.title)
+        if routineItems.isEmpty { routineItems = [""] }
+    }
+
+    // MARK: - Update
+
+    func updateRoutine(userId: String) async {
+        guard let editing = editingRoutine, isFormValid else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let updatedItems = routineItems.enumerated().compactMap { index, title -> Routine.RoutineItem? in
+            let trimmed = title.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return nil }
+            // 기존 완료 상태 유지: 같은 순서의 기존 항목이 있으면 isCompleted 보존
+            let existingItem = editing.items.sorted(by: { $0.order < $1.order })
+                .enumerated()
+                .first(where: { $0.offset == index })?.element
+            return Routine.RoutineItem(
+                id: existingItem?.id ?? UUID().uuidString,
+                title: trimmed,
+                order: index,
+                isCompleted: existingItem?.isCompleted ?? false
+            )
+        }
+
+        var updated = editing
+        updated.name = routineName.trimmingCharacters(in: .whitespaces)
+        updated.items = updatedItems
+
+        do {
+            try await firestoreService.saveRoutine(updated, userId: userId)
+            if let rIdx = routines.firstIndex(where: { $0.id == editing.id }) {
+                routines[rIdx] = updated
+            }
+            resetForm()
+        } catch {
+            errorMessage = "루틴 수정에 실패했습니다."
         }
     }
 
@@ -110,5 +159,6 @@ final class RoutineViewModel {
         routineName = ""
         routineItems = [""]
         errorMessage = nil
+        editingRoutine = nil
     }
 }
