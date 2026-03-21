@@ -112,15 +112,18 @@ struct Vaccination: Identifiable, Codable, Hashable {
             Vaccination(babyId: babyId, vaccine: .ipv, doseNumber: 2, scheduledDate: date(months: 4)),
             Vaccination(babyId: babyId, vaccine: .hib, doseNumber: 2, scheduledDate: date(months: 4)),
             Vaccination(babyId: babyId, vaccine: .pcv, doseNumber: 2, scheduledDate: date(months: 4)),
-            Vaccination(babyId: babyId, vaccine: .rotavirus, doseNumber: 2, scheduledDate: date(months: 4)),
+            Vaccination(babyId: babyId, vaccine: .rotavirus, doseNumber: 2, scheduledDate: date(months: 4), note: "로타릭스(Rotarix) 2회 완료 — 4개월 2차로 기본 접종 종료"),
             // 6개월
             Vaccination(babyId: babyId, vaccine: .dtap, doseNumber: 3, scheduledDate: date(months: 6)),
             Vaccination(babyId: babyId, vaccine: .ipv, doseNumber: 3, scheduledDate: date(months: 6)),
+            Vaccination(babyId: babyId, vaccine: .hib, doseNumber: 3, scheduledDate: date(months: 6)),
+            Vaccination(babyId: babyId, vaccine: .pcv, doseNumber: 3, scheduledDate: date(months: 6)),
             Vaccination(babyId: babyId, vaccine: .hepB, doseNumber: 3, scheduledDate: date(months: 6)),
-            Vaccination(babyId: babyId, vaccine: .influenza, doseNumber: 1, scheduledDate: date(months: 6)),
-            // 12개월
-            Vaccination(babyId: babyId, vaccine: .hib, doseNumber: 3, scheduledDate: date(months: 12)),
-            Vaccination(babyId: babyId, vaccine: .pcv, doseNumber: 3, scheduledDate: date(months: 12)),
+            Vaccination(babyId: babyId, vaccine: .influenza, doseNumber: 1, scheduledDate: date(months: 6), note: "초회 접종 시 4주 간격으로 2회 접종 필요"),
+            Vaccination(babyId: babyId, vaccine: .influenza, doseNumber: 2, scheduledDate: date(months: 7), note: "초회 접종 시에만 해당 (이전 접종 이력 없는 경우)"),
+            // 12~15개월
+            Vaccination(babyId: babyId, vaccine: .hib, doseNumber: 4, scheduledDate: date(months: 12)),
+            Vaccination(babyId: babyId, vaccine: .pcv, doseNumber: 4, scheduledDate: date(months: 12)),
             Vaccination(babyId: babyId, vaccine: .mmr, doseNumber: 1, scheduledDate: date(months: 12)),
             Vaccination(babyId: babyId, vaccine: .varicella, doseNumber: 1, scheduledDate: date(months: 12)),
             Vaccination(babyId: babyId, vaccine: .hepA, doseNumber: 1, scheduledDate: date(months: 12)),
@@ -130,10 +133,13 @@ struct Vaccination: Identifiable, Codable, Hashable {
             // 24개월
             Vaccination(babyId: babyId, vaccine: .hepA, doseNumber: 2, scheduledDate: date(months: 24)),
             Vaccination(babyId: babyId, vaccine: .japaneseEncephalitis, doseNumber: 2, scheduledDate: date(months: 24)),
+            // 36개월
+            Vaccination(babyId: babyId, vaccine: .japaneseEncephalitis, doseNumber: 3, scheduledDate: date(months: 36)),
             // 4~6세
             Vaccination(babyId: babyId, vaccine: .dtap, doseNumber: 5, scheduledDate: date(years: 4)),
             Vaccination(babyId: babyId, vaccine: .ipv, doseNumber: 4, scheduledDate: date(years: 4)),
             Vaccination(babyId: babyId, vaccine: .mmr, doseNumber: 2, scheduledDate: date(years: 4)),
+            Vaccination(babyId: babyId, vaccine: .varicella, doseNumber: 2, scheduledDate: date(years: 4)),
         ]
     }
 }

@@ -15,6 +15,10 @@ struct BabyFoodGuideView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // 소아과 상담 권고 안내
+                BabyFoodDisclaimerView()
+                    .padding(.horizontal)
+
                 // 현재 월령 헤더
                 if let baby = babyVM.selectedBaby {
                     CurrentStageHeaderView(
@@ -161,6 +165,29 @@ private struct BabyFoodStageCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(isCurrent ? stageColor.opacity(0.4) : .clear, lineWidth: 1.5)
         )
+    }
+}
+
+// MARK: - BabyFoodDisclaimerView
+
+private struct BabyFoodDisclaimerView: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "stethoscope")
+                .foregroundStyle(.blue)
+                .font(.subheadline)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("소아과 상담 권고")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.blue)
+                Text(BabyFoodGuideData.disclaimerText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(Color.blue.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

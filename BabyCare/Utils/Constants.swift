@@ -47,6 +47,19 @@ enum AppConstants {
     static let photoCompressionQuality: CGFloat = 0.7
     static let maxPhotoDimension: CGFloat = 1024
     static let firestoreBatchLimit = 500
+
+    /// 월령별 적정 수유 간격 (시간) — AAP/대한소아과학회 기준
+    static func feedingIntervalHours(ageInMonths: Int) -> Double {
+        switch ageInMonths {
+        case 0:       return 2.0   // 신생아: 1.5~2.5시간
+        case 1:       return 2.5   // 1개월: 2~3시간
+        case 2...3:   return 3.0   // 2~3개월: 2.5~3.5시간
+        case 4...5:   return 3.5   // 4~5개월: 3~4시간
+        case 6...8:   return 4.0   // 6~8개월: 이유식 병행
+        case 9...11:  return 4.5   // 9~11개월
+        default:      return 5.0   // 12개월+: 식사 위주
+        }
+    }
 }
 
 enum FirestoreCollections {

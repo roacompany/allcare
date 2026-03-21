@@ -60,7 +60,8 @@ enum Preprocessor {
 
     static func aggregate(
         activities: [Activity],
-        period: AnalysisPeriod
+        period: AnalysisPeriod,
+        ageInDaysAtEnd: Int = 90
     ) -> [DailyAggregate] {
         let calendar = Calendar.current
 
@@ -105,8 +106,16 @@ enum Preprocessor {
             let diaperCount = diaper.count
             let avgTemp = temps.isEmpty ? nil : temps.reduce(0, +) / Double(temps.count)
 
-            // 이상치 검사 (기저귀 횟수 IQR×3 단순 플래그 — 집계 후 BaselineDetector에서 정밀 검사)
-            let hasOutlier = feedingCount > 20 || sleepMinutes > 1440 || diaperCount > 25
+            // 이상치 검사 (집계 후 BaselineDetector에서 정밀 검사)
+            // 연령별 현실적 최대값 적용: 신생아는 기준 완화, 영유아는 엄격
+            // ageInDaysAtEnd: 분석 기간 끝 날짜(period.to)에서의 교정 연령
+            // 각 날짜의 연령 = ageInDaysAtEnd - (period.to와 date의 차이)
+            let daysFromDate = calendar.dateComponents([.day], from: date, to: end).day ?? 0
+            let ageAtDate = max(0, ageInDaysAtEnd - daysFromDate)
+            let isNewborn = ageAtDate < 90
+            let maxFeedingCount = isNewborn ? 15 : 10
+            let maxDiaperCount  = isNewborn ? 20 : 15
+            let hasOutlier = feedingCount > maxFeedingCount || sleepMinutes > 1200 || diaperCount > maxDiaperCount
 
             let agg = DailyAggregate(
                 date: date,
@@ -129,5 +138,16 @@ enum Preprocessor {
         }
 
         return aggregates
+    }
+}
+
+// MARK: - DailyAggregate 배열 편의 확장
+
+extension [DailyAggregate] {
+
+    /// LOCF로 채워진 날(기록 없음)의 수
+    /// UI에서 "N일간 기록이 없어 이전 데이터를 사용했습니다" 경고 표시에 사용
+    var missingDataDayCount: Int {
+        filter { $0.isMissingData }.count
     }
 }

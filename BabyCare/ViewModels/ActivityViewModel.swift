@@ -64,32 +64,59 @@ final class ActivityViewModel {
 
     // MARK: - Predictions
 
+    /// 최근 7일 수유 데이터 (loadTodayActivities에서 함께 로드)
+    var recentFeedingActivities: [Activity] = []
+    /// 아기 월령 (외부에서 주입)
+    var babyAgeInMonths: Int = 3
+
     var averageFeedingInterval: TimeInterval {
-        let feedings = todayActivities
+        // 최근 7일 + 오늘 데이터 합산 (중복 제거)
+        let allFeedings = (recentFeedingActivities + todayActivities)
             .filter { $0.type.category == .feeding }
             .sorted { $0.startTime < $1.startTime }
+        var seen = Set<String>()
+        let unique = allFeedings.filter { seen.insert($0.id).inserted }
 
-        guard feedings.count >= 2 else {
-            return AppConstants.defaultFeedingIntervalHours * 3600
+        guard unique.count >= 2 else {
+            // 데이터 부족 시 월령별 기본값 사용
+            return AppConstants.feedingIntervalHours(ageInMonths: babyAgeInMonths) * 3600
         }
 
         var intervals: [TimeInterval] = []
-        for i in 1..<feedings.count {
-            intervals.append(feedings[i].startTime.timeIntervalSince(feedings[i-1].startTime))
+        for i in 1..<unique.count {
+            let gap = unique[i].startTime.timeIntervalSince(unique[i-1].startTime)
+            // 야간 gap (6시간 이상) 제외 — 낮 수유 패턴만 반영
+            if gap > 0 && gap < 21600 {
+                intervals.append(gap)
+            }
+        }
+
+        guard !intervals.isEmpty else {
+            return AppConstants.feedingIntervalHours(ageInMonths: babyAgeInMonths) * 3600
         }
         return intervals.reduce(0, +) / Double(intervals.count)
     }
 
     var nextFeedingEstimate: Date? {
-        guard let last = lastFeeding else { return nil }
-        return last.startTime.addingTimeInterval(averageFeedingInterval)
+        // 오늘 + 최근 데이터에서 가장 마지막 수유 기록 찾기
+        let allFeedings = (recentFeedingActivities + todayActivities)
+            .filter { $0.type.category == .feeding }
+        guard let latest = allFeedings.max(by: { $0.startTime < $1.startTime }) else {
+            return nil
+        }
+        return latest.startTime.addingTimeInterval(averageFeedingInterval)
     }
 
     var nextFeedingText: String? {
         guard let estimate = nextFeedingEstimate else { return nil }
         let now = Date()
         if estimate <= now {
-            return "수유 시간이 지났어요!"
+            let overdue = now.timeIntervalSince(estimate)
+            let overdueMins = Int(overdue / 60)
+            if overdueMins > 30 {
+                return "수유 시간이 \(overdueMins)분 지났어요"
+            }
+            return "곧 수유 시간이에요"
         }
         let remaining = estimate.timeIntervalSince(now)
         let minutes = Int(remaining / 60)
@@ -103,7 +130,8 @@ final class ActivityViewModel {
 
     var isFeedingOverdue: Bool {
         guard let estimate = nextFeedingEstimate else { return false }
-        return estimate <= Date()
+        // 30분 이상 지나야 overdue — 불필요한 빨간 경고 방지
+        return Date().timeIntervalSince(estimate) > 1800
     }
 
     // MARK: - Data Loading
@@ -117,6 +145,15 @@ final class ActivityViewModel {
                 userId: userId, babyId: babyId, date: Date()
             )
             deriveLatestActivities()
+
+            // 수유 예측 정확도를 위해 최근 7일 수유 데이터도 로드
+            let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+            if weekAgo < yesterday {
+                recentFeedingActivities = try await firestoreService.fetchActivities(
+                    userId: userId, babyId: babyId, from: weekAgo, to: yesterday
+                ).filter { $0.type.category == .feeding }
+            }
         } catch {
             errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
         }
@@ -198,6 +235,17 @@ final class ActivityViewModel {
     var isTemperatureValid: Bool {
         guard let temp = Double(temperatureInput) else { return false }
         return temp >= 34.0 && temp <= 43.0
+    }
+
+    var temperatureWarning: String? {
+        guard let temp = Double(temperatureInput) else { return nil }
+        if temp >= 38.0 {
+            return "체온이 38.0°C 이상입니다. 발열 상태를 확인하고 소아과 상담을 권장합니다."
+        }
+        if temp <= 35.5 {
+            return "체온이 35.5°C 이하입니다. 저체온 상태일 수 있으니 즉시 확인하세요."
+        }
+        return nil
     }
 
     var isAmountValid: Bool {

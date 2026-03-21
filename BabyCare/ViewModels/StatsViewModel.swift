@@ -37,8 +37,13 @@ final class StatsViewModel {
         guard sorted.count >= 2 else { return nil }
         var intervals: [TimeInterval] = []
         for i in 1..<sorted.count {
-            intervals.append(sorted[i].startTime.timeIntervalSince(sorted[i-1].startTime))
+            let interval = sorted[i].startTime.timeIntervalSince(sorted[i-1].startTime)
+            // 밤사이 공백(6시간 초과) 제외 — 평균 수유 간격 왜곡 방지
+            if interval <= 21600 {
+                intervals.append(interval)
+            }
         }
+        guard !intervals.isEmpty else { return nil }
         return intervals.reduce(0, +) / Double(intervals.count)
     }
 

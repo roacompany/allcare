@@ -92,6 +92,8 @@ struct BabyFoodRecipe: Identifiable {
 // MARK: - BabyFoodGuideData
 
 enum BabyFoodGuideData {
+    static let disclaimerText = "이유식 시작 시기는 아기마다 다릅니다. 소아과 전문의와 상담 후 시작하세요. WHO는 생후 6개월까지 완전 모유수유를 권장합니다."
+
     static let allRecipes: [BabyFoodRecipe] = early + earlyMid + mid + late + toddler
 
     static func recipes(for stage: BabyFoodStage) -> [BabyFoodRecipe] {

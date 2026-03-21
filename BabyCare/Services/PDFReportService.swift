@@ -202,10 +202,10 @@ enum PDFReportService {
                     currentY += 4
 
                     // Fever alert
-                    let feverCount = tempValues.filter { $0 >= 37.5 }.count
+                    let feverCount = tempValues.filter { $0 >= 38.0 }.count
                     if feverCount > 0 {
                         currentY = drawText(
-                            "⚠ 37.5°C 이상 기록: \(feverCount)회",
+                            "⚠ 38.0°C 이상 기록: \(feverCount)회",
                             at: CGPoint(x: margin, y: currentY),
                             width: contentWidth,
                             font: .systemFont(ofSize: 11, weight: .semibold),

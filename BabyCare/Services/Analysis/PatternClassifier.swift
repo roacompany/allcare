@@ -4,7 +4,15 @@ import Foundation
 
 enum PatternClassifier {
 
-    static func classify(flags: [MetricFlag], aggregates: [DailyAggregate]) -> [DetectedPattern] {
+    // 알려진 성장급등 시기 (일 단위): 3주, 6주, 3개월, 6개월, 9개월, 12개월
+    private static let growthSpurtAgeDays: [Int] = [21, 42, 91, 182, 273, 365]
+    private static let growthSpurtToleranceDays = 14   // ±2주
+
+    private static func isNearGrowthSpurtAge(_ ageInDays: Int) -> Bool {
+        growthSpurtAgeDays.contains { abs(ageInDays - $0) <= growthSpurtToleranceDays }
+    }
+
+    static func classify(flags: [MetricFlag], aggregates: [DailyAggregate], ageInDays: Int) -> [DetectedPattern] {
         var patterns: [DetectedPattern] = []
 
         let feeding = flags.first { $0.metric == .feeding }
@@ -12,16 +20,11 @@ enum PatternClassifier {
         let diaper  = flags.first { $0.metric == .diaper }
         let temp    = flags.first { $0.metric == .temperature }
 
-        // 성장급등: 수유↓ + 수면↑ 동시 발생
-        if let f = feeding, let s = sleep,
-           f.direction == .down, s.direction == .up {
-            patterns.append(.growthSpurt)
-        }
-
-        // 성장급등 추가 패턴: 수유↑ + 수면↑ (급등 전 과식기)
+        // 성장급등: 수유↑ + 수면↑ (식욕 증가 + 수면 증가) + 연령 근접 확인
+        // 수유↓ + 수면↑ 은 성장급등이 아님 (질병 가능성)
         if let f = feeding, let s = sleep,
            f.direction == .up, s.direction == .up,
-           !patterns.contains(.growthSpurt) {
+           isNearGrowthSpurtAge(ageInDays) {
             patterns.append(.growthSpurt)
         }
 

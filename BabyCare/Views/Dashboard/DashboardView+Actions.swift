@@ -10,6 +10,10 @@ extension DashboardView {
         // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
         Task { _ = await NotificationService.shared.requestPermission() }
 
+        // 아기 월령을 수유 예측에 반영
+        let ageMonths = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 3
+        activityVM.babyAgeInMonths = ageMonths
+
         // 병렬 로딩: 활동 + 건강 + 용품 + 공지
         async let loadActivities: Void = activityVM.loadTodayActivities(userId: userId, babyId: baby.id)
         async let loadHealth: Void = healthVM.loadAll(userId: userId, babyId: baby.id, babyName: baby.name)

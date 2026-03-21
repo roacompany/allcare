@@ -30,7 +30,7 @@ final class AnalysisEngine: @unchecked Sendable {
             gestationalWeeks: gestationalWeeks,
             referenceDate: period.to
         )
-        let aggregates = Preprocessor.aggregate(activities: activities, period: period)
+        let aggregates = Preprocessor.aggregate(activities: activities, period: period, ageInDaysAtEnd: correctedAge)
 
         guard aggregates.count >= 7 else {
             return AnalysisResult(
@@ -52,11 +52,11 @@ final class AnalysisEngine: @unchecked Sendable {
         let allFlags = layer1Flags + layer2Flags
 
         // Step 4: Layer 3 — 다변량 패턴 분류
-        let patterns = PatternClassifier.classify(flags: allFlags, aggregates: aggregates)
+        let patterns = PatternClassifier.classify(flags: allFlags, aggregates: aggregates, ageInDays: correctedAge)
         let adjustedFlags = PatternClassifier.suppressGrowthSpurtFlags(allFlags, patterns: patterns)
 
         // Step 5: Layer 4 — 임상 유의성 필터 + 우선순위
-        let clinicalFlags = ClinicalFilter.filter(flags: adjustedFlags, aggregates: aggregates)
+        let clinicalFlags = ClinicalFilter.filter(flags: adjustedFlags, aggregates: aggregates, ageInDays: correctedAge)
         let prioritized = ClinicalFilter.prioritize(flags: clinicalFlags, patterns: patterns)
         let checklist = ClinicalFilter.generateChecklist(
             flags: prioritized,

@@ -38,7 +38,7 @@ final class AIAdviceViewModel {
         ("heart.text.clipboard.fill", "건강 정보", "아기 건강 관리와 일반적인 증상 대처법을 알려주세요."),
     ]
 
-    private let systemPrompt = """
+    private let baseSystemPrompt = """
     당신은 경험 많은 소아과 전문의이자 육아 상담가입니다.
     한국어로 답변하며, 아기를 키우는 부모에게 실용적이고 따뜻한 조언을 제공합니다.
     - 의학적으로 정확한 정보를 제공하세요.
@@ -47,7 +47,21 @@ final class AIAdviceViewModel {
     - 이모지를 적절히 사용해서 친근하게 답변하세요.
     """
 
+    // MARK: - System Prompt Builder
+
+    func buildSystemPrompt(baby: Baby?) -> String {
+        guard let baby else { return baseSystemPrompt }
+        let ageMonths = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 0
+        var context = "현재 상담 중인 아기 정보:\n"
+        context += "- 이름: \(baby.name)\n"
+        context += "- 나이: \(ageMonths)개월\n"
+        context += "- 성별: \(baby.gender.displayName)\n"
+        return baseSystemPrompt + "\n\n" + context
+    }
+
     // MARK: - Send
+
+    var currentBaby: Baby?
 
     func send(_ text: String? = nil) async {
         let content = text ?? inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -73,7 +87,7 @@ final class AIAdviceViewModel {
 
             let response = try await AIService.ask(
                 messages: apiMessages,
-                systemPrompt: systemPrompt,
+                systemPrompt: buildSystemPrompt(baby: currentBaby),
                 apiKey: apiKey
             )
 

@@ -36,15 +36,10 @@ struct ContentView: View {
 
             Group {
                 if authVM.isAuthenticated {
-                    if babyVM.isLoading && babyVM.babies.isEmpty {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .controlSize(.large)
-                            Text("데이터를 불러오는 중...")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if !babyVM.hasInitialLoad {
+                        // 런치스크린과 동일한 빈 화면 — 사용자가 전환을 눈치채지 못함
+                        Color(.systemBackground)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if babyVM.babies.isEmpty {
                         onboardingView
                     } else {
@@ -54,6 +49,7 @@ struct ContentView: View {
                     LoginView()
                 }
             }
+            .animation(.easeIn(duration: 0.25), value: babyVM.hasInitialLoad)
         }
         .task {
             if let userId = authVM.currentUserId {

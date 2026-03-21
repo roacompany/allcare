@@ -6,40 +6,52 @@ import Foundation
 
 enum ClinicalFilter {
 
-    // 임상 임계값 (전문가 합의)
-    private static let feedingCountThreshold: Double  = 1.5   // 횟수/일
-    private static let feedingAmountThreshold: Double = 30.0  // ml/회
-    private static let sleepThreshold: Double         = 60.0  // 분/일
-    private static let diaperThreshold: Double        = 2.0   // 회/일
+    // MARK: - 연령별 임상 임계값 계산
+
+    private static func thresholds(ageInDays: Int) -> (feedingCount: Double, feedingAmount: Double, sleep: Double, diaper: Double) {
+        switch ageInDays {
+        case ..<90:
+            // 신생아: 민감하게 — 작은 변화도 유의
+            return (feedingCount: 1.0, feedingAmount: 20.0, sleep: 45.0, diaper: 1.5)
+        case 90..<365:
+            // 영아: 기본값
+            return (feedingCount: 1.5, feedingAmount: 30.0, sleep: 60.0, diaper: 2.0)
+        default:
+            // 유아 (>365일): 덜 민감하게 — 더 큰 변화만 유의
+            return (feedingCount: 2.0, feedingAmount: 40.0, sleep: 75.0, diaper: 2.5)
+        }
+    }
 
     // MARK: - 임상 유의성 필터
 
-    static func filter(flags: [MetricFlag], aggregates: [DailyAggregate]) -> [MetricFlag] {
+    static func filter(flags: [MetricFlag], aggregates: [DailyAggregate], ageInDays: Int = 90) -> [MetricFlag] {
         // 이상치 제거 후 임계값 비교 (BaselineDetector와 동일 기준)
         let clean = aggregates.filter { !$0.hasOutlier }
         let base = clean.isEmpty ? aggregates : clean
+
+        let t = thresholds(ageInDays: ageInDays)
 
         return flags.filter { flag in
             switch flag.metric {
             case .feeding:
                 let recentMean = recentMean(base.map { Double($0.feedingCount) }, days: 7)
                 let baselineMean = baselineMean(base.map { Double($0.feedingCount) })
-                return abs(recentMean - baselineMean) >= feedingCountThreshold
+                return abs(recentMean - baselineMean) >= t.feedingCount
 
             case .feedingAmount:
                 let recentMean = recentMean(base.map { $0.feedingAmountMl }, days: 7)
                 let baselineMean = baselineMean(base.map { $0.feedingAmountMl })
-                return abs(recentMean - baselineMean) >= feedingAmountThreshold
+                return abs(recentMean - baselineMean) >= t.feedingAmount
 
             case .sleep:
                 let recentMean = recentMean(base.map { $0.sleepMinutes }, days: 7)
                 let baselineMean = baselineMean(base.map { $0.sleepMinutes })
-                return abs(recentMean - baselineMean) >= sleepThreshold
+                return abs(recentMean - baselineMean) >= t.sleep
 
             case .diaper:
                 let recentMean = recentMean(base.map { Double($0.diaperCount) }, days: 7)
                 let baselineMean = baselineMean(base.map { Double($0.diaperCount) })
-                return abs(recentMean - baselineMean) >= diaperThreshold
+                return abs(recentMean - baselineMean) >= t.diaper
 
             case .temperature:
                 return true  // 체온 이상은 항상 유의

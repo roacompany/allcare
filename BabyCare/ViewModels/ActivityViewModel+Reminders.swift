@@ -15,7 +15,12 @@ extension ActivityViewModel {
     // MARK: - Widget Data Sync
 
     func syncWidgetData(babyName: String, babyAge: String) {
-        let interval = Int(NotificationSettings.feedingIntervalHours * 60)
+        // 월령별 기본 간격 또는 사용자 설정값 사용
+        let defaultInterval = AppConstants.feedingIntervalHours(ageInMonths: babyAgeInMonths)
+        let userInterval = NotificationSettings.feedingIntervalHours
+        // 사용자가 명시적으로 변경하지 않았으면 (기본값 3시간 그대로면) 월령별 값 사용
+        let effectiveHours = (userInterval == AppConstants.defaultFeedingIntervalHours) ? defaultInterval : userInterval
+        let interval = Int(effectiveHours * 60)
 
         // 오늘 요약 데이터 — lastFeeding/lastSleep/lastDiaper 프로퍼티 재사용
         let sleepMinutes = Int(todaySleepDuration / 60)

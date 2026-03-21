@@ -61,7 +61,7 @@ extension PatternAnalysisService {
         }.sorted { $0.date < $1.date }
 
         let avgTemp: Double? = readings.isEmpty ? nil : readings.map(\.temp).reduce(0, +) / Double(readings.count)
-        let highTempDays = Set(readings.filter { $0.temp >= 37.5 }.map { $0.date.startOfDay }).count
+        let highTempDays = Set(readings.filter { $0.temp >= 38.0 }.map { $0.date.startOfDay }).count
 
         // Medications
         var medNames: [String: Int] = [:]

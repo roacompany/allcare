@@ -5,7 +5,8 @@ import UIKit
 final class BabyViewModel {
     var babies: [Baby] = []
     var selectedBaby: Baby?
-    var isLoading = false
+    var isLoading = true
+    private(set) var hasInitialLoad = false
     var errorMessage: String?
     var showAddBaby = false
 
@@ -42,7 +43,10 @@ final class BabyViewModel {
         }
 
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasInitialLoad = true
+        }
         do {
             var allBabies = try await firestoreService.fetchBabies(userId: userId)
 
