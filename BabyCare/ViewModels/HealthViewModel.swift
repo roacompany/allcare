@@ -102,6 +102,27 @@ final class HealthViewModel {
         }
     }
 
+    func undoVaccinationComplete(_ vaccination: Vaccination, userId: String) async {
+        var updated = vaccination
+        updated.isCompleted = false
+        updated.administeredDate = nil
+
+        // Optimistic update
+        if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
+            vaccinations[idx] = updated
+        }
+
+        do {
+            try await firestoreService.saveVaccination(updated, userId: userId)
+        } catch {
+            // Rollback
+            if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
+                vaccinations[idx] = vaccination
+            }
+            errorMessage = "접종 취소에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
     // MARK: - Milestone Actions
 
     func toggleMilestone(_ milestone: Milestone, userId: String, achievedDate: Date? = nil) async {

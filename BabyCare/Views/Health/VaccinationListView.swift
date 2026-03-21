@@ -7,6 +7,7 @@ struct VaccinationListView: View {
 
     @State private var selectedVaccination: Vaccination?
     @State private var showCompleteSheet = false
+    @State private var showUndoConfirmation = false
 
     var body: some View {
         List {
@@ -69,6 +70,11 @@ struct VaccinationListView: View {
                 Section {
                     ForEach(completed) { vax in
                         VaccinationRow(vaccination: vax)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedVaccination = vax
+                                showUndoConfirmation = true
+                            }
                     }
                 } header: {
                     SectionHeader(title: "완료", color: AppColors.successColor)
@@ -93,6 +99,25 @@ struct VaccinationListView: View {
                         )
                     }
                 }
+            }
+        }
+        .confirmationDialog(
+            selectedVaccination.map { "\($0.vaccine.displayName) \($0.doseNumber)차" } ?? "",
+            isPresented: $showUndoConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("접종 기록 수정") {
+                showCompleteSheet = true
+            }
+            Button("접종 취소", role: .destructive) {
+                guard let vax = selectedVaccination,
+                      let userId = authVM.currentUserId else { return }
+                Task {
+                    await healthVM.undoVaccinationComplete(vax, userId: userId)
+                }
+            }
+            Button("닫기", role: .cancel) {
+                selectedVaccination = nil
             }
         }
         .alert("오류", isPresented: Binding(
@@ -224,8 +249,13 @@ private struct MarkVaccinationSheet: View {
                         .lineLimit(3...5)
                 }
             }
-            .navigationTitle("접종 완료 기록")
+            .navigationTitle(vaccination.isCompleted ? "접종 기록 수정" : "접종 완료 기록")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                administeredDate = vaccination.administeredDate ?? Date()
+                hospital = vaccination.hospital ?? ""
+                note = vaccination.note ?? ""
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") { dismiss() }
