@@ -40,6 +40,12 @@ enum PatternClassifier {
             patterns.append(.dehydrationRisk)
         }
 
+        // 탈수 주의: 기저귀↓만 감소 (수유는 감소 없음)
+        if let d = diaper, d.direction == .down,
+           feeding == nil || feeding?.direction != .down {
+            patterns.append(.mildDehydrationConcern)
+        }
+
         // 단순 변동 (위에 해당 없고 플래그만 있는 경우)
         if patterns.isEmpty && !flags.isEmpty {
             patterns.append(.normalVariation)

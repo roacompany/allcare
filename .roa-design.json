@@ -1,0 +1,11 @@
+{
+  "name": "BabyCare",
+  "icon": "B",
+  "platform": "ios",
+  "framework": "swiftui",
+  "brand": {
+    "primary": "#FFB5C2",
+    "accent": "#FFB5C2",
+    "theme": "light"
+  }
+}

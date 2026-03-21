@@ -29,7 +29,17 @@ extension FirestoreService {
             .document(babyId)
 
         // 하위 컬렉션 cascade 삭제
-        for subcollection in [FirestoreCollections.activities, FirestoreCollections.growth, FirestoreCollections.diary] {
+        let subcollections = [
+            FirestoreCollections.activities,
+            FirestoreCollections.growth,
+            FirestoreCollections.diary,
+            FirestoreCollections.vaccinations,
+            FirestoreCollections.milestones,
+            FirestoreCollections.hospitalVisits,
+            FirestoreCollections.purchases,
+            "hospitalReports"
+        ]
+        for subcollection in subcollections {
             let docs = try await babyRef.collection(subcollection).getDocuments()
             for doc in docs.documents {
                 try await doc.reference.delete()

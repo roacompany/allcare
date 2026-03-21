@@ -42,10 +42,11 @@ struct MetricFlag: Codable {
 // MARK: - 패턴
 
 enum DetectedPattern: String, Codable {
-    case growthSpurt = "growth_spurt"           // 성장급등
-    case infectionSuspected = "infection_suspected" // 감염 의심
-    case dehydrationRisk = "dehydration_risk"   // 탈수 위험
-    case normalVariation = "normal_variation"   // 정상 변동
+    case growthSpurt = "growth_spurt"                   // 성장급등
+    case infectionSuspected = "infection_suspected"     // 감염 의심
+    case dehydrationRisk = "dehydration_risk"           // 탈수 위험 (기저귀↓ + 수유↓)
+    case mildDehydrationConcern = "mild_dehydration_concern" // 탈수 주의 (기저귀↓만)
+    case normalVariation = "normal_variation"           // 정상 변동
 }
 
 // MARK: - 분석 결과

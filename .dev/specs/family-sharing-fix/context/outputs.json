@@ -1,0 +1,9 @@
+{
+  "todo-1": {
+    "rules_file": "firestore.rules"
+  },
+  "todo-2": {
+    "model_file": "BabyCare/Models/FamilyInvite.swift",
+    "service_file": "BabyCare/Services/FirestoreService+Family.swift"
+  }
+}

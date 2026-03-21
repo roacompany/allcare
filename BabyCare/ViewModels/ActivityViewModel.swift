@@ -176,15 +176,25 @@ final class ActivityViewModel {
     /// Live Activity 연동 위한 아기 이름 (외부에서 주입)
     var currentBabyName: String = "아기"
 
+    // MARK: - Timer Persistence Keys
+
+    private static let timerStartKey = "babycare_timer_start"
+    private static let timerTypeKey = "babycare_timer_type"
+
     func startTimer(type: Activity.ActivityType) {
         isTimerRunning = true
-        timerStartTime = Date()
+        let startTime = Date()
+        timerStartTime = startTime
         activeTimerType = type
         elapsedTime = 0
         // 재시작 시 이전 타이머 측정값 초기화
-        manualStartTime = Date()
+        manualStartTime = startTime
         manualEndTime = nil
         isTimeAdjusted = false
+
+        // UserDefaults에 시작 시간 + 타입 저장 (앱 강제 종료 후 복구용)
+        UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: Self.timerStartKey)
+        UserDefaults.standard.set(type.rawValue, forKey: Self.timerTypeKey)
 
         // Live Activity 시작 (수유 타이머만)
         if type.category == .feeding || type == .sleep {
@@ -218,6 +228,10 @@ final class ActivityViewModel {
         activeTimerType = nil
         elapsedTime = 0
 
+        // UserDefaults 타이머 상태 제거
+        UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
+        UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
+
         // Live Activity 종료
         LiveActivityManager.shared.stopFeedingTimer()
 
@@ -230,6 +244,42 @@ final class ActivityViewModel {
         return duration
     }
 
+    /// 앱 시작 시 강제 종료 전에 진행 중이던 타이머 복구
+    func resumeTimerIfNeeded() {
+        let startInterval = UserDefaults.standard.double(forKey: Self.timerStartKey)
+        guard startInterval > 0,
+              let typeRaw = UserDefaults.standard.string(forKey: Self.timerTypeKey),
+              let type = Activity.ActivityType(rawValue: typeRaw) else { return }
+
+        let startTime = Date(timeIntervalSince1970: startInterval)
+        let elapsed = Date().timeIntervalSince(startTime)
+
+        // 24시간 이상 지난 타이머는 복구하지 않음 (비정상 상태)
+        guard elapsed < 86400 else {
+            UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
+            UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
+            return
+        }
+
+        isTimerRunning = true
+        timerStartTime = startTime
+        activeTimerType = type
+        elapsedTime = elapsed
+        manualStartTime = startTime
+        manualEndTime = nil
+        isTimeAdjusted = false
+
+        timerTask?.cancel()
+        timerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { break }
+                guard let self, let start = self.timerStartTime else { break }
+                self.elapsedTime = Date().timeIntervalSince(start)
+            }
+        }
+    }
+
     // MARK: - Validation
 
     var isTemperatureValid: Bool {
@@ -239,6 +289,12 @@ final class ActivityViewModel {
 
     var temperatureWarning: String? {
         guard let temp = Double(temperatureInput) else { return nil }
+        if temp >= 40.0 {
+            return "⚠️ 체온이 40.0°C 이상입니다! 응급 상황일 수 있습니다. 즉시 소아과 또는 응급실을 방문하세요."
+        }
+        if temp >= 38.0 && babyAgeInMonths < 3 {
+            return "⚠️ 생후 3개월 미만 아기의 38.0°C 이상 발열은 즉시 소아과 방문이 필요합니다."
+        }
         if temp >= 38.0 {
             return "체온이 38.0°C 이상입니다. 발열 상태를 확인하고 소아과 상담을 권장합니다."
         }

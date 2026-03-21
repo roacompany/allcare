@@ -64,7 +64,8 @@ enum ClinicalFilter {
 
     static func prioritize(flags: [MetricFlag], patterns: [DetectedPattern]) -> [MetricFlag] {
         let patternBonus: Double = patterns.contains(.dehydrationRisk) ? 2.0 :
-                                   patterns.contains(.infectionSuspected) ? 1.5 : 1.0
+                                   patterns.contains(.infectionSuspected) ? 1.5 :
+                                   patterns.contains(.mildDehydrationConcern) ? 1.3 : 1.0
 
         return flags.map { flag in
             var f = flag
@@ -92,6 +93,9 @@ enum ClinicalFilter {
         }
         if patterns.contains(.dehydrationRisk) {
             items.append("수유와 기저귀 횟수가 모두 줄었습니다. 탈수 위험이 있는지 확인해 주세요.")
+        }
+        if patterns.contains(.mildDehydrationConcern) {
+            items.append("기저귀 횟수가 줄었습니다. 수분 섭취를 확인해주세요.")
         }
 
         // 플래그별 세부 질문

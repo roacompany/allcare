@@ -189,7 +189,7 @@ struct SettingsView: View {
                     HStack {
                         Text("버전")
                         Spacer()
-                        Text("2.0.0").foregroundStyle(.secondary)
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "").foregroundStyle(.secondary)
                     }
                 }
             }

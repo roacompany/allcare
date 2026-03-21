@@ -52,6 +52,8 @@ struct ContentView: View {
             .animation(.easeIn(duration: 0.25), value: babyVM.hasInitialLoad)
         }
         .task {
+            // 강제 종료 전 진행 중이던 타이머 복구
+            activityVM.resumeTimerIfNeeded()
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)

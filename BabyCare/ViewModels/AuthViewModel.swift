@@ -157,6 +157,17 @@ final class AuthViewModel {
                 }
             }
         }
+
+        // invites 컬렉션에서 내가 만든 초대 삭제
+        let invites = try await db.collection("invites")
+            .whereField("ownerUserId", isEqualTo: userId)
+            .getDocuments()
+        for doc in invites.documents {
+            batch.deleteDocument(doc.reference)
+            count += 1
+            if count >= 400 { try await batch.commit(); batch = db.batch(); count = 0 }
+        }
+
         batch.deleteDocument(userDoc)
         try await batch.commit()
     }

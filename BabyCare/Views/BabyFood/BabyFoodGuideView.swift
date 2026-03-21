@@ -19,6 +19,19 @@ struct BabyFoodGuideView: View {
                 BabyFoodDisclaimerView()
                     .padding(.horizontal)
 
+                // 꿀 경고 배너
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("꿀 경고").font(.subheadline.weight(.semibold)).foregroundStyle(.red)
+                        Text(BabyFoodGuideData.honeyWarning).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(14)
+                .background(Color.red.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+
                 // 현재 월령 헤더
                 if let baby = babyVM.selectedBaby {
                     CurrentStageHeaderView(

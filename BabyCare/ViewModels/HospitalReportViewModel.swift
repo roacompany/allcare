@@ -143,6 +143,7 @@ final class HospitalReportViewModel {
         case .growthSpurt: "성장급등 패턴 감지"
         case .infectionSuspected: "감염 의심 패턴 감지"
         case .dehydrationRisk: "탈수 위험 패턴 감지"
+        case .mildDehydrationConcern: "탈수 주의 (기저귀 횟수 감소)"
         case .normalVariation: "정상 범위 내 변동"
         }
     }

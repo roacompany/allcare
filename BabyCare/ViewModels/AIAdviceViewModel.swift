@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 @MainActor @Observable
 final class AIAdviceViewModel {
@@ -10,12 +11,61 @@ final class AIAdviceViewModel {
     private static let apiKeyKey = "ai_api_key"
 
     var apiKey: String {
-        get { UserDefaults.standard.string(forKey: Self.apiKeyKey) ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: Self.apiKeyKey) }
+        get {
+            // Keychain에서 먼저 읽고, 없으면 UserDefaults 마이그레이션 시도
+            if let keychainValue = Self.loadFromKeychain(key: Self.apiKeyKey) {
+                return keychainValue
+            }
+            // UserDefaults에 구 버전 키가 있으면 Keychain으로 마이그레이션
+            if let legacyValue = UserDefaults.standard.string(forKey: Self.apiKeyKey),
+               !legacyValue.isEmpty {
+                Self.saveToKeychain(key: Self.apiKeyKey, value: legacyValue)
+                UserDefaults.standard.removeObject(forKey: Self.apiKeyKey)
+                return legacyValue
+            }
+            return ""
+        }
+        set {
+            if newValue.isEmpty {
+                Self.deleteFromKeychain(key: Self.apiKeyKey)
+            } else {
+                Self.saveToKeychain(key: Self.apiKeyKey, value: newValue)
+            }
+            // 혹시 남아있는 UserDefaults 잔여값 제거
+            UserDefaults.standard.removeObject(forKey: Self.apiKeyKey)
+        }
     }
 
     var hasAPIKey: Bool {
         !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // MARK: - Keychain Helpers
+
+    private static func saveToKeychain(key: String, value: String) {
+        let data = value.data(using: .utf8)!
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                     kSecAttrAccount as String: key,
+                                     kSecValueData as String: data]
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static func loadFromKeychain(key: String) -> String? {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                     kSecAttrAccount as String: key,
+                                     kSecMatchLimit as String: kSecMatchLimitOne,
+                                     kSecReturnData as String: true]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private static func deleteFromKeychain(key: String) {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                     kSecAttrAccount as String: key]
+        SecItemDelete(query as CFDictionary)
     }
 
     struct ChatMessage: Identifiable {
