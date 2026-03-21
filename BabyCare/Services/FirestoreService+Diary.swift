@@ -24,4 +24,14 @@ extension FirestoreService {
             .getDocuments()
         return decodeDocuments(snapshot.documents, as: DiaryEntry.self)
     }
+
+    func deleteDiaryEntry(_ entry: DiaryEntry, userId: String) async throws {
+        try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(entry.babyId)
+            .collection(FirestoreCollections.diary)
+            .document(entry.id)
+            .delete()
+    }
 }

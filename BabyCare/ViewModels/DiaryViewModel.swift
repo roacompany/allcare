@@ -13,6 +13,7 @@ final class DiaryViewModel {
     var selectedMood: DiaryEntry.Mood?
     var selectedPhotos: [UIImage] = []
     var entryDate = Date()
+    var editingEntry: DiaryEntry?
 
     private let firestoreService = FirestoreService.shared
     private let storageService = StorageService.shared
@@ -35,6 +36,14 @@ final class DiaryViewModel {
         }
     }
 
+    func startEditing(_ entry: DiaryEntry) {
+        editingEntry = entry
+        content = entry.content
+        selectedMood = entry.mood
+        entryDate = entry.date
+        selectedPhotos = []
+    }
+
     func addEntry(userId: String, babyId: String) async {
         guard isFormValid else {
             errorMessage = "내용을 입력해주세요."
@@ -44,30 +53,60 @@ final class DiaryViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        var entry = DiaryEntry(
-            babyId: babyId,
-            date: entryDate,
-            content: content.trimmingCharacters(in: .whitespaces),
-            mood: selectedMood
-        )
+        if let existing = editingEntry {
+            // 수정 모드
+            var updated = existing
+            updated.content = content.trimmingCharacters(in: .whitespaces)
+            updated.mood = selectedMood
+            updated.date = entryDate
+            updated.updatedAt = Date()
 
-        do {
-            var photoURLs: [String] = []
-            for (index, photo) in selectedPhotos.enumerated() {
-                let url = try await storageService.uploadDiaryPhoto(
-                    photo, userId: userId, babyId: babyId,
-                    diaryId: entry.id, index: index
-                )
-                photoURLs.append(url)
+            do {
+                try await firestoreService.saveDiaryEntry(updated, userId: userId)
+                if let idx = entries.firstIndex(where: { $0.id == updated.id }) {
+                    entries[idx] = updated
+                }
+                resetForm()
+                showAddEntry = false
+            } catch {
+                errorMessage = "일기 수정에 실패했습니다: \(error.localizedDescription)"
             }
-            entry.photoURLs = photoURLs
+        } else {
+            // 신규 생성
+            var entry = DiaryEntry(
+                babyId: babyId,
+                date: entryDate,
+                content: content.trimmingCharacters(in: .whitespaces),
+                mood: selectedMood
+            )
 
-            try await firestoreService.saveDiaryEntry(entry, userId: userId)
-            entries.insert(entry, at: 0)
-            resetForm()
-            showAddEntry = false
+            do {
+                var photoURLs: [String] = []
+                for (index, photo) in selectedPhotos.enumerated() {
+                    let url = try await storageService.uploadDiaryPhoto(
+                        photo, userId: userId, babyId: babyId,
+                        diaryId: entry.id, index: index
+                    )
+                    photoURLs.append(url)
+                }
+                entry.photoURLs = photoURLs
+
+                try await firestoreService.saveDiaryEntry(entry, userId: userId)
+                entries.insert(entry, at: 0)
+                resetForm()
+                showAddEntry = false
+            } catch {
+                errorMessage = "일기 저장에 실패했습니다: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func deleteEntry(_ entry: DiaryEntry, userId: String, babyId: String) async {
+        do {
+            try await firestoreService.deleteDiaryEntry(entry, userId: userId)
+            entries.removeAll { $0.id == entry.id }
         } catch {
-            errorMessage = "일기 저장에 실패했습니다: \(error.localizedDescription)"
+            errorMessage = "일기 삭제에 실패했습니다: \(error.localizedDescription)"
         }
     }
 
@@ -76,6 +115,7 @@ final class DiaryViewModel {
         selectedMood = nil
         selectedPhotos = []
         entryDate = Date()
+        editingEntry = nil
         errorMessage = nil
     }
 }

@@ -8,12 +8,17 @@ struct GrowthView: View {
     @State private var records: [GrowthRecord] = []
     @State private var isLoading = false
     @State private var showAddRecord = false
+    @State private var editingRecord: GrowthRecord?
+    @State private var showDeleteConfirm = false
+    @State private var recordToDelete: GrowthRecord?
 
     // Form
     @State private var height: String = ""
     @State private var weight: String = ""
     @State private var headCircumference: String = ""
     @State private var recordDate = Date()
+
+    @State private var saveError: String?
 
     private let firestoreService = FirestoreService.shared
 
@@ -93,6 +98,18 @@ struct GrowthView: View {
                                 }
                                 .padding(.horizontal)
                                 .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    startEditing(record)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        recordToDelete = record
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label("삭제", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                     }
@@ -107,8 +124,21 @@ struct GrowthView: View {
                     Image(systemName: "plus")
                 }
             }
-            .sheet(isPresented: $showAddRecord) {
+            .sheet(isPresented: $showAddRecord, onDismiss: resetForm) {
                 addRecordSheet
+            }
+            .sheet(item: $editingRecord, onDismiss: resetForm) { record in
+                editRecordSheet(record)
+            }
+            .confirmationDialog("기록을 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("삭제", role: .destructive) {
+                    if let record = recordToDelete {
+                        Task { await deleteRecord(record) }
+                    }
+                }
+                Button("취소", role: .cancel) {
+                    recordToDelete = nil
+                }
             }
             .task { await loadRecords() }
             .onChange(of: babyVM.selectedBaby?.id) {
@@ -197,7 +227,60 @@ struct GrowthView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") {
-                        Task { await saveRecord() }
+                        Task { await saveNewRecord() }
+                    }
+                    .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
+                }
+            }
+        }
+    }
+
+    // MARK: - Edit Record Sheet
+
+    private func editRecordSheet(_ record: GrowthRecord) -> some View {
+        NavigationStack {
+            Form {
+                Section("날짜") {
+                    DatePicker("날짜", selection: $recordDate, displayedComponents: .date)
+                        .environment(\.locale, Locale(identifier: "ko_KR"))
+                }
+
+                Section("측정값") {
+                    HStack {
+                        Text("몸무게")
+                        Spacer()
+                        TextField("kg", text: $weight)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
+                    HStack {
+                        Text("키")
+                        Spacer()
+                        TextField("cm", text: $height)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
+                    HStack {
+                        Text("머리둘레")
+                        Spacer()
+                        TextField("cm", text: $headCircumference)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                    }
+                }
+            }
+            .navigationTitle("성장 기록 수정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { editingRecord = nil }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        Task { await updateRecord(record) }
                     }
                     .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
                 }
@@ -215,9 +298,22 @@ struct GrowthView: View {
         isLoading = false
     }
 
-    @State private var saveError: String?
+    private func startEditing(_ record: GrowthRecord) {
+        recordDate = record.date
+        weight = record.weight.map { String($0) } ?? ""
+        height = record.height.map { String($0) } ?? ""
+        headCircumference = record.headCircumference.map { String($0) } ?? ""
+        editingRecord = record
+    }
 
-    private func saveRecord() async {
+    private func resetForm() {
+        height = ""
+        weight = ""
+        headCircumference = ""
+        recordDate = Date()
+    }
+
+    private func saveNewRecord() async {
         guard let userId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
 
@@ -234,11 +330,47 @@ struct GrowthView: View {
             records.append(record)
             records.sort { $0.date < $1.date }
             showAddRecord = false
-            height = ""
-            weight = ""
-            headCircumference = ""
         } catch {
             saveError = "저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    private func updateRecord(_ original: GrowthRecord) async {
+        guard let userId = authVM.currentUserId else { return }
+
+        let updated = GrowthRecord(
+            id: original.id,
+            babyId: original.babyId,
+            date: recordDate,
+            height: Double(height),
+            weight: Double(weight),
+            headCircumference: Double(headCircumference),
+            note: original.note,
+            createdAt: original.createdAt
+        )
+
+        do {
+            try await firestoreService.updateGrowthRecord(updated, userId: userId)
+            if let idx = records.firstIndex(where: { $0.id == original.id }) {
+                records[idx] = updated
+                records.sort { $0.date < $1.date }
+            }
+            editingRecord = nil
+        } catch {
+            saveError = "수정에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    private func deleteRecord(_ record: GrowthRecord) async {
+        guard let userId = authVM.currentUserId,
+              let babyId = babyVM.selectedBaby?.id else { return }
+
+        do {
+            try await firestoreService.deleteGrowthRecord(record.id, userId: userId, babyId: babyId)
+            records.removeAll { $0.id == record.id }
+            recordToDelete = nil
+        } catch {
+            saveError = "삭제에 실패했습니다: \(error.localizedDescription)"
         }
     }
 }

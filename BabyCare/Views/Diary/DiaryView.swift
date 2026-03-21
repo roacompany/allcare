@@ -20,6 +20,22 @@ struct DiaryView: View {
                 } else {
                     List(diaryVM.entries) { entry in
                         DiaryRowView(entry: entry)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                diaryVM.startEditing(entry)
+                                diaryVM.showAddEntry = true
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        guard let userId = authVM.currentUserId,
+                                              let babyId = babyVM.selectedBaby?.id else { return }
+                                        await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
+                                    }
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
+                            }
                     }
                     .listStyle(.plain)
                 }
@@ -139,7 +155,7 @@ struct AddDiaryView: View {
                         .frame(minHeight: 150)
                 }
             }
-            .navigationTitle("일기 쓰기")
+            .navigationTitle(diaryVM.editingEntry != nil ? "일기 수정" : "일기 쓰기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

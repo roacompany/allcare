@@ -24,4 +24,24 @@ extension FirestoreService {
             .getDocuments()
         return decodeDocuments(snapshot.documents, as: GrowthRecord.self)
     }
+
+    func updateGrowthRecord(_ record: GrowthRecord, userId: String) async throws {
+        let ref = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(record.babyId)
+            .collection(FirestoreCollections.growth)
+            .document(record.id)
+        try ref.setData(from: record)
+    }
+
+    func deleteGrowthRecord(_ recordId: String, userId: String, babyId: String) async throws {
+        try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.growth)
+            .document(recordId)
+            .delete()
+    }
 }
