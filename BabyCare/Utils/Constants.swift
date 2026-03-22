@@ -85,7 +85,7 @@ enum FirestoreCollections {
 enum CoupangConfig {
     private static let affiliateCode = "AF5256637"
     private static let subId = "babycareapp"
-    private static let baseURL = "https://link.coupang.com/re/AFFTDP"
+    private static let baseURL = "https://link.coupang.com/re/AFFSRP"
 
     static func searchURL(keyword: String) -> URL? {
         let encoded = keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? keyword
