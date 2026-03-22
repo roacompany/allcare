@@ -8,6 +8,7 @@ struct VaccinationListView: View {
     @State private var selectedVaccination: Vaccination?
     @State private var showCompleteSheet = false
     @State private var showUndoConfirmation = false
+    @State private var savedMessage: String?
 
     var body: some View {
         List {
@@ -84,6 +85,23 @@ struct VaccinationListView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("예방접종")
         .navigationBarTitleDisplayMode(.large)
+        .overlay(alignment: .bottom) {
+            if let msg = savedMessage {
+                Text(msg)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation { savedMessage = nil }
+                        }
+                    }
+            }
+        }
+        .animation(.easeInOut, value: savedMessage)
         .sheet(isPresented: $showCompleteSheet) {
             if let vax = selectedVaccination {
                 MarkVaccinationSheet(vaccination: vax) { administeredDate, hospital, note in
@@ -97,6 +115,9 @@ struct VaccinationListView: View {
                             administeredDate: administeredDate,
                             userId: userId
                         )
+                        if healthVM.errorMessage == nil {
+                            savedMessage = "\(vax.vaccine.displayName) \(vax.doseNumber)차 저장됨"
+                        }
                     }
                 }
             }
