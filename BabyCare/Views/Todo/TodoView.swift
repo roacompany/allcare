@@ -31,9 +31,33 @@ struct TodoView: View {
                 }
 
                 if !todoVM.completedTodos.isEmpty {
-                    Section("완료 (\(todoVM.completedTodos.count))") {
+                    Section {
                         ForEach(todoVM.completedTodos) { todo in
                             TodoRowView(todo: todo)
+                        }
+                        .onDelete { indexSet in
+                            Task {
+                                guard let userId = authVM.currentUserId else { return }
+                                for index in indexSet {
+                                    let todo = todoVM.completedTodos[index]
+                                    await todoVM.deleteTodo(todo, userId: userId)
+                                }
+                            }
+                        }
+                    } header: {
+                        HStack {
+                            Text("완료 (\(todoVM.completedTodos.count))")
+                            Spacer()
+                            Button("모두 삭제") {
+                                Task {
+                                    guard let userId = authVM.currentUserId else { return }
+                                    for todo in todoVM.completedTodos {
+                                        await todoVM.deleteTodo(todo, userId: userId)
+                                    }
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.red)
                         }
                     }
                 }
