@@ -91,5 +91,12 @@ service cloud.firestore {
       allow write: if request.auth != null
         && request.auth.uid == "8EAUezvUyYTzhNVw9VO6GKKyhhx2";
     }
+
+    // --- 상품 카탈로그: 인증 사용자 읽기, 관리자만 쓰기 ---
+    match /productCatalog/{productId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == "8EAUezvUyYTzhNVw9VO6GKKyhhx2";
+    }
   }
 }
