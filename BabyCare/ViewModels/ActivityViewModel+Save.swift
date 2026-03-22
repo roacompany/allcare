@@ -104,6 +104,12 @@ extension ActivityViewModel {
             }
         }
 
+        // 수면 24시간 상한 검증
+        if type == .sleep, let duration = activity.duration, duration > 86400 {
+            errorMessage = "수면 시간이 24시간을 초과합니다. 시간을 확인해주세요."
+            return
+        }
+
         if !note.isEmpty {
             activity.note = note
         }
