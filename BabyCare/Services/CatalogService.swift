@@ -50,7 +50,7 @@ enum CatalogService {
             let matchCount = words.filter { word in
                 lowercasedTags.contains(where: { $0.contains(word) })
             }.count
-            return matchCount >= 2
+            return matchCount >= 1
         }
     }
 }

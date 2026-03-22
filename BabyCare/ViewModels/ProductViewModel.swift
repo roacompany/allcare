@@ -33,16 +33,19 @@ final class ProductViewModel {
 
     // Catalog
     var catalog: [CatalogProduct] = []
+    var isCatalogLoading = false
     var selectedCatalogProduct: CatalogProduct?
 
     let firestoreService = FirestoreService.shared
 
     func loadCatalog() async {
+        isCatalogLoading = true
         do {
             catalog = try await CatalogService.fetchCatalog()
         } catch {
             // 카탈로그 로드 실패는 치명적이지 않음 — 직접 입력으로 fallback
         }
+        isCatalogLoading = false
     }
 
     // MARK: - Filtered Lists

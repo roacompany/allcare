@@ -73,6 +73,12 @@ struct AddProductView: View {
 
     private var catalogModeView: some View {
         VStack(spacing: 0) {
+            EmptyView()
+                .task {
+                    if productVM.catalog.isEmpty && !productVM.isCatalogLoading {
+                        await productVM.loadCatalog()
+                    }
+                }
             // Search bar
             HStack {
                 Image(systemName: "magnifyingglass")
@@ -407,11 +413,21 @@ struct AddProductView: View {
     @ViewBuilder
     private var catalogLoadingOrEmpty: some View {
         VStack(spacing: 12) {
-            if productVM.catalog.isEmpty {
+            if productVM.isCatalogLoading {
                 ProgressView()
                 Text("카탈로그를 불러오는 중...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            } else {
+                Image(systemName: "tray")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text("카탈로그가 비어있습니다")
+                    .font(.subheadline.weight(.medium))
+                Text("아래 직접 입력하기로 추가하세요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
