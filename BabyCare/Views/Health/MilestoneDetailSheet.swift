@@ -60,30 +60,50 @@ struct MilestoneDetailSheet: View {
                         .environment(\.locale, Locale(identifier: "ko_KR"))
                     }
                 } else {
-                    if let date = milestone.achievedDate {
-                        Section {
-                            HStack {
-                                Text("달성일")
-                                Spacer()
-                                Text(DateFormatters.shortDate.string(from: date))
-                                    .foregroundStyle(AppColors.successColor)
-                            }
-                        }
+                    Section("달성일 수정") {
+                        DatePicker(
+                            "달성한 날짜",
+                            selection: $achievedDate,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                        .environment(\.locale, Locale(identifier: "ko_KR"))
                     }
                 }
             }
-            .navigationTitle(milestone.isAchieved ? "달성 취소" : "달성 기록")
+            .navigationTitle(milestone.isAchieved ? "달성 기록 수정" : "달성 기록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(milestone.isAchieved ? "달성 취소" : "달성") {
-                        onToggle(milestone.isAchieved ? nil : achievedDate)
-                        dismiss()
+                    if milestone.isAchieved {
+                        Menu {
+                            Button("날짜 저장") {
+                                onToggle(achievedDate)
+                                dismiss()
+                            }
+                            Button("달성 취소", role: .destructive) {
+                                onToggle(nil)
+                                dismiss()
+                            }
+                        } label: {
+                            Text("저장")
+                                .foregroundStyle(AppColors.successColor)
+                        }
+                    } else {
+                        Button("달성") {
+                            onToggle(achievedDate)
+                            dismiss()
+                        }
+                        .foregroundStyle(AppColors.successColor)
                     }
-                    .foregroundStyle(milestone.isAchieved ? .red : AppColors.successColor)
+                }
+            }
+            .onAppear {
+                if let date = milestone.achievedDate {
+                    achievedDate = date
                 }
             }
         }

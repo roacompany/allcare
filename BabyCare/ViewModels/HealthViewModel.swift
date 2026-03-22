@@ -150,6 +150,24 @@ final class HealthViewModel {
         }
     }
 
+    func updateMilestoneDate(_ milestone: Milestone, achievedDate: Date, userId: String) async {
+        var updated = milestone
+        updated.achievedDate = achievedDate
+
+        if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
+            milestones[idx] = updated
+        }
+
+        do {
+            try await firestoreService.saveMilestone(updated, userId: userId)
+        } catch {
+            if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
+                milestones[idx] = milestone
+            }
+            errorMessage = "이정표 저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
     // MARK: - Schedule Generation
 
     func generateScheduleIfNeeded(babyId: String, birthDate: Date, userId: String, babyName: String = "아기") async {

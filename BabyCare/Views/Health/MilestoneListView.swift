@@ -75,7 +75,13 @@ struct MilestoneListView: View {
             MilestoneDetailSheet(milestone: ms, babyAgeMonths: babyAgeMonths) { achievedDate in
                 guard let userId = authVM.currentUserId else { return }
                 Task {
-                    await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
+                    if ms.isAchieved && achievedDate != nil {
+                        // 달성 상태에서 날짜만 수정
+                        await healthVM.updateMilestoneDate(ms, achievedDate: achievedDate!, userId: userId)
+                    } else {
+                        // 달성/취소 토글
+                        await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
+                    }
                 }
             }
         }
