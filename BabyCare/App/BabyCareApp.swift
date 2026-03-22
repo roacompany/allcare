@@ -12,6 +12,7 @@ struct BabyCareApp: App {
             FirebaseApp.configure()
         }
         appState = AppState.shared
+        ThemeManager.shared.applyAppearance()
     }
 
     @State private var deepLinkDestination: DeepLinkRouter.Destination?
@@ -38,9 +39,6 @@ struct BabyCareApp: App {
                 .environment(appState.hospitalReport)
                 .onOpenURL { url in
                     deepLinkDestination = DeepLinkRouter.destination(from: url)
-                }
-                .task {
-                    themeManager.applyAppearance()
                 }
         }
     }

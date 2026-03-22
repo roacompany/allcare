@@ -125,7 +125,11 @@ final class AuthViewModel {
             if let userId {
                 try? await deleteUserData(userId: userId)
             }
+            // Auth state listener가 isAuthenticated=false로 전환 → ContentView가 LoginView 표시
+            // 하지만 싱글톤 ViewModel들의 상태는 남아있으므로 명시적 초기화
             clearForm()
+            isAuthenticated = false
+            currentUserId = nil
         } catch {
             let nsError = error as NSError
             if nsError.code == AuthErrorCode.requiresRecentLogin.rawValue {

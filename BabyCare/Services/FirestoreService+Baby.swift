@@ -47,5 +47,14 @@ extension FirestoreService {
         }
 
         try await babyRef.delete()
+
+        // 해당 아기의 초대 코드도 정리
+        let invites = try await db.collection(FirestoreCollections.invites)
+            .whereField("ownerUserId", isEqualTo: userId)
+            .whereField("babyId", isEqualTo: babyId)
+            .getDocuments()
+        for doc in invites.documents {
+            try await doc.reference.delete()
+        }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // MARK: - NotificationSettingsView
 
@@ -7,6 +8,7 @@ struct NotificationSettingsView: View {
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
+    @State private var notificationPermission: Bool = true
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
 
@@ -14,6 +16,26 @@ struct NotificationSettingsView: View {
 
     var body: some View {
         List {
+            if !notificationPermission {
+                Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: "bell.slash.fill")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("알림이 꺼져 있습니다")
+                                .font(.subheadline.weight(.semibold))
+                            Text("설정 앱 > 베이비케어 > 알림에서 허용해주세요.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Link("설정 열기", destination: URL(string: UIApplication.openSettingsURLString)!)
+                            .font(.caption.weight(.medium))
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             // 활동별 알림
             Section {
                 ForEach($rules) { $rule in
@@ -111,6 +133,10 @@ struct NotificationSettingsView: View {
             }
         }
         .navigationTitle("알림 설정")
+        .task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            notificationPermission = settings.authorizationStatus == .authorized
+        }
     }
 
     private func saveRules() {
