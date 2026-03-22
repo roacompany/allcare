@@ -9,6 +9,7 @@ struct HospitalVisitListView: View {
     @State private var reportVisit: HospitalVisit?
 
     @State private var reportVM = HospitalReportViewModel()
+    @State private var savedMessage: String?
 
     var body: some View {
         visitList
@@ -16,7 +17,12 @@ struct HospitalVisitListView: View {
 
     private func saveVisit(_ visit: HospitalVisit) {
         guard let userId = authVM.currentUserId else { return }
-        Task { await healthVM.saveHospitalVisit(visit, userId: userId) }
+        Task {
+            await healthVM.saveHospitalVisit(visit, userId: userId)
+            if healthVM.errorMessage == nil {
+                withAnimation { savedMessage = "\(visit.hospitalName) 저장됨" }
+            }
+        }
     }
 
     private func deleteVisit(_ visit: HospitalVisit) {
@@ -55,6 +61,23 @@ struct HospitalVisitListView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("병원 기록")
         .navigationBarTitleDisplayMode(.large)
+        .overlay(alignment: .bottom) {
+            if let msg = savedMessage {
+                Text(msg)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation { savedMessage = nil }
+                        }
+                    }
+            }
+        }
+        .animation(.easeInOut, value: savedMessage)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { showAddSheet = true } label: { Image(systemName: "plus") }
