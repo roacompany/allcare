@@ -317,6 +317,30 @@ struct GrowthView: View {
         guard let userId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
 
+        // 체중 검증
+        if let w = Double(weight) {
+            guard (0.5...30).contains(w) else {
+                saveError = "몸무게는 0.5~30kg 범위여야 합니다"
+                return
+            }
+        }
+
+        // 키 검증
+        if let h = Double(height) {
+            guard (30...130).contains(h) else {
+                saveError = "키는 30~130cm 범위여야 합니다"
+                return
+            }
+        }
+
+        // 머리둘레 검증
+        if let hc = Double(headCircumference) {
+            guard (20...60).contains(hc) else {
+                saveError = "머리둘레는 20~60cm 범위여야 합니다"
+                return
+            }
+        }
+
         let record = GrowthRecord(
             babyId: babyId,
             date: recordDate,
@@ -337,6 +361,30 @@ struct GrowthView: View {
 
     private func updateRecord(_ original: GrowthRecord) async {
         guard let userId = authVM.currentUserId else { return }
+
+        // 체중 검증
+        if let w = Double(weight) {
+            guard (0.5...30).contains(w) else {
+                saveError = "몸무게는 0.5~30kg 범위여야 합니다"
+                return
+            }
+        }
+
+        // 키 검증
+        if let h = Double(height) {
+            guard (30...130).contains(h) else {
+                saveError = "키는 30~130cm 범위여야 합니다"
+                return
+            }
+        }
+
+        // 머리둘레 검증
+        if let hc = Double(headCircumference) {
+            guard (20...60).contains(hc) else {
+                saveError = "머리둘레는 20~60cm 범위여야 합니다"
+                return
+            }
+        }
 
         let updated = GrowthRecord(
             id: original.id,

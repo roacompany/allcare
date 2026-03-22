@@ -41,6 +41,10 @@ final class ActivityViewModel {
     var lastSleep: Activity?
     var lastDiaper: Activity?
 
+    // 중복 기록 경고 상태
+    var showDuplicateWarning = false
+    var pendingDuplicateSave: (() async -> Void)?
+
     let firestoreService = FirestoreService.shared
     private var timerTask: Task<Void, Never>?
 
@@ -277,6 +281,16 @@ final class ActivityViewModel {
                 guard let self, let start = self.timerStartTime else { break }
                 self.elapsedTime = Date().timeIntervalSince(start)
             }
+        }
+    }
+
+    // MARK: - Duplicate Check
+
+    /// 같은 타입 + 시작시간 1분 이내 기록이 있는지 확인
+    func hasDuplicateRecord(type: Activity.ActivityType, startTime: Date) -> Bool {
+        todayActivities.contains { activity in
+            activity.type == type &&
+            abs(activity.startTime.timeIntervalSince(startTime)) < 60 // 1분 이내
         }
     }
 

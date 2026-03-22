@@ -122,6 +122,16 @@ struct RecordingView: View {
             // Live Activity에 아기 이름 전달
             activityVM.currentBabyName = babyVM.selectedBaby?.name ?? "아기"
         }
+        .confirmationDialog("중복 기록", isPresented: Bindable(activityVM).showDuplicateWarning, titleVisibility: .visible) {
+            Button("저장") {
+                Task { await activityVM.pendingDuplicateSave?() }
+            }
+            Button("취소", role: .cancel) {
+                activityVM.pendingDuplicateSave = nil
+            }
+        } message: {
+            Text("비슷한 시간에 같은 기록이 있습니다. 저장할까요?")
+        }
         .alert("오류", isPresented: Binding(
             get: { activityVM.errorMessage != nil },
             set: { if !$0 { activityVM.errorMessage = nil } }

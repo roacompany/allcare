@@ -6,6 +6,23 @@ extension ActivityViewModel {
     // MARK: - Save Activity (낙관적 업데이트 + 롤백)
 
     func saveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
+        // 시작시간 결정 (타이머 or 수동)
+        let startTime = isTimeAdjusted ? manualStartTime : Date()
+
+        // 중복 체크
+        if hasDuplicateRecord(type: type, startTime: startTime) {
+            pendingDuplicateSave = { [weak self] in
+                await self?.performSaveActivity(userId: userId, babyId: babyId, type: type)
+            }
+            showDuplicateWarning = true
+            return
+        }
+
+        // 실제 저장
+        await performSaveActivity(userId: userId, babyId: babyId, type: type)
+    }
+
+    func performSaveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
         var activity = Activity(babyId: babyId, type: type)
 
         let timerBelongsToMe = isTimerRunning && activeTimerType == type

@@ -179,14 +179,23 @@ final class AuthViewModel {
         let legacyRef = userDoc.collection("familySharing")
         let newRef = userDoc.collection("sharedAccess")
 
-        guard let snapshot = try? await legacyRef.getDocuments(),
-              !snapshot.documents.isEmpty else { return }
+        do {
+            let snapshot = try await legacyRef.getDocuments()
+            guard !snapshot.documents.isEmpty else { return }
 
-        for doc in snapshot.documents {
-            // 신형 컬렉션에 복사 후 구형 삭제
-            let data = doc.data()
-            try? await newRef.document(doc.documentID).setData(data)
-            try? await doc.reference.delete()
+            let batch = db.batch()
+            for doc in snapshot.documents {
+                let newDocRef = newRef.document(doc.documentID)
+                // 신형 문서가 이미 존재하면 스킵
+                let existing = try await newDocRef.getDocument()
+                if !existing.exists {
+                    batch.setData(doc.data(), forDocument: newDocRef)
+                }
+                batch.deleteDocument(doc.reference)
+            }
+            try await batch.commit()
+        } catch {
+            // 실패 시 아무것도 안 바뀜 (원자성 보장) — 다음 로그인에 재시도
         }
     }
 
