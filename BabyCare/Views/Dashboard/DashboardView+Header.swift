@@ -37,11 +37,31 @@ extension DashboardView {
         .confirmationDialog("아기 선택", isPresented: $showBabySelector, titleVisibility: .visible) {
             ForEach(babyVM.babies) { baby in
                 Button(baby.name) {
-                    babyVM.selectBaby(baby)
-                    Task { await loadData() }
+                    if activityVM.isTimerRunning {
+                        pendingBabySwitch = baby
+                        showTimerWarningOnSwitch = true
+                    } else {
+                        babyVM.selectBaby(baby)
+                        Task { await loadData() }
+                    }
                 }
             }
             Button("취소", role: .cancel) {}
+        }
+        .confirmationDialog("타이머 실행 중", isPresented: $showTimerWarningOnSwitch, titleVisibility: .visible) {
+            Button("타이머 중지 후 전환") {
+                _ = activityVM.stopTimer()
+                if let baby = pendingBabySwitch {
+                    babyVM.selectBaby(baby)
+                    Task { await loadData() }
+                }
+                pendingBabySwitch = nil
+            }
+            Button("취소", role: .cancel) {
+                pendingBabySwitch = nil
+            }
+        } message: {
+            Text("타이머가 실행 중입니다. 아기를 전환하면 타이머가 중지됩니다.")
         }
     }
 

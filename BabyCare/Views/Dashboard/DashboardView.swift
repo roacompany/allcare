@@ -10,6 +10,8 @@ struct DashboardView: View {
     @Environment(AnnouncementViewModel.self) var announcementVM
 
     @State var showBabySelector = false
+    @State var showTimerWarningOnSwitch = false
+    @State var pendingBabySwitch: Baby?
     @State var editingActivity: Activity?
     @State var productCandidates: [BabyProduct] = []
     @State var savedActivityType: Activity.ActivityType?
