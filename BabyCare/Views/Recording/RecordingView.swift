@@ -86,14 +86,30 @@ struct RecordingView: View {
                 isPresented: $showCloseConfirm,
                 titleVisibility: .visible
             ) {
-                Button("닫기", role: .destructive) {
+                Button("저장하고 닫기") {
+                    let timerType = activityVM.activeTimerType
+                    let duration = activityVM.stopTimer()
+                    if duration > 0, let timerType {
+                        Task {
+                            guard let userId = authVM.currentUserId,
+                                  let babyId = babyVM.selectedBaby?.id else { return }
+                            await activityVM.saveActivity(userId: userId, babyId: babyId, type: timerType)
+                            activityVM.resetForm()
+                            dismiss()
+                        }
+                    } else {
+                        activityVM.resetForm()
+                        dismiss()
+                    }
+                }
+                Button("저장하지 않고 닫기", role: .destructive) {
                     _ = activityVM.stopTimer()
                     activityVM.resetForm()
                     dismiss()
                 }
                 Button("취소", role: .cancel) {}
             } message: {
-                Text("닫으면 측정 중인 시간이 사라집니다.")
+                Text("타이머를 저장하고 닫을 수 있습니다.")
             }
         }
         .presentationDetents([.large])
