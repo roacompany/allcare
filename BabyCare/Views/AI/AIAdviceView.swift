@@ -4,6 +4,7 @@ struct AIAdviceView: View {
     @Environment(AIAdviceViewModel.self) private var vm
 
     @State private var showAPIKeySheet = false
+    @State private var showClearConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -39,7 +40,7 @@ struct AIAdviceView: View {
 
                         if !vm.messages.isEmpty {
                             Button(role: .destructive) {
-                                vm.clearChat()
+                                showClearConfirm = true
                             } label: {
                                 Label("대화 초기화", systemImage: "trash")
                             }
@@ -51,6 +52,14 @@ struct AIAdviceView: View {
             }
             .sheet(isPresented: $showAPIKeySheet) {
                 APIKeySheet()
+            }
+            .confirmationDialog("대화 초기화", isPresented: $showClearConfirm, titleVisibility: .visible) {
+                Button("모두 삭제", role: .destructive) {
+                    vm.clearChat()
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("모든 대화가 삭제됩니다. 되돌릴 수 없습니다.")
             }
             .onAppear {
                 if !vm.hasAPIKey {
