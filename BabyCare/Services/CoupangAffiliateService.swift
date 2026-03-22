@@ -36,4 +36,11 @@ enum CoupangAffiliateService {
         let keyword = buildSearchKeyword(for: product)
         return CoupangConfig.searchURL(keyword: keyword)
     }
+
+    static func reorderURL(for product: BabyProduct) -> URL? {
+        if let coupangURL = product.coupangURL, !coupangURL.isEmpty {
+            return URL(string: coupangURL)
+        }
+        return searchURL(for: product)
+    }
 }

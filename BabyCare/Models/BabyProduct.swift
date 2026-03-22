@@ -22,6 +22,8 @@ struct BabyProduct: Identifiable, Codable, Hashable {
     var expiryDate: Date?         // 유통기한
     var reorderReminder: Bool
     var reorderThreshold: Int?    // 잔량 n개 이하면 알림
+    var catalogId: String? = nil
+    var coupangURL: String? = nil
     var createdAt: Date
     var updatedAt: Date
 
