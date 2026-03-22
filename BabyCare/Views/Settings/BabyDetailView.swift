@@ -13,6 +13,7 @@ struct BabyDetailView: View {
     @State private var bloodType: Baby.BloodType?
     @State private var showDeleteAlert = false
     @State private var isSaving = false
+    @State private var savedMessage: String?
 
     var body: some View {
         Form {
@@ -74,6 +75,18 @@ struct BabyDetailView: View {
         }
         .navigationTitle(baby.name)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .bottom) {
+            if let msg = savedMessage {
+                Text(msg)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut, value: savedMessage)
         .onAppear {
             name = baby.name
             birthDate = baby.birthDate
@@ -105,7 +118,11 @@ struct BabyDetailView: View {
         Task {
             await babyVM.updateBaby(updated, userId: userId)
             isSaving = false
-            dismiss()
+            if babyVM.errorMessage == nil {
+                withAnimation { savedMessage = "\(updated.name) 정보 저장됨" }
+                try? await Task.sleep(for: .seconds(1.5))
+                dismiss()
+            }
         }
     }
 }
