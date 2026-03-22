@@ -179,6 +179,15 @@ struct ProductListView: View {
                             ProductRowView(product: product)
                         }
                     }
+                    .onDelete { indexSet in
+                        Task {
+                            guard let userId = authVM.currentUserId else { return }
+                            for index in indexSet {
+                                let product = productVM.inactiveProducts[index]
+                                await productVM.deleteProduct(product, userId: userId)
+                            }
+                        }
+                    }
                 }
             }
         }
