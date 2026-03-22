@@ -6,13 +6,22 @@ extension ProductDetailView {
             // 구매 관리
             Section("구매 관리") {
                 Button {
-                    if let url = CoupangAffiliateService.searchURL(for: product) {
+                    if let url = CoupangAffiliateService.reorderURL(for: product) {
                         safariURL = url
                         showSafari = true
                     }
                 } label: {
-                    Label("쿠팡에서 검색", systemImage: "magnifyingglass")
+                    if product.coupangURL != nil {
+                        Label("재주문", systemImage: "arrow.clockwise.circle.fill")
+                            .foregroundStyle(Color.accentColor)
+                    } else {
+                        Label("쿠팡에서 검색", systemImage: "magnifyingglass")
+                    }
                 }
+
+                Text("쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 제공받습니다.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
 
                 Button {
                     showAddPurchase = true
@@ -70,6 +79,21 @@ extension ProductDetailView {
                             }
                         }
                         Spacer()
+                        Button {
+                            if let url = CoupangAffiliateService.reorderURL(for: product) {
+                                safariURL = url
+                                showSafari = true
+                            }
+                        } label: {
+                            Text(product.coupangURL != nil ? "재주문" : "구매하기")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(Color.orange)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.vertical, 4)
                 }

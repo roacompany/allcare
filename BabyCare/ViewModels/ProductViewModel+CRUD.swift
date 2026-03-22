@@ -21,7 +21,7 @@ extension ProductViewModel {
             return
         }
 
-        let product = BabyProduct(
+        var product = BabyProduct(
             babyId: selectedBabyId,
             name: name.trimmingCharacters(in: .whitespaces),
             brand: brand.isEmpty ? nil : brand.trimmingCharacters(in: .whitespaces),
@@ -41,6 +41,10 @@ extension ProductViewModel {
             reorderReminder: reorderReminder,
             reorderThreshold: Int(reorderThreshold)
         )
+        if let catalogProduct = selectedCatalogProduct {
+            product.catalogId = catalogProduct.id
+            product.coupangURL = catalogProduct.coupangURL
+        }
 
         do {
             try await firestoreService.saveProduct(product, userId: userId)
@@ -177,6 +181,7 @@ extension ProductViewModel {
         reorderReminder = false
         reorderThreshold = ""
         selectedBabyId = nil
+        selectedCatalogProduct = nil
         errorMessage = nil
     }
 }
