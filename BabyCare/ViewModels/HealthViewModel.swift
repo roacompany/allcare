@@ -86,6 +86,18 @@ final class HealthViewModel {
         administeredDate: Date,
         userId: String
     ) async {
+        // 중복 접종 방지: 같은 백신 + 같은 차수가 이미 완료된 경우
+        let isDuplicate = vaccinations.contains { v in
+            v.vaccine == vaccination.vaccine &&
+            v.doseNumber == vaccination.doseNumber &&
+            v.id != vaccination.id &&
+            v.isCompleted
+        }
+        guard !isDuplicate else {
+            errorMessage = "이미 완료된 접종입니다. (\(vaccination.vaccine.displayName) \(vaccination.doseNumber)차)"
+            return
+        }
+
         var updated = vaccination
         updated.isCompleted = true
         updated.administeredDate = administeredDate
