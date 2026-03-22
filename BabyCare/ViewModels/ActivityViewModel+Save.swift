@@ -186,6 +186,8 @@ extension ActivityViewModel {
 
         do {
             try await firestoreService.deleteActivity(activity.id, userId: userId, babyId: activity.babyId)
+            deriveLatestActivities()
+            syncWidgetData(babyName: currentBabyName, babyAge: "")
         } catch {
             todayActivities = backup
             errorMessage = "기록 삭제에 실패했습니다."
