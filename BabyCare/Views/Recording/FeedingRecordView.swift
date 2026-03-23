@@ -70,7 +70,8 @@ struct FeedingRecordView: View {
             ProductPickerSheet(products: productCandidates) { selected in
                 Task {
                     guard let userId = authVM.currentUserId else { return }
-                    await productVM.deductFromProduct(selected, userId: userId)
+                    let feedAmount = Int(activityVM.amount)
+                    await productVM.deductFromProduct(selected, userId: userId, recordedAmount: feedAmount)
                 }
                 productCandidates = []
                 isSaving = false
@@ -217,7 +218,8 @@ struct FeedingRecordView: View {
                 isSaving = false
                 return
             }
-            if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
+            let feedAmount = Int(activityVM.amount)
+            if let candidates = await productVM.deductStockForActivity(type, userId: userId, recordedAmount: feedAmount) {
                 productCandidates = candidates
             } else {
                 isSaving = false

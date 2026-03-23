@@ -142,14 +142,16 @@ extension ProductViewModel {
     }
 
     /// 활동 기록에 따른 용품 재고 자동 차감 (용품이 1개면 자동, 없으면 스킵)
+    /// - recordedAmount: 기록에서 입력한 실제 양 (ml/g). nil이면 기본 1개 차감.
     /// 반환값: 선택이 필요한 용품 목록 (2개 이상일 때). nil이면 처리 완료.
     @discardableResult
-    func deductStockForActivity(_ type: Activity.ActivityType, userId: String) async -> [BabyProduct]? {
+    func deductStockForActivity(_ type: Activity.ActivityType, userId: String, recordedAmount: Int? = nil) async -> [BabyProduct]? {
         guard let category = categoryForActivity(type) else { return nil }
         let candidates = availableProducts(for: category)
 
         if candidates.count == 1 {
-            await useProduct(candidates[0], amount: candidates[0].effectiveUnit.stepAmount, userId: userId)
+            let amount = recordedAmount ?? candidates[0].effectiveUnit.stepAmount
+            await useProduct(candidates[0], amount: amount, userId: userId)
             return nil
         } else if candidates.count > 1 {
             return candidates // UI에서 선택 필요
@@ -158,8 +160,10 @@ extension ProductViewModel {
     }
 
     /// 특정 용품에서 직접 차감 (사용자가 선택한 경우)
-    func deductFromProduct(_ product: BabyProduct, userId: String) async {
-        await useProduct(product, amount: product.effectiveUnit.stepAmount, userId: userId)
+    /// - recordedAmount: 기록에서 입력한 실제 양. nil이면 기본 단위 차감.
+    func deductFromProduct(_ product: BabyProduct, userId: String, recordedAmount: Int? = nil) async {
+        let amount = recordedAmount ?? product.effectiveUnit.stepAmount
+        await useProduct(product, amount: amount, userId: userId)
     }
 
     func resetForm() {
