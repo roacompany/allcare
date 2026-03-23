@@ -11,6 +11,7 @@ struct BabyProduct: Identifiable, Codable, Hashable {
     var purchaseStore: String?
     var quantity: Int?
     var remainingQuantity: Int?
+    var quantityUnit: QuantityUnit?
     var size: String?
     var rating: Int?              // 1-5
     var babyReaction: BabyReaction?
@@ -58,6 +59,14 @@ struct BabyProduct: Identifiable, Codable, Hashable {
             }
         }
 
+        var defaultUnit: QuantityUnit {
+            switch self {
+            case .formula, .babyFood: .gram
+            case .skincare, .bath, .medicine: .ml
+            default: .count
+            }
+        }
+
         var icon: String {
             switch self {
             case .diaper: "humidity.fill"
@@ -72,6 +81,28 @@ struct BabyProduct: Identifiable, Codable, Hashable {
             case .bedding: "bed.double.fill"
             case .gear: "stroller.fill"
             case .other: "bag.fill"
+            }
+        }
+    }
+
+    enum QuantityUnit: String, Codable, CaseIterable {
+        case count = "count"   // 개
+        case gram = "g"        // g
+        case ml = "ml"         // ml
+
+        var displayName: String {
+            switch self {
+            case .count: "개"
+            case .gram: "g"
+            case .ml: "ml"
+            }
+        }
+
+        var stepAmount: Int {
+            switch self {
+            case .count: 1
+            case .gram: 10
+            case .ml: 10
             }
         }
     }
@@ -102,6 +133,10 @@ struct BabyProduct: Identifiable, Codable, Hashable {
             case .allergic: "🚨"
             }
         }
+    }
+
+    var effectiveUnit: QuantityUnit {
+        quantityUnit ?? category.defaultUnit
     }
 
     var isLowStock: Bool {
@@ -139,6 +174,7 @@ struct BabyProduct: Identifiable, Codable, Hashable {
         purchaseStore: String? = nil,
         quantity: Int? = nil,
         remainingQuantity: Int? = nil,
+        quantityUnit: QuantityUnit? = nil,
         size: String? = nil,
         rating: Int? = nil,
         babyReaction: BabyReaction? = nil,
@@ -163,6 +199,7 @@ struct BabyProduct: Identifiable, Codable, Hashable {
         self.purchaseStore = purchaseStore
         self.quantity = quantity
         self.remainingQuantity = remainingQuantity
+        self.quantityUnit = quantityUnit
         self.size = size
         self.rating = rating
         self.babyReaction = babyReaction

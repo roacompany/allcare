@@ -19,6 +19,7 @@ final class ProductViewModel {
     var purchasePrice = ""
     var purchaseStore = ""
     var quantity = ""
+    var quantityUnit: BabyProduct.QuantityUnit = .count
     var size = ""
     var rating: Int?
     var babyReaction: BabyProduct.BabyReaction?

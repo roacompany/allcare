@@ -38,13 +38,15 @@ extension ProductDetailView {
             // Quick Use
             if product.isActive, product.remainingQuantity != nil {
                 Section("사용 기록") {
-                    Stepper("사용량: \(useAmount)개", value: $useAmount, in: 1...99)
+                    let unit = product.effectiveUnit
+                    let step = unit.stepAmount
+                    Stepper("사용량: \(useAmount)\(unit.displayName)", value: $useAmount, in: step...9999, step: step)
 
                     Button {
                         Task {
                             guard let userId = authVM.currentUserId else { return }
                             await productVM.useProduct(product, amount: useAmount, userId: userId)
-                            useAmount = 1
+                            useAmount = step
                         }
                     } label: {
                         Label("사용 기록하기", systemImage: "minus.circle.fill")
@@ -54,12 +56,13 @@ extension ProductDetailView {
 
             // Stock info
             if product.quantity != nil || product.remainingQuantity != nil {
+                let unit = product.effectiveUnit.displayName
                 Section("재고") {
                     if let total = product.quantity {
                         HStack {
                             Text("구매 수량")
                             Spacer()
-                            Text("\(total)개")
+                            Text("\(total)\(unit)")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -67,7 +70,7 @@ extension ProductDetailView {
                         HStack {
                             Text("남은 수량")
                             Spacer()
-                            Text("\(remaining)개")
+                            Text("\(remaining)\(unit)")
                                 .foregroundStyle(product.isLowStock ? .orange : .secondary)
                         }
                     }
@@ -75,7 +78,7 @@ extension ProductDetailView {
                         HStack {
                             Text("재구매 알림")
                             Spacer()
-                            Text("\(threshold)개 이하")
+                            Text("\(threshold)\(unit) 이하")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -92,7 +95,7 @@ extension ProductDetailView {
                             Text("재고가 부족합니다")
                                 .font(.subheadline.weight(.medium))
                             if let remaining = product.remainingQuantity {
-                                Text("\(remaining)개 남음 — 아래에서 쿠팡 검색 또는 구매 기록을 추가하세요")
+                                Text("\(remaining)\(product.effectiveUnit.displayName) 남음 — 아래에서 쿠팡 검색 또는 구매 기록을 추가하세요")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

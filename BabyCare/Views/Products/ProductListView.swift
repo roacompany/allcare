@@ -117,7 +117,7 @@ struct ProductListView: View {
                     Text("\(product.name) 재고 부족")
                         .font(.caption)
                     if let remaining = product.remainingQuantity {
-                        Text("(\(remaining)개 남음)")
+                        Text("(\(remaining)\(product.effectiveUnit.displayName) 남음)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

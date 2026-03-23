@@ -236,6 +236,9 @@ struct AddProductView: View {
                         Label(cat.displayName, systemImage: cat.icon).tag(cat)
                     }
                 }
+                .onChange(of: productVM.category) { _, newCat in
+                    productVM.quantityUnit = newCat.defaultUnit
+                }
 
                 TextField("사이즈/단계", text: $vm.size)
                     .textContentType(.none)
@@ -263,13 +266,21 @@ struct AddProductView: View {
 
             // Quantity
             Section("수량") {
+                Picker("단위", selection: $vm.quantityUnit) {
+                    ForEach(BabyProduct.QuantityUnit.allCases, id: \.self) { unit in
+                        Text(unit.displayName).tag(unit)
+                    }
+                }
+
                 HStack {
                     Text("수량")
                     Spacer()
-                    TextField("개", text: $vm.quantity)
+                    TextField(productVM.quantityUnit.displayName, text: $vm.quantity)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
+                        .frame(width: 120)
+                    Text(productVM.quantityUnit.displayName)
+                        .foregroundStyle(.secondary)
                 }
 
                 Toggle("재구매 알림", isOn: $vm.reorderReminder)
@@ -278,10 +289,12 @@ struct AddProductView: View {
                     HStack {
                         Text("알림 기준")
                         Spacer()
-                        TextField("개 이하", text: $vm.reorderThreshold)
+                        TextField("\(productVM.quantityUnit.displayName) 이하", text: $vm.reorderThreshold)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
+                            .frame(width: 120)
+                        Text(productVM.quantityUnit.displayName)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

@@ -31,6 +31,7 @@ extension ProductViewModel {
             purchaseStore: purchaseStore.isEmpty ? nil : purchaseStore,
             quantity: Int(quantity),
             remainingQuantity: Int(quantity),
+            quantityUnit: quantityUnit,
             size: size.isEmpty ? nil : size,
             rating: rating,
             babyReaction: babyReaction,
@@ -89,7 +90,7 @@ extension ProductViewModel {
         if updated.isLowStock && updated.reorderReminder {
             let content = UNMutableNotificationContent()
             content.title = "재구매 알림"
-            content.body = "\(product.name) 재고가 부족합니다. (\(newRemaining)개 남음)"
+            content.body = "\(product.name) 재고가 부족합니다. (\(newRemaining)\(product.effectiveUnit.displayName) 남음)"
             content.sound = .default
             let request = UNNotificationRequest(
                 identifier: "reorder-\(product.id)",
@@ -148,7 +149,7 @@ extension ProductViewModel {
         let candidates = availableProducts(for: category)
 
         if candidates.count == 1 {
-            await useProduct(candidates[0], amount: 1, userId: userId)
+            await useProduct(candidates[0], amount: candidates[0].effectiveUnit.stepAmount, userId: userId)
             return nil
         } else if candidates.count > 1 {
             return candidates // UI에서 선택 필요
@@ -158,7 +159,7 @@ extension ProductViewModel {
 
     /// 특정 용품에서 직접 차감 (사용자가 선택한 경우)
     func deductFromProduct(_ product: BabyProduct, userId: String) async {
-        await useProduct(product, amount: 1, userId: userId)
+        await useProduct(product, amount: product.effectiveUnit.stepAmount, userId: userId)
     }
 
     func resetForm() {
@@ -170,6 +171,7 @@ extension ProductViewModel {
         purchasePrice = ""
         purchaseStore = ""
         quantity = ""
+        quantityUnit = .count
         size = ""
         rating = nil
         babyReaction = nil

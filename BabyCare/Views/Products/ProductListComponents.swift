@@ -79,7 +79,7 @@ struct ProductRowView: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 if let remaining = product.remainingQuantity, let total = product.quantity {
-                    Text("\(remaining)/\(total)")
+                    Text("\(remaining)/\(total)\(product.effectiveUnit.displayName)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(product.isLowStock ? .orange : .secondary)
                 }
