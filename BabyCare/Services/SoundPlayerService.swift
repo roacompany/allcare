@@ -1,5 +1,4 @@
 import AVFoundation
-import FirebaseStorage
 import OSLog
 
 // MARK: - SoundPlayerService
@@ -145,31 +144,13 @@ final class SoundPlayerService {
         currentSound = nil
     }
 
-    // MARK: - Firebase Storage URL 해결
+    // MARK: - URL 해결 (Supabase Storage public URL)
 
     private func resolveStreamURL(track: SoundTrack) async throws -> URL {
-        let rawURL = track.storageURL
-
-        // 이미 https:// URL이면 그대로 사용
-        if rawURL.hasPrefix("https://") || rawURL.hasPrefix("http://") {
-            guard let url = URL(string: rawURL) else {
-                throw URLError(.badURL)
-            }
-            return url
+        guard let url = URL(string: track.storageURL) else {
+            throw URLError(.badURL)
         }
-
-        // gs:// 경로라면 Firebase Storage에서 다운로드 URL 획득
-        let storage = Storage.storage()
-        let ref: StorageReference
-
-        if rawURL.hasPrefix("gs://") {
-            ref = storage.reference(forURL: rawURL)
-        } else {
-            ref = storage.reference().child(rawURL)
-        }
-
-        let downloadURL = try await ref.downloadURL()
-        return downloadURL
+        return url
     }
 
     // MARK: - 다운로드 (캐시)
