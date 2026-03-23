@@ -34,17 +34,21 @@ final class ProductViewModel {
     // Catalog
     var catalog: [CatalogProduct] = []
     var isCatalogLoading = false
+    var catalogError: String?
     var selectedCatalogProduct: CatalogProduct?
 
     let firestoreService = FirestoreService.shared
 
     func loadCatalog() async {
         isCatalogLoading = true
+        catalogError = nil
         do {
             catalog = try await CatalogService.fetchCatalog()
-            print("[ProductVM] catalog loaded: \(catalog.count) items")
+            if catalog.isEmpty {
+                catalogError = "Firestore 조회 성공, 문서 0개"
+            }
         } catch {
-            print("[ProductVM] catalog load error: \(error)")
+            catalogError = error.localizedDescription
         }
         isCatalogLoading = false
     }

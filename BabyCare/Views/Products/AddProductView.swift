@@ -424,10 +424,22 @@ struct AddProductView: View {
                     .foregroundStyle(.secondary)
                 Text("카탈로그가 비어있습니다")
                     .font(.subheadline.weight(.medium))
+                if let err = productVM.catalogError {
+                    Text("디버그: \(err)")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
                 Text("아래 직접 입력하기로 추가하세요.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                Button("다시 시도") {
+                    Task { await productVM.loadCatalog() }
+                }
+                .font(.caption)
+                .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
