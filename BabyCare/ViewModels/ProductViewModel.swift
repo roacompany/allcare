@@ -42,8 +42,9 @@ final class ProductViewModel {
         isCatalogLoading = true
         do {
             catalog = try await CatalogService.fetchCatalog()
+            print("[ProductVM] catalog loaded: \(catalog.count) items")
         } catch {
-            // 카탈로그 로드 실패는 치명적이지 않음 — 직접 입력으로 fallback
+            print("[ProductVM] catalog load error: \(error)")
         }
         isCatalogLoading = false
     }

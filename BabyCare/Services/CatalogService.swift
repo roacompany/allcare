@@ -5,17 +5,22 @@ enum CatalogService {
     static func fetchCatalog() async throws -> [CatalogProduct] {
         let db = Firestore.firestore()
         let snapshot = try await db.collection(FirestoreCollections.productCatalog).getDocuments()
+        print("[CatalogService] fetched \(snapshot.documents.count) documents")
         return snapshot.documents.compactMap { doc -> CatalogProduct? in
             let data = doc.data()
             guard
                 let name = data["name"] as? String,
                 let brand = data["brand"] as? String,
-                let category = data["category"] as? String,
-                let coupangURL = data["coupangURL"] as? String,
-                let tags = data["tags"] as? [String],
-                let createdAtTS = data["createdAt"] as? Timestamp,
-                let updatedAtTS = data["updatedAt"] as? Timestamp
-            else { return nil }
+                let category = data["category"] as? String
+            else {
+                print("[CatalogService] SKIP \(doc.documentID): missing required field")
+                return nil
+            }
+
+            let coupangURL = (data["coupangURL"] as? String) ?? (data["coupangUrl"] as? String) ?? ""
+            let tags = (data["tags"] as? [String]) ?? []
+            let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAt
 
             return CatalogProduct(
                 id: doc.documentID,
@@ -23,10 +28,10 @@ enum CatalogService {
                 brand: brand,
                 category: category,
                 coupangURL: coupangURL,
-                imageURL: data["imageURL"] as? String,
+                imageURL: (data["imageURL"] as? String) ?? (data["imageUrl"] as? String),
                 tags: tags,
-                createdAt: createdAtTS.dateValue(),
-                updatedAt: updatedAtTS.dateValue()
+                createdAt: createdAt,
+                updatedAt: updatedAt
             )
         }
     }
