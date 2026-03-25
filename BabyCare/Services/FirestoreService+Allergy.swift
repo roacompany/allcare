@@ -11,7 +11,7 @@ extension FirestoreService {
             .document(babyId)
             .collection(FirestoreCollections.allergies)
             .document(record.id)
-        try ref.setData(from: record)
+        try await ref.setData(from: record)
     }
 
     func fetchAllergyRecords(userId: String, babyId: String) async throws -> [AllergyRecord] {

@@ -325,13 +325,14 @@ final class ActivityViewModel {
 
     // MARK: - Temperature Trend Detection
 
-    /// 24시간 내 38.0°C 이상 체온 기록 횟수
+    /// 24시간 롤링 윈도우 내 38.0°C 이상 체온 기록 횟수
+    /// todayActivities + 24h 시간 필터 조합으로 자정 경계 문제를 부분 완화
+    /// (완전한 수정: 온도 기록도 recentFeedingActivities처럼 전날 데이터를 별도 로드 필요)
     var recentHighTemperatureCount: Int {
-        let cutoff = Date().addingTimeInterval(-86400) // 24 hours ago
-        return todayActivities.filter { activity in
-            activity.type == .temperature &&
-            activity.startTime >= cutoff &&
-            (activity.temperature ?? 0) >= 38.0
+        return todayActivities.filter {
+            $0.type == .temperature &&
+            ($0.temperature ?? 0) >= 38.0 &&
+            $0.startTime > Date().addingTimeInterval(-86400)
         }.count
     }
 
