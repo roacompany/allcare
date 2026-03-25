@@ -147,6 +147,21 @@ struct HealthView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        // 알레르기 기록
+                        NavigationLink {
+                            AllergyListView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "leaf.circle.fill",
+                                iconColor: AppColors.coralColor,
+                                title: "알레르기 기록",
+                                subtitle: "알레르겐 및 반응 기록",
+                                badge: nil,
+                                badgeColor: .clear
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal)
                 }
