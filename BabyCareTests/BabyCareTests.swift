@@ -105,4 +105,165 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(todo.isRecurring)
         XCTAssertNil(todo.dueDate)
     }
+
+    // MARK: - AllergyRecord Codable Tests
+
+    func testAllergyRecordCodableRoundTrip() throws {
+        let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let original = AllergyRecord(
+            id: "test-allergy-id",
+            babyId: "test-baby-id",
+            allergenName: CommonAllergen.egg.displayName,
+            reactionType: .skin,
+            severity: .mild,
+            date: fixedDate,
+            symptoms: ["두드러기", "가려움"],
+            note: "저녁 이유식 후 발생",
+            createdAt: fixedDate
+        )
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(original)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(AllergyRecord.self, from: data)
+
+        XCTAssertEqual(decoded.id, original.id)
+        XCTAssertEqual(decoded.babyId, original.babyId)
+        XCTAssertEqual(decoded.allergenName, original.allergenName)
+        XCTAssertEqual(decoded.reactionType, original.reactionType)
+        XCTAssertEqual(decoded.severity, original.severity)
+        XCTAssertEqual(decoded.symptoms, original.symptoms)
+        XCTAssertEqual(decoded.note, original.note)
+    }
+
+    func testAllergyRecordEnumsRoundTrip() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        for reactionType in AllergyReactionType.allCases {
+            let data = try encoder.encode(reactionType)
+            let decoded = try decoder.decode(AllergyReactionType.self, from: data)
+            XCTAssertEqual(decoded, reactionType)
+        }
+
+        for severity in AllergySeverity.allCases {
+            let data = try encoder.encode(severity)
+            let decoded = try decoder.decode(AllergySeverity.self, from: data)
+            XCTAssertEqual(decoded, severity)
+        }
+
+        for allergen in CommonAllergen.allCases {
+            let data = try encoder.encode(allergen)
+            let decoded = try decoder.decode(CommonAllergen.self, from: data)
+            XCTAssertEqual(decoded, allergen)
+        }
+    }
+
+    func testCommonAllergenCount() {
+        XCTAssertEqual(CommonAllergen.allCases.count, 10)
+    }
+
+    // MARK: - PercentileCalculator Tests
+
+    /// 정확도: 남아 3개월, 6.0kg → 25~40th 범위 (WHO 2006: M=6.3762, Z≈-0.515)
+    /// 참고: 중앙값(50th)은 6.3762kg. 6.0kg은 중앙값보다 낮아 약 30th percentile
+    func testPercentileAccuracy_maleWeight3mo() {
+        let result = PercentileCalculator.percentile(value: 6.0, ageMonths: 3, gender: .male, metric: .weight)
+        XCTAssertNotNil(result, "percentile 결과가 nil이어서는 안 됩니다")
+        if let p = result {
+            XCTAssertGreaterThanOrEqual(p, 25.0, "6.0kg 남아 3개월은 25th 이상이어야 합니다")
+            XCTAssertLessThanOrEqual(p, 40.0, "6.0kg 남아 3개월은 40th 이하이어야 합니다")
+        }
+    }
+
+    /// 정확도(중앙값): 남아 3개월, 6.3762kg(중앙값) → 45~55th 범위
+    func testPercentileAccuracy_maleWeight3mo_median() {
+        let result = PercentileCalculator.percentile(value: 6.3762, ageMonths: 3, gender: .male, metric: .weight)
+        XCTAssertNotNil(result, "percentile 결과가 nil이어서는 안 됩니다")
+        if let p = result {
+            XCTAssertGreaterThanOrEqual(p, 45.0, "중앙값(6.3762kg)은 45th 이상이어야 합니다")
+            XCTAssertLessThanOrEqual(p, 55.0, "중앙값(6.3762kg)은 55th 이하이어야 합니다")
+        }
+    }
+
+    /// 경계값: 0개월(신생아)과 24개월 모두 nil 없이 정상 반환
+    func testPercentileBoundaryMonths() {
+        let at0 = PercentileCalculator.percentile(value: 3.3, ageMonths: 0, gender: .male, metric: .weight)
+        XCTAssertNotNil(at0, "0개월 결과가 nil이어서는 안 됩니다")
+        if let p = at0 {
+            XCTAssertGreaterThan(p, 0.0)
+            XCTAssertLessThan(p, 100.0)
+        }
+
+        let at24 = PercentileCalculator.percentile(value: 12.0, ageMonths: 24, gender: .female, metric: .weight)
+        XCTAssertNotNil(at24, "24개월 결과가 nil이어서는 안 됩니다")
+        if let p = at24 {
+            XCTAssertGreaterThan(p, 0.0)
+            XCTAssertLessThan(p, 100.0)
+        }
+    }
+
+    /// 방어: 음수 값 → nil 반환
+    func testPercentileNegativeValueReturnsNil() {
+        let result = PercentileCalculator.percentile(value: -1.0, ageMonths: 3, gender: .male, metric: .weight)
+        XCTAssertNil(result, "음수 입력값은 nil을 반환해야 합니다")
+    }
+
+    // MARK: - Temperature Trend Detection Tests
+
+    @MainActor
+    func testFeverTrend_normalTemperature_returnsFalse() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 37.5)
+        let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 36.8)
+        vm.todayActivities = [a1, a2]
+        XCTAssertFalse(vm.isFeverTrendDetected, "정상 체온만 기록 시 isFeverTrendDetected는 false여야 합니다")
+        XCTAssertEqual(vm.recentHighTemperatureCount, 0)
+    }
+
+    @MainActor
+    func testFeverTrend_twoFeverRecords_returnsTrue() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 38.0)
+        let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 38.5)
+        vm.todayActivities = [a1, a2]
+        XCTAssertTrue(vm.isFeverTrendDetected, "38.0°C 이상 2회 기록 시 isFeverTrendDetected는 true여야 합니다")
+        XCTAssertEqual(vm.recentHighTemperatureCount, 2)
+    }
+
+    @MainActor
+    func testFeverTrend_onlyOneFever_returnsFalse() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 38.2)
+        let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 37.0)
+        vm.todayActivities = [a1, a2]
+        XCTAssertFalse(vm.isFeverTrendDetected, "발열 기록 1회만 있을 때 isFeverTrendDetected는 false여야 합니다")
+        XCTAssertEqual(vm.recentHighTemperatureCount, 1)
+    }
+
+    @MainActor
+    func testFeverTrend_outsideOf24Hours_notCounted() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        // 25시간 전 기록은 24시간 범위 밖
+        let old = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-90000), temperature: 38.5)
+        let recent = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 38.1)
+        vm.todayActivities = [old, recent]
+        XCTAssertFalse(vm.isFeverTrendDetected, "24시간 이전 기록은 추세 계산에서 제외되어야 합니다")
+        XCTAssertEqual(vm.recentHighTemperatureCount, 1)
+    }
+
+    @MainActor
+    func testFeverTrend_emptyActivities_returnsFalse() {
+        let vm = ActivityViewModel()
+        vm.todayActivities = []
+        XCTAssertFalse(vm.isFeverTrendDetected)
+        XCTAssertEqual(vm.recentHighTemperatureCount, 0)
+    }
 }
