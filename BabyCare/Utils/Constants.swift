@@ -80,6 +80,7 @@ enum FirestoreCollections {
     static let hospitalVisits = "hospitalVisits"
     static let purchases = "purchases"
     static let productCatalog = "productCatalog"
+    static let allergies = "allergies"
 }
 
 enum CoupangConfig {
