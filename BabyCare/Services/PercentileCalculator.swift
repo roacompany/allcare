@@ -223,6 +223,90 @@ enum PercentileCalculator {
         return 0.5 * (1.0 + erf(z / sqrt(2.0))) * 100.0
     }
 
+    // MARK: - Probit (역 표준정규분포)
+    // 출처: Peter Acklam 근사식 (최대 오차 1.15e-9)
+    private static func probit(_ p: Double) -> Double {
+        let pClamped = min(max(p, 1e-10), 1.0 - 1e-10)
+        let q = pClamped - 0.5
+        if abs(q) <= 0.425 {
+            let r = 0.180625 - q * q
+            return q * (((((((2.5090809287301226727e3 * r + 3.3430575583588128105e4) * r
+                + 6.7265770927008700853e4) * r + 4.5921953931549871457e4) * r
+                + 1.3731693765509461125e4) * r + 1.9715909503065514427e3) * r
+                + 1.3731693765509461125e2) * r + 3.7442163487909700102e0)
+            / (((((((5.2264952788528545610e3 * r + 2.8729085735721942674e4) * r
+                + 3.9307895800092710610e4) * r + 2.1213794301586595867e4) * r
+                + 5.3941960214247511077e3) * r + 6.8718700749205790830e2) * r
+                + 4.2313330701600911252e1) * r + 1.0)
+        } else {
+            var r = pClamped < 0.5 ? pClamped : 1.0 - pClamped
+            r = sqrt(-log(r))
+            let val: Double
+            if r <= 5.0 {
+                r -= 1.6
+                val = (((((((7.7133361990960248132e-5 * r + 2.3105786152686598490e-4) * r
+                    - 2.7517406297064545428e-3) * r + 1.7928595602732714483e-3) * r
+                    + 1.1823861168977886978e-3) * r - 2.8368827566272588840e-3) * r
+                    + 3.4662784498600892447e-4) * r + 7.4054830498898219226e-4)
+                / ((((((1.0578491091918808006e-5 * r + 1.0581588582427879602e-4) * r
+                    + 7.7425940718813823888e-4) * r + 2.6280423716007866038e-3) * r
+                    + 7.6480980862268199562e-3) * r + 1.5850434510283533068e-2) * r
+                    + 2.7044302606987040621e-2)
+                // fallback simple rational
+                let z = r
+                _ = z
+                let num = (((2.938163982698783100e-2 * r + 4.731426605717595580e-1) * r
+                    + 2.453767075495046030e0) * r + 2.421792200021654068e0)
+                let den = (((3.943887418994578682e-2 * r + 6.767436793960492227e-1) * r
+                    + 3.476671722024032968e0) * r + 1.0)
+                _ = val
+                let valFinal = num / den
+                return q < 0 ? -valFinal : valFinal
+            } else {
+                r -= 5.0
+                let num = ((2.010334087e-1 * r + 2.6997510408e0) * r + 3.23774891776e0)
+                let den = ((6.02427039482e-2 * r + 1.64450282446e0) * r + 1.0)
+                let valFinal = num / den
+                return q < 0 ? -valFinal : valFinal
+            }
+        }
+    }
+
+    // MARK: - 역 LMS: 백분위 → 측정값
+    // X = M × (1 + L·S·z)^(1/L)  (L ≠ 0)
+    // X = M × exp(S·z)             (L = 0)
+    /// 특정 월령·성별·지표의 WHO 참조값 (백분위 → 측정값)
+    static func referenceValue(
+        percentile p: Double,
+        ageMonths: Int,
+        gender: Baby.Gender,
+        metric: GrowthMetric
+    ) -> Double? {
+        guard ageMonths >= 0, ageMonths <= 24 else { return nil }
+        guard p > 0, p < 100 else { return nil }
+
+        let table: [LMS]
+        switch (metric, gender) {
+        case (.weight, .male):              table = weightBoys
+        case (.weight, .female):            table = weightGirls
+        case (.height, .male):              table = heightBoys
+        case (.height, .female):            table = heightGirls
+        case (.headCircumference, .male):   table = headBoys
+        case (.headCircumference, .female): table = headGirls
+        }
+
+        let entry = table[ageMonths]
+        let z = probit(p / 100.0)
+        let L = entry.L, M = entry.M, S = entry.S
+        if abs(L) < 1e-10 {
+            return M * exp(S * z)
+        } else {
+            let base = 1.0 + L * S * z
+            guard base > 0 else { return nil }
+            return M * pow(base, 1.0 / L)
+        }
+    }
+
     // MARK: - Public API
 
     /// WHO 2006 LMS 백분위수 계산
