@@ -196,6 +196,36 @@ final class NotificationService {
             .removePendingNotificationRequests(withIdentifiers: ["hospital_\(visitId)"])
     }
 
+    // MARK: - Temperature Trend Alert
+
+    func scheduleTemperatureTrendAlert(babyName: String) {
+        guard NotificationSettings.temperatureTrendEnabled else { return }
+
+        let identifier = "temperature-trend-alert"
+
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = "\(babyName) 체온 확인이 필요해요"
+        content.body = "체온 확인이 필요해요. 최근 24시간 내 발열이 2회 이상 기록되었습니다."
+        content.sound = .default
+        content.categoryIdentifier = "TEMPERATURE_TREND_ALERT"
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 1,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {

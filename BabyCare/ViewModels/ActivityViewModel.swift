@@ -322,4 +322,21 @@ final class ActivityViewModel {
         guard let ml = Double(amount) else { return false }
         return ml > 0 && ml <= 500
     }
+
+    // MARK: - Temperature Trend Detection
+
+    /// 24시간 내 38.0°C 이상 체온 기록 횟수
+    var recentHighTemperatureCount: Int {
+        let cutoff = Date().addingTimeInterval(-86400) // 24 hours ago
+        return todayActivities.filter { activity in
+            activity.type == .temperature &&
+            activity.startTime >= cutoff &&
+            (activity.temperature ?? 0) >= 38.0
+        }.count
+    }
+
+    /// 24시간 내 38.0°C 이상 체온이 2회 이상 기록된 경우 true
+    var isFeverTrendDetected: Bool {
+        recentHighTemperatureCount >= 2
+    }
 }

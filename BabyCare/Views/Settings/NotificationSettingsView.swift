@@ -8,6 +8,7 @@ struct NotificationSettingsView: View {
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
+    @State private var temperatureTrendEnabled = NotificationSettings.temperatureTrendEnabled
     @State private var notificationPermission: Bool = true
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
@@ -118,6 +119,18 @@ struct NotificationSettingsView: View {
                 Text("예방접종")
             } footer: {
                 Text("예정된 접종일 기준, 선택한 시점에 알림을 보냅니다.")
+            }
+
+            // 체온 추세
+            Section {
+                Toggle("체온 추세 알림", isOn: $temperatureTrendEnabled)
+                    .onChange(of: temperatureTrendEnabled) { _, val in
+                        NotificationSettings.temperatureTrendEnabled = val
+                    }
+            } header: {
+                Text("체온 추세")
+            } footer: {
+                Text("최근 24시간 내 발열(38.0°C 이상)이 2회 이상 기록되면 알림을 보냅니다.")
             }
 
             // 재구매

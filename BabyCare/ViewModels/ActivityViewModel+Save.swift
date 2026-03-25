@@ -128,6 +128,9 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
+            if type == .temperature && isFeverTrendDetected {
+                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
+            }
             resetForm()
         } catch {
             // 롤백: 실패 시 UI에서 제거
