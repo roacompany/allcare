@@ -232,7 +232,7 @@ struct GrowthView: View {
         // Build reference line points by month 0-24
         // Use baby.birthDate as origin; x-axis = date
         struct RefPoint: Identifiable {
-            let id = UUID()
+            let id: String
             let date: Date
             let value: Double
             let label: String
@@ -251,7 +251,7 @@ struct GrowthView: View {
                     gender: baby.gender,
                     metric: metric
                 ) {
-                    pts.append(RefPoint(date: date, value: val, label: "\(Int(p))th"))
+                    pts.append(RefPoint(id: "\(Int(p))th-\(month)", date: date, value: val, label: "\(Int(p))th"))
                 }
             }
             refLines.append((label: "\(Int(p))th", points: pts))
@@ -409,8 +409,7 @@ struct GrowthView: View {
     }
 
     private func ageMonths(from birthDate: Date, to date: Date) -> Int {
-        let months = Calendar.current.dateComponents([.month], from: birthDate, to: date).month ?? 0
-        return min(max(months, 0), 24)
+        return max(0, min(24, Int(date.timeIntervalSince(birthDate) / (86400 * 30.4375))))
     }
 
     // MARK: - Add Record Sheet
