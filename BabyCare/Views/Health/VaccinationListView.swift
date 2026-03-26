@@ -11,6 +11,17 @@ struct VaccinationListView: View {
     @State private var savedMessage: String?
 
     var body: some View {
+        Group {
+            if healthVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                vaccinationList
+            }
+        }
+    }
+
+    private var vaccinationList: some View {
         List {
             // 접종 지연
             let overdue = healthVM.overdueVaccinations

@@ -122,12 +122,16 @@ struct HospitalVisitFormSheet: View {
                     HStack {
                         Text("비용")
                         Spacer()
+                        Text("₩")
+                            .foregroundStyle(.secondary)
                         TextField("0", text: $costText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 120)
-                        Text("원")
-                            .foregroundStyle(.secondary)
+                            .onChange(of: costText) { _, newValue in
+                                let filtered = newValue.filter(\.isNumber)
+                                if filtered != newValue { costText = filtered }
+                            }
                     }
                 }
 

@@ -91,9 +91,11 @@ final class BabyCareTests: XCTestCase {
     }
 
     func testDateIsSameDay() {
-        let date1 = Date()
-        let date2 = date1.adding(hours: 2)
-        XCTAssertTrue(date1.isSameDay(as: date2))
+        // 자정 edge case 방지: 당일 정오 기준
+        let cal = Calendar.current
+        let noon = cal.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!
+        let noonPlus2 = noon.adding(hours: 2)
+        XCTAssertTrue(noon.isSameDay(as: noonPlus2))
     }
 
     // MARK: - TodoItem Tests

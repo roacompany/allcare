@@ -13,6 +13,7 @@ struct AddAllergyView: View {
     @State private var reactionType: AllergyReactionType = .skin
     @State private var severity: AllergySeverity = .mild
     @State private var selectedSymptoms: Set<String> = []
+    @State private var customSymptomText = ""
     @State private var date = Date()
     @State private var note = ""
     @State private var isSaving = false
@@ -101,7 +102,15 @@ struct AddAllergyView: View {
                     date = record.date
                     reactionType = record.reactionType
                     severity = record.severity
-                    selectedSymptoms = Set(record.symptoms)
+                    let storedSymptoms = Set(record.symptoms)
+                    let knownSymptoms = Set(allSymptoms)
+                    let otherSymptoms = storedSymptoms.subtracting(knownSymptoms)
+                    if !otherSymptoms.isEmpty {
+                        selectedSymptoms = storedSymptoms.subtracting(otherSymptoms).union(["기타"])
+                        customSymptomText = otherSymptoms.sorted().joined(separator: ", ")
+                    } else {
+                        selectedSymptoms = storedSymptoms
+                    }
                     note = record.note ?? ""
                     if let match = CommonAllergen.allCases.first(where: { $0.displayName == record.allergenName }) {
                         selectedAllergen = match
@@ -170,6 +179,9 @@ struct AddAllergyView: View {
                     ) {
                         if selectedSymptoms.contains(symptom) {
                             selectedSymptoms.remove(symptom)
+                            if symptom == "기타" {
+                                customSymptomText = ""
+                            }
                         } else {
                             selectedSymptoms.insert(symptom)
                         }
@@ -178,6 +190,11 @@ struct AddAllergyView: View {
             }
             .padding(.vertical, 4)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+            if selectedSymptoms.contains("기타") {
+                TextField("기타 증상을 입력하세요", text: $customSymptomText)
+                    .autocorrectionDisabled()
+            }
         }
     }
 
@@ -189,6 +206,14 @@ struct AddAllergyView: View {
               let baby = babyVM.selectedBaby else { return }
 
         isSaving = true
+        var finalSymptoms = selectedSymptoms
+        let trimmedCustom = customSymptomText.trimmingCharacters(in: .whitespaces)
+        if finalSymptoms.contains("기타") {
+            finalSymptoms.remove("기타")
+            if !trimmedCustom.isEmpty {
+                finalSymptoms.insert(trimmedCustom)
+            }
+        }
         let record = AllergyRecord(
             id: editingRecord?.id ?? UUID().uuidString,
             babyId: baby.id,
@@ -196,7 +221,7 @@ struct AddAllergyView: View {
             reactionType: reactionType,
             severity: severity,
             date: date,
-            symptoms: Array(selectedSymptoms).sorted(),
+            symptoms: Array(finalSymptoms).sorted(),
             note: note.trimmingCharacters(in: .whitespaces).isEmpty ? nil : note.trimmingCharacters(in: .whitespaces),
             createdAt: editingRecord?.createdAt ?? Date()
         )

@@ -22,6 +22,17 @@ struct MilestoneListView: View {
     }
 
     var body: some View {
+        Group {
+            if healthVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                milestoneList
+            }
+        }
+    }
+
+    private var milestoneList: some View {
         List {
             // 현재 아기 나이 + 진행률 요약
             ageSummarySection

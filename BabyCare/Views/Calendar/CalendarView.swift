@@ -9,6 +9,7 @@ struct CalendarView: View {
 
     @State var editingActivity: Activity?
     @State var showRecording = false
+    @State var showBabySelector = false
 
     let weekdays = ["월", "화", "수", "목", "금", "토", "일"]
     let feedingColor = AppColors.feedingColor
@@ -36,6 +37,30 @@ struct CalendarView: View {
             }
             .navigationTitle("캘린더")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if babyVM.babies.count > 1 {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showBabySelector = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(babyVM.selectedBaby?.name ?? "아기")
+                                    .font(.subheadline.weight(.medium))
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                            }
+                        }
+                        .confirmationDialog("아기 선택", isPresented: $showBabySelector, titleVisibility: .visible) {
+                            ForEach(babyVM.babies) { baby in
+                                Button(baby.name) {
+                                    babyVM.selectBaby(baby)
+                                }
+                            }
+                            Button("취소", role: .cancel) {}
+                        }
+                    }
+                }
+            }
             .task { await loadData() }
             .onChange(of: calendarVM.currentMonth) {
                 Task { await loadMonthData() }

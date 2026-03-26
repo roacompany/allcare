@@ -407,12 +407,14 @@ struct GrowthView: View {
 
                 Spacer()
 
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     if let w = record.weight {
                         VStack(alignment: .trailing, spacing: 1) {
                             Text(String(format: "%.1fkg", w))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             if let baby,
                                let p = PercentileCalculator.percentile(
                                 value: w,
@@ -423,6 +425,8 @@ struct GrowthView: View {
                                 Text(percentileLabel(p))
                                     .font(.caption2)
                                     .foregroundStyle(.blue)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                         }
                     }
@@ -431,6 +435,8 @@ struct GrowthView: View {
                             Text(String(format: "%.1fcm", h))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             if let baby,
                                let p = PercentileCalculator.percentile(
                                 value: h,
@@ -441,6 +447,8 @@ struct GrowthView: View {
                                 Text(percentileLabel(p))
                                     .font(.caption2)
                                     .foregroundStyle(.blue)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                         }
                     }
@@ -449,6 +457,8 @@ struct GrowthView: View {
                             Text(String(format: "%.1fcm", hc))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             if let baby,
                                let p = PercentileCalculator.percentile(
                                 value: hc,
@@ -459,6 +469,8 @@ struct GrowthView: View {
                                 Text(percentileLabel(p))
                                     .font(.caption2)
                                     .foregroundStyle(.blue)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                         }
                     }

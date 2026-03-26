@@ -5,24 +5,29 @@ struct HealthView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
 
+    @State private var overdueVaccinationDismissed = false
+    @State private var upcomingVaccinationDismissed = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     // Alert Banners
-                    if !healthVM.overdueVaccinations.isEmpty {
+                    if !healthVM.overdueVaccinations.isEmpty && !overdueVaccinationDismissed {
                         AlertBanner(
                             icon: "exclamationmark.triangle.fill",
                             message: "접종 지연 \(healthVM.overdueVaccinations.count)건이 있습니다",
-                            color: .red
+                            color: .red,
+                            onDismiss: { overdueVaccinationDismissed = true }
                         )
                     }
 
-                    if !healthVM.upcomingVaccinations.isEmpty {
+                    if !healthVM.upcomingVaccinations.isEmpty && !upcomingVaccinationDismissed {
                         AlertBanner(
                             icon: "clock.fill",
                             message: "30일 이내 예방접종 \(healthVM.upcomingVaccinations.count)건",
-                            color: .orange
+                            color: .orange,
+                            onDismiss: { upcomingVaccinationDismissed = true }
                         )
                     }
 
@@ -227,6 +232,7 @@ private struct AlertBanner: View {
     let icon: String
     let message: String
     let color: Color
+    let onDismiss: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -236,6 +242,14 @@ private struct AlertBanner: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(color)
             Spacer()
+            Button {
+                withAnimation { onDismiss() }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(color.opacity(0.7))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

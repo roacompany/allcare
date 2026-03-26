@@ -55,7 +55,7 @@ struct FamilySharingView: View {
             } header: {
                 Text("초대하기")
             } footer: {
-                Text("초대 코드를 공유하면 상대방이 같은 아기의 기록을 함께 볼 수 있습니다.")
+                Text("초대 코드는 7일간 유효합니다. 코드를 받은 가족은 아기의 기록을 함께 확인하고 추가할 수 있습니다.")
             }
 
             // Join with code

@@ -23,6 +23,7 @@ final class HealthViewModel {
 
     var overdueVaccinations: [Vaccination] {
         vaccinations.filter { $0.isOverdue }
+            .sorted { $0.scheduledDate < $1.scheduledDate }
     }
 
     var completedVaccinations: [Vaccination] {

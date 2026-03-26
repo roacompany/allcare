@@ -12,7 +12,14 @@ struct HospitalVisitListView: View {
     @State private var savedMessage: String?
 
     var body: some View {
-        visitList
+        Group {
+            if healthVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                visitList
+            }
+        }
     }
 
     private func saveVisit(_ visit: HospitalVisit) {
