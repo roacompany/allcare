@@ -70,6 +70,8 @@ final class ActivityViewModel {
 
     /// 최근 7일 수유 데이터 (loadTodayActivities에서 함께 로드)
     var recentFeedingActivities: [Activity] = []
+    /// 최근 48시간 체온 데이터 — 자정 경계 야간 발열 감지용
+    var recentTemperatureActivities: [Activity] = []
     /// 아기 월령 (외부에서 주입)
     var babyAgeInMonths: Int = 3
 
@@ -158,6 +160,12 @@ final class ActivityViewModel {
                     userId: userId, babyId: babyId, from: weekAgo, to: yesterday
                 ).filter { $0.type.category == .feeding }
             }
+
+            // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
+            let fortyEightHoursAgo = Date().addingTimeInterval(-172800)
+            recentTemperatureActivities = try await firestoreService.fetchActivities(
+                userId: userId, babyId: babyId, from: fortyEightHoursAgo, to: Date()
+            ).filter { $0.type == .temperature }
         } catch {
             errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
         }
@@ -326,11 +334,9 @@ final class ActivityViewModel {
     // MARK: - Temperature Trend Detection
 
     /// 24시간 롤링 윈도우 내 38.0°C 이상 체온 기록 횟수
-    /// todayActivities + 24h 시간 필터 조합으로 자정 경계 문제를 부분 완화
-    /// (완전한 수정: 온도 기록도 recentFeedingActivities처럼 전날 데이터를 별도 로드 필요)
+    /// recentTemperatureActivities(48h 범위)에서 최근 24시간만 필터링 — 야간 발열 페어 감지 가능
     var recentHighTemperatureCount: Int {
-        return todayActivities.filter {
-            $0.type == .temperature &&
+        return recentTemperatureActivities.filter {
             ($0.temperature ?? 0) >= 38.0 &&
             $0.startTime > Date().addingTimeInterval(-86400)
         }.count

@@ -220,7 +220,7 @@ final class BabyCareTests: XCTestCase {
         let now = Date()
         let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 37.5)
         let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 36.8)
-        vm.todayActivities = [a1, a2]
+        vm.recentTemperatureActivities = [a1, a2]
         XCTAssertFalse(vm.isFeverTrendDetected, "정상 체온만 기록 시 isFeverTrendDetected는 false여야 합니다")
         XCTAssertEqual(vm.recentHighTemperatureCount, 0)
     }
@@ -231,7 +231,7 @@ final class BabyCareTests: XCTestCase {
         let now = Date()
         let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 38.0)
         let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 38.5)
-        vm.todayActivities = [a1, a2]
+        vm.recentTemperatureActivities = [a1, a2]
         XCTAssertTrue(vm.isFeverTrendDetected, "38.0°C 이상 2회 기록 시 isFeverTrendDetected는 true여야 합니다")
         XCTAssertEqual(vm.recentHighTemperatureCount, 2)
     }
@@ -242,7 +242,7 @@ final class BabyCareTests: XCTestCase {
         let now = Date()
         let a1 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 38.2)
         let a2 = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 37.0)
-        vm.todayActivities = [a1, a2]
+        vm.recentTemperatureActivities = [a1, a2]
         XCTAssertFalse(vm.isFeverTrendDetected, "발열 기록 1회만 있을 때 isFeverTrendDetected는 false여야 합니다")
         XCTAssertEqual(vm.recentHighTemperatureCount, 1)
     }
@@ -251,10 +251,10 @@ final class BabyCareTests: XCTestCase {
     func testFeverTrend_outsideOf24Hours_notCounted() {
         let vm = ActivityViewModel()
         let now = Date()
-        // 25시간 전 기록은 24시간 범위 밖
+        // 25시간 전 기록은 24시간 범위 밖 (recentTemperatureActivities는 48h 범위이지만 필터는 24h)
         let old = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-90000), temperature: 38.5)
         let recent = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 38.1)
-        vm.todayActivities = [old, recent]
+        vm.recentTemperatureActivities = [old, recent]
         XCTAssertFalse(vm.isFeverTrendDetected, "24시간 이전 기록은 추세 계산에서 제외되어야 합니다")
         XCTAssertEqual(vm.recentHighTemperatureCount, 1)
     }
@@ -262,8 +262,20 @@ final class BabyCareTests: XCTestCase {
     @MainActor
     func testFeverTrend_emptyActivities_returnsFalse() {
         let vm = ActivityViewModel()
-        vm.todayActivities = []
+        vm.recentTemperatureActivities = []
         XCTAssertFalse(vm.isFeverTrendDetected)
         XCTAssertEqual(vm.recentHighTemperatureCount, 0)
+    }
+
+    @MainActor
+    func testFeverTrend_overnightPair_detected() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        // 23시간 전 (어제 밤) + 1시간 전 (오늘 새벽) — 자정 경계를 넘는 야간 발열 페어
+        let lastNight = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-82800), temperature: 38.3)
+        let earlyMorning = Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 38.6)
+        vm.recentTemperatureActivities = [lastNight, earlyMorning]
+        XCTAssertTrue(vm.isFeverTrendDetected, "야간 발열 페어(24시간 이내)는 감지되어야 합니다")
+        XCTAssertEqual(vm.recentHighTemperatureCount, 2)
     }
 }
