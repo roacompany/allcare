@@ -1,0 +1,18 @@
+{
+  "todo-1": {
+    "calculator_path": "BabyCare/Services/PercentileCalculator.swift"
+  },
+  "todo-2": {
+    "growth_view_updated": "GrowthView percentile display added"
+  },
+  "todo-3": {
+    "trend_detection_path": "Temperature trend detection added to ActivityViewModel + NotificationService + NotificationSettingsView"
+  },
+  "todo-4": {
+    "allergy_model_path": "BabyCare/Models/AllergyRecord.swift",
+    "allergy_service_path": "BabyCare/Services/FirestoreService+Allergy.swift"
+  },
+  "todo-5": {
+    "allergy_views": ["BabyCare/Views/Health/AllergyListView.swift", "BabyCare/Views/Health/AddAllergyView.swift"]
+  }
+}

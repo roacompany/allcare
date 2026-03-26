@@ -4,8 +4,8 @@
   "platform": "ios",
   "framework": "swiftui",
   "brand": {
-    "primary": "#FFB5C2",
-    "accent": "#FFB5C2",
+    "primary": "#FF9FB5",
+    "accent": "#FF9FB5",
     "theme": "light"
   }
 }
