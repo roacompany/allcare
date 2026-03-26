@@ -9,6 +9,7 @@ struct MilestoneDetailSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var achievedDate = Date()
+    @State private var showUndoConfirmation = false
 
     private var isOverdue: Bool {
         !milestone.isAchieved && (milestone.expectedAgeMonths ?? 99) < babyAgeMonths
@@ -85,8 +86,7 @@ struct MilestoneDetailSheet: View {
                                 dismiss()
                             }
                             Button("달성 취소", role: .destructive) {
-                                onToggle(nil)
-                                dismiss()
+                                showUndoConfirmation = true
                             }
                         } label: {
                             Text("저장")
@@ -105,6 +105,19 @@ struct MilestoneDetailSheet: View {
                 if let date = milestone.achievedDate {
                     achievedDate = date
                 }
+            }
+            .confirmationDialog(
+                "달성 기록을 취소하시겠습니까?",
+                isPresented: $showUndoConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("달성 취소", role: .destructive) {
+                    onToggle(nil)
+                    dismiss()
+                }
+                Button("닫기", role: .cancel) {}
+            } message: {
+                Text("이 작업은 되돌릴 수 없습니다.")
             }
         }
     }

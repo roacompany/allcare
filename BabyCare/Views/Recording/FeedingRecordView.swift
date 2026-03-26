@@ -15,6 +15,14 @@ struct FeedingRecordView: View {
     @State private var isSaving = false
     @State private var productCandidates: [BabyProduct] = []
 
+    // Save is allowed unless bottle feeding with no amount entered
+    private var canSave: Bool {
+        if type == .feedingBottle {
+            return (Int(activityVM.amount) ?? 0) > 0
+        }
+        return true
+    }
+
     // Accent colour per sub-type
     private var accentColor: Color {
         switch type {
@@ -45,7 +53,7 @@ struct FeedingRecordView: View {
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
 
-                SaveButton(isSaving: isSaving, color: accentColor, action: save)
+                SaveButton(isSaving: isSaving, isEnabled: canSave, color: accentColor, action: save)
                     .padding(.horizontal)
                     .padding(.bottom, 16)
             }

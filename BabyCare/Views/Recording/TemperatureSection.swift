@@ -21,9 +21,14 @@ struct TemperatureSection: View {
         @Bindable var vm = activityVM
 
         VStack(alignment: .leading, spacing: 12) {
-            Label("체온 입력", systemImage: "thermometer.medium")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Label("체온 입력", systemImage: "thermometer.medium")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Text("*")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.red)
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 TextField("36.5", text: $vm.temperatureInput)

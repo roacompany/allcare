@@ -17,6 +17,7 @@ struct DashboardView: View {
     @State var savedActivityType: Activity.ActivityType?
     @State var lastSavedActivity: Activity?
     @State var quickInputType: Activity.ActivityType?
+    @State var showMoreSection = false
 
     let feedingColor = AppColors.feedingColor
     let sleepColor = AppColors.sleepColor
@@ -31,10 +32,18 @@ struct DashboardView: View {
                     AnnouncementBanner()
                     alertBannersSection
                     quickActionsSection
-                    soundShortcutCard
                     predictionSection
                     summaryCardsSection
-                    aiAdviceShortcut
+                    DisclosureGroup(isExpanded: $showMoreSection) {
+                        VStack(spacing: 12) {
+                            aiAdviceShortcut
+                            soundShortcutCard
+                        }
+                    } label: {
+                        Text("더보기")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
                     timelineSection
                 }
                 .padding(.horizontal, 16)

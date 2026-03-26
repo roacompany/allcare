@@ -31,6 +31,12 @@ struct GrowthView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    Text("이 성장 기록은 참고용이며 의학적 진단을 대체하지 않습니다.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     if records.isEmpty && !isLoading {
                         EmptyStateView(
                             icon: "chart.line.uptrend.xyaxis",

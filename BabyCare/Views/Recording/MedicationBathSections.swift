@@ -13,11 +13,16 @@ struct MedicationSection: View {
         @Bindable var vm = activityVM
 
         VStack(alignment: .leading, spacing: 12) {
-            Label("투약 정보", systemImage: "pills.fill")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Label("투약 정보", systemImage: "pills.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Text("*")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.red)
+            }
 
-            TextField("약 이름 입력", text: $vm.medicationName)
+            TextField("약 이름 입력 (필수)", text: $vm.medicationName)
                 .padding(14)
                 .background(.regularMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))

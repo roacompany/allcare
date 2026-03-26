@@ -41,7 +41,7 @@ struct SettingsView: View {
                 }
 
                 // 용품 관리 (별도 탭 없이 여기서 접근)
-                Section("관리") {
+                Section(header: Text("바로가기"), footer: Text("대시보드에서도 접근할 수 있습니다")) {
                     NavigationLink {
                         ProductListView()
                     } label: {
