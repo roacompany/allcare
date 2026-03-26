@@ -21,6 +21,32 @@ struct RecordingView: View {
     @State private var selectedFeedingType: Activity.ActivityType = .feedingBreast
 
     @State private var showCloseConfirm = false
+    @State private var showUnsavedDataConfirm = false
+    @State private var savedMessage: String?
+
+    // MARK: - Unsaved data check
+
+    private var hasUnsavedData: Bool {
+        !activityVM.temperatureInput.isEmpty
+            || !activityVM.amount.isEmpty
+            || !activityVM.foodName.isEmpty
+            || !activityVM.medicationName.isEmpty
+            || !activityVM.note.isEmpty
+            || !activityVM.foodAmount.isEmpty
+            || !activityVM.medicationDosage.isEmpty
+    }
+
+    // MARK: - Save success handler
+
+    private func handleSaved() {
+        withAnimation {
+            savedMessage = "기록이 저장되었습니다"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            activityVM.resetForm()
+            dismiss()
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -54,14 +80,14 @@ struct RecordingView: View {
                     case .feeding:
                         FeedingRecordView(
                             type: selectedFeedingType,
-                            onSaved: { dismiss() }
+                            onSaved: { handleSaved() }
                         )
                     case .sleep:
-                        SleepRecordView(onSaved: { dismiss() })
+                        SleepRecordView(onSaved: { handleSaved() })
                     case .diaper:
-                        DiaperRecordView(onSaved: { dismiss() })
+                        DiaperRecordView(onSaved: { handleSaved() })
                     case .health:
-                        HealthRecordView(onSaved: { dismiss() })
+                        HealthRecordView(onSaved: { handleSaved() })
                     }
                 }
                 .id(selectedCategory) // re-render on tab switch
@@ -73,6 +99,8 @@ struct RecordingView: View {
                     Button("닫기") {
                         if activityVM.isTimerRunning {
                             showCloseConfirm = true
+                        } else if hasUnsavedData {
+                            showUnsavedDataConfirm = true
                         } else {
                             activityVM.resetForm()
                             dismiss()
@@ -81,6 +109,19 @@ struct RecordingView: View {
                     .foregroundStyle(.secondary)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let msg = savedMessage {
+                    Text(msg)
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.bottom, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .id(msg)
+                }
+            }
+            .animation(.easeInOut, value: savedMessage)
             .confirmationDialog(
                 "타이머가 실행 중입니다",
                 isPresented: $showCloseConfirm,
@@ -110,6 +151,19 @@ struct RecordingView: View {
                 Button("취소", role: .cancel) {}
             } message: {
                 Text("타이머를 저장하고 닫을 수 있습니다.")
+            }
+            .confirmationDialog(
+                "저장하지 않고 닫을까요?",
+                isPresented: $showUnsavedDataConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("닫기", role: .destructive) {
+                    activityVM.resetForm()
+                    dismiss()
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("입력한 내용이 저장되지 않습니다.")
             }
         }
         .presentationDetents([.large])

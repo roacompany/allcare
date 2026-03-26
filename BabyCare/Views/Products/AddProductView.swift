@@ -437,10 +437,10 @@ struct AddProductView: View {
                     .foregroundStyle(.secondary)
                 Text("카탈로그가 비어있습니다")
                     .font(.subheadline.weight(.medium))
-                if let err = productVM.catalogError {
-                    Text("디버그: \(err)")
-                        .font(.caption2)
-                        .foregroundStyle(.red)
+                if productVM.catalogError != nil {
+                    Text("카탈로그를 불러올 수 없습니다")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }

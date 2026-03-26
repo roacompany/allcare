@@ -47,6 +47,21 @@ struct TemperatureSection: View {
                 .transition(.opacity)
             }
 
+            if let warning = activityVM.temperatureWarning {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.white)
+                    Text(warning)
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(temperatureDouble >= 40.0 ? Color.red : AppColors.coralColor)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
             // Quick-entry buttons
             HStack(spacing: 8) {
                 ForEach(["36.5", "37.0", "37.5", "38.0", "38.5"], id: \.self) { temp in

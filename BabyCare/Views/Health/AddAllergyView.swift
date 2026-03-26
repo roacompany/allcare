@@ -5,6 +5,7 @@ struct AddAllergyView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(\.dismiss) private var dismiss
 
+    let editingRecord: AllergyRecord?
     let onSave: (AllergyRecord) -> Void
 
     @State private var selectedAllergen: CommonAllergen? = nil
@@ -19,6 +20,11 @@ struct AddAllergyView: View {
 
     private let allSymptoms = ["발진", "두드러기", "구토", "설사", "호흡곤란", "부종", "기타"]
     private let service = FirestoreService.shared
+
+    init(editingRecord: AllergyRecord? = nil, onSave: @escaping (AllergyRecord) -> Void) {
+        self.editingRecord = editingRecord
+        self.onSave = onSave
+    }
 
     private var allergenName: String {
         if let allergen = selectedAllergen, allergen != .other {
@@ -77,7 +83,7 @@ struct AddAllergyView: View {
                         .lineLimit(3...5)
                 }
             }
-            .navigationTitle("알레르기 기록 추가")
+            .navigationTitle(editingRecord == nil ? "알레르기 기록 추가" : "알레르기 기록 수정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -88,6 +94,21 @@ struct AddAllergyView: View {
                         Task { await saveRecord() }
                     }
                     .disabled(!canSave || isSaving)
+                }
+            }
+            .onAppear {
+                if let record = editingRecord {
+                    date = record.date
+                    reactionType = record.reactionType
+                    severity = record.severity
+                    selectedSymptoms = Set(record.symptoms)
+                    note = record.note ?? ""
+                    if let match = CommonAllergen.allCases.first(where: { $0.displayName == record.allergenName }) {
+                        selectedAllergen = match
+                    } else {
+                        selectedAllergen = .other
+                        customAllergenName = record.allergenName
+                    }
                 }
             }
             .alert("오류", isPresented: Binding(
@@ -169,13 +190,15 @@ struct AddAllergyView: View {
 
         isSaving = true
         let record = AllergyRecord(
+            id: editingRecord?.id ?? UUID().uuidString,
             babyId: baby.id,
             allergenName: allergenName,
             reactionType: reactionType,
             severity: severity,
             date: date,
             symptoms: Array(selectedSymptoms).sorted(),
-            note: note.trimmingCharacters(in: .whitespaces).isEmpty ? nil : note.trimmingCharacters(in: .whitespaces)
+            note: note.trimmingCharacters(in: .whitespaces).isEmpty ? nil : note.trimmingCharacters(in: .whitespaces),
+            createdAt: editingRecord?.createdAt ?? Date()
         )
 
         do {

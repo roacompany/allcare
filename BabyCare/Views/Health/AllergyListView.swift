@@ -8,6 +8,7 @@ struct AllergyListView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showAddSheet = false
+    @State private var editingRecord: AllergyRecord?
     @State private var savedMessage: String?
 
     private let service = FirestoreService.shared
@@ -45,6 +46,14 @@ struct AllergyListView: View {
             AddAllergyView { newRecord in
                 records.insert(newRecord, at: 0)
                 withAnimation { savedMessage = "\(newRecord.allergenName) 기록 저장됨" }
+            }
+        }
+        .sheet(item: $editingRecord) { record in
+            AddAllergyView(editingRecord: record) { updatedRecord in
+                if let index = records.firstIndex(where: { $0.id == updatedRecord.id }) {
+                    records[index] = updatedRecord
+                }
+                withAnimation { savedMessage = "\(updatedRecord.allergenName) 기록 수정됨" }
             }
         }
         .overlay(alignment: .bottom) {
@@ -89,6 +98,8 @@ struct AllergyListView: View {
                 Section {
                     ForEach(severeRecords) { record in
                         AllergyRow(record: record)
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingRecord = record }
                     }
                     .onDelete { indexSet in
                         deleteRecords(from: severeRecords, at: indexSet)
@@ -102,6 +113,8 @@ struct AllergyListView: View {
                 Section {
                     ForEach(moderateRecords) { record in
                         AllergyRow(record: record)
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingRecord = record }
                     }
                     .onDelete { indexSet in
                         deleteRecords(from: moderateRecords, at: indexSet)
@@ -115,6 +128,8 @@ struct AllergyListView: View {
                 Section {
                     ForEach(mildRecords) { record in
                         AllergyRow(record: record)
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingRecord = record }
                     }
                     .onDelete { indexSet in
                         deleteRecords(from: mildRecords, at: indexSet)
