@@ -161,6 +161,16 @@ struct GrowthView: View {
             )
         }()
 
+        let velocityResult: GrowthVelocityResult? = {
+            guard let baby else { return nil }
+            return PercentileCalculator.growthVelocity(
+                records: records,
+                metric: metric,
+                gender: baby.gender,
+                birthDate: baby.birthDate
+            )
+        }()
+
         return VStack(alignment: .leading, spacing: 12) {
             // Title row with percentile badge
             HStack(alignment: .center, spacing: 8) {
@@ -197,6 +207,11 @@ struct GrowthView: View {
             }
             .frame(height: 180)
 
+            // Velocity indicator (shown when result is available)
+            if let v = velocityResult {
+                velocityIndicator(v)
+            }
+
             // Expand button
             if baby != nil {
                 Button {
@@ -223,6 +238,65 @@ struct GrowthView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
+    }
+
+    // MARK: - Velocity Indicator
+
+    @ViewBuilder
+    private func velocityIndicator(_ result: GrowthVelocityResult) -> some View {
+        let prevLabel = percentileLabel(result.previousPercentile)
+        let currLabel = percentileLabel(result.currentPercentile)
+
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                // Arrow icon
+                let (iconName, iconColor): (String, Color) = {
+                    switch result.changeDirection {
+                    case .increasing: return ("arrow.up.circle.fill", .green)
+                    case .decreasing: return ("arrow.down.circle.fill", .orange)
+                    case .stable:     return ("minus.circle.fill", .secondary)
+                    }
+                }()
+
+                Image(systemName: iconName)
+                    .foregroundStyle(iconColor)
+                    .font(.caption)
+
+                let arrowChar: String = {
+                    switch result.changeDirection {
+                    case .increasing: return "↑"
+                    case .decreasing: return "↓"
+                    case .stable:     return "→"
+                    }
+                }()
+
+                Text("지난 측정 대비 백분위 \(prevLabel) → \(currLabel) \(arrowChar)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Significant decrease banner
+            if result.isSignificant && result.changeDirection == .decreasing {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Text("성장률 변화가 감지되었습니다. 소아과 상담을 권장합니다.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.orange.opacity(0.1))
+                )
+
+                Text("이 정보는 참고용이며 의학적 진단을 대체하지 않습니다.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     // MARK: - Expanded Percentile Chart
@@ -590,8 +664,30 @@ struct GrowthView: View {
             records.append(record)
             records.sort { $0.date < $1.date }
             showAddRecord = false
+
+            // 성장 속도 알림 체크
+            checkAndNotifyGrowthVelocity()
         } catch {
             saveError = "저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    private func checkAndNotifyGrowthVelocity() {
+        guard let baby = babyVM.selectedBaby else { return }
+        let babyName = baby.name
+
+        for metric in [GrowthMetric.weight, .height, .headCircumference] {
+            if let result = PercentileCalculator.growthVelocity(
+                records: records,
+                metric: metric,
+                gender: baby.gender,
+                birthDate: baby.birthDate
+            ), result.isSignificant {
+                Task { @MainActor in
+                    await NotificationService.shared.scheduleGrowthVelocityAlert(babyName: babyName)
+                }
+                break
+            }
         }
     }
 

@@ -9,6 +9,22 @@ enum GrowthMetric {
     case headCircumference // cm
 }
 
+// MARK: - GrowthVelocityResult
+
+struct GrowthVelocityResult {
+    enum ChangeDirection {
+        case increasing
+        case decreasing
+        case stable
+    }
+
+    let currentPercentile: Double
+    let previousPercentile: Double
+    let changeDirection: ChangeDirection
+    /// true if percentile change crosses 2 major bands (3/15/50/85/97)
+    let isSignificant: Bool
+}
+
 // MARK: - PercentileCalculator
 // 출처: WHO Child Growth Standards 2006 (LMS method)
 // https://www.who.int/tools/child-growth-standards
@@ -329,5 +345,79 @@ enum PercentileCalculator {
         let entry = table[ageMonths]
         let z = lmsZScore(value: value, L: entry.L, M: entry.M, S: entry.S)
         return zScoreToPercentile(z)
+    }
+
+    // MARK: - Growth Velocity
+
+    /// 최근 2개 기록을 비교하여 성장 속도(백분위 변화)를 계산합니다.
+    /// - Parameters:
+    ///   - records: 날짜순 정렬된 성장 기록 배열
+    ///   - metric: 분석할 지표
+    ///   - gender: 아기 성별
+    ///   - birthDate: 아기 생년월일
+    /// - Returns: 백분위 변화 결과. 해당 metric 기록이 2개 미만이면 nil
+    static func growthVelocity(
+        records: [GrowthRecord],
+        metric: GrowthMetric,
+        gender: Baby.Gender,
+        birthDate: Date
+    ) -> GrowthVelocityResult? {
+        // metric 값이 존재하는 기록만 추출 (날짜 오름차순)
+        let relevant: [(date: Date, value: Double)] = records
+            .sorted { $0.date < $1.date }
+            .compactMap { r in
+                let val: Double?
+                switch metric {
+                case .weight:           val = r.weight
+                case .height:           val = r.height
+                case .headCircumference: val = r.headCircumference
+                }
+                guard let v = val else { return nil }
+                return (r.date, v)
+            }
+
+        guard relevant.count >= 2 else { return nil }
+
+        let prev = relevant[relevant.count - 2]
+        let curr = relevant[relevant.count - 1]
+
+        let prevMonths = max(0, min(24, Int(prev.date.timeIntervalSince(birthDate) / (86400 * 30.4375))))
+        let currMonths = max(0, min(24, Int(curr.date.timeIntervalSince(birthDate) / (86400 * 30.4375))))
+
+        guard let prevPct = percentile(value: prev.value, ageMonths: prevMonths, gender: gender, metric: metric),
+              let currPct = percentile(value: curr.value, ageMonths: currMonths, gender: gender, metric: metric) else {
+            return nil
+        }
+
+        // 방향 판정
+        let diff = currPct - prevPct
+        let direction: GrowthVelocityResult.ChangeDirection
+        if diff > 2 {
+            direction = .increasing
+        } else if diff < -2 {
+            direction = .decreasing
+        } else {
+            direction = .stable
+        }
+
+        // 주요 밴드 경계: 3 / 15 / 50 / 85 / 97
+        let bands: [Double] = [3, 15, 50, 85, 97]
+        func bandIndex(_ p: Double) -> Int {
+            var idx = 0
+            for (i, b) in bands.enumerated() {
+                if p >= b { idx = i + 1 }
+            }
+            return idx
+        }
+        let prevBand = bandIndex(prevPct)
+        let currBand = bandIndex(currPct)
+        let isSignificant = abs(currBand - prevBand) >= 2
+
+        return GrowthVelocityResult(
+            currentPercentile: currPct,
+            previousPercentile: prevPct,
+            changeDirection: direction,
+            isSignificant: isSignificant
+        )
     }
 }

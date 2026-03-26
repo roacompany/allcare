@@ -9,6 +9,7 @@ struct NotificationSettingsView: View {
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
     @State private var temperatureTrendEnabled = NotificationSettings.temperatureTrendEnabled
+    @State private var growthVelocityEnabled = NotificationSettings.growthVelocityEnabled
     @State private var notificationPermission: Bool = true
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
@@ -131,6 +132,18 @@ struct NotificationSettingsView: View {
                 Text("체온 추세")
             } footer: {
                 Text("최근 24시간 내 발열(38.0°C 이상)이 2회 이상 기록되면 알림을 보냅니다.")
+            }
+
+            // 성장 속도
+            Section {
+                Toggle("성장 속도 알림", isOn: $growthVelocityEnabled)
+                    .onChange(of: growthVelocityEnabled) { _, val in
+                        NotificationSettings.growthVelocityEnabled = val
+                    }
+            } header: {
+                Text("성장 속도")
+            } footer: {
+                Text("성장 기록 저장 시 백분위 변화가 크게 감지되면 알림을 보냅니다. 참고용이며 의학적 진단을 대체하지 않습니다.")
             }
 
             // 재구매

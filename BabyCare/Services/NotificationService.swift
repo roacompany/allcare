@@ -226,6 +226,36 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: - Growth Velocity Alert
+
+    func scheduleGrowthVelocityAlert(babyName: String) {
+        guard NotificationSettings.growthVelocityEnabled else { return }
+
+        let identifier = "growth-velocity-alert"
+
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = "\(babyName) 성장 패턴 변화"
+        content.body = "성장 패턴 변화가 감지되었습니다. 성장기록을 확인해주세요."
+        content.sound = .default
+        content.categoryIdentifier = "GROWTH_VELOCITY_ALERT"
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 1,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {
