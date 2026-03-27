@@ -6,11 +6,10 @@ final class ActivityViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    // Timer state
-    var isTimerRunning = false
-    var timerStartTime: Date?
-    var elapsedTime: TimeInterval = 0
-    var activeTimerType: Activity.ActivityType?
+    // Timer state (forwarded to timerManager)
+    var isTimerRunning: Bool { timerManager.isTimerRunning }
+    var elapsedTime: TimeInterval { timerManager.elapsedTime }
+    var activeTimerType: Activity.ActivityType? { timerManager.activeTimerType }
 
     // Form state
     var selectedType: Activity.ActivityType = .feedingBreast
@@ -46,7 +45,7 @@ final class ActivityViewModel {
     var pendingDuplicateSave: (() async -> Void)?
 
     let firestoreService = FirestoreService.shared
-    private var timerTask: Task<Void, Never>?
+    let timerManager = ActivityTimerManager()
 
     // MARK: - Computed Summaries (중복 상태 제거)
 
@@ -76,68 +75,26 @@ final class ActivityViewModel {
     var babyAgeInMonths: Int = 3
 
     var averageFeedingInterval: TimeInterval {
-        // 최근 7일 + 오늘 데이터 합산 (중복 제거)
-        let allFeedings = (recentFeedingActivities + todayActivities)
-            .filter { $0.type.category == .feeding }
-            .sorted { $0.startTime < $1.startTime }
-        var seen = Set<String>()
-        let unique = allFeedings.filter { seen.insert($0.id).inserted }
-
-        guard unique.count >= 2 else {
-            // 데이터 부족 시 월령별 기본값 사용
-            return AppConstants.feedingIntervalHours(ageInMonths: babyAgeInMonths) * 3600
-        }
-
-        var intervals: [TimeInterval] = []
-        for i in 1..<unique.count {
-            let gap = unique[i].startTime.timeIntervalSince(unique[i-1].startTime)
-            // 야간 gap (6시간 이상) 제외 — 낮 수유 패턴만 반영
-            if gap > 0 && gap < 21600 {
-                intervals.append(gap)
-            }
-        }
-
-        guard !intervals.isEmpty else {
-            return AppConstants.feedingIntervalHours(ageInMonths: babyAgeInMonths) * 3600
-        }
-        return intervals.reduce(0, +) / Double(intervals.count)
+        FeedingPredictionService.averageInterval(
+            todayActivities: todayActivities,
+            recentActivities: recentFeedingActivities,
+            babyAgeInMonths: babyAgeInMonths
+        )
     }
 
     var nextFeedingEstimate: Date? {
-        // 오늘 + 최근 데이터에서 가장 마지막 수유 기록 찾기
-        let allFeedings = (recentFeedingActivities + todayActivities)
-            .filter { $0.type.category == .feeding }
-        guard let latest = allFeedings.max(by: { $0.startTime < $1.startTime }) else {
-            return nil
-        }
-        return latest.startTime.addingTimeInterval(averageFeedingInterval)
+        FeedingPredictionService.nextEstimate(
+            lastFeeding: lastFeeding,
+            averageInterval: averageFeedingInterval
+        )
     }
 
     var nextFeedingText: String? {
-        guard let estimate = nextFeedingEstimate else { return nil }
-        let now = Date()
-        if estimate <= now {
-            let overdue = now.timeIntervalSince(estimate)
-            let overdueMins = Int(overdue / 60)
-            if overdueMins > 30 {
-                return "수유 시간이 \(overdueMins)분 지났어요"
-            }
-            return "곧 수유 시간이에요"
-        }
-        let remaining = estimate.timeIntervalSince(now)
-        let minutes = Int(remaining / 60)
-        let hours = minutes / 60
-        let mins = minutes % 60
-        if hours > 0 {
-            return "약 \(hours)시간 \(mins)분 후"
-        }
-        return "약 \(mins)분 후"
+        FeedingPredictionService.predictionText(estimate: nextFeedingEstimate)
     }
 
     var isFeedingOverdue: Bool {
-        guard let estimate = nextFeedingEstimate else { return false }
-        // 30분 이상 지나야 overdue — 불필요한 빨간 경고 방지
-        return Date().timeIntervalSince(estimate) > 1800
+        FeedingPredictionService.isOverdue(estimate: nextFeedingEstimate)
     }
 
     // MARK: - Data Loading
@@ -183,70 +140,26 @@ final class ActivityViewModel {
         lastDiaper = diapers.max(by: { $0.startTime < $1.startTime })
     }
 
-    // MARK: - Timer (스레드 안전)
+    // MARK: - Timer (ActivityTimerManager에 위임)
 
-    /// Live Activity 연동 위한 아기 이름 (외부에서 주입)
-    var currentBabyName: String = "아기"
-
-    // MARK: - Timer Persistence Keys
-
-    private static let timerStartKey = "babycare_timer_start"
-    private static let timerTypeKey = "babycare_timer_type"
-
-    func startTimer(type: Activity.ActivityType) {
-        isTimerRunning = true
-        let startTime = Date()
-        timerStartTime = startTime
-        activeTimerType = type
-        elapsedTime = 0
-        // 재시작 시 이전 타이머 측정값 초기화
-        manualStartTime = startTime
-        manualEndTime = nil
-        isTimeAdjusted = false
-
-        // UserDefaults에 시작 시간 + 타입 저장 (앱 강제 종료 후 복구용)
-        UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: Self.timerStartKey)
-        UserDefaults.standard.set(type.rawValue, forKey: Self.timerTypeKey)
-
-        // Live Activity 시작 (수유 타이머만)
-        if type.category == .feeding || type == .sleep {
-            LiveActivityManager.shared.startFeedingTimer(
-                babyName: currentBabyName,
-                feedingType: type
-            )
-        }
-
-        timerTask?.cancel()
-        timerTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
-                // @MainActor 클래스이므로 self 접근은 MainActor에서 실행
-                guard let self, let start = self.timerStartTime else { break }
-                self.elapsedTime = Date().timeIntervalSince(start)
-
-                // Live Activity 업데이트 (30초 간격은 LiveActivityManager 내부에서 처리)
-            }
-        }
+    /// Live Activity 연동 위한 아기 이름 (외부에서 주입, timerManager에 전달)
+    var currentBabyName: String {
+        get { timerManager.currentBabyName }
+        set { timerManager.currentBabyName = newValue }
     }
 
+    func startTimer(type: Activity.ActivityType) {
+        timerManager.startTimer(type: type)
+        // form 상태 초기화 (타이머 측정값 리셋)
+        manualStartTime = timerManager.timerStartTime ?? Date()
+        manualEndTime = nil
+        isTimeAdjusted = false
+    }
+
+    @discardableResult
     func stopTimer() -> TimeInterval {
-        let duration = elapsedTime
         let endTime = Date()
-        timerTask?.cancel()
-        timerTask = nil
-        isTimerRunning = false
-        timerStartTime = nil
-        activeTimerType = nil
-        elapsedTime = 0
-
-        // UserDefaults 타이머 상태 제거
-        UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
-        UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
-
-        // Live Activity 종료
-        LiveActivityManager.shared.stopFeedingTimer()
-
+        let duration = timerManager.stopTimer()
         // 타이머 측정값을 TimeAdjustmentSection에 반영 (사용자가 직접 수정하지 않은 경우)
         if !isTimeAdjusted && duration > 0 {
             manualStartTime = endTime.addingTimeInterval(-duration)
@@ -258,38 +171,10 @@ final class ActivityViewModel {
 
     /// 앱 시작 시 강제 종료 전에 진행 중이던 타이머 복구
     func resumeTimerIfNeeded() {
-        let startInterval = UserDefaults.standard.double(forKey: Self.timerStartKey)
-        guard startInterval > 0,
-              let typeRaw = UserDefaults.standard.string(forKey: Self.timerTypeKey),
-              let type = Activity.ActivityType(rawValue: typeRaw) else { return }
-
-        let startTime = Date(timeIntervalSince1970: startInterval)
-        let elapsed = Date().timeIntervalSince(startTime)
-
-        // 24시간 이상 지난 타이머는 복구하지 않음 (비정상 상태)
-        guard elapsed < 86400 else {
-            UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
-            UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
-            return
-        }
-
-        isTimerRunning = true
-        timerStartTime = startTime
-        activeTimerType = type
-        elapsedTime = elapsed
-        manualStartTime = startTime
+        guard let resumed = timerManager.resumeTimerIfNeeded() else { return }
+        manualStartTime = resumed.startTime
         manualEndTime = nil
         isTimeAdjusted = false
-
-        timerTask?.cancel()
-        timerTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
-                guard let self, let start = self.timerStartTime else { break }
-                self.elapsedTime = Date().timeIntervalSince(start)
-            }
-        }
     }
 
     // MARK: - Duplicate Check
