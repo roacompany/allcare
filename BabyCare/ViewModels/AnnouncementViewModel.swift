@@ -4,6 +4,7 @@ import Foundation
 final class AnnouncementViewModel {
     var announcements: [Announcement] = []
     var isLoading = false
+    var errorMessage: String?
 
     private let firestoreService = FirestoreService.shared
     private let readKey = "readAnnouncementIds"
@@ -27,7 +28,7 @@ final class AnnouncementViewModel {
         do {
             announcements = try await firestoreService.fetchActiveAnnouncements()
         } catch {
-            print("[Announcement] 불러오기 실패: \(error.localizedDescription)")
+            errorMessage = "공지사항을 불러올 수 없습니다"
         }
         isLoading = false
     }
@@ -58,7 +59,7 @@ final class AnnouncementViewModel {
         do {
             allAnnouncements = try await firestoreService.fetchAllAnnouncements()
         } catch {
-            print("[Announcement] 전체 불러오기 실패: \(error.localizedDescription)")
+            errorMessage = "공지사항 목록을 불러올 수 없습니다"
         }
         isLoading = false
     }
@@ -75,7 +76,7 @@ final class AnnouncementViewModel {
             try await firestoreService.saveAnnouncement(announcement)
             await loadAllAnnouncements()
         } catch {
-            print("[Announcement] 생성 실패: \(error.localizedDescription)")
+            errorMessage = "공지사항 등록에 실패했습니다"
         }
     }
 
@@ -84,7 +85,7 @@ final class AnnouncementViewModel {
             try await firestoreService.saveAnnouncement(announcement)
             await loadAllAnnouncements()
         } catch {
-            print("[Announcement] 수정 실패: \(error.localizedDescription)")
+            errorMessage = "공지사항 수정에 실패했습니다"
         }
     }
 
@@ -94,7 +95,7 @@ final class AnnouncementViewModel {
             try await firestoreService.deleteAnnouncement(id)
             await loadAllAnnouncements()
         } catch {
-            print("[Announcement] 삭제 실패: \(error.localizedDescription)")
+            errorMessage = "공지사항 삭제에 실패했습니다"
         }
     }
 

@@ -104,25 +104,31 @@ final class ActivityViewModel {
         defer { isLoading = false }
 
         do {
-            todayActivities = try await firestoreService.fetchActivities(
-                userId: userId, babyId: babyId, date: Date()
-            )
+            todayActivities = try await RetryHelper.withRetry {
+                try await self.firestoreService.fetchActivities(
+                    userId: userId, babyId: babyId, date: Date()
+                )
+            }
             deriveLatestActivities()
 
             // 수유 예측 정확도를 위해 최근 7일 수유 데이터도 로드
             let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
             let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
             if weekAgo < yesterday {
-                recentFeedingActivities = try await firestoreService.fetchActivities(
-                    userId: userId, babyId: babyId, from: weekAgo, to: yesterday
-                ).filter { $0.type.category == .feeding }
+                recentFeedingActivities = try await RetryHelper.withRetry {
+                    try await self.firestoreService.fetchActivities(
+                        userId: userId, babyId: babyId, from: weekAgo, to: yesterday
+                    )
+                }.filter { $0.type.category == .feeding }
             }
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-172800)
-            recentTemperatureActivities = try await firestoreService.fetchActivities(
-                userId: userId, babyId: babyId, from: fortyEightHoursAgo, to: Date()
-            ).filter { $0.type == .temperature }
+            recentTemperatureActivities = try await RetryHelper.withRetry {
+                try await self.firestoreService.fetchActivities(
+                    userId: userId, babyId: babyId, from: fortyEightHoursAgo, to: Date()
+                )
+            }.filter { $0.type == .temperature }
         } catch {
             errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
         }

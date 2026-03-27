@@ -48,7 +48,9 @@ final class BabyViewModel {
             hasInitialLoad = true
         }
         do {
-            var allBabies = try await firestoreService.fetchBabies(userId: userId)
+            var allBabies = try await RetryHelper.withRetry {
+                try await self.firestoreService.fetchBabies(userId: userId)
+            }
 
             // 공유된 아기도 로드 (1개 실패해도 나머지 계속)
             let sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []

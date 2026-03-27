@@ -67,10 +67,12 @@ final class HealthViewModel {
         defer { isLoading = false }
 
         do {
-            async let vaxResult = firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
-            async let msResult = firestoreService.fetchMilestones(userId: userId, babyId: babyId)
-            async let hvResult = firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
-            let (vax, ms, hv) = try await (vaxResult, msResult, hvResult)
+            let (vax, ms, hv) = try await RetryHelper.withRetry {
+                async let vaxResult = self.firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
+                async let msResult = self.firestoreService.fetchMilestones(userId: userId, babyId: babyId)
+                async let hvResult = self.firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
+                return try await (vaxResult, msResult, hvResult)
+            }
             vaccinations = vax
             milestones = ms
             hospitalVisits = hv
