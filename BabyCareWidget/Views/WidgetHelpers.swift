@@ -61,4 +61,31 @@ enum WidgetGradient {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+
+    static func background(_ scheme: ColorScheme) -> LinearGradient {
+        scheme == .dark ? pastelDark : pastel
+    }
+}
+
+// MARK: - Widget Colors
+
+enum WidgetColors {
+    static func feeding(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "FFB2C6") : Color(hex: "FF9FB5")
+    }
+    static func feedingText(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "FF8DAA") : Color(hex: "FF6B8A")
+    }
+    static func sleep(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "8FB2F2") : Color(hex: "7B9FE8")
+    }
+    static func diaper(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "99D1B4") : Color(hex: "85C1A3")
+    }
+    static func cardBackground(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(hex: "2C2C32") : Color.white
+    }
+    static func divider(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.15) : Color(hex: "FFD4DE")
+    }
 }

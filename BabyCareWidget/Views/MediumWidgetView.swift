@@ -3,6 +3,7 @@ import WidgetKit
 
 struct MediumWidgetView: View {
     let entry: BabyCareEntry
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack(spacing: 16) {
@@ -10,7 +11,7 @@ struct MediumWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.babyName)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(Color(hex: "FF6B8A"))
+                    .foregroundStyle(WidgetColors.feedingText(colorScheme))
 
                 if !entry.babyAge.isEmpty {
                     Text(entry.babyAge)
@@ -30,30 +31,30 @@ struct MediumWidgetView: View {
                         .foregroundStyle(.secondary)
                     Text(entry.nextFeedingText)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(hex: "FF6B8A"))
+                        .foregroundStyle(WidgetColors.feedingText(colorScheme))
                 }
             }
 
             Divider()
-                .overlay(Color(hex: "FFD4DE"))
+                .overlay(WidgetColors.divider(colorScheme))
 
             // Right: Activity summary
             VStack(alignment: .leading, spacing: 8) {
                 activityRow(
                     icon: "cup.and.saucer.fill",
-                    color: Color(hex: "FF9FB5"),
+                    color: WidgetColors.feeding(colorScheme),
                     label: entry.lastFeedingType ?? "수유",
                     time: entry.lastFeedingTime
                 )
                 activityRow(
                     icon: "moon.zzz.fill",
-                    color: Color(hex: "7B9FE8"),
+                    color: WidgetColors.sleep(colorScheme),
                     label: "수면",
                     time: entry.lastSleepTime
                 )
                 activityRow(
                     icon: "humidity.fill",
-                    color: Color(hex: "85C1A3"),
+                    color: WidgetColors.diaper(colorScheme),
                     label: "기저귀",
                     time: entry.lastDiaperTime
                 )
@@ -61,7 +62,7 @@ struct MediumWidgetView: View {
         }
         .containerBackground(for: .widget) {
             ContainerRelativeShape()
-                .fill(WidgetGradient.pastel)
+                .fill(WidgetGradient.background(colorScheme))
         }
         .widgetURL(URL(string: "babycare://record"))
     }

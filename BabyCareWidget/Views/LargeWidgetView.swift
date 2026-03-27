@@ -3,6 +3,7 @@ import WidgetKit
 
 struct LargeWidgetView: View {
     let entry: BabyCareEntry
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -10,11 +11,11 @@ struct LargeWidgetView: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "heart.fill")
-                        .foregroundStyle(Color(hex: "FF9FB5"))
+                        .foregroundStyle(WidgetColors.feeding(colorScheme))
                         .font(.caption)
                     Text(entry.babyName)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(Color(hex: "FF6B8A"))
+                        .foregroundStyle(WidgetColors.feedingText(colorScheme))
                 }
                 Spacer()
                 Text(entry.babyAge)
@@ -27,21 +28,21 @@ struct LargeWidgetView: View {
             HStack(spacing: 8) {
                 summaryCard(
                     icon: "cup.and.saucer.fill",
-                    color: Color(hex: "FF9FB5"),
+                    color: WidgetColors.feeding(colorScheme),
                     title: "수유",
                     value: "\(entry.todayFeedingCount)회",
                     sub: entry.todayTotalMl > 0 ? "\(Int(entry.todayTotalMl))ml" : nil
                 )
                 summaryCard(
                     icon: "moon.zzz.fill",
-                    color: Color(hex: "7B9FE8"),
+                    color: WidgetColors.sleep(colorScheme),
                     title: "수면",
                     value: entry.sleepDurationFormatted,
                     sub: nil
                 )
                 summaryCard(
                     icon: "humidity.fill",
-                    color: Color(hex: "85C1A3"),
+                    color: WidgetColors.diaper(colorScheme),
                     title: "기저귀",
                     value: "\(entry.todayDiaperCount)회",
                     sub: nil
@@ -53,7 +54,7 @@ struct LargeWidgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: entry.isFeedingOverdue ? "exclamationmark.circle.fill" : "clock.fill")
                     .font(.caption2)
-                    .foregroundStyle(entry.isFeedingOverdue ? .red : Color(hex: "7B9FE8"))
+                    .foregroundStyle(entry.isFeedingOverdue ? .red : WidgetColors.sleep(colorScheme))
                 Text(entry.isFeedingOverdue ? "수유 시간이 지났어요!" : "다음 수유 \(entry.nextFeedingText)")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(entry.isFeedingOverdue ? .red : .primary)
@@ -62,7 +63,7 @@ struct LargeWidgetView: View {
             .padding(.vertical, 5)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(entry.isFeedingOverdue ? Color.red.opacity(0.1) : Color(hex: "7B9FE8").opacity(0.1))
+                    .fill(entry.isFeedingOverdue ? Color.red.opacity(0.1) : WidgetColors.sleep(colorScheme).opacity(0.15))
             )
             .padding(.bottom, 6)
 
@@ -91,19 +92,19 @@ struct LargeWidgetView: View {
             // MARK: 액션 버튼
             HStack(spacing: 8) {
                 Link(destination: URL(string: "babycare://record/feeding")!) {
-                    actionButton(icon: "cup.and.saucer.fill", label: "수유", color: Color(hex: "FF9FB5"))
+                    actionButton(icon: "cup.and.saucer.fill", label: "수유", color: WidgetColors.feeding(colorScheme))
                 }
                 Link(destination: URL(string: "babycare://record/diaper")!) {
-                    actionButton(icon: "humidity.fill", label: "기저귀", color: Color(hex: "85C1A3"))
+                    actionButton(icon: "humidity.fill", label: "기저귀", color: WidgetColors.diaper(colorScheme))
                 }
                 Link(destination: URL(string: "babycare://record")!) {
-                    actionButton(icon: "plus", label: "기록", color: Color(hex: "7B9FE8"))
+                    actionButton(icon: "plus", label: "기록", color: WidgetColors.sleep(colorScheme))
                 }
             }
         }
         .containerBackground(for: .widget) {
             ContainerRelativeShape()
-                .fill(WidgetGradient.pastel)
+                .fill(WidgetGradient.background(colorScheme))
         }
     }
 
@@ -126,7 +127,7 @@ struct LargeWidgetView: View {
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.white.opacity(0.6))
+                .fill(WidgetColors.cardBackground(colorScheme).opacity(0.8))
         )
     }
 
@@ -163,7 +164,7 @@ struct LargeWidgetView: View {
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(.white.opacity(0.7))
+                .fill(WidgetColors.cardBackground(colorScheme).opacity(0.9))
         )
     }
 }
