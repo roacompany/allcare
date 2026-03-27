@@ -187,12 +187,29 @@ final class AuthViewModel {
             let snapshot = try await legacyRef.getDocuments()
             guard !snapshot.documents.isEmpty else { return }
 
+            // 신형 문서 존재 여부를 병렬로 일괄 확인
+            // String 값만 캡처해 Swift 6 @MainActor Sendable 요건 충족
+            // Firestore.firestore() 싱글톤을 클로저 내부에서 직접 호출 (local 캡처 회피)
+            let docIds = snapshot.documents.map { $0.documentID }
+            let newRefPath = newRef.path   // String — Sendable
+            let existingMap = await withTaskGroup(of: (String, Bool).self) { group in
+                for docId in docIds {
+                    group.addTask {
+                        let ref = Firestore.firestore().collection(newRefPath).document(docId)
+                        let snap = try? await ref.getDocument()
+                        return (docId, snap?.exists ?? false)
+                    }
+                }
+                var map: [String: Bool] = [:]
+                for await (id, exists) in group { map[id] = exists }
+                return map
+            }
+
             let batch = db.batch()
             for doc in snapshot.documents {
                 let newDocRef = newRef.document(doc.documentID)
-                // 신형 문서가 이미 존재하면 스킵
-                let existing = try await newDocRef.getDocument()
-                if !existing.exists {
+                // 신형 문서가 이미 존재하면 setData 스킵 (deleteDocument는 항상 수행)
+                if !(existingMap[doc.documentID] ?? false) {
                     batch.setData(doc.data(), forDocument: newDocRef)
                 }
                 batch.deleteDocument(doc.reference)

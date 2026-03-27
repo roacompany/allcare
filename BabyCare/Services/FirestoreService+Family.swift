@@ -41,34 +41,65 @@ extension FirestoreService {
 
         // Try fetching all documents; migrate legacy UUID-keyed docs on the fly
         let snapshot = try await collectionRef.getDocuments()
-        var results: [SharedBabyAccess] = []
 
-        for doc in snapshot.documents {
-            guard var access = try? doc.data(as: SharedBabyAccess.self) else { continue }
+        // Decode all documents and identify legacy ones (non-composite ID)
+        struct DocInfo {
+            let doc: QueryDocumentSnapshot
+            var access: SharedBabyAccess
+            let expectedId: String
+            var isLegacy: Bool { doc.documentID != expectedId }
+        }
+        let docInfos: [DocInfo] = snapshot.documents.compactMap { doc in
+            guard let access = try? doc.data(as: SharedBabyAccess.self) else { return nil }
             let expectedId = "\(access.ownerUserId)_\(access.babyId)"
+            return DocInfo(doc: doc, access: access, expectedId: expectedId)
+        }
 
-            if doc.documentID != expectedId {
-                // Legacy UUID document — migrate to new composite ID
-                // Check if new document already exists to avoid duplicates
-                let newRef = collectionRef.document(expectedId)
-                let newSnapshot = try await newRef.getDocument()
-                if newSnapshot.exists {
+        // Batch-check existence of new composite-ID documents in parallel for legacy docs
+        // Use Firestore.firestore() singleton inside the closure to avoid capturing
+        // non-Sendable locals (Swift 6 sending parameter requirement)
+        let legacyExpectedIds = docInfos.filter { $0.isLegacy }.map { $0.expectedId }
+        let collectionPath = collectionRef.path  // String — Sendable
+        let existingMap: [String: Bool]
+        if legacyExpectedIds.isEmpty {
+            existingMap = [:]
+        } else {
+            existingMap = await withTaskGroup(of: (String, Bool).self) { group in
+                for expectedId in legacyExpectedIds {
+                    group.addTask {
+                        // Obtain the Firestore singleton directly — avoids capturing a local
+                        let ref = Firestore.firestore().collection(collectionPath).document(expectedId)
+                        let snap = try? await ref.getDocument()
+                        return (expectedId, snap?.exists ?? false)
+                    }
+                }
+                var map: [String: Bool] = [:]
+                for await (id, exists) in group { map[id] = exists }
+                return map
+            }
+        }
+
+        // Process migration and collect results
+        var results: [SharedBabyAccess] = []
+        for var info in docInfos {
+            if info.isLegacy {
+                let newRef = collectionRef.document(info.expectedId)
+                if existingMap[info.expectedId] == true {
                     // New document already present; delete stale legacy doc and skip
-                    try? await doc.reference.delete()
+                    try? await info.doc.reference.delete()
                     continue
                 }
                 // Write new document first; only delete old if write succeeds
-                access.id = expectedId
+                info.access.id = info.expectedId
                 do {
-                    try newRef.setData(from: access)
-                    try? await doc.reference.delete()
+                    try newRef.setData(from: info.access)
+                    try? await info.doc.reference.delete()
                 } catch {
                     // Write failed — keep legacy doc and skip adding to results
                     continue
                 }
             }
-
-            results.append(access)
+            results.append(info.access)
         }
 
         return results

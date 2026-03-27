@@ -52,18 +52,22 @@ final class BabyViewModel {
                 try await self.firestoreService.fetchBabies(userId: userId)
             }
 
-            // 공유된 아기도 로드 (1개 실패해도 나머지 계속)
+            // 공유된 아기도 로드 (병렬 패치, 1개 실패해도 나머지 계속)
             let sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []
-            for access in sharedAccess {
-                do {
-                    if let baby = try await firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) {
-                        if !allBabies.contains(where: { $0.id == baby.id }) {
-                            allBabies.append(baby)
-                        }
+            let sharedBabies = await withTaskGroup(of: Baby?.self) { group in
+                for access in sharedAccess {
+                    group.addTask {
+                        try? await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId)
                     }
-                } catch {
-                    // 개별 공유 아기 로드 실패 — 나머지 계속 진행
                 }
+                var results: [Baby] = []
+                for await baby in group {
+                    if let baby { results.append(baby) }
+                }
+                return results
+            }
+            for baby in sharedBabies where !allBabies.contains(where: { $0.id == baby.id }) {
+                allBabies.append(baby)
             }
 
             babies = allBabies
