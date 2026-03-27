@@ -20,6 +20,7 @@ struct ContentView: View {
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
 
     private let networkMonitor = NetworkMonitor.shared
+    private let offlineQueue = OfflineQueue.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +35,19 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
                 .background(Color.orange)
+            }
+
+            if offlineQueue.pendingCount > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption2)
+                    Text("\(offlineQueue.pendingCount)개 기록 동기화 대기 중")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.8))
             }
 
             Group {

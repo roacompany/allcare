@@ -26,6 +26,7 @@ final class NetworkMonitor {
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor [weak self] in
                 guard let self else { return }
+                let wasConnected = self.isConnected
                 self.isConnected = path.status == .satisfied
 
                 if path.usesInterfaceType(.wifi) {
@@ -36,6 +37,13 @@ final class NetworkMonitor {
                     self.connectionType = .wired
                 } else {
                     self.connectionType = .unknown
+                }
+
+                // 오프라인 → 온라인 전환 시 대기 중인 작업 자동 플러시
+                if !wasConnected && self.isConnected {
+                    Task {
+                        await OfflineQueue.shared.flush()
+                    }
                 }
             }
         }

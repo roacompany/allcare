@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import FirebaseFirestore
 
 @main
 struct BabyCareApp: App {
@@ -16,6 +17,10 @@ struct BabyCareApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+        // Firestore 오프라인 영속성: 200MB 캐시
+        let firestoreSettings = Firestore.firestore().settings
+        firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: 200 * 1024 * 1024 as NSNumber)
+        Firestore.firestore().settings = firestoreSettings
         appState = AppState.shared
         ThemeManager.shared.applyAppearance()
     }
