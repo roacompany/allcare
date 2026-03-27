@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProductListView: View {
     @Environment(ProductViewModel.self) private var productVM
+    @Environment(PurchaseViewModel.self) private var purchaseVM
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
@@ -25,7 +26,8 @@ struct ProductListView: View {
                 categoryFilter
 
                 // Alerts banner
-                if !productVM.lowStockProducts.isEmpty || !productVM.expiringSoonProducts.isEmpty {
+                let reorderAlerts = purchaseVM.productsNeedingReorder(from: productVM.activeProducts)
+                if !productVM.lowStockProducts.isEmpty || !productVM.expiringSoonProducts.isEmpty || !reorderAlerts.isEmpty {
                     alertsBanner
                 }
 
@@ -133,6 +135,21 @@ struct ProductListView: View {
                     Text(product.isExpired
                          ? "\(product.name) 유통기한 만료"
                          : "\(product.name) 유통기한 임박")
+                        .font(.caption)
+                    Spacer()
+                }
+            }
+
+            let reorderAlerts = purchaseVM.productsNeedingReorder(from: productVM.activeProducts)
+            ForEach(reorderAlerts.prefix(2)) { product in
+                let isOverdue = purchaseVM.nextReorderDate(for: product.id).map { $0 < Date() } ?? false
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .foregroundStyle(isOverdue ? .red : .orange)
+                        .font(.caption)
+                    Text(isOverdue
+                         ? "\(product.name) 재주문 시기 초과"
+                         : "\(product.name) 재주문 시기 임박")
                         .font(.caption)
                     Spacer()
                 }

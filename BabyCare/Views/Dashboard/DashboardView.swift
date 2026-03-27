@@ -34,6 +34,7 @@ struct DashboardView: View {
                     quickActionsSection
                     predictionSection
                     summaryCardsSection
+                    reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {
                         VStack(spacing: 12) {
                             aiAdviceShortcut

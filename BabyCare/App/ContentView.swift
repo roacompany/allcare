@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
+    @Environment(ProductViewModel.self) private var productVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -14,6 +15,7 @@ struct ContentView: View {
     }()
     @State private var showRecording = false
     @State private var initialRecordingCategory: Activity.ActivityCategory?
+    @State private var reorderProduct: BabyProduct?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
 
@@ -71,6 +73,41 @@ struct ContentView: View {
             guard let destination else { return }
             handleDeepLink(destination)
             deepLinkDestination = nil
+        }
+        .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
+            guard let destination else { return }
+            handleNotificationDestination(destination)
+            NotificationRouter.shared.pendingDestination = nil
+        }
+        .sheet(item: $reorderProduct) { product in
+            NavigationStack {
+                ProductDetailView(product: product)
+            }
+        }
+    }
+
+    // MARK: - Notification Routing
+
+    private func handleNotificationDestination(_ destination: NotificationRouter.Destination) {
+        guard authVM.isAuthenticated else { return }
+
+        switch destination {
+        case .dashboard:
+            selectedTab = 0
+
+        case .announcements:
+            selectedTab = 4 // 설정 탭
+
+        case .reorderProduct(let productId, let coupangURLString):
+            if let urlString = coupangURLString, let url = URL(string: urlString) {
+                // 쿠팡 URL이 있으면 Safari 직접 열기 (가장 빠른 구매 경로)
+                UIApplication.shared.open(url)
+            } else {
+                // 쿠팡 URL 없으면 용품 상세 화면으로 이동
+                if let product = productVM.products.first(where: { $0.id == productId }) {
+                    reorderProduct = product
+                }
+            }
         }
     }
 

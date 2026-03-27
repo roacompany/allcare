@@ -97,6 +97,24 @@ final class PurchaseViewModel {
         return totalDays / (productRecords.count - 1)
     }
 
+    func nextReorderDate(for productId: String) -> Date? {
+        guard let avgDays = averageReorderDays(for: productId) else { return nil }
+        let lastPurchase = records
+            .filter { $0.productId == productId }
+            .map(\.purchaseDate)
+            .max()
+        guard let last = lastPurchase else { return nil }
+        return Calendar.current.date(byAdding: .day, value: avgDays, to: last)
+    }
+
+    func productsNeedingReorder(from products: [BabyProduct]) -> [BabyProduct] {
+        let threshold = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+        return products.filter { product in
+            guard let next = nextReorderDate(for: product.id) else { return false }
+            return next <= threshold
+        }
+    }
+
     func recordsForProduct(_ productId: String) -> [PurchaseRecord] {
         records.filter { $0.productId == productId }
     }

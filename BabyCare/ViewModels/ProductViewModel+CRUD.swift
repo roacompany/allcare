@@ -92,6 +92,12 @@ extension ProductViewModel {
             content.title = "재구매 알림"
             content.body = "\(product.name) 재고가 부족합니다. (\(newRemaining)\(product.effectiveUnit.displayName) 남음)"
             content.sound = .default
+            content.userInfo = [
+                "type": "reorder",
+                "productId": product.id,
+                "productName": product.name,
+                "coupangURL": product.coupangURL ?? ""
+            ]
             let request = UNNotificationRequest(
                 identifier: "reorder-\(product.id)",
                 content: content,
