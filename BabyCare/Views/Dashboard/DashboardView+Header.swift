@@ -11,8 +11,21 @@ extension DashboardView {
         } label: {
             HStack(spacing: 8) {
                 if let baby = babyVM.selectedBaby {
-                    Text(baby.gender.emoji)
-                        .font(.title3)
+                    if let photoURL = baby.photoURL {
+                        CachedAsyncImage(
+                            url: photoURL,
+                            size: CGSize(width: 40, height: 40)
+                        ) {
+                            Text(baby.gender.emoji)
+                                .font(.title3)
+                                .frame(width: 40, height: 40)
+                                .background(Color(.systemGray5))
+                        }
+                        .clipShape(Circle())
+                    } else {
+                        Text(baby.gender.emoji)
+                            .font(.title3)
+                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(baby.name)
                             .font(.headline)

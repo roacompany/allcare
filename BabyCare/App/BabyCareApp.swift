@@ -7,6 +7,11 @@ struct BabyCareApp: App {
     private let appState: AppState
 
     init() {
+        // URLCache 설정 (이미지 캐싱 지원)
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,   // 50MB memory
+            diskCapacity: 200 * 1024 * 1024      // 200MB disk
+        )
         // AppState → AuthViewModel → Auth.auth() 호출 전에 Firebase 초기화 필수
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()

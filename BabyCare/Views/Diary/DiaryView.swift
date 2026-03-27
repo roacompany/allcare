@@ -92,13 +92,27 @@ struct DiaryRowView: View {
                 .lineLimit(3)
 
             if !entry.photoURLs.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "photo.fill")
-                        .font(.caption2)
-                    Text("\(entry.photoURLs.count)장")
-                        .font(.caption2)
+                HStack(spacing: 6) {
+                    if let firstURL = entry.photoURLs.first {
+                        CachedAsyncImage(
+                            url: firstURL,
+                            size: CGSize(width: 32, height: 32)
+                        ) {
+                            Image(systemName: "photo.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 32, height: 32)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo.fill")
+                            .font(.caption2)
+                        Text("\(entry.photoURLs.count)장")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)

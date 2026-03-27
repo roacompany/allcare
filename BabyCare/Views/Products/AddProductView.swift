@@ -399,12 +399,27 @@ struct AddProductView: View {
     @ViewBuilder
     private func catalogRow(_ item: CatalogProduct) -> some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.accentColor.opacity(0.1))
-                    .frame(width: 40, height: 40)
-                Image(systemName: categoryIcon(for: item.category))
-                    .foregroundStyle(Color.accentColor)
+            if let imageURL = item.imageURL {
+                CachedAsyncImage(
+                    url: imageURL,
+                    size: CGSize(width: 44, height: 44)
+                ) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.accentColor.opacity(0.1))
+                        Image(systemName: categoryIcon(for: item.category))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.accentColor.opacity(0.1))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: categoryIcon(for: item.category))
+                        .foregroundStyle(Color.accentColor)
+                }
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
