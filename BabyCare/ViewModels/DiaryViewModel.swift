@@ -1,3 +1,4 @@
+import FirebaseFirestore
 import Foundation
 import UIKit
 
@@ -5,8 +6,12 @@ import UIKit
 final class DiaryViewModel {
     var entries: [DiaryEntry] = []
     var isLoading = false
+    var isLoadingMore = false
+    var hasMorePages = true
     var errorMessage: String?
     var showAddEntry = false
+
+    nonisolated(unsafe) private var lastDocument: DocumentSnapshot?
 
     // Form
     var content = ""
@@ -28,11 +33,34 @@ final class DiaryViewModel {
 
     func loadEntries(userId: String, babyId: String) async {
         isLoading = true
+        lastDocument = nil
+        hasMorePages = true
         defer { isLoading = false }
         do {
-            entries = try await firestoreService.fetchDiaryEntries(userId: userId, babyId: babyId)
+            let result = try await firestoreService.fetchDiaryEntries(
+                userId: userId, babyId: babyId, limit: 20, after: nil
+            )
+            entries = result.entries
+            lastDocument = result.lastDocument
+            hasMorePages = result.lastDocument != nil
         } catch {
             errorMessage = "일기를 불러오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    func loadMoreEntries(userId: String, babyId: String) async {
+        guard hasMorePages, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let result = try await firestoreService.fetchDiaryEntries(
+                userId: userId, babyId: babyId, limit: 20, after: lastDocument
+            )
+            entries.append(contentsOf: result.entries)
+            lastDocument = result.lastDocument
+            hasMorePages = result.lastDocument != nil
+        } catch {
+            errorMessage = "일기를 더 불러오지 못했습니다: \(error.localizedDescription)"
         }
     }
 

@@ -18,24 +18,45 @@ struct DiaryView: View {
                         diaryVM.showAddEntry = true
                     }
                 } else {
-                    List(diaryVM.entries) { entry in
-                        DiaryRowView(entry: entry)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                diaryVM.startEditing(entry)
-                                diaryVM.showAddEntry = true
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    Task {
-                                        guard let userId = authVM.currentUserId,
-                                              let babyId = babyVM.selectedBaby?.id else { return }
-                                        await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
-                                    }
-                                } label: {
-                                    Label("삭제", systemImage: "trash")
+                    List {
+                        ForEach(diaryVM.entries) { entry in
+                            DiaryRowView(entry: entry)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    diaryVM.startEditing(entry)
+                                    diaryVM.showAddEntry = true
                                 }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            guard let userId = authVM.currentUserId,
+                                                  let babyId = babyVM.selectedBaby?.id else { return }
+                                            await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
+                                        }
+                                    } label: {
+                                        Label("삭제", systemImage: "trash")
+                                    }
+                                }
+                                .onAppear {
+                                    if entry.id == diaryVM.entries.last?.id {
+                                        Task {
+                                            guard let userId = authVM.currentUserId,
+                                                  let babyId = babyVM.selectedBaby?.id else { return }
+                                            await diaryVM.loadMoreEntries(userId: userId, babyId: babyId)
+                                        }
+                                    }
+                                }
+                        }
+
+                        if diaryVM.isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .padding(.vertical, 12)
+                                Spacer()
                             }
+                            .listRowSeparator(.hidden)
+                        }
                     }
                     .listStyle(.plain)
                 }

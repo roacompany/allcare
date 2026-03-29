@@ -65,10 +65,30 @@ struct TodoView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("할 일")
             .toolbar {
-                Button {
-                    todoVM.showAddTodo = true
-                } label: {
-                    Image(systemName: "plus")
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task {
+                            guard let userId = authVM.currentUserId else { return }
+                            await todoVM.toggleShowCompleted(userId: userId)
+                        }
+                    } label: {
+                        if todoVM.isLoadingCompleted {
+                            ProgressView()
+                        } else {
+                            Label(
+                                todoVM.showCompleted ? "완료 숨기기" : "완료 보기",
+                                systemImage: todoVM.showCompleted ? "checkmark.circle.fill" : "checkmark.circle"
+                            )
+                            .labelStyle(.iconOnly)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        todoVM.showAddTodo = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: Bindable(todoVM).showAddTodo) {

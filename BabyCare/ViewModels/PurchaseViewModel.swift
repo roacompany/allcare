@@ -30,12 +30,17 @@ final class PurchaseViewModel {
     }
 
     private let firestoreService = FirestoreService.shared
+    private let fetchLimit = 50
 
     // MARK: - Filtered Records
 
     var filteredRecords: [PurchaseRecord] {
         guard let start = selectedPeriod.startDate else { return records }
         return records.filter { $0.purchaseDate >= start }
+    }
+
+    var isAtFetchLimit: Bool {
+        records.count >= fetchLimit
     }
 
     // MARK: - Analytics
