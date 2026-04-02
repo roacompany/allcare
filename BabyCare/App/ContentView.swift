@@ -144,14 +144,15 @@ struct ContentView: View {
             showRecording = true
 
         case .quickSave(let quickType):
-            guard let userId = authVM.currentUserId,
+            guard let currentUserId = authVM.currentUserId,
                   let baby = babyVM.selectedBaby else { return }
+            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
             let activityType: Activity.ActivityType = switch quickType {
             case .feedingBreast: .feedingBreast
             case .diaperWet: .diaperWet
             }
             Task {
-                await activityVM.quickSave(userId: userId, babyId: baby.id, type: activityType)
+                await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: activityType)
                 activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
             }
         }

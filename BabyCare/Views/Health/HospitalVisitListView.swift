@@ -23,9 +23,10 @@ struct HospitalVisitListView: View {
     }
 
     private func saveVisit(_ visit: HospitalVisit) {
-        guard let userId = authVM.currentUserId else { return }
+        guard let currentUserId = authVM.currentUserId else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         Task {
-            await healthVM.saveHospitalVisit(visit, userId: userId)
+            await healthVM.saveHospitalVisit(visit, userId: dataUserId)
             if healthVM.errorMessage == nil {
                 withAnimation { savedMessage = "\(visit.hospitalName) 저장됨" }
             }
@@ -33,8 +34,9 @@ struct HospitalVisitListView: View {
     }
 
     private func deleteVisit(_ visit: HospitalVisit) {
-        guard let userId = authVM.currentUserId else { return }
-        Task { await healthVM.deleteHospitalVisit(visit, userId: userId) }
+        guard let currentUserId = authVM.currentUserId else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        Task { await healthVM.deleteHospitalVisit(visit, userId: dataUserId) }
     }
 
     private var totalCost: Int {
@@ -110,7 +112,7 @@ struct HospitalVisitListView: View {
             HospitalReportSheet(
                 visit: visit,
                 reportVM: reportVM,
-                userId: authVM.currentUserId ?? "",
+                userId: babyVM.dataUserId(currentUserId: authVM.currentUserId) ?? authVM.currentUserId ?? "",
                 baby: babyVM.selectedBaby,
                 previousVisitDate: previousVisitDate(before: visit)
             )

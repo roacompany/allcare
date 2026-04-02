@@ -202,8 +202,9 @@ struct AddAllergyView: View {
 
     private func saveRecord() async {
         guard canSave,
-              let userId = authVM.currentUserId,
+              let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         isSaving = true
         var finalSymptoms = selectedSymptoms

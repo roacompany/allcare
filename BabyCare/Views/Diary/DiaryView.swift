@@ -29,9 +29,10 @@ struct DiaryView: View {
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         Task {
-                                            guard let userId = authVM.currentUserId,
+                                            guard let currentUserId = authVM.currentUserId,
                                                   let babyId = babyVM.selectedBaby?.id else { return }
-                                            await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
+                                            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                                            await diaryVM.deleteEntry(entry, userId: dataUserId, babyId: babyId)
                                         }
                                     } label: {
                                         Label("삭제", systemImage: "trash")
@@ -40,9 +41,10 @@ struct DiaryView: View {
                                 .onAppear {
                                     if entry.id == diaryVM.entries.last?.id {
                                         Task {
-                                            guard let userId = authVM.currentUserId,
+                                            guard let currentUserId = authVM.currentUserId,
                                                   let babyId = babyVM.selectedBaby?.id else { return }
-                                            await diaryVM.loadMoreEntries(userId: userId, babyId: babyId)
+                                            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                                            await diaryVM.loadMoreEntries(userId: dataUserId, babyId: babyId)
                                         }
                                     }
                                 }
@@ -73,15 +75,17 @@ struct DiaryView: View {
                 AddDiaryView()
             }
             .task {
-                guard let userId = authVM.currentUserId,
+                guard let currentUserId = authVM.currentUserId,
                       let babyId = babyVM.selectedBaby?.id else { return }
-                await diaryVM.loadEntries(userId: userId, babyId: babyId)
+                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                await diaryVM.loadEntries(userId: dataUserId, babyId: babyId)
             }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
-                    guard let userId = authVM.currentUserId,
+                    guard let currentUserId = authVM.currentUserId,
                           let babyId = babyVM.selectedBaby?.id else { return }
-                    await diaryVM.loadEntries(userId: userId, babyId: babyId)
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    await diaryVM.loadEntries(userId: dataUserId, babyId: babyId)
                 }
             }
         }
@@ -202,9 +206,10 @@ struct AddDiaryView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") {
                         Task {
-                            guard let userId = authVM.currentUserId,
+                            guard let currentUserId = authVM.currentUserId,
                                   let babyId = babyVM.selectedBaby?.id else { return }
-                            await diaryVM.addEntry(userId: userId, babyId: babyId)
+                            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                            await diaryVM.addEntry(userId: dataUserId, babyId: babyId)
                             if diaryVM.errorMessage == nil {
                                 dismiss()
                             }

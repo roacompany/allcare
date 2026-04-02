@@ -175,9 +175,10 @@ struct HealthView: View {
             .navigationTitle("건강")
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
-                    guard let userId = authVM.currentUserId,
+                    guard let currentUserId = authVM.currentUserId,
                           let baby = babyVM.selectedBaby else { return }
-                    await healthVM.loadAll(userId: userId, babyId: baby.id)
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    await healthVM.loadAll(userId: dataUserId, babyId: baby.id)
                 }
             }
         }

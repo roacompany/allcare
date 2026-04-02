@@ -132,9 +132,10 @@ struct RecordingView: View {
                     let duration = activityVM.stopTimer()
                     if duration > 0, let timerType {
                         Task {
-                            guard let userId = authVM.currentUserId,
+                            guard let currentUserId = authVM.currentUserId,
                                   let babyId = babyVM.selectedBaby?.id else { return }
-                            await activityVM.saveActivity(userId: userId, babyId: babyId, type: timerType)
+                            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                            await activityVM.saveActivity(userId: dataUserId, babyId: babyId, type: timerType)
                             activityVM.resetForm()
                             dismiss()
                         }

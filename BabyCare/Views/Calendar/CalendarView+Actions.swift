@@ -49,21 +49,24 @@ extension CalendarView {
     }
 
     func loadData() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
-        await calendarVM.loadMonthActivities(userId: userId, babyId: babyId)
-        await calendarVM.loadActivitiesForDate(userId: userId, babyId: babyId)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await calendarVM.loadMonthActivities(userId: dataUserId, babyId: babyId)
+        await calendarVM.loadActivitiesForDate(userId: dataUserId, babyId: babyId)
     }
 
     func loadMonthData() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
-        await calendarVM.loadMonthActivities(userId: userId, babyId: babyId)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await calendarVM.loadMonthActivities(userId: dataUserId, babyId: babyId)
     }
 
     func loadDateData() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
-        await calendarVM.loadActivitiesForDate(userId: userId, babyId: babyId)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await calendarVM.loadActivitiesForDate(userId: dataUserId, babyId: babyId)
     }
 }

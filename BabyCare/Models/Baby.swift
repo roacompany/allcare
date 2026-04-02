@@ -9,6 +9,10 @@ struct Baby: Identifiable, Codable, Hashable {
     var photoURL: String?
     var createdAt: Date
     var updatedAt: Date
+    /// The Firebase UID of the user who owns this baby's data.
+    /// nil means the baby belongs to the current user (own baby).
+    /// Non-nil means this is a shared baby and data should be fetched from ownerUserId's path.
+    var ownerUserId: String?
 
     enum Gender: String, Codable, CaseIterable {
         case male = "male"

@@ -217,17 +217,18 @@ struct FeedingRecordView: View {
     // MARK: - Actions
 
     private func save() {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
         Task {
-            await activityVM.saveActivity(userId: userId, babyId: baby.id, type: type)
+            await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: type)
             guard activityVM.errorMessage == nil else {
                 isSaving = false
                 return
             }
             let feedAmount = Int(activityVM.amount)
-            if let candidates = await productVM.deductStockForActivity(type, userId: userId, recordedAmount: feedAmount) {
+            if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
                 productCandidates = candidates
             } else {
                 isSaving = false

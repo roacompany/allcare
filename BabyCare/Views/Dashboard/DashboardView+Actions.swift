@@ -4,8 +4,10 @@ extension DashboardView {
     // MARK: - Actions
 
     func loadData() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        // Use the baby owner's userId for all baby-specific data
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
         Task { _ = await NotificationService.shared.requestPermission() }
@@ -15,9 +17,9 @@ extension DashboardView {
         activityVM.babyAgeInMonths = ageMonths
 
         // 병렬 로딩: 활동 + 건강 + 용품 + 공지
-        async let loadActivities: Void = activityVM.loadTodayActivities(userId: userId, babyId: baby.id)
-        async let loadHealth: Void = healthVM.loadAll(userId: userId, babyId: baby.id, babyName: baby.name)
-        async let loadProducts: Void = productVM.loadProducts(userId: userId)
+        async let loadActivities: Void = activityVM.loadTodayActivities(userId: dataUserId, babyId: baby.id)
+        async let loadHealth: Void = healthVM.loadAll(userId: dataUserId, babyId: baby.id, babyName: baby.name)
+        async let loadProducts: Void = productVM.loadProducts(userId: currentUserId)
         async let loadAnnouncements: Void = announcementVM.loadAnnouncements()
 
         _ = await (loadActivities, loadHealth, loadProducts, loadAnnouncements)
@@ -26,7 +28,7 @@ extension DashboardView {
         await healthVM.generateScheduleIfNeeded(
             babyId: baby.id,
             birthDate: baby.birthDate,
-            userId: userId,
+            userId: dataUserId,
             babyName: baby.name
         )
 
@@ -41,9 +43,10 @@ extension DashboardView {
             return
         }
 
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
-        await activityVM.quickSave(userId: userId, babyId: baby.id, type: type)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: type)
 
         // 성공 피드백: 햅틱 + 토스트
         let generator = UINotificationFeedbackGenerator()
@@ -58,14 +61,15 @@ extension DashboardView {
             withAnimation { savedActivityType = nil; lastSavedActivity = nil }
         }
 
-        if let candidates = await productVM.deductStockForActivity(type, userId: userId) {
+        if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId) {
             productCandidates = candidates
         }
     }
 
     func quickSaveWithData(_ activity: Activity) async {
-        guard let userId = authVM.currentUserId else { return }
-        await activityVM.savePrebuiltActivity(activity, userId: userId)
+        guard let currentUserId = authVM.currentUserId else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await activityVM.savePrebuiltActivity(activity, userId: dataUserId)
 
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)

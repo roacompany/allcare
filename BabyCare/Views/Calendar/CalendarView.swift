@@ -74,8 +74,9 @@ struct CalendarView: View {
             .sheet(item: $editingActivity) { activity in
                 ActivityEditSheet(activity: activity) { updated in
                     Task {
-                        guard let userId = authVM.currentUserId else { return }
-                        await activityVM.updateActivity(updated, userId: userId)
+                        guard let currentUserId = authVM.currentUserId else { return }
+                        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                        await activityVM.updateActivity(updated, userId: dataUserId)
                         if let index = calendarVM.activitiesForDate.firstIndex(where: { $0.id == updated.id }) {
                             calendarVM.activitiesForDate[index] = updated
                         }

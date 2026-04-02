@@ -128,11 +128,12 @@ struct SleepRecordView: View {
     // MARK: - Actions
 
     private func save() {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
         Task {
-            await activityVM.saveActivity(userId: userId, babyId: baby.id, type: .sleep)
+            await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: .sleep)
             isSaving = false
             if activityVM.errorMessage == nil {
                 onSaved?()

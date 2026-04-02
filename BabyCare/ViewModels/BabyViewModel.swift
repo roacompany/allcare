@@ -20,6 +20,14 @@ final class BabyViewModel {
     private let firestoreService = FirestoreService.shared
     private let storageService = StorageService.shared
 
+    // MARK: - Data User Resolution
+
+    /// Returns the userId whose Firestore path should be used for data loading/saving.
+    /// For shared babies this is the owner's userId; for own babies it falls back to the current user.
+    func dataUserId(currentUserId: String?) -> String? {
+        selectedBaby?.ownerUserId ?? currentUserId
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {
@@ -57,7 +65,10 @@ final class BabyViewModel {
             let sharedBabies = await withTaskGroup(of: Baby?.self) { group in
                 for access in sharedAccess {
                     group.addTask {
-                        try? await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId)
+                        guard var baby = try? await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else { return nil }
+                        // Tag shared baby with its owner's userId so all data loads use the correct Firestore path
+                        baby.ownerUserId = access.ownerUserId
+                        return baby
                     }
                 }
                 var results: [Baby] = []
@@ -68,6 +79,11 @@ final class BabyViewModel {
             }
             for baby in sharedBabies where !allBabies.contains(where: { $0.id == baby.id }) {
                 allBabies.append(baby)
+            }
+
+            // Tag own babies with the current user's ID for consistency
+            for index in allBabies.indices where allBabies[index].ownerUserId == nil {
+                allBabies[index].ownerUserId = userId
             }
 
             babies = allBabies

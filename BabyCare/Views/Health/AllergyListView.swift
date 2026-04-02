@@ -145,11 +145,12 @@ struct AllergyListView: View {
     // MARK: - Helpers
 
     private func loadRecords() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isLoading = true
         do {
-            records = try await service.fetchAllergyRecords(userId: userId, babyId: baby.id)
+            records = try await service.fetchAllergyRecords(userId: dataUserId, babyId: baby.id)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -157,13 +158,14 @@ struct AllergyListView: View {
     }
 
     private func deleteRecords(from source: [AllergyRecord], at indexSet: IndexSet) {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         let toDelete = indexSet.map { source[$0] }
         Task {
             for record in toDelete {
                 do {
-                    try await service.deleteAllergyRecord(record.id, userId: userId, babyId: baby.id)
+                    try await service.deleteAllergyRecord(record.id, userId: dataUserId, babyId: baby.id)
                     records.removeAll { $0.id == record.id }
                 } catch {
                     errorMessage = error.localizedDescription
