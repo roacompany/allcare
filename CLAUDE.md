@@ -10,20 +10,19 @@
 ```
 
 - 스펙 위치: `.dev/specs/{name}/PLAN.md` (활성) / `.dev/specs/done/{name}/` (완료 아카이브)
-- 실행 컨텍스트: `.dev/specs/{name}/context/` (outputs.json, learnings.md, issues.md, audit.md)
-- 완료된 스펙은 `done/`으로 이동하여 활성 목록 깔끔하게 유지
+- 실행 컨텍스트: `.dev/specs/{name}/context/`
 
 ## Design (디자인 시스템)
 
 ```bash
-make design-verify   # ROA 토큰 검증 (roa verify babycare)
+make design-verify   # ROA 토큰 검증 (100% 커버리지)
 make design-sync     # 토큰 → DesignSystem.generated.swift
 make screenshots     # 주요 화면 스크린샷 캡처
 ```
 
 - 디자인 토큰: `design/tokens/babycare-tokens.json`
 - ROA 설정: `.roa-design.json` (brand primary: #FF9FB5)
-- 위젯 다크모드: `WidgetColors` adaptive enum + `WidgetGradient.background(colorScheme)`
+- 위젯 다크모드: `WidgetColors` adaptive enum
 
 ## Build & Deploy (Makefile)
 
@@ -34,16 +33,16 @@ make verify      # 빌드 + 테스트 + 디자인토큰
 make deploy      # 원커맨드 배포 (bump→archive→export→upload)
 make bump        # 빌드 번호 +1
 make status      # 버전/커밋/테스트 상태
-make clean       # 빌드 산출물 정리
 ```
 
 ## Architecture
 
 - **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (18 VM)
-- **서비스 분리**: ActivityTimerManager (타이머), FeedingPredictionService (예측), PercentileCalculator (성장)
+- **서비스 분리**: ActivityTimerManager, FeedingPredictionService, PercentileCalculator, MedicationSafetyService
+- **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
+- **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
+- **Firestore**: 200MB persistent cache, 19개 컬렉션, 페이지네이션 (일기 커서/구매 limit/할일 필터)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
-- **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉), CachedAsyncImage (2-tier 캐시), NetworkMonitor (자동 sync)
-- **Firestore**: 200MB persistent cache, 19개 컬렉션
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
 ## Conventions
@@ -54,6 +53,7 @@ make clean       # 빌드 산출물 정리
 - 의학 데이터: 면책 문구 필수
 - AI 가드레일: AIGuardrailService.prohibitedRules 수정 금지
 - 테스트: BabyCareTests.swift 단일 파일에 append
+- 공유 아기 데이터: `babyVM.dataUserId()` 사용 필수 (authVM.currentUserId 직접 사용 금지)
 
 ## Must NOT Do
 
@@ -61,18 +61,22 @@ make clean       # 빌드 산출물 정리
 - AIGuardrailService 금지어 수정 금지
 - 백분위 의학적 판단 텍스트 금지
 - 외부 차트 라이브러리 금지 (Apple Charts만)
+- 데이터 로딩/저장 시 authVM.currentUserId 직접 사용 금지 — babyVM.dataUserId() 사용
 
 ## Current Status
 
-- **Version**: v2.5.0 (빌드 41) + 미배포 커밋 다수
+- **Version**: v2.6.0 (빌드 42) + 미배포 2커밋 (가족 공유 수정)
 - **App Store**: v2.5.0 (빌드 40) READY_FOR_SALE
+- **TestFlight**: v2.6.0 (빌드 42) — 가족 공유 수정분 미포함
 - **테스트**: 25개 PASS
-- **규모**: ~195 Swift 파일
+- **규모**: 196 Swift 파일
+- **QA**: 3-Agent 검증 ALL PASS (2026-04-03)
 
 ## Active TODO
 
 ### 즉시 (사용자 액션)
-- [ ] TestFlight 빌드 배포 (make deploy)
+- [ ] TestFlight 재배포 (가족 공유 수정 포함, make deploy)
+- [ ] Firestore Rules 배포 (`firebase deploy --only firestore:rules`)
 - [ ] LMS 데이터 스팟체크 (WHO 원본 CSV 대조)
 - [ ] 카탈로그 상품 30~40개 등록 (admin /catalog)
 - [ ] Figma 토큰 설정 (FIGMA_TOKEN)
