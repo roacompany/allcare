@@ -5,9 +5,10 @@ extension PatternReportView {
     // MARK: - Actions
 
     func loadReport() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
-        await vm.loadReport(userId: userId, babyId: babyId)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await vm.loadReport(userId: dataUserId, babyId: babyId)
     }
 
     func requestAI() async {
