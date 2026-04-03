@@ -97,7 +97,8 @@ struct BabyDetailView: View {
             Button("취소", role: .cancel) {}
             Button("삭제", role: .destructive) {
                 Task {
-                    guard let userId = authVM.currentUserId else { return }
+                    guard let currentUserId = authVM.currentUserId else { return }
+                    let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
                     await babyVM.deleteBaby(baby, userId: userId)
                     dismiss()
                 }
@@ -108,7 +109,8 @@ struct BabyDetailView: View {
     }
 
     private func save() {
-        guard let userId = authVM.currentUserId else { return }
+        guard let currentUserId = authVM.currentUserId else { return }
+        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
         var updated = baby
         updated.name = name.trimmingCharacters(in: .whitespaces)
