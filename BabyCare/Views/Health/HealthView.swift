@@ -7,6 +7,7 @@ struct HealthView: View {
 
     @State private var overdueVaccinationDismissed = false
     @State private var upcomingVaccinationDismissed = false
+    @State private var showBabySelector = false
 
     var body: some View {
         NavigationStack {
@@ -173,6 +174,30 @@ struct HealthView: View {
                 .padding(.vertical)
             }
             .navigationTitle("건강")
+            .toolbar {
+                if babyVM.babies.count > 1 {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showBabySelector = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(babyVM.selectedBaby?.name ?? "아기")
+                                    .font(.subheadline.weight(.medium))
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                            }
+                        }
+                        .confirmationDialog("아기 선택", isPresented: $showBabySelector, titleVisibility: .visible) {
+                            ForEach(babyVM.babies) { baby in
+                                Button(baby.name) {
+                                    babyVM.selectBaby(baby)
+                                }
+                            }
+                            Button("취소", role: .cancel) {}
+                        }
+                    }
+                }
+            }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
                     guard let currentUserId = authVM.currentUserId,

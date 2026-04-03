@@ -57,7 +57,15 @@ struct RecordingView: View {
                     selected: $selectedCategory,
                     onChange: { _ in
                         // Stop any running timer when switching top-level category
-                        if activityVM.isTimerRunning { _ = activityVM.stopTimer() }
+                        if activityVM.isTimerRunning {
+                            let elapsed = activityVM.elapsedTime
+                            let minutes = Int(elapsed) / 60
+                            let seconds = Int(elapsed) % 60
+                            _ = activityVM.stopTimer()
+                            withAnimation {
+                                savedMessage = "타이머가 정지되었습니다 (\(minutes):\(String(format: "%02d", seconds)))"
+                            }
+                        }
                         activityVM.resetForm()
                     }
                 )
