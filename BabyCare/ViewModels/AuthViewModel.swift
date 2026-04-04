@@ -143,9 +143,9 @@ final class AuthViewModel {
 
     private func deleteUserData(userId: String) async throws {
         let db = FirebaseFirestore.Firestore.firestore()
-        let userDoc = db.collection("users").document(userId)
+        let userDoc = db.collection(FirestoreCollections.users).document(userId)
         // "familySharing"(구형) + "sharedAccess"(신형) 모두 삭제
-        let subcollections = ["premiumStatus", "babies", "activities", "hospitalVisits", "vaccinations", "milestones", "diaryEntries", "todos", "routines", "products", "purchaseRecords", "sharedAccess", "familySharing"]
+        let subcollections = ["premiumStatus", FirestoreCollections.babies, FirestoreCollections.activities, FirestoreCollections.hospitalVisits, FirestoreCollections.vaccinations, FirestoreCollections.milestones, "diaryEntries", FirestoreCollections.todos, FirestoreCollections.routines, FirestoreCollections.products, "purchaseRecords", FirestoreCollections.sharedAccess, FirestoreCollections.familySharing]
         // 배치 쓰기로 원자적 삭제 (최대 500개)
         var batch = db.batch()
         var count = 0
@@ -163,7 +163,7 @@ final class AuthViewModel {
         }
 
         // invites 컬렉션에서 내가 만든 초대 삭제
-        let invites = try await db.collection("invites")
+        let invites = try await db.collection(FirestoreCollections.invites)
             .whereField("ownerUserId", isEqualTo: userId)
             .getDocuments()
         for doc in invites.documents {
@@ -179,9 +179,9 @@ final class AuthViewModel {
     /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션
     func migrateFamilySharingIfNeeded(userId: String) async {
         let db = FirebaseFirestore.Firestore.firestore()
-        let userDoc = db.collection("users").document(userId)
-        let legacyRef = userDoc.collection("familySharing")
-        let newRef = userDoc.collection("sharedAccess")
+        let userDoc = db.collection(FirestoreCollections.users).document(userId)
+        let legacyRef = userDoc.collection(FirestoreCollections.familySharing)
+        let newRef = userDoc.collection(FirestoreCollections.sharedAccess)
 
         do {
             let snapshot = try await legacyRef.getDocuments()

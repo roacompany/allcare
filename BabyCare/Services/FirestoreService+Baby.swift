@@ -37,7 +37,7 @@ extension FirestoreService {
             FirestoreCollections.milestones,
             FirestoreCollections.hospitalVisits,
             FirestoreCollections.purchases,
-            "hospitalReports"
+            FirestoreCollections.hospitalReports
         ]
         for subcollection in subcollections {
             let docs = try await babyRef.collection(subcollection).getDocuments()

@@ -45,7 +45,7 @@ final class SoundLibraryService {
 
         // 1) Firestore 시도
         do {
-            let snapshot = try await db.collection("sounds")
+            let snapshot = try await db.collection(FirestoreCollections.sounds)
                 .order(by: "sortOrder")
                 .getDocuments()
 
