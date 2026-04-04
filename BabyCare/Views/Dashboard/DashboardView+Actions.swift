@@ -6,7 +6,6 @@ extension DashboardView {
     func loadData() async {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
-        // Use the baby owner's userId for all baby-specific data
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
@@ -67,9 +66,8 @@ extension DashboardView {
     }
 
     func quickSaveWithData(_ activity: Activity) async {
-        guard let currentUserId = authVM.currentUserId else { return }
-        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-        await activityVM.savePrebuiltActivity(activity, userId: dataUserId)
+        guard let userId = babyVM.resolvedUserId(auth: authVM) else { return }
+        await activityVM.savePrebuiltActivity(activity, userId: userId)
 
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)

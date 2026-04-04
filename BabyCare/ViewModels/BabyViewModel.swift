@@ -28,6 +28,13 @@ final class BabyViewModel {
         selectedBaby?.ownerUserId ?? currentUserId
     }
 
+    /// Resolves the data userId for the selected baby.
+    /// Returns nil if no authenticated user.
+    func resolvedUserId(auth: AuthViewModel) -> String? {
+        guard let currentUserId = auth.currentUserId else { return nil }
+        return dataUserId(currentUserId: currentUserId) ?? currentUserId
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {

@@ -142,11 +142,10 @@ struct GrowthView: View {
     // MARK: - Data
 
     func loadRecords() async {
-        guard let currentUserId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
-        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isLoading = true
-        records = (try? await firestoreService.fetchGrowthRecords(userId: dataUserId, babyId: babyId)) ?? []
+        records = (try? await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)) ?? []
         isLoading = false
     }
 
@@ -166,9 +165,8 @@ struct GrowthView: View {
     }
 
     func saveNewRecord() async {
-        guard let currentUserId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
-        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         // 체중 검증
         if let w = Double(weight) {
@@ -235,8 +233,7 @@ struct GrowthView: View {
     }
 
     func updateRecord(_ original: GrowthRecord) async {
-        guard let currentUserId = authVM.currentUserId else { return }
-        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        guard let userId = babyVM.resolvedUserId(auth: authVM) else { return }
 
         // 체중 검증
         if let w = Double(weight) {
@@ -286,9 +283,8 @@ struct GrowthView: View {
     }
 
     func deleteRecord(_ record: GrowthRecord) async {
-        guard let currentUserId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
-        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         do {
             try await firestoreService.deleteGrowthRecord(record.id, userId: userId, babyId: babyId)
