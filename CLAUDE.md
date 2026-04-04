@@ -85,6 +85,9 @@ make status      # 버전/커밋/테스트 상태
 - [ ] 미래 날짜 기록 가능 (DatePicker 시간 제한) — TimeAdjustmentSection.swift
 - [ ] 캘린더 월 전환 로딩 인디케이터 없음 — CalendarView.swift
 
+### 리팩토링 잔여
+- [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
+
 ### 로드맵
 - P0: 임신 모드
 - P2: 사진 AI OCR, AI 실시간 제안
