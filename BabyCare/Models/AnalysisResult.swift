@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - 분석 기간
 
-struct AnalysisPeriod: Codable {
+struct AnalysisPeriod: Codable, Hashable {
     var from: Date
     var to: Date
 
@@ -13,7 +13,7 @@ struct AnalysisPeriod: Codable {
 
 // MARK: - 일별 집계
 
-struct DailyAggregate: Codable {
+struct DailyAggregate: Codable, Hashable {
     var date: Date
     var feedingCount: Int           // 수유 횟수
     var feedingAmountMl: Double     // 수유량 합계 (ml), 분유만 집계
@@ -26,7 +26,7 @@ struct DailyAggregate: Codable {
 
 // MARK: - Layer 플래그
 
-struct MetricFlag: Codable {
+struct MetricFlag: Codable, Hashable {
     enum Metric: String, Codable { case feeding, feedingAmount, sleep, diaper, temperature }
     enum Direction: String, Codable { case up, down }
     enum Layer: Int, Codable { case reference = 1, baseline = 2 }
@@ -105,13 +105,14 @@ struct AnalysisResult: Codable, Identifiable {
 
 // MARK: - AI 리포트
 
-struct AIReport: Codable {
+struct AIReport: Codable, Hashable, Identifiable {
+    var id: String { "\(generatedAt.timeIntervalSince1970)" }
     var summary: String
     var keyChanges: [String]
     var checklistItems: [ChecklistItem]
     var generatedAt: Date
 
-    struct ChecklistItem: Codable, Identifiable {
+    struct ChecklistItem: Codable, Identifiable, Hashable {
         var id: String
         var question: String
         var isChecked: Bool

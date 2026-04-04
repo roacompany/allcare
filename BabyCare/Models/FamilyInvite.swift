@@ -1,6 +1,6 @@
 import Foundation
 
-struct FamilyInvite: Identifiable, Codable {
+struct FamilyInvite: Identifiable, Codable, Hashable {
     var id: String
     var code: String
     var ownerUserId: String
@@ -36,7 +36,7 @@ struct FamilyInvite: Identifiable, Codable {
     }
 }
 
-struct SharedBabyAccess: Identifiable, Codable {
+struct SharedBabyAccess: Identifiable, Codable, Hashable {
     var id: String
     var ownerUserId: String
     var babyId: String
