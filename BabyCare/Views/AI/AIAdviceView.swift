@@ -94,18 +94,44 @@ struct AIAdviceView: View {
                 }
                 .padding(.top, 40)
 
+                if !vm.hasAPIKey {
+                    VStack(spacing: 12) {
+                        Image(systemName: "key.fill")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+                        Text("AI 조언을 사용하려면 API 키를 설정해주세요")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button {
+                            showAPIKeySheet = true
+                        } label: {
+                            Label("API 키 설정", systemImage: "gearshape")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.pink)
+                    }
+                    .padding(.vertical, 24)
+                    .padding(.horizontal)
+                }
+
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     ForEach(AIAdviceViewModel.topics, id: \.title) { topic in
                         Button {
-                            Task { await vm.send(topic.prompt) }
+                            if vm.hasAPIKey {
+                                Task { await vm.send(topic.prompt) }
+                            } else {
+                                showAPIKeySheet = true
+                            }
                         } label: {
                             VStack(spacing: 8) {
                                 Image(systemName: topic.icon)
                                     .font(.title2)
-                                    .foregroundStyle(.pink)
+                                    .foregroundStyle(vm.hasAPIKey ? .pink : .gray)
                                 Text(topic.title)
                                     .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(vm.hasAPIKey ? .primary : .tertiary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 20)
