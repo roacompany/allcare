@@ -93,9 +93,12 @@ private struct CurrentStageHeaderView: View {
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
                     } else {
-                        Text("이유식 졸업을 축하해요!")
+                        Text("이유식 졸업을 축하해요! 🎉")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
+                        Text("아래 단계별 가이드는 참고용으로 계속 볼 수 있어요")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                 }
                 Spacer()
