@@ -2,30 +2,30 @@ import SwiftUI
 import Charts
 
 struct GrowthView: View {
-    @Environment(BabyViewModel.self) private var babyVM
-    @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) var babyVM
+    @Environment(AuthViewModel.self) var authVM
 
-    @State private var records: [GrowthRecord] = []
-    @State private var isLoading = false
-    @State private var showAddRecord = false
-    @State private var editingRecord: GrowthRecord?
-    @State private var showDeleteConfirm = false
-    @State private var recordToDelete: GrowthRecord?
+    @State var records: [GrowthRecord] = []
+    @State var isLoading = false
+    @State var showAddRecord = false
+    @State var editingRecord: GrowthRecord?
+    @State var showDeleteConfirm = false
+    @State var recordToDelete: GrowthRecord?
 
     // Form
-    @State private var height: String = ""
-    @State private var weight: String = ""
-    @State private var headCircumference: String = ""
-    @State private var recordDate = Date()
+    @State var height: String = ""
+    @State var weight: String = ""
+    @State var headCircumference: String = ""
+    @State var recordDate = Date()
 
-    @State private var saveError: String?
+    @State var saveError: String?
 
     // Expanded chart state
-    @State private var expandedWeight = false
-    @State private var expandedHeight = false
-    @State private var expandedHead = false
+    @State var expandedWeight = false
+    @State var expandedHeight = false
+    @State var expandedHead = false
 
-    private let firestoreService = FirestoreService.shared
+    let firestoreService = FirestoreService.shared
 
     var body: some View {
         NavigationStack {
@@ -139,480 +139,9 @@ struct GrowthView: View {
         }
     }
 
-    // MARK: - Chart Section
-
-    private func chartSection(
-        title: String,
-        icon: String,
-        color: Color,
-        data: [(Date, Double)],
-        metric: GrowthMetric,
-        isExpanded: Binding<Bool>
-    ) -> some View {
-        let baby = babyVM.selectedBaby
-        let latestPercentile: Double? = {
-            guard let baby, let last = data.last else { return nil }
-            let months = ageMonths(from: baby.birthDate, to: last.0)
-            return PercentileCalculator.percentile(
-                value: last.1,
-                ageMonths: months,
-                gender: baby.gender,
-                metric: metric
-            )
-        }()
-
-        let velocityResult: GrowthVelocityResult? = {
-            guard let baby else { return nil }
-            return PercentileCalculator.growthVelocity(
-                records: records,
-                metric: metric,
-                gender: baby.gender,
-                birthDate: baby.birthDate
-            )
-        }()
-
-        return VStack(alignment: .leading, spacing: 12) {
-            // Title row with percentile badge
-            HStack(alignment: .center, spacing: 8) {
-                Label(title, systemImage: icon)
-                    .font(.headline)
-                    .foregroundStyle(color)
-
-                if let p = latestPercentile {
-                    Text("\(percentileLabel(p))")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(.blue.opacity(0.1)))
-                        .foregroundStyle(.blue)
-                }
-
-                Spacer()
-            }
-
-            // Base 180px chart
-            Chart(data, id: \.0) { item in
-                LineMark(
-                    x: .value("날짜", item.0, unit: .day),
-                    y: .value("값", item.1)
-                )
-                .foregroundStyle(color)
-                .interpolationMethod(.catmullRom)
-
-                PointMark(
-                    x: .value("날짜", item.0, unit: .day),
-                    y: .value("값", item.1)
-                )
-                .foregroundStyle(color)
-            }
-            .frame(height: 180)
-
-            // Velocity indicator (shown when result is available)
-            if let v = velocityResult {
-                velocityIndicator(v)
-            }
-
-            // Expand button
-            if baby != nil {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isExpanded.wrappedValue.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
-                            .font(.caption2)
-                        Text("백분위 차트 \(isExpanded.wrappedValue ? "닫기" : "보기")")
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-
-                // Expanded percentile chart
-                if isExpanded.wrappedValue {
-                    expandedChart(data: data, metric: metric, color: color, baby: baby!)
-                }
-            }
-        }
-        .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal)
-    }
-
-    // MARK: - Velocity Indicator
-
-    @ViewBuilder
-    private func velocityIndicator(_ result: GrowthVelocityResult) -> some View {
-        let prevLabel = percentileLabel(result.previousPercentile)
-        let currLabel = percentileLabel(result.currentPercentile)
-
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                // Arrow icon
-                let (iconName, iconColor): (String, Color) = {
-                    switch result.changeDirection {
-                    case .increasing: return ("arrow.up.circle.fill", .green)
-                    case .decreasing: return ("arrow.down.circle.fill", .orange)
-                    case .stable:     return ("minus.circle.fill", .secondary)
-                    }
-                }()
-
-                Image(systemName: iconName)
-                    .foregroundStyle(iconColor)
-                    .font(.caption)
-
-                let arrowChar: String = {
-                    switch result.changeDirection {
-                    case .increasing: return "↑"
-                    case .decreasing: return "↓"
-                    case .stable:     return "→"
-                    }
-                }()
-
-                Text("지난 측정 대비 백분위 \(prevLabel) → \(currLabel) \(arrowChar)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Significant decrease banner
-            if result.isSignificant && result.changeDirection == .decreasing {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                    Text("성장률 변화가 감지되었습니다. 소아과 상담을 권장합니다.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.orange.opacity(0.1))
-                )
-
-                Text("이 정보는 참고용이며 의학적 진단을 대체하지 않습니다.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // MARK: - Expanded Percentile Chart
-
-    private func expandedChart(
-        data: [(Date, Double)],
-        metric: GrowthMetric,
-        color: Color,
-        baby: Baby
-    ) -> some View {
-        let referencePctiles: [Double] = [3, 15, 50, 85, 97]
-
-        // Build reference line points by month 0-24
-        // Use baby.birthDate as origin; x-axis = date
-        struct RefPoint: Identifiable {
-            let id: String
-            let date: Date
-            let value: Double
-            let label: String
-        }
-
-        var refLines: [(label: String, points: [RefPoint])] = []
-        for p in referencePctiles {
-            var pts: [RefPoint] = []
-            for month in 0...24 {
-                let date = Calendar.current.date(
-                    byAdding: .month, value: month, to: baby.birthDate
-                ) ?? baby.birthDate
-                if let val = PercentileCalculator.referenceValue(
-                    percentile: p,
-                    ageMonths: month,
-                    gender: baby.gender,
-                    metric: metric
-                ) {
-                    pts.append(RefPoint(id: "\(Int(p))th-\(month)", date: date, value: val, label: "\(Int(p))th"))
-                }
-            }
-            refLines.append((label: "\(Int(p))th", points: pts))
-        }
-
-        return VStack(alignment: .leading, spacing: 6) {
-            Chart {
-                // WHO reference lines
-                ForEach(Array(refLines.enumerated()), id: \.offset) { _, line in
-                    ForEach(line.points) { pt in
-                        LineMark(
-                            x: .value("날짜", pt.date, unit: .month),
-                            y: .value(line.label, pt.value),
-                            series: .value("계열", line.label)
-                        )
-                        .foregroundStyle(
-                            line.label == "50th"
-                                ? Color.secondary.opacity(0.5)
-                                : Color.secondary.opacity(0.3)
-                        )
-                        .lineStyle(StrokeStyle(dash: [4, 4]))
-                    }
-                }
-
-                // Child data
-                ForEach(data, id: \.0) { item in
-                    LineMark(
-                        x: .value("날짜", item.0, unit: .day),
-                        y: .value("값", item.1),
-                        series: .value("계열", "아이")
-                    )
-                    .foregroundStyle(color)
-                    .interpolationMethod(.catmullRom)
-
-                    PointMark(
-                        x: .value("날짜", item.0, unit: .day),
-                        y: .value("값", item.1)
-                    )
-                    .foregroundStyle(color)
-                }
-            }
-            .frame(height: 280)
-
-            // Reference line legend
-            HStack(spacing: 12) {
-                ForEach(referencePctiles, id: \.self) { p in
-                    Text("\(Int(p))th")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text("WHO 2006")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Disclaimer
-            Text("이 성장 기록은 참고용이며 의학적 진단을 대체하지 않습니다.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    // MARK: - Record Row
-
-    @ViewBuilder
-    private func recordRow(_ record: GrowthRecord) -> some View {
-        let baby = babyVM.selectedBaby
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(DateFormatters.shortDate.string(from: record.date))
-                    .font(.subheadline)
-
-                Spacer()
-
-                HStack(spacing: 6) {
-                    if let w = record.weight {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fkg", w))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: w,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .weight
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
-                    }
-                    if let h = record.height {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fcm", h))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: h,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .height
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
-                    }
-                    if let hc = record.headCircumference {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fcm", hc))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: hc,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .headCircumference
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            startEditing(record)
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                recordToDelete = record
-                showDeleteConfirm = true
-            } label: {
-                Label("삭제", systemImage: "trash")
-            }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func percentileLabel(_ p: Double) -> String {
-        let rounded = Int(p.rounded())
-        return "\(rounded)th"
-    }
-
-    private func ageMonths(from birthDate: Date, to date: Date) -> Int {
-        return max(0, min(24, Int(date.timeIntervalSince(birthDate) / (86400 * 30.4375))))
-    }
-
-    // MARK: - Add Record Sheet
-
-    private var addRecordSheet: some View {
-        NavigationStack {
-            Form {
-                Section("날짜") {
-                    DatePicker("날짜", selection: $recordDate, displayedComponents: .date)
-                        .environment(\.locale, Locale(identifier: "ko_KR"))
-                }
-
-                Section("측정값") {
-                    HStack {
-                        Text("몸무게")
-                        Spacer()
-                        TextField("kg", text: $weight)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("키")
-                        Spacer()
-                        TextField("cm", text: $height)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("머리둘레")
-                        Spacer()
-                        TextField("cm", text: $headCircumference)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                }
-            }
-            .navigationTitle("성장 기록 추가")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { showAddRecord = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
-                        Task { await saveNewRecord() }
-                    }
-                    .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
-                }
-            }
-        }
-    }
-
-    // MARK: - Edit Record Sheet
-
-    private func editRecordSheet(_ record: GrowthRecord) -> some View {
-        NavigationStack {
-            Form {
-                Section("날짜") {
-                    DatePicker("날짜", selection: $recordDate, displayedComponents: .date)
-                        .environment(\.locale, Locale(identifier: "ko_KR"))
-                }
-
-                Section("측정값") {
-                    HStack {
-                        Text("몸무게")
-                        Spacer()
-                        TextField("kg", text: $weight)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("키")
-                        Spacer()
-                        TextField("cm", text: $height)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("머리둘레")
-                        Spacer()
-                        TextField("cm", text: $headCircumference)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                }
-            }
-            .navigationTitle("성장 기록 수정")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { editingRecord = nil }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
-                        Task { await updateRecord(record) }
-                    }
-                    .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
-                }
-            }
-        }
-    }
-
     // MARK: - Data
 
-    private func loadRecords() async {
+    func loadRecords() async {
         guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
@@ -621,7 +150,7 @@ struct GrowthView: View {
         isLoading = false
     }
 
-    private func startEditing(_ record: GrowthRecord) {
+    func startEditing(_ record: GrowthRecord) {
         recordDate = record.date
         weight = record.weight.map { String($0) } ?? ""
         height = record.height.map { String($0) } ?? ""
@@ -629,14 +158,14 @@ struct GrowthView: View {
         editingRecord = record
     }
 
-    private func resetForm() {
+    func resetForm() {
         height = ""
         weight = ""
         headCircumference = ""
         recordDate = Date()
     }
 
-    private func saveNewRecord() async {
+    func saveNewRecord() async {
         guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
         let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
@@ -686,7 +215,7 @@ struct GrowthView: View {
         }
     }
 
-    private func checkAndNotifyGrowthVelocity() {
+    func checkAndNotifyGrowthVelocity() {
         guard let baby = babyVM.selectedBaby else { return }
         let babyName = baby.name
 
@@ -705,7 +234,7 @@ struct GrowthView: View {
         }
     }
 
-    private func updateRecord(_ original: GrowthRecord) async {
+    func updateRecord(_ original: GrowthRecord) async {
         guard let currentUserId = authVM.currentUserId else { return }
         let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
@@ -756,7 +285,7 @@ struct GrowthView: View {
         }
     }
 
-    private func deleteRecord(_ record: GrowthRecord) async {
+    func deleteRecord(_ record: GrowthRecord) async {
         guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
         let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
