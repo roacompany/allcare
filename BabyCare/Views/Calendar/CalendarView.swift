@@ -88,7 +88,7 @@ struct CalendarView: View {
                 activityVM.resetForm()
                 Task { await loadDateData() }
             }) {
-                RecordingView(initialCategory: nil)
+                RecordingView(isPresented: $showRecording, initialCategory: nil)
             }
         }
     }

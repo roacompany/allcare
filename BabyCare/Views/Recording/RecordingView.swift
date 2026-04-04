@@ -9,7 +9,9 @@ struct RecordingView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
-    @Environment(\.dismiss) private var dismiss
+
+    /// sheet dismiss — NavigationStack 밖에서 바인딩 주입
+    @Binding var isPresented: Bool
 
     /// 외부에서 초기 카테고리 주입 (딥링크용)
     var initialCategory: Activity.ActivityCategory?
@@ -51,7 +53,7 @@ struct RecordingView: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             activityVM.resetForm()
-            dismiss()
+            isPresented = false
         }
     }
 
@@ -118,7 +120,7 @@ struct RecordingView: View {
                             showUnsavedDataConfirm = true
                         } else {
                             activityVM.resetForm()
-                            dismiss()
+                            isPresented = false
                         }
                     }
                     .foregroundStyle(.secondary)
@@ -152,17 +154,17 @@ struct RecordingView: View {
                             let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
                             await activityVM.saveActivity(userId: dataUserId, babyId: babyId, type: timerType)
                             activityVM.resetForm()
-                            dismiss()
+                            isPresented = false
                         }
                     } else {
                         activityVM.resetForm()
-                        dismiss()
+                        isPresented = false
                     }
                 }
                 Button("저장하지 않고 닫기", role: .destructive) {
                     _ = activityVM.stopTimer()
                     activityVM.resetForm()
-                    dismiss()
+                    isPresented = false
                 }
                 Button("취소", role: .cancel) {}
             } message: {
@@ -175,7 +177,7 @@ struct RecordingView: View {
             ) {
                 Button("닫기", role: .destructive) {
                     activityVM.resetForm()
-                    dismiss()
+                    isPresented = false
                 }
                 Button("취소", role: .cancel) {}
             } message: {

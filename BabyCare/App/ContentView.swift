@@ -246,7 +246,7 @@ struct ContentView: View {
             activityVM.resetForm()
             initialRecordingCategory = nil
         }) {
-            RecordingView(initialCategory: initialRecordingCategory)
+            RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
         }
         .overlay(alignment: .bottom) {
             FloatingMiniPlayer()
