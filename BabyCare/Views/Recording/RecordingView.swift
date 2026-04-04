@@ -39,6 +39,13 @@ struct RecordingView: View {
     // MARK: - Save success handler
 
     private func handleSaved() {
+        // 위젯 데이터 동기화
+        if let baby = babyVM.selectedBaby {
+            activityVM.syncWidgetData(
+                babyName: baby.name,
+                babyAge: baby.ageText
+            )
+        }
         withAnimation {
             savedMessage = "기록이 저장되었습니다"
         }
