@@ -11,6 +11,7 @@ struct NotificationSettingsView: View {
     @State private var temperatureTrendEnabled = NotificationSettings.temperatureTrendEnabled
     @State private var growthVelocityEnabled = NotificationSettings.growthVelocityEnabled
     @State private var notificationPermission: Bool = true
+    @Environment(\.scenePhase) private var scenePhase
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
 
@@ -160,9 +161,18 @@ struct NotificationSettingsView: View {
         }
         .navigationTitle("알림 설정")
         .task {
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            notificationPermission = settings.authorizationStatus == .authorized
+            await checkNotificationPermission()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await checkNotificationPermission() }
+            }
+        }
+    }
+
+    private func checkNotificationPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        notificationPermission = settings.authorizationStatus == .authorized
     }
 
     private func saveRules() {
