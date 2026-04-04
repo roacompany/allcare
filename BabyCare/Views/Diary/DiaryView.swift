@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct DiaryView: View {
     @Environment(DiaryViewModel.self) private var diaryVM
@@ -152,6 +153,8 @@ struct AddDiaryView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+
     var body: some View {
         @Bindable var vm = diaryVM
 
@@ -192,6 +195,89 @@ struct AddDiaryView: View {
                 Section("내용") {
                     TextEditor(text: $vm.content)
                         .frame(minHeight: 150)
+                }
+
+                Section("사진") {
+                    // Existing photos (edit mode)
+                    if !diaryVM.existingPhotoURLs.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(diaryVM.existingPhotoURLs, id: \.self) { urlString in
+                                    ZStack(alignment: .topTrailing) {
+                                        CachedAsyncImage(
+                                            url: urlString,
+                                            size: CGSize(width: 80, height: 80)
+                                        ) {
+                                            Color.secondary.opacity(0.2)
+                                                .frame(width: 80, height: 80)
+                                        }
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        Button {
+                                            diaryVM.existingPhotoURLs.removeAll { $0 == urlString }
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(.white, .black.opacity(0.6))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    // New photos to add
+                    if !diaryVM.selectedPhotos.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(Array(diaryVM.selectedPhotos.enumerated()), id: \.offset) { index, photo in
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(uiImage: photo)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        Button {
+                                            diaryVM.selectedPhotos.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(.white, .black.opacity(0.6))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    PhotosPicker(
+                        selection: $selectedPhotoItems,
+                        maxSelectionCount: 5,
+                        matching: .images
+                    ) {
+                        Label("사진 추가", systemImage: "photo.badge.plus")
+                    }
+                    .onChange(of: selectedPhotoItems) { _, newItems in
+                        Task {
+                            var images: [UIImage] = []
+                            for item in newItems {
+                                if let data = try? await item.loadTransferable(type: Data.self),
+                                   let image = UIImage(data: data) {
+                                    images.append(image)
+                                }
+                            }
+                            diaryVM.selectedPhotos = images
+                            selectedPhotoItems = []
+                        }
+                    }
                 }
             }
             .navigationTitle(diaryVM.editingEntry != nil ? "일기 수정" : "일기 쓰기")

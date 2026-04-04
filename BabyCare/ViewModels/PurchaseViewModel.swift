@@ -6,6 +6,7 @@ final class PurchaseViewModel {
     var isLoading = false
     var errorMessage: String?
     var selectedPeriod: Period = .threeMonths
+    var editingRecord: PurchaseRecord?
 
     enum Period: String, CaseIterable {
         case week = "1주"
@@ -154,6 +155,20 @@ final class PurchaseViewModel {
         } catch {
             records = backup
             errorMessage = "삭제에 실패했습니다."
+        }
+    }
+
+    func updateRecord(_ record: PurchaseRecord, userId: String) async {
+        let backup = records
+        if let idx = records.firstIndex(where: { $0.id == record.id }) {
+            records[idx] = record
+        }
+        do {
+            try await firestoreService.savePurchaseRecord(record, userId: userId)
+            editingRecord = nil
+        } catch {
+            records = backup
+            errorMessage = "수정에 실패했습니다."
         }
     }
 

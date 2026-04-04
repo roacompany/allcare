@@ -16,6 +16,15 @@ struct ActivityEditSheet: View {
     @State private var editedFoodName: String
     @State private var editedMedicationName: String
     @State private var editedMedicationDosage: String
+    // 모유수유
+    @State private var editedSide: Activity.BreastSide
+    // 수면
+    @State private var editedSleepQuality: Activity.SleepQualityType?
+    @State private var editedSleepMethod: Activity.SleepMethodType?
+    // 기저귀
+    @State private var editedStoolColor: Activity.StoolColor?
+    @State private var editedStoolConsistency: Activity.StoolConsistency?
+    @State private var editedHasRash: Bool
 
     init(activity: Activity, onSave: @escaping (Activity) -> Void) {
         self.activity = activity
@@ -28,6 +37,12 @@ struct ActivityEditSheet: View {
         _editedFoodName = State(initialValue: activity.foodName ?? "")
         _editedMedicationName = State(initialValue: activity.medicationName ?? "")
         _editedMedicationDosage = State(initialValue: activity.medicationDosage ?? "")
+        _editedSide = State(initialValue: activity.side ?? .left)
+        _editedSleepQuality = State(initialValue: activity.sleepQuality)
+        _editedSleepMethod = State(initialValue: activity.sleepMethod)
+        _editedStoolColor = State(initialValue: activity.stoolColor)
+        _editedStoolConsistency = State(initialValue: activity.stoolConsistency)
+        _editedHasRash = State(initialValue: activity.hasRash ?? false)
     }
 
     var body: some View {
@@ -99,10 +114,62 @@ struct ActivityEditSheet: View {
                     }
                 }
 
+                // 모유수유 좌/우
+                if activity.type == .feedingBreast {
+                    Section("수유 방향") {
+                        Picker("방향", selection: $editedSide) {
+                            ForEach(Activity.BreastSide.allCases, id: \.self) { side in
+                                Text(side.displayName).tag(side)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+
                 // 이유식/간식 음식명
                 if activity.type == .feedingSolid || activity.type == .feedingSnack {
                     Section("음식") {
                         TextField("음식 이름", text: $editedFoodName)
+                    }
+                }
+
+                // 수면 질/방법
+                if activity.type == .sleep {
+                    Section("수면 정보") {
+                        Picker("수면 질", selection: $editedSleepQuality) {
+                            Text("선택 안 함").tag(Optional<Activity.SleepQualityType>.none)
+                            ForEach(Activity.SleepQualityType.allCases, id: \.self) { quality in
+                                Label(quality.displayName, systemImage: quality.icon)
+                                    .tag(Optional(quality))
+                            }
+                        }
+                        Picker("잠드는 방법", selection: $editedSleepMethod) {
+                            Text("선택 안 함").tag(Optional<Activity.SleepMethodType>.none)
+                            ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
+                                Label(method.displayName, systemImage: method.icon)
+                                    .tag(Optional(method))
+                            }
+                        }
+                    }
+                }
+
+                // 기저귀 대변 색상/농도/발진
+                if activity.type == .diaperDirty || activity.type == .diaperBoth {
+                    Section("대변 정보") {
+                        Picker("색상", selection: $editedStoolColor) {
+                            Text("선택 안 함").tag(Optional<Activity.StoolColor>.none)
+                            ForEach(Activity.StoolColor.allCases, id: \.self) { color in
+                                Text(color.displayName).tag(Optional(color))
+                            }
+                        }
+                        Picker("농도", selection: $editedStoolConsistency) {
+                            Text("선택 안 함").tag(Optional<Activity.StoolConsistency>.none)
+                            ForEach(Activity.StoolConsistency.allCases, id: \.self) { consistency in
+                                Label(consistency.displayName, systemImage: consistency.icon)
+                                    .tag(Optional(consistency))
+                            }
+                        }
+                        Toggle("발진 있음", isOn: $editedHasRash)
                     }
                 }
 
@@ -159,9 +226,27 @@ struct ActivityEditSheet: View {
                             updated.amount = Double(editedAmount)
                         }
 
+                        // 모유수유 방향
+                        if activity.type == .feedingBreast {
+                            updated.side = editedSide
+                        }
+
                         // 이유식/간식
                         if activity.type == .feedingSolid || activity.type == .feedingSnack {
                             updated.foodName = editedFoodName.isEmpty ? nil : editedFoodName
+                        }
+
+                        // 수면 질/방법
+                        if activity.type == .sleep {
+                            updated.sleepQuality = editedSleepQuality
+                            updated.sleepMethod = editedSleepMethod
+                        }
+
+                        // 기저귀 대변 정보
+                        if activity.type == .diaperDirty || activity.type == .diaperBoth {
+                            updated.stoolColor = editedStoolColor
+                            updated.stoolConsistency = editedStoolConsistency
+                            updated.hasRash = editedHasRash
                         }
 
                         // 체온

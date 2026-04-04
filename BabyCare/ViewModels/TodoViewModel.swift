@@ -9,6 +9,7 @@ final class TodoViewModel {
     var showCompleted = false
     var errorMessage: String?
     var showAddTodo = false
+    var editingTodo: TodoItem?
 
     // Form
     var title = ""
@@ -42,6 +43,58 @@ final class TodoViewModel {
 
     var isFormValid: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // MARK: - Edit
+
+    func startEditing(_ todo: TodoItem) {
+        editingTodo = todo
+        title = todo.title
+        description = todo.description ?? ""
+        dueDate = todo.dueDate
+        hasDueDate = todo.dueDate != nil
+        category = todo.category
+        isRecurring = todo.isRecurring
+        recurringInterval = todo.recurringInterval ?? .daily
+        selectedBabyId = todo.babyId
+        showAddTodo = true
+    }
+
+    func updateTodo(_ todo: TodoItem, userId: String) async {
+        guard isFormValid else {
+            errorMessage = "제목을 입력해주세요."
+            return
+        }
+
+        var updated = todo
+        updated.title = title.trimmingCharacters(in: .whitespaces)
+        updated.description = description.isEmpty ? nil : description
+        updated.dueDate = hasDueDate ? dueDate : nil
+        updated.category = category
+        updated.isRecurring = isRecurring
+        updated.recurringInterval = isRecurring ? recurringInterval : nil
+
+        let backup = todos
+        let backupCompleted = completedTodosCache
+        if updated.isCompleted {
+            if let idx = completedTodosCache.firstIndex(where: { $0.id == updated.id }) {
+                completedTodosCache[idx] = updated
+            }
+        } else {
+            if let idx = todos.firstIndex(where: { $0.id == updated.id }) {
+                todos[idx] = updated
+            }
+        }
+
+        do {
+            try await firestoreService.saveTodo(updated, userId: userId)
+            resetForm()
+            showAddTodo = false
+        } catch {
+            todos = backup
+            completedTodosCache = backupCompleted
+            errorMessage = "수정에 실패했습니다."
+        }
     }
 
     // MARK: - CRUD
@@ -155,5 +208,6 @@ final class TodoViewModel {
         recurringInterval = .daily
         selectedBabyId = nil
         errorMessage = nil
+        editingTodo = nil
     }
 }
