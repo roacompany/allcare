@@ -31,6 +31,28 @@ extension DashboardView {
                           ? Color.red.opacity(0.08)
                           : feedingColor.opacity(0.08))
             )
+        } else if activityVM.todayFeedingCount == 0 {
+            HStack(spacing: 12) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.title3)
+                    .foregroundStyle(feedingColor.opacity(0.6))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("다음 수유 예상")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("수유 기록을 추가하면 다음 수유 시간을 예측해드려요")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer()
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(feedingColor.opacity(0.04))
+            )
         }
     }
 
