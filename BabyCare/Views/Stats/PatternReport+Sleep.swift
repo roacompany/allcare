@@ -75,6 +75,15 @@ extension PatternReportView {
                     }
                 }
             }
+
+            if vm.showComparison {
+                comparisonRow(
+                    current: s.dailyAverageHours,
+                    previous: s.previousDailyAverageHours,
+                    unit: "시간/일",
+                    label: "일 평균"
+                )
+            }
         }
         .padding()
         .background(.regularMaterial)

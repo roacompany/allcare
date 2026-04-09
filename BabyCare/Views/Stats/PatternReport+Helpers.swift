@@ -53,4 +53,22 @@ extension PatternReportView {
         .background(color.opacity(0.12))
         .clipShape(Capsule())
     }
+
+    @ViewBuilder
+    func comparisonRow(current: Double, previous: Double?, unit: String, label: String) -> some View {
+        if let previous {
+            let delta = current - previous
+            let trend: Trend = delta > 0.05 ? .increasing : delta < -0.05 ? .decreasing : .stable
+            HStack {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("지난주 \(String(format: "%.1f", previous))\(unit)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                trendBadge(trend)
+            }
+        }
+    }
 }

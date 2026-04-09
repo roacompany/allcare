@@ -9,12 +9,28 @@ final class PatternReportViewModel {
     var isLoadingAI = false
     var errorMessage: String?
 
+    // MARK: - Comparison
+    var showComparison = false {
+        didSet {
+            if showComparison {
+                Task { await loadComparison() }
+            }
+        }
+    }
+    var isLoadingComparison = false
+
+    // MARK: - Feeding Prediction
+    var feedingPredictionText: String?
+
     enum Period: String, CaseIterable {
         case week = "주간"
         case month = "월간"
     }
 
     private let firestoreService = FirestoreService.shared
+    private var lastFetchedUserId: String?
+    private var lastFetchedBabyId: String?
+    private var lastFeedingActivity: Activity?
 
     private static let apiKeyKey = "ai_api_key"
 
@@ -31,6 +47,9 @@ final class PatternReportViewModel {
     func loadReport(userId: String, babyId: String) async {
         isLoading = true
         defer { isLoading = false }
+
+        lastFetchedUserId = userId
+        lastFetchedBabyId = babyId
 
         let calendar = Calendar.current
         let endDate = Date()
@@ -56,11 +75,59 @@ final class PatternReportViewModel {
                 endDate: endDate
             )
 
+            // 마지막 수유 기록 추출 (예측에 사용)
+            lastFeedingActivity = activities
+                .filter { $0.type.category == .feeding }
+                .max(by: { $0.startTime < $1.startTime })
+
+            // 수유 예측 텍스트 계산
+            if let interval = report?.feeding.averageInterval {
+                let estimate = FeedingPredictionService.nextEstimate(
+                    lastFeeding: lastFeedingActivity,
+                    averageInterval: interval
+                )
+                feedingPredictionText = FeedingPredictionService.predictionText(estimate: estimate)
+            } else {
+                feedingPredictionText = nil
+            }
+
             // 기간 변경 시 이전 AI 분석 초기화
             aiInsight = nil
         } catch {
             errorMessage = "데이터를 불러오지 못했습니다."
             report = nil
+            feedingPredictionText = nil
+        }
+    }
+
+    // MARK: - Comparison
+
+    func loadComparison() async {
+        guard selectedPeriod == .week else { return }
+        guard let report,
+              let userId = lastFetchedUserId,
+              let babyId = lastFetchedBabyId else { return }
+
+        isLoadingComparison = true
+        defer { isLoadingComparison = false }
+
+        let calendar = Calendar.current
+        let previousEnd = report.startDate
+        let previousStart = calendar.date(byAdding: .day, value: -7, to: previousEnd) ?? previousEnd
+
+        do {
+            let previousActivities = try await firestoreService.fetchActivities(
+                userId: userId, babyId: babyId,
+                from: previousStart.startOfDay, to: previousEnd.endOfDay
+            )
+
+            self.report = PatternAnalysisService.analyzeComparison(
+                currentReport: report,
+                previousActivities: previousActivities,
+                previousPeriod: (start: previousStart, end: previousEnd)
+            )
+        } catch {
+            errorMessage = "비교 데이터를 불러오지 못했습니다."
         }
     }
 

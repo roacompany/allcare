@@ -44,13 +44,28 @@ struct PatternReportView: View {
     // MARK: - Period Picker
 
     var periodPicker: some View {
-        Picker("기간", selection: Bindable(vm).selectedPeriod) {
-            ForEach(PatternReportViewModel.Period.allCases, id: \.self) { period in
-                Text(period.rawValue).tag(period)
+        VStack(spacing: 8) {
+            Picker("기간", selection: Bindable(vm).selectedPeriod) {
+                ForEach(PatternReportViewModel.Period.allCases, id: \.self) { period in
+                    Text(period.rawValue).tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+
+            if vm.selectedPeriod == .week {
+                HStack {
+                    Toggle("지난주와 비교", isOn: Bindable(vm).showComparison)
+                        .tint(.pink)
+                        .font(.subheadline)
+                    if vm.isLoadingComparison {
+                        ProgressView()
+                            .padding(.leading, 4)
+                    }
+                }
+                .padding(.horizontal)
             }
         }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
     }
 
     // MARK: - Empty State

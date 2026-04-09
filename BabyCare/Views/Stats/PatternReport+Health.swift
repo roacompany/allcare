@@ -44,6 +44,17 @@ extension PatternReportView {
                 }
                 .chartYAxisLabel("°C")
                 .frame(height: 160)
+
+                if h.consecutiveFeverDays > 0 {
+                    Text("최근 \(h.consecutiveFeverDays)일 연속 발열 기록")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                if h.consecutiveFeverDays >= 2 {
+                    Text("연속 발열 시 소아과 상담을 권장합니다")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // Medications
@@ -73,6 +84,10 @@ extension PatternReportView {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
             }
+
+            Text("참고용이며 의학적 진단을 대체하지 않습니다")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .background(.regularMaterial)

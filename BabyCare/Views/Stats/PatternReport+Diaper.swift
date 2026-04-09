@@ -99,6 +99,15 @@ extension PatternReportView {
                     }
                 }
             }
+
+            if vm.showComparison {
+                comparisonRow(
+                    current: d.dailyAverage,
+                    previous: d.previousDailyAverage,
+                    unit: "회/일",
+                    label: "일 평균"
+                )
+            }
         }
         .padding()
         .background(.regularMaterial)
