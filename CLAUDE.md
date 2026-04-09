@@ -30,7 +30,7 @@ make screenshots     # 주요 화면 스크린샷 캡처
 make build       # xcodegen + xcodebuild
 make test        # 단위 테스트 25개
 make verify      # 빌드 + 테스트 + 디자인토큰
-make deploy      # 원커맨드 배포 (bump→archive→export→upload)
+make deploy      # 원커맨드 배포 (verify→bump→archive→export→upload)
 make bump        # 빌드 번호 +1
 make status      # 버전/커밋/테스트 상태
 ```
@@ -66,12 +66,12 @@ make status      # 버전/커밋/테스트 상태
 
 ## Current Status
 
-- **Version**: v2.6.1 (빌드 44)
-- **App Store**: v2.5.0 (빌드 40) READY_FOR_SALE
-- **심사 대기**: v2.6.0 (빌드 43) WAITING_FOR_REVIEW
-- **TestFlight**: v2.6.1 (빌드 44)
+- **Version**: v2.6.1 (빌드 46)
+- **App Store**: v2.6.0 (빌드 43) READY_FOR_SALE
+- **심사 대기**: v2.6.1 (빌드 46) WAITING_FOR_REVIEW
+- **TestFlight**: v2.6.1 (빌드 46)
 - **테스트**: 25개 PASS, 경고 0건
-- **규모**: ~200 Swift 파일
+- **규모**: 201 Swift 파일
 - **QA**: 3-Agent ALL PASS (2026-04-04)
 
 ## Active TODO

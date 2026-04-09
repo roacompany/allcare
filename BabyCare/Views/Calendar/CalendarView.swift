@@ -66,6 +66,7 @@ struct CalendarView: View {
                 Task { await loadMonthData() }
             }
             .onChange(of: calendarVM.selectedDate) {
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.calendarDateSelect)
                 Task { await loadDateData() }
             }
             .onChange(of: babyVM.selectedBaby?.id) {

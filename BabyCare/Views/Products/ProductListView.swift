@@ -50,6 +50,7 @@ struct ProductListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
+                        AnalyticsService.shared.trackEvent(AnalyticsEvents.productView, parameters: [AnalyticsParams.actionType: "add"])
                         productVM.showAddProduct = true
                     } label: {
                         Image(systemName: "plus")

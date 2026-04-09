@@ -96,7 +96,7 @@ upload: export
 .PHONY: deploy restore
 
 ## 원커맨드 배포: 버전범프 → 빌드 → Archive → Export → Upload
-deploy: bump upload restore
+deploy: verify bump upload restore
 	@echo "🚀 배포 완료!"
 
 ## Archive 후 Automatic signing 복원

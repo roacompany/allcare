@@ -132,6 +132,7 @@ struct SleepRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.sleepRecordSave)
         Task {
             await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: .sleep)
             isSaving = false

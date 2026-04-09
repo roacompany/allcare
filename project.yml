@@ -39,6 +39,8 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseMessaging
+      - package: Firebase
+        product: FirebaseAnalytics
       - sdk: WidgetKit.framework
       - target: BabyCareWidgetExtension
     entitlements:

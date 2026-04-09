@@ -13,6 +13,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
             FirebaseApp.configure()
         }
 
+        // Analytics 옵트아웃 상태 반영
+        AnalyticsService.shared.configure()
+
         // FCM 델리게이트
         Messaging.messaging().delegate = self
 

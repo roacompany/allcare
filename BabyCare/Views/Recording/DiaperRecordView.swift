@@ -120,6 +120,7 @@ struct DiaperRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.diaperRecordSave, parameters: [AnalyticsParams.category: selectedDiaperType.displayName])
         Task {
             await activityVM.saveActivity(
                 userId: dataUserId,

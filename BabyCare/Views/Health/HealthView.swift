@@ -174,6 +174,9 @@ struct HealthView: View {
                 .padding(.vertical)
             }
             .navigationTitle("건강")
+            .onAppear {
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
+            }
             .toolbar {
                 if babyVM.babies.count > 1 {
                     ToolbarItem(placement: .topBarTrailing) {

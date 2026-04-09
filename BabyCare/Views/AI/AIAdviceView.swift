@@ -192,6 +192,7 @@ struct AIAdviceView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
 
             Button {
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.aiAdviceRequest)
                 Task { await vm.send() }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")

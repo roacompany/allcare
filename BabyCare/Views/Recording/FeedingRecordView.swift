@@ -221,6 +221,7 @@ struct FeedingRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.feedRecordSave, parameters: [AnalyticsParams.category: type.displayName])
         Task {
             await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: type)
             guard activityVM.errorMessage == nil else {

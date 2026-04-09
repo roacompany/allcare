@@ -280,4 +280,52 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(vm.isFeverTrendDetected, "야간 발열 페어(24시간 이내)는 감지되어야 합니다")
         XCTAssertEqual(vm.recentHighTemperatureCount, 2)
     }
+
+    // MARK: - Analytics Tests
+
+    func testMockAnalytics_trackEvent() {
+        let mock = MockAnalyticsService()
+        mock.trackEvent(AnalyticsEvents.recordSave, parameters: [AnalyticsParams.category: "feed"])
+        XCTAssertEqual(mock.trackedEvents.count, 1)
+        XCTAssertEqual(mock.trackedEvents.first?.name, AnalyticsEvents.recordSave)
+        XCTAssertEqual(mock.trackedEvents.first?.parameters[AnalyticsParams.category], "feed")
+    }
+
+    func testMockAnalytics_trackScreen() {
+        let mock = MockAnalyticsService()
+        mock.trackScreen(AnalyticsScreens.dashboard)
+        XCTAssertEqual(mock.trackedScreens.count, 1)
+        XCTAssertEqual(mock.trackedScreens.first?.name, AnalyticsScreens.dashboard)
+    }
+
+    func testMockAnalytics_optOut_blocksEvents() {
+        let mock = MockAnalyticsService()
+        mock.setEnabled(false)
+        mock.trackEvent(AnalyticsEvents.recordSave)
+        mock.trackScreen(AnalyticsScreens.dashboard)
+        XCTAssertTrue(mock.trackedEvents.isEmpty, "옵트아웃 시 이벤트가 기록되면 안 됩니다")
+        XCTAssertTrue(mock.trackedScreens.isEmpty, "옵트아웃 시 화면 추적이 되면 안 됩니다")
+    }
+
+    func testMockAnalytics_setUserProperty() {
+        let mock = MockAnalyticsService()
+        mock.setUserProperty("3", forName: AnalyticsUserProperties.babyCount)
+        XCTAssertEqual(mock.userProperties[AnalyticsUserProperties.babyCount] as? String, "3")
+    }
+
+    func testAnalyticsEvents_constants() {
+        // 이벤트명이 Firebase 규칙을 준수하는지 확인 (소문자+언더스코어, 40자 이내)
+        let events = [
+            AnalyticsEvents.dashboardCardTap,
+            AnalyticsEvents.recordSave,
+            AnalyticsEvents.aiAdviceRequest,
+            AnalyticsEvents.growthDataInput,
+            AnalyticsEvents.productView,
+        ]
+        for event in events {
+            XCTAssertTrue(event.count <= 40, "\(event)는 40자를 초과합니다")
+            XCTAssertTrue(event.range(of: "^[a-z_]+$", options: .regularExpression) != nil,
+                          "\(event)는 소문자+언더스코어 규칙을 위반합니다")
+        }
+    }
 }

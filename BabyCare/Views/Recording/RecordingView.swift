@@ -41,6 +41,7 @@ struct RecordingView: View {
     // MARK: - Save success handler
 
     private func handleSaved() {
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.recordSave, parameters: [AnalyticsParams.category: selectedCategory.rawValue])
         // 위젯 데이터 동기화
         if let baby = babyVM.selectedBaby {
             activityVM.syncWidgetData(

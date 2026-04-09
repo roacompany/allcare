@@ -46,6 +46,7 @@ extension DashboardView {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: type)
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.displayName])
 
         // 성공 피드백: 햅틱 + 토스트
         let generator = UINotificationFeedbackGenerator()

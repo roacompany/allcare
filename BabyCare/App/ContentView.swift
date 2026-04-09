@@ -73,6 +73,12 @@ struct ContentView: View {
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
+                // Analytics: User Properties 초기 설정
+                AnalyticsService.shared.updateUserProperties(
+                    babyCount: babyVM.babies.count,
+                    familySharingEnabled: babyVM.babies.contains { $0.ownerUserId != userId },
+                    theme: ThemeManager.shared.currentMode.rawValue
+                )
             }
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
@@ -240,6 +246,13 @@ struct ContentView: View {
                 selectedTab = oldValue
                 initialRecordingCategory = nil
                 showRecording = true
+            } else {
+                // 탭 전환 페이지뷰 트래킹
+                let screenNames = [0: AnalyticsScreens.dashboard, 1: AnalyticsScreens.calendar,
+                                   3: AnalyticsScreens.health, 4: AnalyticsScreens.settings]
+                if let screenName = screenNames[newValue] {
+                    AnalyticsService.shared.trackScreen(screenName)
+                }
             }
         }
         .sheet(isPresented: $showRecording, onDismiss: {

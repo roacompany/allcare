@@ -202,6 +202,7 @@ struct GrowthView: View {
 
         do {
             try await firestoreService.saveGrowthRecord(record, userId: userId)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
             records.append(record)
             records.sort { $0.date < $1.date }
             showAddRecord = false
