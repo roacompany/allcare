@@ -1,1 +1,11 @@
-{}
+{
+  "623b67b0-7027-4eaf-bca6-591b63ef6716": {
+    "created_at": "2026-04-09T14:27:33Z",
+    "execute": {
+      "iteration": 0,
+      "max_iterations": 30,
+      "plan_path": ".dev/specs//execute/PLAN.md"
+    },
+    "agents": {}
+  }
+}
