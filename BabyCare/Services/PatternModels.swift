@@ -31,6 +31,7 @@ struct FeedingPattern {
     let breastVsBottleRatio: (breast: Int, bottle: Int)
     let peakHours: [Int]
     let dailyCounts: [(date: Date, count: Int)]
+    let previousDailyAverage: Double?
 }
 
 struct SleepPattern {
@@ -42,6 +43,7 @@ struct SleepPattern {
     let methodDistribution: [Activity.SleepMethodType: Int]
     let peakSleepHours: [Int]
     let dailyHours: [(date: Date, hours: Double)]
+    let previousDailyAverageHours: Double?
 }
 
 struct DiaperPattern {
@@ -52,6 +54,7 @@ struct DiaperPattern {
     let consistencyDistribution: [Activity.StoolConsistency: Int]
     let rashCount: Int
     let dailyCounts: [(date: Date, count: Int)]
+    let previousDailyAverage: Double?
 }
 
 struct HealthPattern {
@@ -60,6 +63,7 @@ struct HealthPattern {
     let highTempDays: Int
     let medicationCount: Int
     let medicationNames: [String: Int]
+    let consecutiveFeverDays: Int
 }
 
 struct SummaryPattern {
@@ -67,4 +71,5 @@ struct SummaryPattern {
     let mostActiveDay: (date: Date, count: Int)?
     let leastActiveDay: (date: Date, count: Int)?
     let categoryDistribution: [Activity.ActivityCategory: Int]
+    let missingDays: Int
 }
