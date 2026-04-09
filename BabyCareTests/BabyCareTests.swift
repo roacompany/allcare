@@ -328,4 +328,151 @@ final class BabyCareTests: XCTestCase {
                           "\(event)는 소문자+언더스코어 규칙을 위반합니다")
         }
     }
+
+    // MARK: - Consecutive Fever Days Tests
+
+    func testConsecutiveFeverDays_threeDays() {
+        // 연속 3일 38.5°C → consecutiveFeverDays == 3
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let day1 = cal.date(byAdding: .day, value: -2, to: today)!.addingTimeInterval(3600)
+        let day2 = cal.date(byAdding: .day, value: -1, to: today)!.addingTimeInterval(3600)
+        let day3 = today.addingTimeInterval(3600)
+        let activities = [
+            Activity(babyId: "b1", type: .temperature, startTime: day1, temperature: 38.5),
+            Activity(babyId: "b1", type: .temperature, startTime: day2, temperature: 38.5),
+            Activity(babyId: "b1", type: .temperature, startTime: day3, temperature: 38.5),
+        ]
+        let health = PatternAnalysisService.analyzeHealth(activities: activities)
+        XCTAssertEqual(health.consecutiveFeverDays, 3, "연속 3일 발열 시 consecutiveFeverDays는 3이어야 합니다")
+    }
+
+    func testConsecutiveFeverDays_noFever() {
+        // 발열 없음 → consecutiveFeverDays == 0
+        let now = Date()
+        let activities = [
+            Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-3600), temperature: 37.0),
+            Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-1800), temperature: 36.8),
+        ]
+        let health = PatternAnalysisService.analyzeHealth(activities: activities)
+        XCTAssertEqual(health.consecutiveFeverDays, 0, "발열 없음 시 consecutiveFeverDays는 0이어야 합니다")
+    }
+
+    func testConsecutiveFeverDays_intermittent() {
+        // 간헐적 발열 (1일 - 쉼 - 1일) → consecutiveFeverDays == 1
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let day1 = cal.date(byAdding: .day, value: -3, to: today)!.addingTimeInterval(3600)
+        // day2 건너뜀
+        let day3 = cal.date(byAdding: .day, value: -1, to: today)!.addingTimeInterval(3600)
+        let activities = [
+            Activity(babyId: "b1", type: .temperature, startTime: day1, temperature: 38.5),
+            Activity(babyId: "b1", type: .temperature, startTime: day3, temperature: 38.5),
+        ]
+        let health = PatternAnalysisService.analyzeHealth(activities: activities)
+        XCTAssertEqual(health.consecutiveFeverDays, 1, "간헐적 발열 시 consecutiveFeverDays는 최장 연속 1일이어야 합니다")
+    }
+
+    // MARK: - Missing Days Tests
+
+    func testMissingDays_fiveOfSeven() {
+        // startDate~endDate 사이 6일 스팬 (dateComponents는 end-start=6),
+        // 4일치 기록만 있을 때 missingDays == 2
+        let cal = Calendar.current
+        let startDate = cal.date(byAdding: .day, value: -6, to: cal.startOfDay(for: Date()))!
+        let endDate = cal.startOfDay(for: Date())
+        // 4개 날짜에 기록 생성 (startDate + 0,1,2,3)
+        let activities: [Activity] = (0..<4).map { offset in
+            let day = cal.date(byAdding: .day, value: offset, to: startDate)!.addingTimeInterval(3600)
+            return Activity(babyId: "b1", type: .feedingBreast, startTime: day)
+        }
+        let summary = PatternAnalysisService.analyzeSummary(activities: activities, startDate: startDate, endDate: endDate)
+        XCTAssertEqual(summary.missingDays, 2, "6스팬 4일 기록 시 missingDays는 2이어야 합니다")
+    }
+
+    func testMissingDays_allDaysRecorded() {
+        // startDate~endDate 사이 6일 스팬, 6일 모두 기록 → missingDays == 0
+        let cal = Calendar.current
+        let startDate = cal.date(byAdding: .day, value: -6, to: cal.startOfDay(for: Date()))!
+        let endDate = cal.startOfDay(for: Date())
+        // totalDays = 6 (dateComponents), 6일 기록
+        let activities: [Activity] = (0..<6).map { offset in
+            let day = cal.date(byAdding: .day, value: offset, to: startDate)!.addingTimeInterval(3600)
+            return Activity(babyId: "b1", type: .feedingBreast, startTime: day)
+        }
+        let summary = PatternAnalysisService.analyzeSummary(activities: activities, startDate: startDate, endDate: endDate)
+        XCTAssertEqual(summary.missingDays, 0, "6스팬 6일 기록 시 missingDays는 0이어야 합니다")
+    }
+
+    func testMissingDays_noData() {
+        // 데이터 없음, 6일 스팬 → missingDays == 6
+        let cal = Calendar.current
+        let startDate = cal.date(byAdding: .day, value: -6, to: cal.startOfDay(for: Date()))!
+        let endDate = cal.startOfDay(for: Date())
+        let summary = PatternAnalysisService.analyzeSummary(activities: [], startDate: startDate, endDate: endDate)
+        XCTAssertEqual(summary.missingDays, 6, "데이터 없음 시 missingDays는 dateComponents 스팬과 같아야 합니다")
+    }
+
+    // MARK: - Period Comparison Delta Tests
+
+    func testPreviousDailyAverage_withData() {
+        // analyzeComparison의 previousDays = dateComponents(end-start).day (스팬 기준)
+        // previousStart~previousEnd 스팬 = 6, 36회 feeding → 6회/일
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let currentStart = cal.date(byAdding: .day, value: -6, to: today)!
+        let currentEnd = today
+        let previousStart = cal.date(byAdding: .day, value: -13, to: today)!
+        let previousEnd = cal.date(byAdding: .day, value: -7, to: today)!
+
+        // 이번주: 6일 × 8회 = 48회 feeding
+        let currentActivities: [Activity] = (0..<48).map { i in
+            let dayOffset = i % 6
+            let day = cal.date(byAdding: .day, value: dayOffset, to: currentStart)!.addingTimeInterval(TimeInterval(i * 1000))
+            return Activity(babyId: "b1", type: .feedingBreast, startTime: day)
+        }
+        let currentReport = PatternAnalysisService.analyze(
+            activities: currentActivities,
+            period: "7일",
+            startDate: currentStart,
+            endDate: currentEnd
+        )
+
+        // 지난주: previousDays 스팬 = 6, 36회 feeding → 6.0/일
+        let previousActivities: [Activity] = (0..<36).map { i in
+            let dayOffset = i % 6
+            let day = cal.date(byAdding: .day, value: dayOffset, to: previousStart)!.addingTimeInterval(TimeInterval(i * 1000))
+            return Activity(babyId: "b1", type: .feedingBreast, startTime: day)
+        }
+
+        let comparedReport = PatternAnalysisService.analyzeComparison(
+            currentReport: currentReport,
+            previousActivities: previousActivities,
+            previousPeriod: (start: previousStart, end: previousEnd)
+        )
+
+        XCTAssertNotNil(comparedReport.feeding.previousDailyAverage, "이전 기간 데이터가 있을 때 previousDailyAverage는 nil이어서는 안 됩니다")
+        XCTAssertEqual(comparedReport.feeding.previousDailyAverage!, 6.0, accuracy: 0.01, "이전 기간 6회/일이면 previousDailyAverage는 6.0이어야 합니다")
+    }
+
+    func testPreviousDailyAverage_noData() {
+        // 이전 기간 데이터 없음 → previousDailyAverage == nil (analyzeComparison 호출 안 함)
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let currentStart = cal.date(byAdding: .day, value: -6, to: today)!
+        let currentEnd = today
+
+        let currentActivities: [Activity] = [
+            Activity(babyId: "b1", type: .feedingBreast, startTime: currentStart.addingTimeInterval(3600))
+        ]
+        let currentReport = PatternAnalysisService.analyze(
+            activities: currentActivities,
+            period: "7일",
+            startDate: currentStart,
+            endDate: currentEnd
+        )
+
+        // 이전 기간 데이터 없이 analyze()만 호출 시 previousDailyAverage는 nil
+        XCTAssertNil(currentReport.feeding.previousDailyAverage, "이전 기간 데이터 없으면 previousDailyAverage는 nil이어야 합니다")
+    }
 }
