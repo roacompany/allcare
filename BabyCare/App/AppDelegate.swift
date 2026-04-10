@@ -1,6 +1,7 @@
 import UIKit
 import FirebaseCore
 import FirebaseMessaging
+import GoogleMobileAds
 @preconcurrency import UserNotifications
 
 final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency MessagingDelegate, @preconcurrency UNUserNotificationCenterDelegate {
@@ -12,6 +13,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+
+        // MobileAds: child-directed + non-personalized (must be set BEFORE start())
+        MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = true
+        MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
+        MobileAds.shared.start(completionHandler: nil)
 
         // Analytics 옵트아웃 상태 반영
         AnalyticsService.shared.configure()
