@@ -475,4 +475,29 @@ final class BabyCareTests: XCTestCase {
         // 이전 기간 데이터 없이 analyze()만 호출 시 previousDailyAverage는 nil
         XCTAssertNil(currentReport.feeding.previousDailyAverage, "이전 기간 데이터 없으면 previousDailyAverage는 nil이어야 합니다")
     }
+
+    // MARK: - AdExperimentVariant Tests
+
+    func testAdExperimentVariant_allThreeTabs_showsOnDashboardCalendarHealth() {
+        let variant: AdExperimentVariant = .allThreeTabs
+        XCTAssertTrue(variant.shouldShowBanner(forTab: 0), "Dashboard(0)은 표시")
+        XCTAssertTrue(variant.shouldShowBanner(forTab: 1), "Calendar(1)은 표시")
+        XCTAssertTrue(variant.shouldShowBanner(forTab: 3), "Health(3)은 표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 2), "기록+(2)는 미표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 4), "Settings(4)는 미표시")
+    }
+
+    func testAdExperimentVariant_dashboardOnly_showsOnDashboardOnly() {
+        let variant: AdExperimentVariant = .dashboardOnly
+        XCTAssertTrue(variant.shouldShowBanner(forTab: 0), "Dashboard(0)만 표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 1), "Calendar(1) 미표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 2), "기록+(2) 미표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 3), "Health(3) 미표시")
+        XCTAssertFalse(variant.shouldShowBanner(forTab: 4), "Settings(4) 미표시")
+    }
+
+    func testAdExperimentVariant_currentVariant_defaultsToAllThreeTabs() {
+        XCTAssertEqual(AdExperimentVariant.currentVariant, .allThreeTabs,
+                       "기본 variant는 .allThreeTabs (A안)여야 합니다")
+    }
 }
