@@ -37,6 +37,13 @@ struct AdBannerView: UIViewRepresentable {
         let width = UIScreen.main.bounds.width
         return largeAnchoredAdaptiveBanner(width: width)
     }
+
+    /// SwiftUI `.frame(height:)`에 넘길 수 있는 배너 높이.
+    @MainActor
+    static func currentBannerHeight() -> CGFloat {
+        let width = UIScreen.main.bounds.width
+        return largeAnchoredAdaptiveBanner(width: width).size.height
+    }
 }
 
 // MARK: - BannerCoordinator
