@@ -77,7 +77,7 @@ targets:
         CFBundleLocalizations:
           - ko
         ITSAppUsesNonExemptEncryption: false
-        GADApplicationIdentifier: "ca-app-pub-3940256099942544~1458002511"
+        GADApplicationIdentifier: "ca-app-pub-6369815556964095~1504777334"
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
           - SKAdNetworkIdentifier: 4fzdc2evr5.skadnetwork
