@@ -66,13 +66,23 @@ make status      # 버전/커밋/테스트 상태
 
 ## Current Status
 
-- **Version**: v2.6.1 (빌드 46)
+- **Version**: v2.6.2 (빌드 49)
 - **App Store**: v2.6.0 (빌드 43) READY_FOR_SALE
 - **심사 대기**: v2.6.1 (빌드 46) WAITING_FOR_REVIEW
-- **TestFlight**: v2.6.1 (빌드 46)
-- **테스트**: 25개 PASS, 경고 0건
-- **규모**: 201 Swift 파일
+- **TestFlight**: v2.6.2 (빌드 49) — Live Activity fix 포함
+- **테스트**: 38개 PASS, 경고 0건
+- **규모**: 204 Swift 파일
 - **QA**: 3-Agent ALL PASS (2026-04-04)
+
+## Recent Changes (v2.6.2)
+
+- feat(analytics): Firebase Analytics (GA) 통합 — 10개 뷰 트래킹, 옵트아웃, PrivacyInfo
+- feat(pattern-report): 패턴분석 v2 — 발열 연속일, 데이터 품질 경고, 기간 비교 토글, 수유 예측
+- feat(timer): FloatingTimerBanner — 메인 화면 상단에 진행 중인 타이머 표시
+- fix(live-activity): 실시간 카운팅 (Text(timerInterval:)) + leftover cleanup + race condition fix
+- fix(ux): TimeAdjustment 미래 시점 클램프, 캘린더 월 전환 로딩 인디케이터
+- docs(privacy): 개인정보처리방침 Firebase Analytics 반영
+- chore(deploy): -allowProvisioningUpdates + sub-make deploy chain
 
 ## Active TODO
 
@@ -80,10 +90,6 @@ make status      # 버전/커밋/테스트 상태
 - [ ] LMS 데이터 스팟체크 (WHO 원본 CSV 대조)
 - [ ] 카탈로그 상품 30~40개 등록 (admin /catalog)
 - [ ] Figma 토큰 설정 (FIGMA_TOKEN)
-
-### 잔여 MEDIUM 2건
-- [ ] 미래 날짜 기록 가능 (DatePicker 시간 제한) — TimeAdjustmentSection.swift
-- [ ] 캘린더 월 전환 로딩 인디케이터 없음 — CalendarView.swift
 
 ### 리팩토링 잔여
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
