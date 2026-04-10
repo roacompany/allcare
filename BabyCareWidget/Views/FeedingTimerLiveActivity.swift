@@ -29,10 +29,11 @@ struct FeedingTimerLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(timerText(from: context.state.elapsedSeconds))
+                        Text(timerInterval: context.attributes.startTime...Date.distantFuture, countsDown: false)
                             .font(.system(size: 22, weight: .bold, design: .monospaced))
                             .foregroundStyle(.pink)
-                            .contentTransition(.numericText())
+                            .monospacedDigit()
+                            .multilineTextAlignment(.trailing)
                         Text("경과 시간")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -71,10 +72,11 @@ struct FeedingTimerLiveActivity: Widget {
                     .foregroundStyle(.pink)
             } compactTrailing: {
                 // Compact trailing (Dynamic Island pill 오른쪽)
-                Text(timerText(from: context.state.elapsedSeconds))
+                Text(timerInterval: context.attributes.startTime...Date.distantFuture, countsDown: false)
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .foregroundStyle(.pink)
-                    .contentTransition(.numericText())
+                    .monospacedDigit()
+                    .frame(width: 50)
             } minimal: {
                 // Minimal (다른 Live Activity와 공존 시)
                 Image(systemName: context.attributes.feedingTypeIcon)
@@ -123,10 +125,11 @@ struct FeedingTimerLiveActivity: Widget {
 
             // Timer
             VStack(alignment: .trailing, spacing: 2) {
-                Text(timerText(from: context.state.elapsedSeconds))
+                Text(timerInterval: context.attributes.startTime...Date.distantFuture, countsDown: false)
                     .font(.system(size: 28, weight: .bold, design: .monospaced))
                     .foregroundStyle(.pink)
-                    .contentTransition(.numericText())
+                    .monospacedDigit()
+                    .multilineTextAlignment(.trailing)
 
                 if context.state.isRunning {
                     Text("기록 중")
