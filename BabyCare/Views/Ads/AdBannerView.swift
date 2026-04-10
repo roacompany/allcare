@@ -16,12 +16,9 @@ struct AdBannerView: UIViewRepresentable {
         let banner = BannerView(adSize: adSize)
 
         #if DEBUG
-        banner.adUnitID = "ca-app-pub-3940256099942544/2435281174"
+        banner.adUnitID = "ca-app-pub-3940256099942544/2435281174"  // Google Test Banner
         #else
-        // CR-001: Production Ad Unit ID가 아직 교체되지 않았다면 컴파일 차단.
-        // AdMob 계정 등록 후 실제 banner unit ID로 교체 후 이 라인을 제거하라.
-        #error("Replace with production Ad Unit ID before Release build")
-        banner.adUnitID = "REPLACE_WITH_PRODUCTION_AD_UNIT_ID"
+        banner.adUnitID = "ca-app-pub-6369815556964095/1486596816"  // BabyCare Banner Inline (Production)
         #endif
 
         banner.delegate = context.coordinator
