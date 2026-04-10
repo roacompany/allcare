@@ -29,6 +29,12 @@ struct CalendarView: View {
 
                     dateHeader
 
+                    if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 1) {
+                        AdBannerView()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: AdBannerView.currentBannerHeight())
+                    }
+
                     eventsList
                 }
 
