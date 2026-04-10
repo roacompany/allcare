@@ -1,0 +1,28 @@
+{
+  "todo-1": {
+    "project_yml": "project.yml",
+    "privacy_info": "BabyCare/PrivacyInfo.xcprivacy",
+    "privacy_html": "privacy.html"
+  },
+  "todo-2": {
+    "cry_record": "BabyCare/Models/CryRecord.swift",
+    "cry_label": "BabyCare/Models/CryLabel.swift",
+    "feature_flags": "BabyCare/Utils/FeatureFlags.swift",
+    "constants_updated": "BabyCare/Utils/Constants.swift"
+  },
+  "todo-3": {
+    "cry_service": "BabyCare/Services/CryAnalysisService.swift"
+  },
+  "todo-4": {
+    "cry_vm": "BabyCare/ViewModels/CryAnalysisViewModel.swift"
+  },
+  "todo-5": {
+    "cry_view": "BabyCare/Views/Health/CryAnalysisView.swift"
+  },
+  "todo-6": {
+    "health_view_updated": "BabyCare/Views/Health/HealthView.swift"
+  },
+  "todo-7": {
+    "tests_updated": "BabyCareTests/BabyCareTests.swift"
+  }
+}
