@@ -131,6 +131,23 @@ struct HealthView: View {
                         }
                         .buttonStyle(.plain)
 
+                        // 울음 분석 (Feature Flag)
+                        if FeatureFlags.cryAnalysisEnabled {
+                            NavigationLink {
+                                CryAnalysisView()
+                            } label: {
+                                HealthSectionCard(
+                                    icon: "waveform.badge.microphone",
+                                    iconColor: AppColors.indigoColor,
+                                    title: "울음 분석",
+                                    subtitle: "아기 울음소리 패턴 분석 (베타)",
+                                    badge: nil,
+                                    badgeColor: .clear
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         // 일기
                         NavigationLink {
                             DiaryView()
