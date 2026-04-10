@@ -103,8 +103,9 @@ struct TimeAdjustmentSection: View {
                         "시작 시간",
                         selection: Binding(
                             get: { vm.manualStartTime },
-                            set: {
-                                vm.manualStartTime = $0
+                            set: { newValue in
+                                // 미래 시점 차단 (DatePicker range는 표시 제한, set 시점에 실시간 클램프)
+                                vm.manualStartTime = min(newValue, Date())
                                 vm.isTimeAdjusted = true
                             }
                         ),
@@ -143,8 +144,10 @@ struct TimeAdjustmentSection: View {
                                 "종료 시간",
                                 selection: Binding(
                                     get: { vm.manualEndTime ?? Date() },
-                                    set: {
-                                        vm.manualEndTime = $0
+                                    set: { newValue in
+                                        // 미래 시점 차단 + 시작 시간 이전 차단
+                                        let clamped = min(max(newValue, vm.manualStartTime), Date())
+                                        vm.manualEndTime = clamped
                                         vm.isTimeAdjusted = true
                                     }
                                 ),
