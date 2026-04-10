@@ -12,6 +12,8 @@ struct CryAnalysisView: View {
     @AppStorage("cryAnalysisOnboardingShown") private var onboardingShown = false
     @State private var showOnboardingSheet = false
     @State private var saveMessage: String?
+    // CR-002: Recording Task 참조 보관 — 뷰 이탈 시 취소하여 오디오 세션 복원 보장
+    @State private var recordingTask: Task<Void, Never>?
 
     private var babyId: String {
         babyVM.selectedBaby?.id ?? ""
@@ -62,6 +64,11 @@ struct CryAnalysisView: View {
             .onChange(of: vm.phase) { _, newPhase in
                 handlePhaseChange(newPhase)
             }
+            .onDisappear {
+                // CR-002: 뷰 이탈 시 녹음 Task 취소 → 세션 복원 + AVAudioSession leak 방지
+                recordingTask?.cancel()
+                recordingTask = nil
+            }
             .sheet(isPresented: $showOnboardingSheet) {
                 OnboardingSheet {
                     onboardingShown = true
@@ -71,6 +78,13 @@ struct CryAnalysisView: View {
         }
     }
 
+    // MARK: - Recording Entry Point
+    // CR-002: 모든 녹음 트리거가 이 헬퍼를 거치도록 통일. 기존 Task 취소 후 새 Task 저장.
+    private func startRecording() {
+        recordingTask?.cancel()
+        recordingTask = Task { await vm.start(babyId: babyId) }
+    }
+
     // MARK: - Phase Content
 
     @ViewBuilder
@@ -78,12 +92,12 @@ struct CryAnalysisView: View {
         switch vm.phase {
         case .idle:
             IdlePhaseView {
-                Task { await vm.start(babyId: babyId) }
+                startRecording()
             }
 
         case .permissionRequired:
             PermissionRequiredView {
-                Task { await vm.start(babyId: babyId) }
+                startRecording()
             }
 
         case .permissionDenied:
@@ -113,13 +127,13 @@ struct CryAnalysisView: View {
                 },
                 onRetry: {
                     saveMessage = nil
-                    Task { await vm.start(babyId: babyId) }
+                    startRecording()
                 }
             )
 
         case .error(let msg):
             ErrorPhaseView(message: msg) {
-                Task { await vm.start(babyId: babyId) }
+                startRecording()
             }
         }
     }

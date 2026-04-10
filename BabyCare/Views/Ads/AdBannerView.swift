@@ -35,15 +35,30 @@ struct AdBannerView: UIViewRepresentable {
     /// 현재 화면 너비 기준 largeAnchoredAdaptiveBanner AdSize 반환.
     @MainActor
     func currentAdSize() -> AdSize {
-        let width = UIScreen.main.bounds.width
-        return largeAnchoredAdaptiveBanner(width: width)
+        return largeAnchoredAdaptiveBanner(width: Self.safeScreenWidth())
     }
 
     /// SwiftUI `.frame(height:)`에 넘길 수 있는 배너 높이.
     @MainActor
     static func currentBannerHeight() -> CGFloat {
-        let width = UIScreen.main.bounds.width
-        return largeAnchoredAdaptiveBanner(width: width).size.height
+        return largeAnchoredAdaptiveBanner(width: safeScreenWidth()).size.height
+    }
+
+    /// iOS 16+에서 deprecated된 `UIScreen.main` 대신 활성 WindowScene으로부터 안전하게
+    /// 화면 너비를 조회한다. Scene 조회 실패 시 iPhone 기본폭(390pt)으로 fallback.
+    @MainActor
+    static func safeScreenWidth() -> CGFloat {
+        let fallback: CGFloat = 390  // iPhone 14/15/16 표준 폭
+        let scenes = UIApplication.shared.connectedScenes
+        if let active = scenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            let width = active.screen.bounds.width
+            return width > 0 ? width : fallback
+        }
+        if let any = scenes.first as? UIWindowScene {
+            let width = any.screen.bounds.width
+            return width > 0 ? width : fallback
+        }
+        return fallback
     }
 }
 

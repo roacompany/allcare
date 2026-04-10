@@ -51,6 +51,12 @@ final class CryAnalysisViewModel {
     // MARK: - Recording Flow
 
     func start(babyId: String) async {
+        // CR-003: 빈 babyId 가드 — orphan Firestore 문서 방지
+        guard !babyId.isEmpty else {
+            phase = .error("아기를 먼저 선택해주세요")
+            return
+        }
+
         // 1. 마이크 권한 확인
         switch service.permissionStatus() {
         case .denied:
@@ -79,18 +85,32 @@ final class CryAnalysisViewModel {
         }
 
         // 3. 녹음 시뮬레이션 (5초, 20단계 진행률)
+        // CR-002: Task 취소 시 세션 복원 보장
         let duration = CryAnalysisService.recordingDuration
         let steps = 20
         let stepInterval = UInt64((duration / Double(steps)) * 1_000_000_000)
 
-        for step in 1...steps {
-            phase = .recording(progress: Double(step) / Double(steps))
-            try? await Task.sleep(nanoseconds: stepInterval)
+        do {
+            for step in 1...steps {
+                phase = .recording(progress: Double(step) / Double(steps))
+                try await Task.sleep(nanoseconds: stepInterval)
+            }
+        } catch {
+            // 취소되면 세션 복원 후 idle 로 리셋
+            service.restoreAfterRecording()
+            phase = .idle
+            return
         }
 
         // 4. 분석 (스텁)
         phase = .analyzing
-        try? await Task.sleep(nanoseconds: 300_000_000) // UX 딜레이
+        do {
+            try await Task.sleep(nanoseconds: 300_000_000) // UX 딜레이
+        } catch {
+            service.restoreAfterRecording()
+            phase = .idle
+            return
+        }
         let record = service.analyzeStub(babyId: babyId)
 
         // 5. 오디오 세션 복원

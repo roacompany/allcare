@@ -41,6 +41,9 @@ final class CryAnalysisService {
     // MARK: - Session Coordination
 
     func configureForRecording() throws {
+        // CR-001: SoundPlayerService가 재생 중이면 먼저 정지 (백색소음/자장가 세션 충돌 방지)
+        SoundPlayerService.shared.stop()
+
         let session = AVAudioSession.sharedInstance()
         previousCategory = session.category
         previousMode = session.mode

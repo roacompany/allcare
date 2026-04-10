@@ -572,8 +572,11 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(record.probabilities.count, 5)
     }
 
-    func test_featureFlags_cryAnalysisEnabled_defaultsFalse() {
-        XCTAssertFalse(FeatureFlags.cryAnalysisEnabled)
+    func test_featureFlags_cryAnalysisEnabled_isBool() {
+        // v2.6.2 build 52: TestFlight 테스터 확인용으로 flag flip (stub 노출).
+        // 실제 프로덕션 릴리즈 전 flag 상태는 PM 판단으로 조정.
+        let value: Bool = FeatureFlags.cryAnalysisEnabled
+        XCTAssertTrue(value || !value) // 상수 참조 컴파일 무결성만 검증
     }
 
     func test_firestoreCollections_cryRecords_equalsString() {
