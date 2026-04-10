@@ -21,8 +21,23 @@ final class LiveActivityManager {
         babyName: String,
         feedingType: BabyCare.Activity.ActivityType
     ) {
-        // 기존 Activity가 있으면 종료
-        stopFeedingTimer()
+        Task { [weak self] in
+            await self?._startFeedingTimer(babyName: babyName, feedingType: feedingType)
+        }
+    }
+
+    private func _startFeedingTimer(
+        babyName: String,
+        feedingType: BabyCare.Activity.ActivityType
+    ) async {
+        // 기존 Activity가 있으면 await로 완전히 종료한 후 새로 시작
+        // (race condition 방지: 새 Activity가 등록된 후 stopFeedingTimer의 비동기 Task가 새 것까지 종료시키는 문제)
+        for activity in LiveActivity.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        currentActivity = nil
+        updateTask?.cancel()
+        updateTask = nil
 
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             Self.logger.warning("Live Activities are not enabled")
@@ -58,24 +73,49 @@ final class LiveActivityManager {
     }
 
     /// 수유 타이머 Live Activity 종료
+    /// 메모리에 캐시된 currentActivity뿐 아니라 시스템에 남아있는 모든 leftover Activity도 정리.
     func stopFeedingTimer() {
         updateTask?.cancel()
         updateTask = nil
 
-        guard let activity = currentActivity else { return }
-
-        let finalState = FeedingTimerAttributes.ContentState(
-            elapsedSeconds: Int(Date().timeIntervalSince(activity.attributes.startTime)),
-            isRunning: false
-        )
-
-        Task {
-            let content = ActivityContent(state: finalState, staleDate: nil)
-            await activity.end(content, dismissalPolicy: .after(.now + 60))
-            Self.logger.info("Live Activity ended")
-        }
-
         currentActivity = nil
+
+        // 시스템에 등록된 모든 FeedingTimerAttributes Activity를 즉시 종료
+        // (앱 재시작 후에는 currentActivity가 nil이라 이 경로로만 정리 가능)
+        Task {
+            for activity in LiveActivity.activities {
+                let elapsed = Int(Date().timeIntervalSince(activity.attributes.startTime))
+                let finalState = FeedingTimerAttributes.ContentState(
+                    elapsedSeconds: elapsed,
+                    isRunning: false
+                )
+                let content = ActivityContent(state: finalState, staleDate: nil)
+                await activity.end(content, dismissalPolicy: .immediate)
+                Self.logger.info("Live Activity ended (immediate)")
+            }
+        }
+    }
+
+    /// 앱 시작 시 호출 — 진행 중이지 않은 leftover Live Activity 정리.
+    /// 타이머가 진행 중이면 그 Activity를 currentActivity에 다시 연결한다.
+    func reconcileWithRunningTimer(isTimerRunning: Bool) {
+        Task {
+            let active = LiveActivity.activities
+            if isTimerRunning {
+                // 타이머가 진행 중이면 첫 번째 활성 Activity를 currentActivity에 재연결
+                if currentActivity == nil, let first = active.first {
+                    currentActivity = first
+                    Self.logger.info("Reconnected to existing Live Activity")
+                }
+            } else {
+                // 타이머가 없는데 leftover Activity가 있으면 모두 정리
+                for activity in active {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                    Self.logger.info("Cleaned up leftover Live Activity on launch")
+                }
+                currentActivity = nil
+            }
+        }
     }
 
     /// 경과 시간 업데이트

@@ -83,7 +83,11 @@ final class ActivityTimerManager {
         let startInterval = UserDefaults.standard.double(forKey: Self.timerStartKey)
         guard startInterval > 0,
               let typeRaw = UserDefaults.standard.string(forKey: Self.timerTypeKey),
-              let type = Activity.ActivityType(rawValue: typeRaw) else { return nil }
+              let type = Activity.ActivityType(rawValue: typeRaw) else {
+            // 복구할 타이머 없음 — 시스템에 leftover Live Activity가 있으면 정리
+            LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)
+            return nil
+        }
 
         let startTime = Date(timeIntervalSince1970: startInterval)
         let elapsed = Date().timeIntervalSince(startTime)
@@ -92,6 +96,7 @@ final class ActivityTimerManager {
         guard elapsed < 86400 else {
             UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
             UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
+            LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)
             return nil
         }
 
@@ -99,6 +104,9 @@ final class ActivityTimerManager {
         timerStartTime = startTime
         activeTimerType = type
         elapsedTime = elapsed
+
+        // 진행 중인 타이머 — 시스템의 Live Activity와 재연결
+        LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: true)
 
         timerTask?.cancel()
         timerTask = Task { [weak self] in
