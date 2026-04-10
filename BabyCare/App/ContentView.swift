@@ -262,8 +262,14 @@ struct ContentView: View {
             RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
         }
         .overlay(alignment: .bottom) {
-            FloatingMiniPlayer()
-                .padding(.bottom, 52) // TabBar 위
+            VStack(spacing: 6) {
+                FloatingTimerBanner { category in
+                    initialRecordingCategory = category
+                    showRecording = true
+                }
+                FloatingMiniPlayer()
+            }
+            .padding(.bottom, 52) // TabBar 위
         }
     }
 }
