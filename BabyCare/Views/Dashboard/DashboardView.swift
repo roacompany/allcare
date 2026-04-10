@@ -33,6 +33,12 @@ struct DashboardView: View {
                     alertBannersSection
                     quickActionsSection
                     predictionSection
+                    if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 0) {
+                        AdBannerView()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: AdBannerView.currentBannerHeight())
+                            .padding(.horizontal, -16) // VStack horizontal padding 상쇄해서 full-width
+                    }
                     summaryCardsSection
                     reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {

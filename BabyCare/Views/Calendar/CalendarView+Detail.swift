@@ -98,6 +98,17 @@ extension CalendarView {
                 .frame(maxHeight: .infinity)
             } else {
                 List {
+                    // 인라인 광고 (Calendar 탭)
+                    if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 1) {
+                        Section {
+                            AdBannerView()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: AdBannerView.currentBannerHeight())
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                        }
+                    }
+
                     // 할 일
                     if !calendarVM.todosForDate.isEmpty {
                         Section {

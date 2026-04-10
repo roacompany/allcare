@@ -268,10 +268,6 @@ struct ContentView: View {
                     showRecording = true
                 }
                 FloatingMiniPlayer()
-                if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: selectedTab) {
-                    AdBannerView()
-                        .frame(height: AdBannerView.currentBannerHeight())
-                }
             }
             .padding(.bottom, 52) // TabBar 위
         }
