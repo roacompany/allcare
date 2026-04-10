@@ -96,7 +96,12 @@ upload: export
 .PHONY: deploy
 
 ## 원커맨드 배포: 검증 → 버전범프 → Archive → Export → TestFlight 업로드
-deploy: verify bump upload
+## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다
+## (단일 make 호출에서는 PHONY target도 한 번만 실행됨 → bump한 빌드 번호가 archive에 반영 안 됨)
+deploy:
+	$(MAKE) verify
+	$(MAKE) bump
+	$(MAKE) upload
 	@echo "🚀 배포 완료!"
 
 # ═══════════════════════════════════════
