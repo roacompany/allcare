@@ -59,16 +59,15 @@ bump:
 	sed -i '' "s/CURRENT_PROJECT_VERSION: \"$$CURRENT\"/CURRENT_PROJECT_VERSION: \"$$NEXT\"/g" project.yml; \
 	echo "📦 빌드 번호: $$CURRENT → $$NEXT"
 
-## Manual signing 전환 + Archive
+## Archive (Automatic signing — SPM 패키지와 호환)
 archive: generate
 	@security unlock-keychain -p "ci_password" $(KEYCHAIN)
 	xcodebuild archive \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-archivePath $(ARCHIVE_PATH) \
-		CODE_SIGN_STYLE=Manual \
-		PROVISIONING_PROFILE_SPECIFIER="BabyCare AppStore" \
-		CODE_SIGN_IDENTITY="Apple Distribution: WONJUN JANG (R24J6R4S7X)" \
+		-destination "generic/platform=iOS" \
+		-allowProvisioningUpdates \
 		-quiet
 	@echo "📦 Archive 완료: $(ARCHIVE_PATH)"
 
@@ -78,6 +77,7 @@ export: archive
 		-archivePath $(ARCHIVE_PATH) \
 		-exportOptionsPlist ExportOptions_local.plist \
 		-exportPath $(EXPORT_PATH) \
+		-allowProvisioningUpdates \
 		-quiet
 	@echo "📦 Export 완료: $(EXPORT_PATH)"
 
@@ -93,16 +93,11 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy restore
+.PHONY: deploy
 
-## 원커맨드 배포: 버전범프 → 빌드 → Archive → Export → Upload
-deploy: verify bump upload restore
+## 원커맨드 배포: 검증 → 버전범프 → Archive → Export → TestFlight 업로드
+deploy: verify bump upload
 	@echo "🚀 배포 완료!"
-
-## Archive 후 Automatic signing 복원
-restore:
-	@sed -i '' 's/CODE_SIGN_STYLE: Manual/CODE_SIGN_STYLE: Automatic/g' project.yml 2>/dev/null || true
-	@echo "🔄 Automatic signing 복원"
 
 # ═══════════════════════════════════════
 # 유틸리티
