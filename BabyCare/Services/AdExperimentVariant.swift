@@ -2,7 +2,7 @@ import Foundation
 
 /// AdMob 배너 배치 실험 — A/B 테스트를 위한 feature flag
 /// 변경 시 `currentVariant` 한 줄 수정으로 전환 가능
-enum AdExperimentVariant {
+enum AdExperimentVariant: Equatable {
     case allThreeTabs   // A: Dashboard + Calendar + Health
     case dashboardOnly  // B: Dashboard 1개 탭만
 

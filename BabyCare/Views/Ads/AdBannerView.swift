@@ -7,6 +7,7 @@ import OSLog
 /// Adaptive banner 광고를 SwiftUI에 임베드하는 UIViewRepresentable 래퍼.
 /// SDK 13+ API만 사용 (GAD prefix 없음, rootViewController 수동 설정 없음).
 
+@MainActor
 struct AdBannerView: UIViewRepresentable {
     typealias UIViewType = BannerView
 
@@ -17,7 +18,10 @@ struct AdBannerView: UIViewRepresentable {
         #if DEBUG
         banner.adUnitID = "ca-app-pub-3940256099942544/2435281174"
         #else
-        banner.adUnitID = "ca-app-pub-3940256099942544/2435281174" // TODO: 프로덕션 Ad Unit ID로 교체
+        // CR-001: Production Ad Unit ID가 아직 교체되지 않았다면 컴파일 차단.
+        // AdMob 계정 등록 후 실제 banner unit ID로 교체 후 이 라인을 제거하라.
+        #error("Replace with production Ad Unit ID before Release build")
+        banner.adUnitID = "REPLACE_WITH_PRODUCTION_AD_UNIT_ID"
         #endif
 
         banner.delegate = context.coordinator
