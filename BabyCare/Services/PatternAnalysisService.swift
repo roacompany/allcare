@@ -17,7 +17,7 @@ enum PatternAnalysisService {
         let sleep = analyzeSleep(activities: activities, days: days, startDate: startDate, endDate: endDate)
         let diaper = analyzeDiaper(activities: activities, days: days)
         let health = analyzeHealth(activities: activities)
-        let summary = analyzeSummary(activities: activities)
+        let summary = analyzeSummary(activities: activities, startDate: startDate, endDate: endDate)
 
         return PatternReport(
             period: period,
@@ -28,6 +28,78 @@ enum PatternAnalysisService {
             diaper: diaper,
             health: health,
             summary: summary
+        )
+    }
+
+    // MARK: - Comparison
+
+    static func analyzeComparison(
+        currentReport: PatternReport,
+        previousActivities: [Activity],
+        previousPeriod: (start: Date, end: Date)
+    ) -> PatternReport {
+        let calendar = Calendar.current
+        let previousDays = max(1, calendar.dateComponents([.day], from: previousPeriod.start.startOfDay, to: previousPeriod.end.startOfDay).day ?? 1)
+
+        // Previous feeding daily average
+        let prevFeedingCount = previousActivities.filter { $0.type.category == .feeding }.count
+        let prevFeedingDailyAverage = Double(prevFeedingCount) / Double(previousDays)
+
+        // Previous sleep daily average (hours)
+        let prevSleepActivities = previousActivities.filter { $0.type == .sleep }
+        let prevSleepTotalHours = prevSleepActivities.compactMap(\.duration).reduce(0, +) / 3600
+        let prevSleepDailyAverageHours = prevSleepTotalHours / Double(previousDays)
+
+        // Previous diaper daily average
+        let prevDiaperCount = previousActivities.filter { $0.type.category == .diaper }.count
+        let prevDiaperDailyAverage = Double(prevDiaperCount) / Double(previousDays)
+
+        // Build updated pattern structs
+        let updatedFeeding = FeedingPattern(
+            totalCount: currentReport.feeding.totalCount,
+            dailyAverage: currentReport.feeding.dailyAverage,
+            averageInterval: currentReport.feeding.averageInterval,
+            intervalTrend: currentReport.feeding.intervalTrend,
+            totalMl: currentReport.feeding.totalMl,
+            dailyMlAverage: currentReport.feeding.dailyMlAverage,
+            breastVsBottleRatio: currentReport.feeding.breastVsBottleRatio,
+            peakHours: currentReport.feeding.peakHours,
+            dailyCounts: currentReport.feeding.dailyCounts,
+            previousDailyAverage: prevFeedingDailyAverage
+        )
+
+        let updatedSleep = SleepPattern(
+            totalHours: currentReport.sleep.totalHours,
+            dailyAverageHours: currentReport.sleep.dailyAverageHours,
+            averageDuration: currentReport.sleep.averageDuration,
+            durationTrend: currentReport.sleep.durationTrend,
+            qualityDistribution: currentReport.sleep.qualityDistribution,
+            methodDistribution: currentReport.sleep.methodDistribution,
+            peakSleepHours: currentReport.sleep.peakSleepHours,
+            dailyHours: currentReport.sleep.dailyHours,
+            previousDailyAverageHours: prevSleepDailyAverageHours
+        )
+
+        let updatedDiaper = DiaperPattern(
+            totalCount: currentReport.diaper.totalCount,
+            dailyAverage: currentReport.diaper.dailyAverage,
+            wetVsDirtyRatio: currentReport.diaper.wetVsDirtyRatio,
+            stoolColorDistribution: currentReport.diaper.stoolColorDistribution,
+            consistencyDistribution: currentReport.diaper.consistencyDistribution,
+            rashCount: currentReport.diaper.rashCount,
+            dailyCounts: currentReport.diaper.dailyCounts,
+            previousDailyAverage: prevDiaperDailyAverage
+        )
+
+        return PatternReport(
+            period: currentReport.period,
+            startDate: currentReport.startDate,
+            endDate: currentReport.endDate,
+            feeding: updatedFeeding,
+            sleep: updatedSleep,
+            diaper: updatedDiaper,
+            health: currentReport.health,
+            summary: currentReport.summary
         )
     }
 
@@ -85,7 +157,8 @@ enum PatternAnalysisService {
             dailyMlAverage: dailyMlAverage,
             breastVsBottleRatio: (breast: breast, bottle: bottle),
             peakHours: peakHours,
-            dailyCounts: dailyCounts
+            dailyCounts: dailyCounts,
+            previousDailyAverage: nil
         )
     }
 
@@ -137,7 +210,8 @@ enum PatternAnalysisService {
             qualityDistribution: qualityDist,
             methodDistribution: methodDist,
             peakSleepHours: peakSleepHours,
-            dailyHours: dailyHours
+            dailyHours: dailyHours,
+            previousDailyAverageHours: nil
         )
     }
 }

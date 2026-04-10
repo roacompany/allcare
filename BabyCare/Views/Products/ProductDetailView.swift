@@ -12,6 +12,7 @@ struct ProductDetailView: View {
     @State var showSafari = false
     @State var safariURL: URL?
     @State var showAddPurchase = false
+    @State var showPurchaseConfirmAlert = false
 
     var body: some View {
         List {
@@ -33,11 +34,21 @@ struct ProductDetailView: View {
         } message: {
             Text("'\(product.name)'을(를) 삭제하시겠습니까?")
         }
-        .sheet(isPresented: $showSafari) {
+        .sheet(isPresented: $showSafari, onDismiss: {
+            showPurchaseConfirmAlert = true
+        }) {
             if let url = safariURL {
                 SafariView(url: url)
                     .ignoresSafeArea()
             }
+        }
+        .alert("구매를 완료하셨나요?", isPresented: $showPurchaseConfirmAlert) {
+            Button("구매 기록 추가") {
+                showAddPurchase = true
+            }
+            Button("나중에", role: .cancel) {}
+        } message: {
+            Text("구매 기록을 추가하면 재고와 지출을 관리할 수 있습니다.")
         }
         .sheet(isPresented: $showAddPurchase) {
             AddPurchaseRecordView(product: product)

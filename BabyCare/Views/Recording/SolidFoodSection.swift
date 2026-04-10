@@ -33,21 +33,22 @@ struct SolidFoodSection: View {
                 FlowLayout(spacing: 8) {
                     ForEach(ingredientChips, id: \.self) { chip in
                         Button(chip) {
-                            if activityVM.foodName.isEmpty {
-                                activityVM.foodName = chip
-                            } else if !activityVM.foodName.contains(chip) {
-                                activityVM.foodName += ", \(chip)"
+                            let items = activityVM.foodName.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                            if items.contains(chip) {
+                                activityVM.foodName = items.filter { $0 != chip }.joined(separator: ", ")
+                            } else {
+                                activityVM.foodName = activityVM.foodName.isEmpty ? chip : activityVM.foodName + ", " + chip
                             }
                         }
                         .font(.system(size: 13, weight: .medium))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .background(
-                            activityVM.foodName.contains(chip)
+                            activityVM.foodName.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.contains(chip)
                                 ? accentColor : accentColor.opacity(0.1)
                         )
                         .foregroundStyle(
-                            activityVM.foodName.contains(chip) ? .white : accentColor
+                            activityVM.foodName.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.contains(chip) ? .white : accentColor
                         )
                         .clipShape(Capsule())
                     }

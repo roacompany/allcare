@@ -2,20 +2,33 @@ import SwiftUI
 import AVFoundation
 
 // MARK: - Floating Mini Player
+// SoundItem(로컬) 및 SoundTrack(스트리밍) 모두 표시 지원.
 
 struct FloatingMiniPlayer: View {
     @State private var showSoundPlayer = false
     private var player: SoundPlayerService { SoundPlayerService.shared }
 
-    var body: some View {
-        if player.isPlaying, let sound = player.currentSound {
-            HStack(spacing: 10) {
-                Image(systemName: sound.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white)
-                    .symbolEffect(.pulse, isActive: true)
+    // 현재 재생 중인 아이콘과 이름을 통합 프로퍼티에서 가져옴
+    private var displayName: String? { player.currentName }
+    private var displayIcon: String? { player.currentIcon }
 
-                Text(sound.name)
+    var body: some View {
+        if player.isPlaying, let name = displayName, let icon = displayIcon {
+            HStack(spacing: 10) {
+                // 아이콘 (버퍼링 중이면 스피너)
+                if player.isBuffering {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(width: 18, height: 18)
+                        .tint(.white)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        .symbolEffect(.pulse, isActive: true)
+                }
+
+                Text(name)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.white)
                     .lineLimit(1)

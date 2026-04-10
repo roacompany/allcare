@@ -146,8 +146,13 @@ struct NoteField: View {
 /// Primary save button shared across all record forms.
 struct SaveButton: View {
     let isSaving: Bool
+    var isEnabled: Bool = true
     var color: Color = .pink
     let action: () -> Void
+
+    private var effectiveColor: Color {
+        isEnabled ? color : Color(.systemGray3)
+    }
 
     var body: some View {
         Button {
@@ -166,11 +171,11 @@ struct SaveButton: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
-            .background(color)
+            .background(effectiveColor)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: color.opacity(0.35), radius: 8, y: 4)
+            .shadow(color: effectiveColor.opacity(0.35), radius: 8, y: 4)
         }
-        .disabled(isSaving)
+        .disabled(isSaving || !isEnabled)
     }
 }

@@ -15,6 +15,14 @@ struct FeedingRecordView: View {
     @State private var isSaving = false
     @State private var productCandidates: [BabyProduct] = []
 
+    // Save is allowed unless bottle feeding with no amount entered
+    private var canSave: Bool {
+        if type == .feedingBottle {
+            return (Int(activityVM.amount) ?? 0) > 0
+        }
+        return true
+    }
+
     // Accent colour per sub-type
     private var accentColor: Color {
         switch type {
@@ -45,7 +53,7 @@ struct FeedingRecordView: View {
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
 
-                SaveButton(isSaving: isSaving, color: accentColor, action: save)
+                SaveButton(isSaving: isSaving, isEnabled: canSave, color: accentColor, action: save)
                     .padding(.horizontal)
                     .padding(.bottom, 16)
             }
@@ -209,17 +217,19 @@ struct FeedingRecordView: View {
     // MARK: - Actions
 
     private func save() {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.feedRecordSave, parameters: [AnalyticsParams.category: type.displayName])
         Task {
-            await activityVM.saveActivity(userId: userId, babyId: baby.id, type: type)
+            await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: type)
             guard activityVM.errorMessage == nil else {
                 isSaving = false
                 return
             }
             let feedAmount = Int(activityVM.amount)
-            if let candidates = await productVM.deductStockForActivity(type, userId: userId, recordedAmount: feedAmount) {
+            if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
                 productCandidates = candidates
             } else {
                 isSaving = false

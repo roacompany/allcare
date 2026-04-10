@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
+    @Environment(ProductViewModel.self) private var productVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -14,10 +15,12 @@ struct ContentView: View {
     }()
     @State private var showRecording = false
     @State private var initialRecordingCategory: Activity.ActivityCategory?
+    @State private var reorderProduct: BabyProduct?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
 
     private let networkMonitor = NetworkMonitor.shared
+    private let offlineQueue = OfflineQueue.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,6 +35,19 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
                 .background(Color.orange)
+            }
+
+            if offlineQueue.pendingCount > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption2)
+                    Text("\(offlineQueue.pendingCount)개 기록 동기화 대기 중")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.8))
             }
 
             Group {
@@ -57,6 +73,12 @@ struct ContentView: View {
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
+                // Analytics: User Properties 초기 설정
+                AnalyticsService.shared.updateUserProperties(
+                    babyCount: babyVM.babies.count,
+                    familySharingEnabled: babyVM.babies.contains { $0.ownerUserId != userId },
+                    theme: ThemeManager.shared.currentMode.rawValue
+                )
             }
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
@@ -71,6 +93,41 @@ struct ContentView: View {
             guard let destination else { return }
             handleDeepLink(destination)
             deepLinkDestination = nil
+        }
+        .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
+            guard let destination else { return }
+            handleNotificationDestination(destination)
+            NotificationRouter.shared.pendingDestination = nil
+        }
+        .sheet(item: $reorderProduct) { product in
+            NavigationStack {
+                ProductDetailView(product: product)
+            }
+        }
+    }
+
+    // MARK: - Notification Routing
+
+    private func handleNotificationDestination(_ destination: NotificationRouter.Destination) {
+        guard authVM.isAuthenticated else { return }
+
+        switch destination {
+        case .dashboard:
+            selectedTab = 0
+
+        case .announcements:
+            selectedTab = 4 // 설정 탭
+
+        case .reorderProduct(let productId, let coupangURLString):
+            if let urlString = coupangURLString, let url = URL(string: urlString) {
+                // 쿠팡 URL이 있으면 Safari 직접 열기 (가장 빠른 구매 경로)
+                UIApplication.shared.open(url)
+            } else {
+                // 쿠팡 URL 없으면 용품 상세 화면으로 이동
+                if let product = productVM.products.first(where: { $0.id == productId }) {
+                    reorderProduct = product
+                }
+            }
         }
     }
 
@@ -93,14 +150,15 @@ struct ContentView: View {
             showRecording = true
 
         case .quickSave(let quickType):
-            guard let userId = authVM.currentUserId,
+            guard let currentUserId = authVM.currentUserId,
                   let baby = babyVM.selectedBaby else { return }
+            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
             let activityType: Activity.ActivityType = switch quickType {
             case .feedingBreast: .feedingBreast
             case .diaperWet: .diaperWet
             }
             Task {
-                await activityVM.quickSave(userId: userId, babyId: baby.id, type: activityType)
+                await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: activityType)
                 activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
             }
         }
@@ -188,13 +246,20 @@ struct ContentView: View {
                 selectedTab = oldValue
                 initialRecordingCategory = nil
                 showRecording = true
+            } else {
+                // 탭 전환 페이지뷰 트래킹
+                let screenNames = [0: AnalyticsScreens.dashboard, 1: AnalyticsScreens.calendar,
+                                   3: AnalyticsScreens.health, 4: AnalyticsScreens.settings]
+                if let screenName = screenNames[newValue] {
+                    AnalyticsService.shared.trackScreen(screenName)
+                }
             }
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()
             initialRecordingCategory = nil
         }) {
-            RecordingView(initialCategory: initialRecordingCategory)
+            RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
         }
         .overlay(alignment: .bottom) {
             FloatingMiniPlayer()

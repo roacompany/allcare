@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
+    @AppStorage("analytics_opt_out") private var analyticsOptOut = false
 
     var body: some View {
         NavigationStack {
@@ -41,7 +42,7 @@ struct SettingsView: View {
                 }
 
                 // 용품 관리 (별도 탭 없이 여기서 접근)
-                Section("관리") {
+                Section(header: Text("바로가기"), footer: Text("대시보드에서도 접근할 수 있습니다")) {
                     NavigationLink {
                         ProductListView()
                     } label: {
@@ -91,7 +92,7 @@ struct SettingsView: View {
                 }
 
                 // App Settings
-                Section("앱 설정") {
+                Section {
                     NavigationLink {
                         AnnouncementListView()
                     } label: {
@@ -125,6 +126,17 @@ struct SettingsView: View {
                         Label("알림", systemImage: "bell.fill")
                     }
 
+                    Toggle(isOn: Binding(
+                        get: { !analyticsOptOut },
+                        set: { newValue in
+                            analyticsOptOut = !newValue
+                            AnalyticsService.shared.setEnabled(newValue)
+                        }
+                    )) {
+                        Label("앱 사용 데이터 공유", systemImage: "chart.bar.fill")
+                    }
+                    .tint(.pink)
+
                     NavigationLink {
                         FamilySharingView()
                     } label: {
@@ -135,6 +147,12 @@ struct SettingsView: View {
                         AIAdviceView()
                     } label: {
                         Label("AI 육아 조언", systemImage: "bubble.left.and.text.bubble.right.fill")
+                    }
+                } header: {
+                    Text("앱 설정")
+                } footer: {
+                    if !analyticsOptOut {
+                        Text("앱 개선을 위해 사용 통계를 익명으로 수집합니다. 개인 기록은 포함되지 않습니다.")
                     }
                 }
 

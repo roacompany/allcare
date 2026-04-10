@@ -8,6 +8,7 @@ final class NotificationRouter: ObservableObject {
     enum Destination {
         case dashboard
         case announcements
+        case reorderProduct(productId: String, coupangURL: String?)
     }
 
     @Published var pendingDestination: Destination?
@@ -20,6 +21,11 @@ final class NotificationRouter: ObservableObject {
         switch type {
         case "announcement":
             pendingDestination = .announcements
+        case "reorder":
+            let productId = userInfo["productId"] as? String ?? ""
+            let coupangURLString = userInfo["coupangURL"] as? String
+            let coupangURL = (coupangURLString?.isEmpty == false) ? coupangURLString : nil
+            pendingDestination = .reorderProduct(productId: productId, coupangURL: coupangURL)
         default:
             pendingDestination = .dashboard
         }

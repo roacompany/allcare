@@ -10,6 +10,7 @@ struct FamilySharingView: View {
     @State private var isLoading = false
     @State private var message: String?
     @State private var showJoinSheet = false
+    @State private var accessToDelete: SharedBabyAccess?
 
     private let firestoreService = FirestoreService.shared
 
@@ -55,7 +56,7 @@ struct FamilySharingView: View {
             } header: {
                 Text("초대하기")
             } footer: {
-                Text("초대 코드를 공유하면 상대방이 같은 아기의 기록을 함께 볼 수 있습니다.")
+                Text("초대 코드는 7일간 유효합니다. 코드를 받은 가족은 아기의 기록을 함께 확인하고 추가할 수 있습니다.")
             }
 
             // Join with code
@@ -87,15 +88,7 @@ struct FamilySharingView: View {
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
-                                Task {
-                                    guard let userId = authVM.currentUserId else { return }
-                                    do {
-                                        try await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
-                                        sharedAccess.removeAll { $0.id == access.id }
-                                    } catch {
-                                        message = "공유 삭제에 실패했습니다. 다시 시도해 주세요."
-                                    }
-                                }
+                                accessToDelete = access
                             } label: {
                                 Label("삭제", systemImage: "trash")
                             }
@@ -126,6 +119,33 @@ struct FamilySharingView: View {
         .onChange(of: sharedAccess.count) { _, _ in
             guard let userId = authVM.currentUserId else { return }
             Task { await babyVM.loadBabies(userId: userId) }
+        }
+        .confirmationDialog(
+            "공유 해제",
+            isPresented: Binding(
+                get: { accessToDelete != nil },
+                set: { if !$0 { accessToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("공유 해제", role: .destructive) {
+                guard let access = accessToDelete,
+                      let userId = authVM.currentUserId else { return }
+                Task {
+                    do {
+                        try await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
+                        sharedAccess.removeAll { $0.id == access.id }
+                    } catch {
+                        message = "공유 삭제에 실패했습니다. 다시 시도해 주세요."
+                    }
+                    accessToDelete = nil
+                }
+            }
+            Button("취소", role: .cancel) { accessToDelete = nil }
+        } message: {
+            if let access = accessToDelete {
+                Text("\(access.babyName)의 공유를 해제하면 해당 가족 구성원이 더 이상 기록을 볼 수 없습니다.")
+            }
         }
     }
 

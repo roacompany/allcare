@@ -6,6 +6,7 @@ final class PurchaseViewModel {
     var isLoading = false
     var errorMessage: String?
     var selectedPeriod: Period = .threeMonths
+    var editingRecord: PurchaseRecord?
 
     enum Period: String, CaseIterable {
         case week = "1주"
@@ -30,12 +31,17 @@ final class PurchaseViewModel {
     }
 
     private let firestoreService = FirestoreService.shared
+    private let fetchLimit = 50
 
     // MARK: - Filtered Records
 
     var filteredRecords: [PurchaseRecord] {
         guard let start = selectedPeriod.startDate else { return records }
         return records.filter { $0.purchaseDate >= start }
+    }
+
+    var isAtFetchLimit: Bool {
+        records.count >= fetchLimit
     }
 
     // MARK: - Analytics
@@ -97,6 +103,24 @@ final class PurchaseViewModel {
         return totalDays / (productRecords.count - 1)
     }
 
+    func nextReorderDate(for productId: String) -> Date? {
+        guard let avgDays = averageReorderDays(for: productId) else { return nil }
+        let lastPurchase = records
+            .filter { $0.productId == productId }
+            .map(\.purchaseDate)
+            .max()
+        guard let last = lastPurchase else { return nil }
+        return Calendar.current.date(byAdding: .day, value: avgDays, to: last)
+    }
+
+    func productsNeedingReorder(from products: [BabyProduct]) -> [BabyProduct] {
+        let threshold = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+        return products.filter { product in
+            guard let next = nextReorderDate(for: product.id) else { return false }
+            return next <= threshold
+        }
+    }
+
     func recordsForProduct(_ productId: String) -> [PurchaseRecord] {
         records.filter { $0.productId == productId }
     }
@@ -131,6 +155,20 @@ final class PurchaseViewModel {
         } catch {
             records = backup
             errorMessage = "삭제에 실패했습니다."
+        }
+    }
+
+    func updateRecord(_ record: PurchaseRecord, userId: String) async {
+        let backup = records
+        if let idx = records.firstIndex(where: { $0.id == record.id }) {
+            records[idx] = record
+        }
+        do {
+            try await firestoreService.savePurchaseRecord(record, userId: userId)
+            editingRecord = nil
+        } catch {
+            records = backup
+            errorMessage = "수정에 실패했습니다."
         }
     }
 

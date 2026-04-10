@@ -17,6 +17,7 @@ extension FirestoreService {
             .document(userId)
             .collection(FirestoreCollections.purchases)
             .order(by: "purchaseDate", descending: true)
+            .limit(to: 50)
             .getDocuments()
         return decodeDocuments(snapshot.documents, as: PurchaseRecord.self)
     }

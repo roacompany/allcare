@@ -21,9 +21,14 @@ struct TemperatureSection: View {
         @Bindable var vm = activityVM
 
         VStack(alignment: .leading, spacing: 12) {
-            Label("체온 입력", systemImage: "thermometer.medium")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Label("체온 입력", systemImage: "thermometer.medium")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Text("*")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.red)
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 TextField("36.5", text: $vm.temperatureInput)
@@ -45,6 +50,21 @@ struct TemperatureSection: View {
                         .foregroundStyle(color)
                 }
                 .transition(.opacity)
+            }
+
+            if let warning = activityVM.temperatureWarning {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.white)
+                    Text(warning)
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(temperatureDouble >= 40.0 ? Color.red : AppColors.coralColor)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // Quick-entry buttons

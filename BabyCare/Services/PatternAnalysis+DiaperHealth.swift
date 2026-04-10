@@ -44,7 +44,8 @@ extension PatternAnalysisService {
             stoolColorDistribution: colorDist,
             consistencyDistribution: consistDist,
             rashCount: rashCount,
-            dailyCounts: dailyCounts
+            dailyCounts: dailyCounts,
+            previousDailyAverage: nil
         )
     }
 
@@ -61,7 +62,31 @@ extension PatternAnalysisService {
         }.sorted { $0.date < $1.date }
 
         let avgTemp: Double? = readings.isEmpty ? nil : readings.map(\.temp).reduce(0, +) / Double(readings.count)
-        let highTempDays = Set(readings.filter { $0.temp >= 38.0 }.map { $0.date.startOfDay }).count
+        let highTempDays = Set(readings.filter { $0.temp >= ReferenceTable.feverThreshold }.map { $0.date.startOfDay }).count
+
+        // Consecutive fever days
+        let feverDays = readings
+            .filter { $0.temp >= ReferenceTable.feverThreshold }
+            .map { Calendar.current.startOfDay(for: $0.date) }
+        let uniqueFeverDays = Array(Set(feverDays)).sorted()
+
+        var consecutiveFeverDays = 0
+        var currentStreak = 0
+        for i in 0..<uniqueFeverDays.count {
+            if i == 0 {
+                currentStreak = 1
+            } else {
+                let diff = Calendar.current.dateComponents([.day], from: uniqueFeverDays[i - 1], to: uniqueFeverDays[i]).day ?? 0
+                if diff == 1 {
+                    currentStreak += 1
+                } else {
+                    currentStreak = 1
+                }
+            }
+            if currentStreak > consecutiveFeverDays {
+                consecutiveFeverDays = currentStreak
+            }
+        }
 
         // Medications
         var medNames: [String: Int] = [:]
@@ -76,7 +101,8 @@ extension PatternAnalysisService {
             averageTemp: avgTemp,
             highTempDays: highTempDays,
             medicationCount: medActivities.count,
-            medicationNames: medNames
+            medicationNames: medNames,
+            consecutiveFeverDays: consecutiveFeverDays
         )
     }
 }

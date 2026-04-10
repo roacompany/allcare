@@ -11,6 +11,17 @@ struct VaccinationListView: View {
     @State private var savedMessage: String?
 
     var body: some View {
+        Group {
+            if healthVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                vaccinationList
+            }
+        }
+    }
+
+    private var vaccinationList: some View {
         List {
             // 접종 지연
             let overdue = healthVM.overdueVaccinations
@@ -105,7 +116,8 @@ struct VaccinationListView: View {
         .sheet(isPresented: $showCompleteSheet) {
             if let vax = selectedVaccination {
                 MarkVaccinationSheet(vaccination: vax) { administeredDate, hospital, note in
-                    guard let userId = authVM.currentUserId else { return }
+                    guard let currentUserId = authVM.currentUserId else { return }
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
                     var updated = vax
                     updated.hospital = hospital.isEmpty ? nil : hospital
                     updated.note = note.isEmpty ? nil : note
@@ -113,7 +125,7 @@ struct VaccinationListView: View {
                         await healthVM.markVaccinationComplete(
                             updated,
                             administeredDate: administeredDate,
-                            userId: userId
+                            userId: dataUserId
                         )
                         if healthVM.errorMessage == nil {
                             savedMessage = "\(vax.vaccine.displayName) \(vax.doseNumber)차 저장됨"
@@ -132,9 +144,10 @@ struct VaccinationListView: View {
             }
             Button("접종 취소", role: .destructive) {
                 guard let vax = selectedVaccination,
-                      let userId = authVM.currentUserId else { return }
+                      let currentUserId = authVM.currentUserId else { return }
+                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
                 Task {
-                    await healthVM.undoVaccinationComplete(vax, userId: userId)
+                    await healthVM.undoVaccinationComplete(vax, userId: dataUserId)
                 }
             }
             Button("닫기", role: .cancel) {

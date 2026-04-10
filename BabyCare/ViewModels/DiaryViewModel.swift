@@ -1,3 +1,4 @@
+import FirebaseFirestore
 import Foundation
 import UIKit
 
@@ -5,8 +6,12 @@ import UIKit
 final class DiaryViewModel {
     var entries: [DiaryEntry] = []
     var isLoading = false
+    var isLoadingMore = false
+    var hasMorePages = true
     var errorMessage: String?
     var showAddEntry = false
+
+    nonisolated(unsafe) private var lastDocument: DocumentSnapshot?
 
     // Form
     var content = ""
@@ -14,6 +19,7 @@ final class DiaryViewModel {
     var selectedPhotos: [UIImage] = []
     var entryDate = Date()
     var editingEntry: DiaryEntry?
+    var existingPhotoURLs: [String] = []
 
     private let firestoreService = FirestoreService.shared
     private let storageService = StorageService.shared
@@ -28,11 +34,34 @@ final class DiaryViewModel {
 
     func loadEntries(userId: String, babyId: String) async {
         isLoading = true
+        lastDocument = nil
+        hasMorePages = true
         defer { isLoading = false }
         do {
-            entries = try await firestoreService.fetchDiaryEntries(userId: userId, babyId: babyId)
+            let result = try await firestoreService.fetchDiaryEntries(
+                userId: userId, babyId: babyId, limit: 20, after: nil
+            )
+            entries = result.entries
+            lastDocument = result.lastDocument
+            hasMorePages = result.lastDocument != nil
         } catch {
             errorMessage = "일기를 불러오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    func loadMoreEntries(userId: String, babyId: String) async {
+        guard hasMorePages, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let result = try await firestoreService.fetchDiaryEntries(
+                userId: userId, babyId: babyId, limit: 20, after: lastDocument
+            )
+            entries.append(contentsOf: result.entries)
+            lastDocument = result.lastDocument
+            hasMorePages = result.lastDocument != nil
+        } catch {
+            errorMessage = "일기를 더 불러오지 못했습니다: \(error.localizedDescription)"
         }
     }
 
@@ -42,6 +71,7 @@ final class DiaryViewModel {
         selectedMood = entry.mood
         entryDate = entry.date
         selectedPhotos = []
+        existingPhotoURLs = entry.photoURLs
     }
 
     func addEntry(userId: String, babyId: String) async {
@@ -62,6 +92,17 @@ final class DiaryViewModel {
             updated.updatedAt = Date()
 
             do {
+                // Upload newly added photos and merge with kept existing URLs
+                var newPhotoURLs: [String] = []
+                for (index, photo) in selectedPhotos.enumerated() {
+                    let url = try await storageService.uploadDiaryPhoto(
+                        photo, userId: userId, babyId: babyId,
+                        diaryId: existing.id, index: existingPhotoURLs.count + index
+                    )
+                    newPhotoURLs.append(url)
+                }
+                updated.photoURLs = existingPhotoURLs + newPhotoURLs
+
                 try await firestoreService.saveDiaryEntry(updated, userId: userId)
                 if let idx = entries.firstIndex(where: { $0.id == updated.id }) {
                     entries[idx] = updated
@@ -114,6 +155,7 @@ final class DiaryViewModel {
         content = ""
         selectedMood = nil
         selectedPhotos = []
+        existingPhotoURLs = []
         entryDate = Date()
         editingEntry = nil
         errorMessage = nil

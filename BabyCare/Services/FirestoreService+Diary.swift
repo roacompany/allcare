@@ -25,6 +25,30 @@ extension FirestoreService {
         return decodeDocuments(snapshot.documents, as: DiaryEntry.self)
     }
 
+    func fetchDiaryEntries(
+        userId: String,
+        babyId: String,
+        limit: Int = 20,
+        after cursor: DocumentSnapshot? = nil
+    ) async throws -> (entries: [DiaryEntry], lastDocument: DocumentSnapshot?) {
+        var query = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.diary)
+            .order(by: "date", descending: true)
+            .limit(to: limit)
+
+        if let cursor {
+            query = query.start(afterDocument: cursor)
+        }
+
+        let snapshot = try await query.getDocuments()
+        let entries = decodeDocuments(snapshot.documents, as: DiaryEntry.self)
+        let lastDocument = snapshot.documents.count == limit ? snapshot.documents.last : nil
+        return (entries: entries, lastDocument: lastDocument)
+    }
+
     func deleteDiaryEntry(_ entry: DiaryEntry, userId: String) async throws {
         try await db.collection(FirestoreCollections.users)
             .document(userId)

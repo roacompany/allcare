@@ -9,7 +9,9 @@ struct RecordingView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
-    @Environment(\.dismiss) private var dismiss
+
+    /// sheet dismiss — NavigationStack 밖에서 바인딩 주입
+    @Binding var isPresented: Bool
 
     /// 외부에서 초기 카테고리 주입 (딥링크용)
     var initialCategory: Activity.ActivityCategory?
@@ -21,6 +23,40 @@ struct RecordingView: View {
     @State private var selectedFeedingType: Activity.ActivityType = .feedingBreast
 
     @State private var showCloseConfirm = false
+    @State private var showUnsavedDataConfirm = false
+    @State private var savedMessage: String?
+
+    // MARK: - Unsaved data check
+
+    private var hasUnsavedData: Bool {
+        !activityVM.temperatureInput.isEmpty
+            || !activityVM.amount.isEmpty
+            || !activityVM.foodName.isEmpty
+            || !activityVM.medicationName.isEmpty
+            || !activityVM.note.isEmpty
+            || !activityVM.foodAmount.isEmpty
+            || !activityVM.medicationDosage.isEmpty
+    }
+
+    // MARK: - Save success handler
+
+    private func handleSaved() {
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.recordSave, parameters: [AnalyticsParams.category: selectedCategory.rawValue])
+        // 위젯 데이터 동기화
+        if let baby = babyVM.selectedBaby {
+            activityVM.syncWidgetData(
+                babyName: baby.name,
+                babyAge: baby.ageText
+            )
+        }
+        withAnimation {
+            savedMessage = "기록이 저장되었습니다"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            activityVM.resetForm()
+            isPresented = false
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -31,7 +67,15 @@ struct RecordingView: View {
                     selected: $selectedCategory,
                     onChange: { _ in
                         // Stop any running timer when switching top-level category
-                        if activityVM.isTimerRunning { _ = activityVM.stopTimer() }
+                        if activityVM.isTimerRunning {
+                            let elapsed = activityVM.elapsedTime
+                            let minutes = Int(elapsed) / 60
+                            let seconds = Int(elapsed) % 60
+                            _ = activityVM.stopTimer()
+                            withAnimation {
+                                savedMessage = "타이머가 정지되었습니다 (\(minutes):\(String(format: "%02d", seconds)))"
+                            }
+                        }
                         activityVM.resetForm()
                     }
                 )
@@ -54,14 +98,14 @@ struct RecordingView: View {
                     case .feeding:
                         FeedingRecordView(
                             type: selectedFeedingType,
-                            onSaved: { dismiss() }
+                            onSaved: { handleSaved() }
                         )
                     case .sleep:
-                        SleepRecordView(onSaved: { dismiss() })
+                        SleepRecordView(onSaved: { handleSaved() })
                     case .diaper:
-                        DiaperRecordView(onSaved: { dismiss() })
+                        DiaperRecordView(onSaved: { handleSaved() })
                     case .health:
-                        HealthRecordView(onSaved: { dismiss() })
+                        HealthRecordView(onSaved: { handleSaved() })
                     }
                 }
                 .id(selectedCategory) // re-render on tab switch
@@ -73,14 +117,29 @@ struct RecordingView: View {
                     Button("닫기") {
                         if activityVM.isTimerRunning {
                             showCloseConfirm = true
+                        } else if hasUnsavedData {
+                            showUnsavedDataConfirm = true
                         } else {
                             activityVM.resetForm()
-                            dismiss()
+                            isPresented = false
                         }
                     }
                     .foregroundStyle(.secondary)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let msg = savedMessage {
+                    Text(msg)
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.bottom, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .id(msg)
+                }
+            }
+            .animation(.easeInOut, value: savedMessage)
             .confirmationDialog(
                 "타이머가 실행 중입니다",
                 isPresented: $showCloseConfirm,
@@ -91,25 +150,39 @@ struct RecordingView: View {
                     let duration = activityVM.stopTimer()
                     if duration > 0, let timerType {
                         Task {
-                            guard let userId = authVM.currentUserId,
+                            guard let currentUserId = authVM.currentUserId,
                                   let babyId = babyVM.selectedBaby?.id else { return }
-                            await activityVM.saveActivity(userId: userId, babyId: babyId, type: timerType)
+                            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                            await activityVM.saveActivity(userId: dataUserId, babyId: babyId, type: timerType)
                             activityVM.resetForm()
-                            dismiss()
+                            isPresented = false
                         }
                     } else {
                         activityVM.resetForm()
-                        dismiss()
+                        isPresented = false
                     }
                 }
                 Button("저장하지 않고 닫기", role: .destructive) {
                     _ = activityVM.stopTimer()
                     activityVM.resetForm()
-                    dismiss()
+                    isPresented = false
                 }
                 Button("취소", role: .cancel) {}
             } message: {
                 Text("타이머를 저장하고 닫을 수 있습니다.")
+            }
+            .confirmationDialog(
+                "저장하지 않고 닫을까요?",
+                isPresented: $showUnsavedDataConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("닫기", role: .destructive) {
+                    activityVM.resetForm()
+                    isPresented = false
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("입력한 내용이 저장되지 않습니다.")
             }
         }
         .presentationDetents([.large])

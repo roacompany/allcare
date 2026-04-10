@@ -20,6 +20,21 @@ final class BabyViewModel {
     private let firestoreService = FirestoreService.shared
     private let storageService = StorageService.shared
 
+    // MARK: - Data User Resolution
+
+    /// Returns the userId whose Firestore path should be used for data loading/saving.
+    /// For shared babies this is the owner's userId; for own babies it falls back to the current user.
+    func dataUserId(currentUserId: String?) -> String? {
+        selectedBaby?.ownerUserId ?? currentUserId
+    }
+
+    /// Resolves the data userId for the selected baby.
+    /// Returns nil if no authenticated user.
+    func resolvedUserId(auth: AuthViewModel) -> String? {
+        guard let currentUserId = auth.currentUserId else { return nil }
+        return dataUserId(currentUserId: currentUserId) ?? currentUserId
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {
@@ -48,20 +63,34 @@ final class BabyViewModel {
             hasInitialLoad = true
         }
         do {
-            var allBabies = try await firestoreService.fetchBabies(userId: userId)
+            var allBabies = try await RetryHelper.withRetry {
+                try await self.firestoreService.fetchBabies(userId: userId)
+            }
 
-            // 공유된 아기도 로드 (1개 실패해도 나머지 계속)
+            // 공유된 아기도 로드 (병렬 패치, 1개 실패해도 나머지 계속)
             let sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []
-            for access in sharedAccess {
-                do {
-                    if let baby = try await firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) {
-                        if !allBabies.contains(where: { $0.id == baby.id }) {
-                            allBabies.append(baby)
-                        }
+            let sharedBabies = await withTaskGroup(of: Baby?.self) { group in
+                for access in sharedAccess {
+                    group.addTask {
+                        guard var baby = try? await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else { return nil }
+                        // Tag shared baby with its owner's userId so all data loads use the correct Firestore path
+                        baby.ownerUserId = access.ownerUserId
+                        return baby
                     }
-                } catch {
-                    // 개별 공유 아기 로드 실패 — 나머지 계속 진행
                 }
+                var results: [Baby] = []
+                for await baby in group {
+                    if let baby { results.append(baby) }
+                }
+                return results
+            }
+            for baby in sharedBabies where !allBabies.contains(where: { $0.id == baby.id }) {
+                allBabies.append(baby)
+            }
+
+            // Tag own babies with the current user's ID for consistency
+            for index in allBabies.indices where allBabies[index].ownerUserId == nil {
+                allBabies[index].ownerUserId = userId
             }
 
             babies = allBabies

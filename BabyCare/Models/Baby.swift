@@ -9,6 +9,14 @@ struct Baby: Identifiable, Codable, Hashable {
     var photoURL: String?
     var createdAt: Date
     var updatedAt: Date
+    /// The Firebase UID of the user who owns this baby's data.
+    /// Runtime-only — NOT stored in Firestore (excluded from CodingKeys).
+    var ownerUserId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, birthDate, gender, bloodType, photoURL, createdAt, updatedAt
+        // ownerUserId intentionally excluded — runtime-only tag set by BabyViewModel.loadBabies()
+    }
 
     enum Gender: String, Codable, CaseIterable {
         case male = "male"

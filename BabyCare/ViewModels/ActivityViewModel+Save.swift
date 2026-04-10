@@ -128,13 +128,27 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
+            if type == .temperature && isFeverTrendDetected {
+                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
+            }
             resetForm()
         } catch {
-            // 롤백: 실패 시 UI에서 제거
-            if rollbackIndex < todayActivities.count, todayActivities[rollbackIndex].id == activity.id {
-                todayActivities.remove(at: rollbackIndex)
-            }
-            errorMessage = "기록 저장에 실패했습니다: \(error.localizedDescription)"
+            // 오프라인 큐에 저장 (낙관적 UI 유지)
+            let collectionPath = "\(FirestoreCollections.users)/\(userId)/\(FirestoreCollections.babies)/\(babyId)/\(FirestoreCollections.activities)"
+            let jsonData = try? JSONEncoder().encode(activity)
+            let pendingOp = PendingOperation(
+                id: UUID().uuidString,
+                timestamp: Date(),
+                type: .create,
+                collectionPath: collectionPath,
+                documentId: activity.id,
+                jsonData: jsonData
+            )
+            OfflineQueue.shared.enqueue(pendingOp)
+            // 낙관적 UI 유지 (롤백하지 않음)
+            deriveLatestActivities()
+            resetForm()
+            errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
         }
     }
 

@@ -128,16 +128,16 @@ final class AnalysisEngine: @unchecked Sendable {
     // MARK: - Firestore 캐시
 
     private func saveResult(_ result: AnalysisResult, userId: String) async {
-        let ref = db.collection("users").document(userId)
-            .collection("babies").document(result.babyId)
-            .collection("hospitalReports").document(result.id)
+        let ref = db.collection(FirestoreCollections.users).document(userId)
+            .collection(FirestoreCollections.babies).document(result.babyId)
+            .collection(FirestoreCollections.hospitalReports).document(result.id)
         try? ref.setData(from: result)
     }
 
     func fetchCachedResult(babyId: String, visitId: String, userId: String) async -> AnalysisResult? {
-        let snapshot = try? await db.collection("users").document(userId)
-            .collection("babies").document(babyId)
-            .collection("hospitalReports")
+        let snapshot = try? await db.collection(FirestoreCollections.users).document(userId)
+            .collection(FirestoreCollections.babies).document(babyId)
+            .collection(FirestoreCollections.hospitalReports)
             .whereField("hospitalVisitId", isEqualTo: visitId)
             .limit(to: 1)
             .getDocuments()

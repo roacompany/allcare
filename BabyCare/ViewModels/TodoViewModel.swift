@@ -3,9 +3,13 @@ import Foundation
 @MainActor @Observable
 final class TodoViewModel {
     var todos: [TodoItem] = []
+    var completedTodosCache: [TodoItem] = []
     var isLoading = false
+    var isLoadingCompleted = false
+    var showCompleted = false
     var errorMessage: String?
     var showAddTodo = false
+    var editingTodo: TodoItem?
 
     // Form
     var title = ""
@@ -26,7 +30,7 @@ final class TodoViewModel {
     }
 
     var completedTodos: [TodoItem] {
-        todos.filter(\.isCompleted)
+        showCompleted ? completedTodosCache : []
     }
 
     var overdueTodos: [TodoItem] {
@@ -41,6 +45,58 @@ final class TodoViewModel {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    // MARK: - Edit
+
+    func startEditing(_ todo: TodoItem) {
+        editingTodo = todo
+        title = todo.title
+        description = todo.description ?? ""
+        dueDate = todo.dueDate
+        hasDueDate = todo.dueDate != nil
+        category = todo.category
+        isRecurring = todo.isRecurring
+        recurringInterval = todo.recurringInterval ?? .daily
+        selectedBabyId = todo.babyId
+        showAddTodo = true
+    }
+
+    func updateTodo(_ todo: TodoItem, userId: String) async {
+        guard isFormValid else {
+            errorMessage = "제목을 입력해주세요."
+            return
+        }
+
+        var updated = todo
+        updated.title = title.trimmingCharacters(in: .whitespaces)
+        updated.description = description.isEmpty ? nil : description
+        updated.dueDate = hasDueDate ? dueDate : nil
+        updated.category = category
+        updated.isRecurring = isRecurring
+        updated.recurringInterval = isRecurring ? recurringInterval : nil
+
+        let backup = todos
+        let backupCompleted = completedTodosCache
+        if updated.isCompleted {
+            if let idx = completedTodosCache.firstIndex(where: { $0.id == updated.id }) {
+                completedTodosCache[idx] = updated
+            }
+        } else {
+            if let idx = todos.firstIndex(where: { $0.id == updated.id }) {
+                todos[idx] = updated
+            }
+        }
+
+        do {
+            try await firestoreService.saveTodo(updated, userId: userId)
+            resetForm()
+            showAddTodo = false
+        } catch {
+            todos = backup
+            completedTodosCache = backupCompleted
+            errorMessage = "수정에 실패했습니다."
+        }
+    }
+
     // MARK: - CRUD
 
     func loadTodos(userId: String) async {
@@ -50,6 +106,19 @@ final class TodoViewModel {
             todos = try await firestoreService.fetchTodos(userId: userId)
         } catch {
             errorMessage = "할 일을 불러오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    func toggleShowCompleted(userId: String) async {
+        showCompleted.toggle()
+        guard showCompleted, completedTodosCache.isEmpty else { return }
+        isLoadingCompleted = true
+        defer { isLoadingCompleted = false }
+        do {
+            completedTodosCache = try await firestoreService.fetchCompletedTodos(userId: userId)
+        } catch {
+            errorMessage = "완료된 할 일을 불러오지 못했습니다: \(error.localizedDescription)"
+            showCompleted = false
         }
     }
 
@@ -85,31 +154,46 @@ final class TodoViewModel {
     }
 
     func toggleComplete(_ todo: TodoItem, userId: String) async {
-        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
-
-        let backup = todos[index]
         var updated = todo
         updated.isCompleted.toggle()
         updated.completedAt = updated.isCompleted ? Date() : nil
-        todos[index] = updated
+
+        // Optimistic update: move item between active and completed collections
+        if updated.isCompleted {
+            todos.removeAll { $0.id == todo.id }
+            completedTodosCache.insert(updated, at: 0)
+        } else {
+            completedTodosCache.removeAll { $0.id == todo.id }
+            todos.insert(updated, at: 0)
+        }
 
         do {
             try await firestoreService.saveTodo(updated, userId: userId)
         } catch {
-            todos[index] = backup // 롤백
+            // Rollback
+            if updated.isCompleted {
+                completedTodosCache.removeAll { $0.id == updated.id }
+                todos.insert(todo, at: 0)
+            } else {
+                todos.removeAll { $0.id == updated.id }
+                completedTodosCache.insert(todo, at: 0)
+            }
             errorMessage = "업데이트에 실패했습니다."
         }
     }
 
     func deleteTodo(_ todo: TodoItem, userId: String) async {
-        let backup = todos
+        let backupTodos = todos
+        let backupCompleted = completedTodosCache
         todos.removeAll { $0.id == todo.id }
+        completedTodosCache.removeAll { $0.id == todo.id }
 
         do {
             try await firestoreService.deleteTodo(todo.id, userId: userId)
             NotificationService.shared.cancelNotification(identifier: "todo-\(todo.id)")
         } catch {
-            todos = backup
+            todos = backupTodos
+            completedTodosCache = backupCompleted
             errorMessage = "삭제에 실패했습니다."
         }
     }
@@ -124,5 +208,6 @@ final class TodoViewModel {
         recurringInterval = .daily
         selectedBabyId = nil
         errorMessage = nil
+        editingTodo = nil
     }
 }

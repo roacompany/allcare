@@ -52,8 +52,9 @@ extension DashboardView {
                                 }
                                 Button(role: .destructive) {
                                     Task {
-                                        guard let userId = authVM.currentUserId else { return }
-                                        await activityVM.deleteActivity(activity, userId: userId)
+                                        guard let currentUserId = authVM.currentUserId else { return }
+                                        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                                        await activityVM.deleteActivity(activity, userId: dataUserId)
                                     }
                                 } label: {
                                     Label("삭제", systemImage: "trash")

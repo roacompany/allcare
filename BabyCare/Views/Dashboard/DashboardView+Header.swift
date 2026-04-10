@@ -11,8 +11,21 @@ extension DashboardView {
         } label: {
             HStack(spacing: 8) {
                 if let baby = babyVM.selectedBaby {
-                    Text(baby.gender.emoji)
-                        .font(.title3)
+                    if let photoURL = baby.photoURL {
+                        CachedAsyncImage(
+                            url: photoURL,
+                            size: CGSize(width: 40, height: 40)
+                        ) {
+                            Text(baby.gender.emoji)
+                                .font(.title3)
+                                .frame(width: 40, height: 40)
+                                .background(Color(.systemGray5))
+                        }
+                        .clipShape(Circle())
+                    } else {
+                        Text(baby.gender.emoji)
+                            .font(.title3)
+                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(baby.name)
                             .font(.headline)
@@ -110,6 +123,62 @@ extension DashboardView {
                     color: .yellow
                 )
             }
+        }
+    }
+
+    // MARK: - Reorder Summary Card
+
+    @ViewBuilder
+    var reorderSummaryCard: some View {
+        if !productVM.lowStockProducts.isEmpty {
+            NavigationLink {
+                ProductListView()
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "cart.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                        Text("재주문 필요")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text("\(productVM.lowStockProducts.count)개 용품의 재고가 부족합니다")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(productVM.lowStockProducts.prefix(3)) { product in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.orange.opacity(0.6))
+                                    .frame(width: 5, height: 5)
+                                Text(product.name)
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                Spacer()
+                                if let remaining = product.remainingQuantity {
+                                    Text("\(remaining)\(product.effectiveUnit.displayName) 남음")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.orange.opacity(0.08))
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("재주문 필요. \(productVM.lowStockProducts.count)개 용품의 재고가 부족합니다.")
         }
     }
 

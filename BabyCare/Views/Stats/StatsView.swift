@@ -225,14 +225,16 @@ struct StatsView: View {
     }
 
     private func loadStats() async {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let babyId = babyVM.selectedBaby?.id else { return }
-        await statsVM.loadStats(userId: userId, babyId: babyId)
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        await statsVM.loadStats(userId: dataUserId, babyId: babyId)
     }
 
     private func generatePDFReport() async {
         guard let baby = babyVM.selectedBaby,
-              let userId = authVM.currentUserId else { return }
+              let currentUserId = authVM.currentUserId else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         isGeneratingPDF = true
         defer { isGeneratingPDF = false }
@@ -243,7 +245,7 @@ struct StatsView: View {
         var growthRecords: [GrowthRecord] = []
         do {
             growthRecords = try await FirestoreService.shared.fetchGrowthRecords(
-                userId: userId, babyId: baby.id
+                userId: dataUserId, babyId: baby.id
             )
         } catch {
             // Growth records are optional for the report

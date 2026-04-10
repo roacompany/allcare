@@ -46,6 +46,16 @@ enum NotificationSettings {
         get { defaults.object(forKey: "reorderReminderEnabled") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "reorderReminderEnabled") }
     }
+
+    static var temperatureTrendEnabled: Bool {
+        get { defaults.object(forKey: "temperatureTrendEnabled") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "temperatureTrendEnabled") }
+    }
+
+    static var growthVelocityEnabled: Bool {
+        get { defaults.object(forKey: "growthVelocityEnabled") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "growthVelocityEnabled") }
+    }
 }
 
 // MARK: - Activity Reminder Rules (활동별 알림 규칙)

@@ -3,7 +3,7 @@ import Foundation
 extension PatternAnalysisService {
         // MARK: - Summary
 
-    static func analyzeSummary(activities: [Activity]) -> SummaryPattern {
+    static func analyzeSummary(activities: [Activity], startDate: Date, endDate: Date) -> SummaryPattern {
         let totalRecords = activities.count
         let grouped = groupByDay(activities)
 
@@ -16,11 +16,17 @@ extension PatternAnalysisService {
             categoryDist[act.type.category, default: 0] += 1
         }
 
+        // Missing days
+        let totalDays = Calendar.current.dateComponents([.day], from: startDate.startOfDay, to: endDate.startOfDay).day ?? 0
+        let recordedDays = Set(activities.map { Calendar.current.startOfDay(for: $0.startTime) }).count
+        let missingDays = max(0, totalDays - recordedDays)
+
         return SummaryPattern(
             totalRecords: totalRecords,
             mostActiveDay: mostActive,
             leastActiveDay: leastActive,
-            categoryDistribution: categoryDist
+            categoryDistribution: categoryDist,
+            missingDays: missingDays
         )
     }
 

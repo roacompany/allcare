@@ -49,20 +49,20 @@ extension CalendarView {
     }
 
     func loadData() async {
-        guard let userId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
         await calendarVM.loadMonthActivities(userId: userId, babyId: babyId)
         await calendarVM.loadActivitiesForDate(userId: userId, babyId: babyId)
     }
 
     func loadMonthData() async {
-        guard let userId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
         await calendarVM.loadMonthActivities(userId: userId, babyId: babyId)
     }
 
     func loadDateData() async {
-        guard let userId = authVM.currentUserId,
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
         await calendarVM.loadActivitiesForDate(userId: userId, babyId: babyId)
     }

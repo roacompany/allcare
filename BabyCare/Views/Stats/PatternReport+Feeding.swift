@@ -55,6 +55,11 @@ extension PatternReportView {
                             .clipShape(Capsule())
                     }
                 }
+                if let predictionText = vm.feedingPredictionText {
+                    Text(predictionText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // Breast vs Bottle
@@ -92,6 +97,15 @@ extension PatternReportView {
                     Spacer()
                     trendBadge(f.intervalTrend)
                 }
+            }
+
+            if vm.showComparison {
+                comparisonRow(
+                    current: f.dailyAverage,
+                    previous: f.previousDailyAverage,
+                    unit: "회/일",
+                    label: "일 평균"
+                )
             }
         }
         .padding()

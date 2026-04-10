@@ -122,18 +122,22 @@ struct HospitalVisitFormSheet: View {
                     HStack {
                         Text("비용")
                         Spacer()
+                        Text("₩")
+                            .foregroundStyle(.secondary)
                         TextField("0", text: $costText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 120)
-                        Text("원")
-                            .foregroundStyle(.secondary)
+                            .onChange(of: costText) { _, newValue in
+                                let filtered = newValue.filter(\.isNumber)
+                                if filtered != newValue { costText = filtered }
+                            }
                     }
                 }
 
                 // AI 분석 기준 예약일
                 Section {
-                    Toggle("진료 예약일 설정", isOn: $hasScheduledDate)
+                    Toggle("이번 진료 예약일", isOn: $hasScheduledDate)
                     if hasScheduledDate {
                         DatePicker(
                             "예약일",
@@ -144,12 +148,12 @@ struct HospitalVisitFormSheet: View {
                         .environment(\.locale, Locale(identifier: "ko_KR"))
                     }
                 } footer: {
-                    Text("AI 리포트 생성 시 이 날짜 기준으로 분석 기간을 계산합니다.")
+                    Text("이 방문의 예정 날짜입니다. AI 리포트 생성 시 이 날짜 기준으로 분석 기간을 계산합니다.")
                 }
 
                 // 다음 방문
-                Section("다음 방문") {
-                    Toggle("다음 방문 예정", isOn: $hasNextVisit)
+                Section {
+                    Toggle("다음 방문 예약", isOn: $hasNextVisit)
                     if hasNextVisit {
                         DatePicker(
                             "예정일",
@@ -159,6 +163,8 @@ struct HospitalVisitFormSheet: View {
                         )
                         .environment(\.locale, Locale(identifier: "ko_KR"))
                     }
+                } footer: {
+                    Text("다음 진료 예약이 있으면 설정하세요.")
                 }
 
                 // 캘린더

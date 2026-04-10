@@ -1,0 +1,201 @@
+{
+  "$schema": "https://roacompany.github.io/roa-design-system/token-schema.json",
+  "$description": "BabyCare iOS Design Tokens — source of truth: BabyCare/Assets.xcassets/Colors/",
+  "$version": "2.5.0",
+
+  "brand": {
+    "primary": {
+      "$value": "#FF9FB5",
+      "$valueDark": "#FFB2C6",
+      "$source": "primaryAccent.colorset",
+      "$description": "Main brand color — pastel pink"
+    },
+    "accent": {
+      "$value": "#FF9FB5",
+      "$valueDark": "#FFB2C6",
+      "$source": "primaryAccent.colorset",
+      "$description": "Alias of brand.primary"
+    }
+  },
+
+  "activity": {
+    "feeding": {
+      "$value": "#FF9FB5",
+      "$valueDark": "#FFB2C6",
+      "$source": "feedingColor.colorset",
+      "$description": "Feeding activity — pastel pink"
+    },
+    "sleep": {
+      "$value": "#9FB5FF",
+      "$valueDark": "#B2C6FF",
+      "$source": "sleepColor.colorset",
+      "$description": "Sleep activity — periwinkle blue"
+    },
+    "diaper": {
+      "$value": "#FFD59F",
+      "$valueDark": "#FFE0B2",
+      "$source": "diaperColor.colorset",
+      "$description": "Diaper activity — peach orange"
+    },
+    "solid": {
+      "$value": "#9FDFBF",
+      "$valueDark": "#B2EACC",
+      "$source": "solidColor.colorset",
+      "$description": "Solid food activity — mint green"
+    },
+    "bath": {
+      "$value": "#9FD5FF",
+      "$valueDark": "#B2E0FF",
+      "$source": "bathColor.colorset",
+      "$description": "Bath activity — sky blue"
+    },
+    "temperature": {
+      "$value": "#FF9F9F",
+      "$valueDark": "#FFB2B2",
+      "$source": "temperatureColor.colorset",
+      "$description": "Temperature activity — coral red"
+    },
+    "medication": {
+      "$value": "#D59FFF",
+      "$valueDark": "#E0B2FF",
+      "$source": "medicationColor.colorset",
+      "$description": "Medication activity — lavender"
+    }
+  },
+
+  "semantic": {
+    "background": {
+      "$value": "#FAF9FC",
+      "$valueDark": "#1C1C1E",
+      "$source": "backgroundColor.colorset",
+      "$description": "App background — near-white / near-black"
+    },
+    "cardBackground": {
+      "$value": "#FFFFFF",
+      "$valueDark": "#2C2C2E",
+      "$source": "cardBackground.colorset",
+      "$description": "Card surface — white / dark gray"
+    },
+    "success": {
+      "$value": "#4CAF50",
+      "$valueDark": "#66C76B",
+      "$source": "successColor.colorset",
+      "$description": "Success state — green"
+    },
+    "health": {
+      "$value": "#9FDFBF",
+      "$valueDark": "#B2EACC",
+      "$source": "healthColor.colorset",
+      "$description": "Health indicator — mint green"
+    },
+    "coral": {
+      "$value": "#F4845F",
+      "$valueDark": "#FA9975",
+      "$source": "coralColor.colorset",
+      "$description": "Coral accent"
+    },
+    "indigo": {
+      "$value": "#7B9FE8",
+      "$valueDark": "#8FB2F2",
+      "$source": "indigoColor.colorset",
+      "$description": "Indigo accent"
+    },
+    "sage": {
+      "$value": "#85C1A3",
+      "$valueDark": "#99D1B5",
+      "$source": "sageColor.colorset",
+      "$description": "Sage green"
+    },
+    "warmOrange": {
+      "$value": "#F4A261",
+      "$valueDark": "#FAB575",
+      "$source": "warmOrangeColor.colorset",
+      "$description": "Warm orange"
+    },
+    "skyBlue": {
+      "$value": "#5CB8E4",
+      "$valueDark": "#70C7F0",
+      "$source": "skyBlueColor.colorset",
+      "$description": "Sky blue"
+    },
+    "softPurple": {
+      "$value": "#A078D4",
+      "$valueDark": "#B58FE6",
+      "$source": "softPurpleColor.colorset",
+      "$description": "Soft purple"
+    }
+  },
+
+  "pastel": {
+    "pink": {
+      "$value": "#FFB5C2",
+      "$source": "Constants.swift AppColors.pastelPink",
+      "$description": "Pastel pink — hardcoded in Swift"
+    },
+    "blue": {
+      "$value": "#B5D5FF",
+      "$source": "Constants.swift AppColors.pastelBlue",
+      "$description": "Pastel blue — hardcoded in Swift"
+    },
+    "mint": {
+      "$value": "#B5FFD9",
+      "$source": "Constants.swift AppColors.pastelMint",
+      "$description": "Pastel mint — hardcoded in Swift"
+    },
+    "yellow": {
+      "$value": "#FFF3B5",
+      "$source": "Constants.swift AppColors.pastelYellow",
+      "$description": "Pastel yellow — hardcoded in Swift"
+    },
+    "purple": {
+      "$value": "#D9B5FF",
+      "$source": "Constants.swift AppColors.pastelPurple",
+      "$description": "Pastel purple — hardcoded in Swift"
+    },
+    "orange": {
+      "$value": "#FFDAB5",
+      "$source": "Constants.swift AppColors.pastelOrange",
+      "$description": "Pastel orange — hardcoded in Swift"
+    }
+  },
+
+  "typography": {
+    "sizes": {
+      "largeTitle":  { "$value": 34, "$unit": "pt", "$description": "SF Pro Display — large title" },
+      "title1":      { "$value": 28, "$unit": "pt", "$description": "SF Pro Display — title 1" },
+      "title2":      { "$value": 22, "$unit": "pt", "$description": "SF Pro Display — title 2" },
+      "title3":      { "$value": 20, "$unit": "pt", "$description": "SF Pro — title 3" },
+      "headline":    { "$value": 17, "$unit": "pt", "$weight": "semibold", "$description": "SF Pro — headline" },
+      "body":        { "$value": 17, "$unit": "pt", "$description": "SF Pro — body" },
+      "callout":     { "$value": 16, "$unit": "pt", "$description": "SF Pro — callout" },
+      "subheadline": { "$value": 15, "$unit": "pt", "$description": "SF Pro — subheadline" },
+      "footnote":    { "$value": 13, "$unit": "pt", "$description": "SF Pro — footnote" },
+      "caption1":    { "$value": 12, "$unit": "pt", "$description": "SF Pro — caption 1" },
+      "caption2":    { "$value": 11, "$unit": "pt", "$description": "SF Pro — caption 2" }
+    },
+    "fontFamily": {
+      "$value": "SF Pro",
+      "$description": "System font (UIFont.systemFont) — no custom fonts"
+    }
+  },
+
+  "spacing": {
+    "xs":  { "$value": 4,  "$unit": "pt" },
+    "sm":  { "$value": 8,  "$unit": "pt" },
+    "md":  { "$value": 12, "$unit": "pt" },
+    "base":{ "$value": 16, "$unit": "pt" },
+    "lg":  { "$value": 20, "$unit": "pt" },
+    "xl":  { "$value": 24, "$unit": "pt" },
+    "2xl": { "$value": 32, "$unit": "pt" },
+    "3xl": { "$value": 40, "$unit": "pt" },
+    "$description": "Common SwiftUI padding/spacing values observed in codebase"
+  },
+
+  "radius": {
+    "sm":  { "$value": 8,  "$unit": "pt" },
+    "md":  { "$value": 12, "$unit": "pt" },
+    "lg":  { "$value": 16, "$unit": "pt" },
+    "xl":  { "$value": 20, "$unit": "pt" },
+    "full":{ "$value": 9999, "$unit": "pt", "$description": "Pill / capsule shape" }
+  }
+}

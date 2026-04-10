@@ -5,24 +5,30 @@ struct HealthView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
 
+    @State private var overdueVaccinationDismissed = false
+    @State private var upcomingVaccinationDismissed = false
+    @State private var showBabySelector = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     // Alert Banners
-                    if !healthVM.overdueVaccinations.isEmpty {
+                    if !healthVM.overdueVaccinations.isEmpty && !overdueVaccinationDismissed {
                         AlertBanner(
                             icon: "exclamationmark.triangle.fill",
                             message: "접종 지연 \(healthVM.overdueVaccinations.count)건이 있습니다",
-                            color: .red
+                            color: .red,
+                            onDismiss: { overdueVaccinationDismissed = true }
                         )
                     }
 
-                    if !healthVM.upcomingVaccinations.isEmpty {
+                    if !healthVM.upcomingVaccinations.isEmpty && !upcomingVaccinationDismissed {
                         AlertBanner(
                             icon: "clock.fill",
                             message: "30일 이내 예방접종 \(healthVM.upcomingVaccinations.count)건",
-                            color: .orange
+                            color: .orange,
+                            onDismiss: { upcomingVaccinationDismissed = true }
                         )
                     }
 
@@ -147,17 +153,60 @@ struct HealthView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        // 알레르기 기록
+                        NavigationLink {
+                            AllergyListView()
+                        } label: {
+                            HealthSectionCard(
+                                icon: "leaf.circle.fill",
+                                iconColor: AppColors.coralColor,
+                                title: "알레르기 기록",
+                                subtitle: "알레르겐 및 반응 기록",
+                                badge: nil,
+                                badgeColor: .clear
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
             .navigationTitle("건강")
+            .onAppear {
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
+            }
+            .toolbar {
+                if babyVM.babies.count > 1 {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showBabySelector = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(babyVM.selectedBaby?.name ?? "아기")
+                                    .font(.subheadline.weight(.medium))
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                            }
+                        }
+                        .confirmationDialog("아기 선택", isPresented: $showBabySelector, titleVisibility: .visible) {
+                            ForEach(babyVM.babies) { baby in
+                                Button(baby.name) {
+                                    babyVM.selectBaby(baby)
+                                }
+                            }
+                            Button("취소", role: .cancel) {}
+                        }
+                    }
+                }
+            }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
-                    guard let userId = authVM.currentUserId,
+                    guard let currentUserId = authVM.currentUserId,
                           let baby = babyVM.selectedBaby else { return }
-                    await healthVM.loadAll(userId: userId, babyId: baby.id)
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    await healthVM.loadAll(userId: dataUserId, babyId: baby.id)
                 }
             }
         }
@@ -212,6 +261,7 @@ private struct AlertBanner: View {
     let icon: String
     let message: String
     let color: Color
+    let onDismiss: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -221,6 +271,14 @@ private struct AlertBanner: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(color)
             Spacer()
+            Button {
+                withAnimation { onDismiss() }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(color.opacity(0.7))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

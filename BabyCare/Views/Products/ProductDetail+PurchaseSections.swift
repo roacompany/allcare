@@ -54,12 +54,7 @@ extension ProductDetailView {
                 }
 
                 if let avgDays = purchaseVM.averageReorderDays(for: product.id) {
-                    HStack {
-                        Label("평균 재주문 주기", systemImage: "calendar.badge.clock")
-                        Spacer()
-                        Text("약 \(avgDays)일")
-                            .foregroundStyle(.secondary)
-                    }
+                    reorderPredictionCard(avgDays: avgDays)
                 }
             }
 
@@ -99,6 +94,41 @@ extension ProductDetailView {
                 }
                 .listRowBackground(Color.orange.opacity(0.08))
             }
+    }
+
+    @ViewBuilder
+    func reorderPredictionCard(avgDays: Int) -> some View {
+        let nextDate = purchaseVM.nextReorderDate(for: product.id)
+        let isOverdue = nextDate.map { $0 < Date() } ?? false
+        let cal = Calendar.current
+
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundStyle(isOverdue ? .orange : Color.blue)
+                Text("평균 재주문 주기: \(avgDays)일")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(isOverdue ? .orange : Color.blue)
+            }
+            if let next = nextDate {
+                let month = cal.component(.month, from: next)
+                let day = cal.component(.day, from: next)
+                if isOverdue {
+                    Text("재주문 시기가 지났습니다")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("다음 재주문 예상: \(month)월 \(day)일")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isOverdue ? Color.orange.opacity(0.08) : Color.blue.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
     }
 
     @ViewBuilder

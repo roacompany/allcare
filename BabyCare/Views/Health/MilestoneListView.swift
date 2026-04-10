@@ -22,6 +22,17 @@ struct MilestoneListView: View {
     }
 
     var body: some View {
+        Group {
+            if healthVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                milestoneList
+            }
+        }
+    }
+
+    private var milestoneList: some View {
         List {
             // 현재 아기 나이 + 진행률 요약
             ageSummarySection
@@ -73,14 +84,15 @@ struct MilestoneListView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $selectedMilestone) { ms in
             MilestoneDetailSheet(milestone: ms, babyAgeMonths: babyAgeMonths) { achievedDate in
-                guard let userId = authVM.currentUserId else { return }
+                guard let currentUserId = authVM.currentUserId else { return }
+                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
                 Task {
                     if ms.isAchieved && achievedDate != nil {
                         // 달성 상태에서 날짜만 수정
-                        await healthVM.updateMilestoneDate(ms, achievedDate: achievedDate!, userId: userId)
+                        await healthVM.updateMilestoneDate(ms, achievedDate: achievedDate!, userId: dataUserId)
                     } else {
                         // 달성/취소 토글
-                        await healthVM.toggleMilestone(ms, userId: userId, achievedDate: achievedDate)
+                        await healthVM.toggleMilestone(ms, userId: dataUserId, achievedDate: achievedDate)
                     }
                 }
             }

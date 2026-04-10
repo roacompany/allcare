@@ -116,12 +116,14 @@ struct DiaperRecordView: View {
     // MARK: - Actions
 
     private func quickSave() {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.diaperRecordSave, parameters: [AnalyticsParams.category: selectedDiaperType.displayName])
         Task {
             await activityVM.saveActivity(
-                userId: userId,
+                userId: dataUserId,
                 babyId: baby.id,
                 type: selectedDiaperType
             )
@@ -129,7 +131,7 @@ struct DiaperRecordView: View {
                 isSaving = false
                 return
             }
-            if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: userId) {
+            if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: currentUserId) {
                 productCandidates = candidates
             } else {
                 isSaving = false

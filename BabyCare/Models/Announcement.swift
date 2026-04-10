@@ -1,7 +1,8 @@
 import Foundation
 import FirebaseFirestore
 
-struct Announcement: Identifiable, Codable, @unchecked Sendable {
+struct Announcement: Identifiable, Codable, Hashable, @unchecked Sendable {
+    // @unchecked Sendable: Firebase @DocumentID lacks Sendable conformance
     @DocumentID var id: String?
     var title: String
     var content: String

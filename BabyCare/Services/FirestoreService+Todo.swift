@@ -16,7 +16,20 @@ extension FirestoreService {
         let snapshot = try await db.collection(FirestoreCollections.users)
             .document(userId)
             .collection(FirestoreCollections.todos)
+            .whereField("isCompleted", isEqualTo: false)
             .order(by: "createdAt", descending: true)
+            .limit(to: 50)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: TodoItem.self)
+    }
+
+    func fetchCompletedTodos(userId: String) async throws -> [TodoItem] {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.todos)
+            .whereField("isCompleted", isEqualTo: true)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
             .getDocuments()
         return decodeDocuments(snapshot.documents, as: TodoItem.self)
     }

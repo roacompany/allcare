@@ -150,12 +150,13 @@ struct HealthRecordView: View {
     // MARK: - Actions
 
     private func save() {
-        guard let userId = authVM.currentUserId,
+        guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
+        let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
         Task {
             await activityVM.saveActivity(
-                userId: userId,
+                userId: dataUserId,
                 babyId: baby.id,
                 type: selectedHealthType.activityType
             )
@@ -163,7 +164,7 @@ struct HealthRecordView: View {
                 isSaving = false
                 return
             }
-            if let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: userId) {
+            if let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: currentUserId) {
                 productCandidates = candidates
             } else {
                 isSaving = false

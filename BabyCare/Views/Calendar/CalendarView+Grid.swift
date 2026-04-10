@@ -17,6 +17,11 @@ extension CalendarView {
             Text(calendarVM.monthTitle)
                 .font(.title3.weight(.semibold))
 
+            if calendarVM.isLoading {
+                ProgressView()
+                    .scaleEffect(0.8)
+            }
+
             // "오늘" 버튼 (현재 달이 아닐 때만)
             if !calendarVM.isCurrentMonth {
                 Button {

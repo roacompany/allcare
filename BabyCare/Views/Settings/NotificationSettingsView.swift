@@ -8,7 +8,10 @@ struct NotificationSettingsView: View {
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
+    @State private var temperatureTrendEnabled = NotificationSettings.temperatureTrendEnabled
+    @State private var growthVelocityEnabled = NotificationSettings.growthVelocityEnabled
     @State private var notificationPermission: Bool = true
+    @Environment(\.scenePhase) private var scenePhase
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
 
@@ -77,7 +80,7 @@ struct NotificationSettingsView: View {
             } header: {
                 Text("활동 기록 알림")
             } footer: {
-                Text("기록 후 설정한 시간이 지나면 알림을 보냅니다. 원하는 활동만 켜세요.")
+                Text("마지막 기록 후 설정한 시간이 지나면 다음 기록을 알려드립니다. 예: 수유 알림을 3시간으로 설정하면, 마지막 수유 3시간 후 알림이 옵니다.")
             }
 
             // 접종 알림
@@ -120,6 +123,30 @@ struct NotificationSettingsView: View {
                 Text("예정된 접종일 기준, 선택한 시점에 알림을 보냅니다.")
             }
 
+            // 체온 추세
+            Section {
+                Toggle("체온 추세 알림", isOn: $temperatureTrendEnabled)
+                    .onChange(of: temperatureTrendEnabled) { _, val in
+                        NotificationSettings.temperatureTrendEnabled = val
+                    }
+            } header: {
+                Text("체온 추세")
+            } footer: {
+                Text("최근 24시간 내 발열(38.0°C 이상)이 2회 이상 기록되면 알림을 보냅니다.")
+            }
+
+            // 성장 속도
+            Section {
+                Toggle("성장 속도 알림", isOn: $growthVelocityEnabled)
+                    .onChange(of: growthVelocityEnabled) { _, val in
+                        NotificationSettings.growthVelocityEnabled = val
+                    }
+            } header: {
+                Text("성장 속도")
+            } footer: {
+                Text("성장 기록 저장 시 백분위 변화가 크게 감지되면 알림을 보냅니다. 참고용이며 의학적 진단을 대체하지 않습니다.")
+            }
+
             // 재구매
             Section {
                 Toggle("재구매 알림", isOn: $reorderEnabled)
@@ -134,9 +161,18 @@ struct NotificationSettingsView: View {
         }
         .navigationTitle("알림 설정")
         .task {
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            notificationPermission = settings.authorizationStatus == .authorized
+            await checkNotificationPermission()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await checkNotificationPermission() }
+            }
+        }
+    }
+
+    private func checkNotificationPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        notificationPermission = settings.authorizationStatus == .authorized
     }
 
     private func saveRules() {

@@ -2,30 +2,41 @@ import SwiftUI
 import Charts
 
 struct GrowthView: View {
-    @Environment(BabyViewModel.self) private var babyVM
-    @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) var babyVM
+    @Environment(AuthViewModel.self) var authVM
 
-    @State private var records: [GrowthRecord] = []
-    @State private var isLoading = false
-    @State private var showAddRecord = false
-    @State private var editingRecord: GrowthRecord?
-    @State private var showDeleteConfirm = false
-    @State private var recordToDelete: GrowthRecord?
+    @State var records: [GrowthRecord] = []
+    @State var isLoading = false
+    @State var showAddRecord = false
+    @State var editingRecord: GrowthRecord?
+    @State var showDeleteConfirm = false
+    @State var recordToDelete: GrowthRecord?
 
     // Form
-    @State private var height: String = ""
-    @State private var weight: String = ""
-    @State private var headCircumference: String = ""
-    @State private var recordDate = Date()
+    @State var height: String = ""
+    @State var weight: String = ""
+    @State var headCircumference: String = ""
+    @State var recordDate = Date()
 
-    @State private var saveError: String?
+    @State var saveError: String?
 
-    private let firestoreService = FirestoreService.shared
+    // Expanded chart state
+    @State var expandedWeight = false
+    @State var expandedHeight = false
+    @State var expandedHead = false
+
+    let firestoreService = FirestoreService.shared
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    Text("이 성장 기록은 참고용이며 의학적 진단을 대체하지 않습니다.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     if records.isEmpty && !isLoading {
                         EmptyStateView(
                             icon: "chart.line.uptrend.xyaxis",
@@ -44,7 +55,9 @@ struct GrowthView: View {
                                 color: AppColors.feedingColor,
                                 data: records.compactMap { r in
                                     r.weight.map { (r.date, $0) }
-                                }
+                                },
+                                metric: .weight,
+                                isExpanded: $expandedWeight
                             )
                         }
 
@@ -56,7 +69,9 @@ struct GrowthView: View {
                                 color: AppColors.sleepColor,
                                 data: records.compactMap { r in
                                     r.height.map { (r.date, $0) }
-                                }
+                                },
+                                metric: .height,
+                                isExpanded: $expandedHeight
                             )
                         }
 
@@ -68,7 +83,9 @@ struct GrowthView: View {
                                 color: AppColors.healthColor,
                                 data: records.compactMap { r in
                                     r.headCircumference.map { (r.date, $0) }
-                                }
+                                },
+                                metric: .headCircumference,
+                                isExpanded: $expandedHead
                             )
                         }
 
@@ -79,37 +96,7 @@ struct GrowthView: View {
                                 .padding(.horizontal)
 
                             ForEach(records) { record in
-                                HStack {
-                                    Text(DateFormatters.shortDate.string(from: record.date))
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    if let w = record.weight {
-                                        Text(String(format: "%.1fkg", w))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    if let h = record.height {
-                                        Text(String(format: "%.1fcm", h))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.vertical, 6)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    startEditing(record)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        recordToDelete = record
-                                        showDeleteConfirm = true
-                                    } label: {
-                                        Label("삭제", systemImage: "trash")
-                                    }
-                                }
+                                recordRow(record)
                             }
                         }
                     }
@@ -152,153 +139,17 @@ struct GrowthView: View {
         }
     }
 
-    // MARK: - Chart Section
-
-    private func chartSection(title: String, icon: String, color: Color, data: [(Date, Double)]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .foregroundStyle(color)
-
-            Chart(data, id: \.0) { item in
-                LineMark(
-                    x: .value("날짜", item.0, unit: .day),
-                    y: .value("값", item.1)
-                )
-                .foregroundStyle(color)
-                .interpolationMethod(.catmullRom)
-
-                PointMark(
-                    x: .value("날짜", item.0, unit: .day),
-                    y: .value("값", item.1)
-                )
-                .foregroundStyle(color)
-            }
-            .frame(height: 180)
-        }
-        .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal)
-    }
-
-    // MARK: - Add Record Sheet
-
-    private var addRecordSheet: some View {
-        NavigationStack {
-            Form {
-                Section("날짜") {
-                    DatePicker("날짜", selection: $recordDate, displayedComponents: .date)
-                        .environment(\.locale, Locale(identifier: "ko_KR"))
-                }
-
-                Section("측정값") {
-                    HStack {
-                        Text("몸무게")
-                        Spacer()
-                        TextField("kg", text: $weight)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("키")
-                        Spacer()
-                        TextField("cm", text: $height)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("머리둘레")
-                        Spacer()
-                        TextField("cm", text: $headCircumference)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                }
-            }
-            .navigationTitle("성장 기록 추가")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { showAddRecord = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
-                        Task { await saveNewRecord() }
-                    }
-                    .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
-                }
-            }
-        }
-    }
-
-    // MARK: - Edit Record Sheet
-
-    private func editRecordSheet(_ record: GrowthRecord) -> some View {
-        NavigationStack {
-            Form {
-                Section("날짜") {
-                    DatePicker("날짜", selection: $recordDate, displayedComponents: .date)
-                        .environment(\.locale, Locale(identifier: "ko_KR"))
-                }
-
-                Section("측정값") {
-                    HStack {
-                        Text("몸무게")
-                        Spacer()
-                        TextField("kg", text: $weight)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("키")
-                        Spacer()
-                        TextField("cm", text: $height)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                    HStack {
-                        Text("머리둘레")
-                        Spacer()
-                        TextField("cm", text: $headCircumference)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                    }
-                }
-            }
-            .navigationTitle("성장 기록 수정")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { editingRecord = nil }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
-                        Task { await updateRecord(record) }
-                    }
-                    .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
-                }
-            }
-        }
-    }
-
     // MARK: - Data
 
-    private func loadRecords() async {
-        guard let userId = authVM.currentUserId,
+    func loadRecords() async {
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
         isLoading = true
         records = (try? await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)) ?? []
         isLoading = false
     }
 
-    private func startEditing(_ record: GrowthRecord) {
+    func startEditing(_ record: GrowthRecord) {
         recordDate = record.date
         weight = record.weight.map { String($0) } ?? ""
         height = record.height.map { String($0) } ?? ""
@@ -306,15 +157,15 @@ struct GrowthView: View {
         editingRecord = record
     }
 
-    private func resetForm() {
+    func resetForm() {
         height = ""
         weight = ""
         headCircumference = ""
         recordDate = Date()
     }
 
-    private func saveNewRecord() async {
-        guard let userId = authVM.currentUserId,
+    func saveNewRecord() async {
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
 
         // 체중 검증
@@ -351,16 +202,39 @@ struct GrowthView: View {
 
         do {
             try await firestoreService.saveGrowthRecord(record, userId: userId)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
             records.append(record)
             records.sort { $0.date < $1.date }
             showAddRecord = false
+
+            // 성장 속도 알림 체크
+            checkAndNotifyGrowthVelocity()
         } catch {
             saveError = "저장에 실패했습니다: \(error.localizedDescription)"
         }
     }
 
-    private func updateRecord(_ original: GrowthRecord) async {
-        guard let userId = authVM.currentUserId else { return }
+    func checkAndNotifyGrowthVelocity() {
+        guard let baby = babyVM.selectedBaby else { return }
+        let babyName = baby.name
+
+        for metric in [GrowthMetric.weight, .height, .headCircumference] {
+            if let result = PercentileCalculator.growthVelocity(
+                records: records,
+                metric: metric,
+                gender: baby.gender,
+                birthDate: baby.birthDate
+            ), result.isSignificant {
+                Task { @MainActor in
+                    await NotificationService.shared.scheduleGrowthVelocityAlert(babyName: babyName)
+                }
+                break
+            }
+        }
+    }
+
+    func updateRecord(_ original: GrowthRecord) async {
+        guard let userId = babyVM.resolvedUserId(auth: authVM) else { return }
 
         // 체중 검증
         if let w = Double(weight) {
@@ -409,8 +283,8 @@ struct GrowthView: View {
         }
     }
 
-    private func deleteRecord(_ record: GrowthRecord) async {
-        guard let userId = authVM.currentUserId,
+    func deleteRecord(_ record: GrowthRecord) async {
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
 
         do {

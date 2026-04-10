@@ -40,6 +40,15 @@ extension PatternReportView {
                 }
             }
 
+            if s.missingDays > 2 {
+                HStack {
+                    Text("기록 누락 \(s.missingDays)일")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+
             // Category distribution donut chart
             if !s.categoryDistribution.isEmpty {
                 Text("카테고리 분포")

@@ -11,6 +11,10 @@ struct TodoView: View {
                     Section("지연됨") {
                         ForEach(todoVM.overdueTodos) { todo in
                             TodoRowView(todo: todo)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    todoVM.startEditing(todo)
+                                }
                         }
                     }
                 }
@@ -18,6 +22,10 @@ struct TodoView: View {
                 Section("할 일 (\(todoVM.pendingTodos.count))") {
                     ForEach(todoVM.pendingTodos) { todo in
                         TodoRowView(todo: todo)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                todoVM.startEditing(todo)
+                            }
                     }
                     .onDelete { indexSet in
                         Task {
@@ -34,6 +42,10 @@ struct TodoView: View {
                     Section {
                         ForEach(todoVM.completedTodos) { todo in
                             TodoRowView(todo: todo)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    todoVM.startEditing(todo)
+                                }
                         }
                         .onDelete { indexSet in
                             Task {
@@ -65,10 +77,30 @@ struct TodoView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("할 일")
             .toolbar {
-                Button {
-                    todoVM.showAddTodo = true
-                } label: {
-                    Image(systemName: "plus")
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task {
+                            guard let userId = authVM.currentUserId else { return }
+                            await todoVM.toggleShowCompleted(userId: userId)
+                        }
+                    } label: {
+                        if todoVM.isLoadingCompleted {
+                            ProgressView()
+                        } else {
+                            Label(
+                                todoVM.showCompleted ? "완료 숨기기" : "완료 보기",
+                                systemImage: todoVM.showCompleted ? "checkmark.circle.fill" : "checkmark.circle"
+                            )
+                            .labelStyle(.iconOnly)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        todoVM.showAddTodo = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: Bindable(todoVM).showAddTodo) {
@@ -194,7 +226,7 @@ struct AddTodoView: View {
                     }
                 }
             }
-            .navigationTitle("할 일 추가")
+            .navigationTitle(todoVM.editingTodo != nil ? "할 일 수정" : "할 일 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -204,14 +236,25 @@ struct AddTodoView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("추가") {
-                        Task {
-                            guard let userId = authVM.currentUserId else { return }
-                            await todoVM.addTodo(userId: userId)
-                            dismiss()
+                    if let editing = todoVM.editingTodo {
+                        Button("저장") {
+                            Task {
+                                guard let userId = authVM.currentUserId else { return }
+                                await todoVM.updateTodo(editing, userId: userId)
+                                dismiss()
+                            }
                         }
+                        .disabled(todoVM.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    } else {
+                        Button("추가") {
+                            Task {
+                                guard let userId = authVM.currentUserId else { return }
+                                await todoVM.addTodo(userId: userId)
+                                dismiss()
+                            }
+                        }
+                        .disabled(todoVM.title.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
-                    .disabled(todoVM.title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }

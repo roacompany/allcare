@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct DiaryView: View {
     @Environment(DiaryViewModel.self) private var diaryVM
@@ -18,24 +19,45 @@ struct DiaryView: View {
                         diaryVM.showAddEntry = true
                     }
                 } else {
-                    List(diaryVM.entries) { entry in
-                        DiaryRowView(entry: entry)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                diaryVM.startEditing(entry)
-                                diaryVM.showAddEntry = true
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    Task {
-                                        guard let userId = authVM.currentUserId,
-                                              let babyId = babyVM.selectedBaby?.id else { return }
-                                        await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
-                                    }
-                                } label: {
-                                    Label("삭제", systemImage: "trash")
+                    List {
+                        ForEach(diaryVM.entries) { entry in
+                            DiaryRowView(entry: entry)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    diaryVM.startEditing(entry)
+                                    diaryVM.showAddEntry = true
                                 }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            guard let userId = babyVM.resolvedUserId(auth: authVM),
+                                                  let babyId = babyVM.selectedBaby?.id else { return }
+                                            await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
+                                        }
+                                    } label: {
+                                        Label("삭제", systemImage: "trash")
+                                    }
+                                }
+                                .onAppear {
+                                    if entry.id == diaryVM.entries.last?.id {
+                                        Task {
+                                            guard let userId = babyVM.resolvedUserId(auth: authVM),
+                                                  let babyId = babyVM.selectedBaby?.id else { return }
+                                            await diaryVM.loadMoreEntries(userId: userId, babyId: babyId)
+                                        }
+                                    }
+                                }
+                        }
+
+                        if diaryVM.isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .padding(.vertical, 12)
+                                Spacer()
                             }
+                            .listRowSeparator(.hidden)
+                        }
                     }
                     .listStyle(.plain)
                 }
@@ -52,13 +74,13 @@ struct DiaryView: View {
                 AddDiaryView()
             }
             .task {
-                guard let userId = authVM.currentUserId,
+                guard let userId = babyVM.resolvedUserId(auth: authVM),
                       let babyId = babyVM.selectedBaby?.id else { return }
                 await diaryVM.loadEntries(userId: userId, babyId: babyId)
             }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task {
-                    guard let userId = authVM.currentUserId,
+                    guard let userId = babyVM.resolvedUserId(auth: authVM),
                           let babyId = babyVM.selectedBaby?.id else { return }
                     await diaryVM.loadEntries(userId: userId, babyId: babyId)
                 }
@@ -92,13 +114,27 @@ struct DiaryRowView: View {
                 .lineLimit(3)
 
             if !entry.photoURLs.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "photo.fill")
-                        .font(.caption2)
-                    Text("\(entry.photoURLs.count)장")
-                        .font(.caption2)
+                HStack(spacing: 6) {
+                    if let firstURL = entry.photoURLs.first {
+                        CachedAsyncImage(
+                            url: firstURL,
+                            size: CGSize(width: 32, height: 32)
+                        ) {
+                            Image(systemName: "photo.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 32, height: 32)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo.fill")
+                            .font(.caption2)
+                        Text("\(entry.photoURLs.count)장")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -112,6 +148,8 @@ struct AddDiaryView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
 
     var body: some View {
         @Bindable var vm = diaryVM
@@ -154,6 +192,89 @@ struct AddDiaryView: View {
                     TextEditor(text: $vm.content)
                         .frame(minHeight: 150)
                 }
+
+                Section("사진") {
+                    // Existing photos (edit mode)
+                    if !diaryVM.existingPhotoURLs.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(diaryVM.existingPhotoURLs, id: \.self) { urlString in
+                                    ZStack(alignment: .topTrailing) {
+                                        CachedAsyncImage(
+                                            url: urlString,
+                                            size: CGSize(width: 80, height: 80)
+                                        ) {
+                                            Color.secondary.opacity(0.2)
+                                                .frame(width: 80, height: 80)
+                                        }
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        Button {
+                                            diaryVM.existingPhotoURLs.removeAll { $0 == urlString }
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(.white, .black.opacity(0.6))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    // New photos to add
+                    if !diaryVM.selectedPhotos.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(Array(diaryVM.selectedPhotos.enumerated()), id: \.offset) { index, photo in
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(uiImage: photo)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        Button {
+                                            diaryVM.selectedPhotos.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(.white, .black.opacity(0.6))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    PhotosPicker(
+                        selection: $selectedPhotoItems,
+                        maxSelectionCount: 5,
+                        matching: .images
+                    ) {
+                        Label("사진 추가", systemImage: "photo.badge.plus")
+                    }
+                    .onChange(of: selectedPhotoItems) { _, newItems in
+                        Task {
+                            var images: [UIImage] = []
+                            for item in newItems {
+                                if let data = try? await item.loadTransferable(type: Data.self),
+                                   let image = UIImage(data: data) {
+                                    images.append(image)
+                                }
+                            }
+                            diaryVM.selectedPhotos = images
+                            selectedPhotoItems = []
+                        }
+                    }
+                }
             }
             .navigationTitle(diaryVM.editingEntry != nil ? "일기 수정" : "일기 쓰기")
             .navigationBarTitleDisplayMode(.inline)
@@ -167,7 +288,7 @@ struct AddDiaryView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") {
                         Task {
-                            guard let userId = authVM.currentUserId,
+                            guard let userId = babyVM.resolvedUserId(auth: authVM),
                                   let babyId = babyVM.selectedBaby?.id else { return }
                             await diaryVM.addEntry(userId: userId, babyId: babyId)
                             if diaryVM.errorMessage == nil {
