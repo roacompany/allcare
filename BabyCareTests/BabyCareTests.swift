@@ -500,4 +500,83 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(AdExperimentVariant.currentVariant, .allThreeTabs,
                        "기본 variant는 .allThreeTabs (A안)여야 합니다")
     }
+
+    // MARK: - Cry Analysis Tests
+
+    func test_cryLabel_allCasesCount_equalsFive() {
+        XCTAssertEqual(CryLabel.allCases.count, 5)
+    }
+
+    func test_cryLabel_allCases_containsExpected() {
+        XCTAssertTrue(CryLabel.allCases.contains(.hungry))
+        XCTAssertTrue(CryLabel.allCases.contains(.burping))
+        XCTAssertTrue(CryLabel.allCases.contains(.bellyPain))
+        XCTAssertTrue(CryLabel.allCases.contains(.discomfort))
+        XCTAssertTrue(CryLabel.allCases.contains(.tired))
+    }
+
+    func test_cryRecord_codableRoundTrip() throws {
+        let fixedDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let original = CryRecord(
+            id: "test-cry-id",
+            babyId: "test-baby-id",
+            recordedAt: fixedDate,
+            durationSeconds: 5.0,
+            probabilities: [CryLabel.hungry.rawValue: 1.0],
+            topLabel: nil,
+            isStub: true
+        )
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(original)
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(CryRecord.self, from: data)
+
+        XCTAssertEqual(decoded.id, original.id)
+        XCTAssertEqual(decoded.babyId, original.babyId)
+        XCTAssertEqual(decoded.durationSeconds, original.durationSeconds)
+        XCTAssertEqual(decoded.probabilities, original.probabilities)
+        XCTAssertEqual(decoded.topLabel, original.topLabel)
+        XCTAssertEqual(decoded.isStub, original.isStub)
+    }
+
+    @MainActor
+    func test_cryAnalysisService_analyzeStub_probabilitiesSumToOne() {
+        let service = CryAnalysisService()
+        let record = service.analyzeStub(babyId: "test-baby")
+        let sum = record.probabilities.values.reduce(0.0, +)
+        XCTAssertEqual(sum, 1.0, accuracy: 0.001)
+    }
+
+    @MainActor
+    func test_cryAnalysisService_analyzeStub_isStubTrue() {
+        let service = CryAnalysisService()
+        let record = service.analyzeStub(babyId: "test-baby")
+        XCTAssertTrue(record.isStub)
+    }
+
+    @MainActor
+    func test_cryAnalysisService_analyzeStub_topLabelIsNil() {
+        let service = CryAnalysisService()
+        let record = service.analyzeStub(babyId: "test-baby")
+        XCTAssertNil(record.topLabel)
+    }
+
+    @MainActor
+    func test_cryAnalysisService_analyzeStub_hasFiveLabels() {
+        let service = CryAnalysisService()
+        let record = service.analyzeStub(babyId: "test-baby")
+        XCTAssertEqual(record.probabilities.count, 5)
+    }
+
+    func test_featureFlags_cryAnalysisEnabled_defaultsFalse() {
+        XCTAssertFalse(FeatureFlags.cryAnalysisEnabled)
+    }
+
+    func test_firestoreCollections_cryRecords_equalsString() {
+        XCTAssertEqual(FirestoreCollections.cryRecords, "cryRecords")
+    }
 }
