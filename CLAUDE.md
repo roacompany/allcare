@@ -66,16 +66,20 @@ make status      # 버전/커밋/테스트 상태
 
 ## Current Status
 
-- **Version**: v2.6.2 (빌드 49)
-- **App Store**: v2.6.0 (빌드 43) READY_FOR_SALE
-- **심사 대기**: v2.6.1 (빌드 46) WAITING_FOR_REVIEW
-- **TestFlight**: v2.6.2 (빌드 49) — Live Activity fix 포함
-- **테스트**: 38개 PASS, 경고 0건
-- **규모**: 204 Swift 파일
+- **Version**: v2.6.2 (빌드 52)
+- **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
+- **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
+- **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
+- **테스트**: 50개 PASS, 경고 0건
+- **규모**: 211+ Swift 파일 (cry-analysis 6개 신규)
 - **QA**: 3-Agent ALL PASS (2026-04-04)
 
 ## Recent Changes (v2.6.2)
 
+- **feat(cry-analysis)**: 울음 분석 기능 (베타, stub) — Health 탭 → 5초 녹음 → 5 라벨 확률 바 (hungry/burping/bellyPain/discomfort/tired). FeatureFlags.cryAnalysisEnabled gate. CryRecord 독립 Firestore 컬렉션. "신호와 유사해요" 패턴 + 면책 배너. CoreML 실모델은 v2.7+ 예정.
+- **chore(privacy)**: NSMicrophoneUsageDescription + PrivacyInfo NSPrivacyCollectedDataTypeAudioData + privacy.html 울음분석 섹션
+- **chore(ads)**: AdMob production App ID (ca-app-pub-6369815556964095~1504777334) + Banner Unit ID + SKAdNetworkItems 43개 확장 + app-ads.txt
+- **fix(ads)**: AdBannerView `UIScreen.main` → scene-aware `safeScreenWidth()` (iOS 26.5 Beta TestFlight 51 크래시 fix — WindowScene 기반)
 - feat(analytics): Firebase Analytics (GA) 통합 — 10개 뷰 트래킹, 옵트아웃, PrivacyInfo
 - feat(pattern-report): 패턴분석 v2 — 발열 연속일, 데이터 품질 경고, 기간 비교 토글, 수유 예측
 - feat(timer): FloatingTimerBanner — 메인 화면 상단에 진행 중인 타이머 표시
@@ -83,6 +87,13 @@ make status      # 버전/커밋/테스트 상태
 - fix(ux): TimeAdjustment 미래 시점 클램프, 캘린더 월 전환 로딩 인디케이터
 - docs(privacy): 개인정보처리방침 Firebase Analytics 반영
 - chore(deploy): -allowProvisioningUpdates + sub-make deploy chain
+
+## v2.7 Pre-flip Items (울음 분석 실모델 통합 시 필수)
+
+- [ ] CreateML MLSoundClassifier로 `.mlmodel` 훈련 (Donate-a-Cry Corpus 기반)
+- [ ] `CryAnalysisService.analyzeStub()` → 실모델 호출로 교체, `topLabel` 채움 (argmax)
+- [ ] 히스토리 필터: stub 시절 저장된 `isStub=true` 레코드 숨김 또는 뱃지 카피 재검토
+- [ ] `CryAnalysisViewModel` phase 전이 단위 테스트 추가
 
 ## Active TODO
 
