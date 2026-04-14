@@ -288,6 +288,36 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: - Weekly Insight
+
+    func scheduleWeeklyInsight(topInsightTitle: String) {
+        guard ActivityReminderSettings.weeklyInsightEnabled else { return }
+
+        let identifier = "weekly-insight"
+
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = "주간 육아 리포트"
+        content.body = topInsightTitle
+        content.sound = .default
+        content.categoryIdentifier = "WEEKLY_INSIGHT"
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 1,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {

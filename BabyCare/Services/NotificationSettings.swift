@@ -120,4 +120,14 @@ enum ActivityReminderSettings {
         get { UserDefaults.standard.bool(forKey: "feedingOverdueAlertEnabled") }
         set { UserDefaults.standard.set(newValue, forKey: "feedingOverdueAlertEnabled") }
     }
+
+    static var weeklyInsightEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "weeklyInsightEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "weeklyInsightEnabled") }
+    }
+
+    static var lastWeeklyInsightDate: Date? {
+        get { UserDefaults.standard.object(forKey: "lastWeeklyInsightDate") as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: "lastWeeklyInsightDate") }
+    }
 }
