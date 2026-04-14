@@ -19,11 +19,6 @@ struct GrowthView: View {
 
     @State var saveError: String?
 
-    // Expanded chart state
-    @State var expandedWeight = false
-    @State var expandedHeight = false
-    @State var expandedHead = false
-
     var records: [GrowthRecord] { growthVM.records }
     var isLoading: Bool { growthVM.isLoading }
 
@@ -49,6 +44,7 @@ struct GrowthView: View {
                     } else {
                         // Weight Chart
                         if records.contains(where: { $0.weight != nil }) {
+                            let weightRecords = records.filter { $0.weight != nil }
                             chartSection(
                                 title: "몸무게 (kg)",
                                 icon: "scalemass.fill",
@@ -56,13 +52,22 @@ struct GrowthView: View {
                                 data: records.compactMap { r in
                                     r.weight.map { (r.date, $0) }
                                 },
-                                metric: .weight,
-                                isExpanded: $expandedWeight
+                                metric: .weight
                             )
+                            if let baby = babyVM.selectedBaby {
+                                percentileTrendChart(
+                                    records: weightRecords,
+                                    metric: .weight,
+                                    gender: baby.gender,
+                                    birthDate: baby.birthDate
+                                )
+                                .padding(.horizontal)
+                            }
                         }
 
                         // Height Chart
                         if records.contains(where: { $0.height != nil }) {
+                            let heightRecords = records.filter { $0.height != nil }
                             chartSection(
                                 title: "키 (cm)",
                                 icon: "ruler.fill",
@@ -70,13 +75,22 @@ struct GrowthView: View {
                                 data: records.compactMap { r in
                                     r.height.map { (r.date, $0) }
                                 },
-                                metric: .height,
-                                isExpanded: $expandedHeight
+                                metric: .height
                             )
+                            if let baby = babyVM.selectedBaby {
+                                percentileTrendChart(
+                                    records: heightRecords,
+                                    metric: .height,
+                                    gender: baby.gender,
+                                    birthDate: baby.birthDate
+                                )
+                                .padding(.horizontal)
+                            }
                         }
 
                         // Head Circumference Chart
                         if records.contains(where: { $0.headCircumference != nil }) {
+                            let headRecords = records.filter { $0.headCircumference != nil }
                             chartSection(
                                 title: "머리둘레 (cm)",
                                 icon: "circle.dashed",
@@ -84,9 +98,17 @@ struct GrowthView: View {
                                 data: records.compactMap { r in
                                     r.headCircumference.map { (r.date, $0) }
                                 },
-                                metric: .headCircumference,
-                                isExpanded: $expandedHead
+                                metric: .headCircumference
                             )
+                            if let baby = babyVM.selectedBaby {
+                                percentileTrendChart(
+                                    records: headRecords,
+                                    metric: .headCircumference,
+                                    gender: baby.gender,
+                                    birthDate: baby.birthDate
+                                )
+                                .padding(.horizontal)
+                            }
                         }
 
                         // Records List
