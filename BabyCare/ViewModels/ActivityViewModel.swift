@@ -74,12 +74,16 @@ final class ActivityViewModel {
     /// 아기 월령 (외부에서 주입)
     var babyAgeInMonths: Int = 3
 
-    var averageFeedingInterval: TimeInterval {
+    var averageFeedingIntervalResult: (interval: TimeInterval, isPersonalized: Bool) {
         FeedingPredictionService.averageInterval(
             todayActivities: todayActivities,
             recentActivities: recentFeedingActivities,
             babyAgeInMonths: babyAgeInMonths
         )
+    }
+
+    var averageFeedingInterval: TimeInterval {
+        averageFeedingIntervalResult.interval
     }
 
     var nextFeedingEstimate: Date? {
@@ -90,7 +94,10 @@ final class ActivityViewModel {
     }
 
     var nextFeedingText: String? {
-        FeedingPredictionService.predictionText(estimate: nextFeedingEstimate)
+        FeedingPredictionService.predictionText(
+            estimate: nextFeedingEstimate,
+            isPersonalized: averageFeedingIntervalResult.isPersonalized
+        )
     }
 
     var isFeedingOverdue: Bool {
