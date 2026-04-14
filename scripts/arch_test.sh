@@ -39,7 +39,7 @@ done < <(find "$PROJECT_DIR/BabyCare/Models" -name '*.swift' 2>/dev/null)
 
 # 기존 위반 기준선: 17건 (2026-04-14)
 # 새 위반이 늘어나면 실패, 줄어들면 성공
-BASELINE=17
+BASELINE=0
 
 if [ "$VIOLATIONS" -gt "$BASELINE" ]; then
     echo "❌ Architecture test FAILED: $VIOLATIONS violation(s) (baseline: $BASELINE)"
