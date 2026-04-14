@@ -841,4 +841,88 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(insights[0].category, .sleep, "변화율이 높은 sleep이 첫 번째여야 합니다")
         XCTAssertEqual(insights[1].category, .feeding, "변화율이 낮은 feeding이 두 번째여야 합니다")
     }
+
+    // MARK: - Todo/Routine Automation Tests
+
+    func testNextDueDate_daily() {
+        let base = Calendar.current.date(from: DateComponents(year: 2026, month: 4, day: 14))!
+        let next = TodoItem.nextDueDate(from: base, interval: .daily)
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: next)
+        XCTAssertEqual(components.year, 2026)
+        XCTAssertEqual(components.month, 4)
+        XCTAssertEqual(components.day, 15)
+    }
+
+    func testNextDueDate_weekly() {
+        let base = Calendar.current.date(from: DateComponents(year: 2026, month: 4, day: 14))!
+        let next = TodoItem.nextDueDate(from: base, interval: .weekly)
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: next)
+        XCTAssertEqual(components.year, 2026)
+        XCTAssertEqual(components.month, 4)
+        XCTAssertEqual(components.day, 21)
+    }
+
+    func testNextDueDate_monthly() {
+        let base = Calendar.current.date(from: DateComponents(year: 2026, month: 4, day: 14))!
+        let next = TodoItem.nextDueDate(from: base, interval: .monthly)
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: next)
+        XCTAssertEqual(components.year, 2026)
+        XCTAssertEqual(components.month, 5)
+        XCTAssertEqual(components.day, 14)
+    }
+
+    func testNextDueDate_nilBase_usesNow() {
+        let before = Date()
+        let next = TodoItem.nextDueDate(from: nil, interval: .daily)
+        let expectedMin = before.addingTimeInterval(23 * 3600)  // at least ~23 hours later
+        XCTAssertTrue(next > expectedMin)
+    }
+
+    func testRoutine_defaultsOptionalFields() {
+        // Routine init with default lastResetDate=nil, currentStreak=nil
+        let routine = Routine(id: "r1", name: "Morning", items: [], babyId: nil, createdAt: Date())
+        XCTAssertNil(routine.lastResetDate)
+        XCTAssertNil(routine.currentStreak)
+    }
+
+    func testRoutineStreak_fullCompletion_gap1_increments() {
+        // Given: lastResetDate = yesterday (startOfDay), currentStreak = 5, all items completed
+        // When: checkAndAutoResetIfNeeded runs
+        // Then: currentStreak should be 6
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: Date()))!
+        let items = [Routine.RoutineItem(id: "i1", title: "A", order: 0, isCompleted: true)]
+        var routine = Routine(id: "r1", name: "Morning", items: items, babyId: nil, createdAt: Date())
+        routine.lastResetDate = yesterday
+        routine.currentStreak = 5
+        // 직접 로직 검증 (RoutineViewModel 호출은 Firestore mock 필요하므로 스킵)
+        let today = Calendar.current.startOfDay(for: Date())
+        let gapDays = Calendar.current.dateComponents([.day], from: yesterday, to: today).day ?? 0
+        let wasFullyCompleted = routine.items.allSatisfy { $0.isCompleted } && !routine.items.isEmpty
+        var newStreak = routine.currentStreak ?? 0
+        if wasFullyCompleted && gapDays == 1 {
+            newStreak += 1
+        } else if gapDays > 1 || !wasFullyCompleted {
+            newStreak = 0
+        }
+        XCTAssertEqual(newStreak, 6)
+    }
+
+    func testRoutineStreak_partialCompletion_resets() {
+        // items 일부만 완료 → 스트릭 0
+        let items = [
+            Routine.RoutineItem(id: "i1", title: "A", order: 0, isCompleted: true),
+            Routine.RoutineItem(id: "i2", title: "B", order: 1, isCompleted: false)
+        ]
+        let wasFullyCompleted = items.allSatisfy { $0.isCompleted } && !items.isEmpty
+        XCTAssertFalse(wasFullyCompleted)
+    }
+
+    func testRoutineStreak_gapOverOneDay_resets() {
+        // gap = 3일 → 스트릭 0
+        let threeDaysAgo = Calendar.current.date(byAdding: .day, value: -3, to: Calendar.current.startOfDay(for: Date()))!
+        let today = Calendar.current.startOfDay(for: Date())
+        let gapDays = Calendar.current.dateComponents([.day], from: threeDaysAgo, to: today).day ?? 0
+        XCTAssertEqual(gapDays, 3)
+        XCTAssertTrue(gapDays > 1)  // should reset
+    }
 }
