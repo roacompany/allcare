@@ -66,7 +66,7 @@ make status      # 버전/커밋/테스트 상태
 
 ## Harness
 
-harness-score: 40% (Grade D) → 목표 81% (Grade B) — 2026-04-14
+harness-score: 90% (Grade A) — 2026-04-14 (was: 40% Grade D → +24점)
 
 ## Current Status
 
