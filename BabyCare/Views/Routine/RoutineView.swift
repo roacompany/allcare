@@ -35,6 +35,7 @@ struct RoutineView: View {
         .task {
             guard let userId = authVM.currentUserId else { return }
             await routineVM.loadRoutines(userId: userId)
+            await routineVM.checkAndAutoResetIfNeeded(userId: userId)
         }
     }
 }
@@ -83,6 +84,11 @@ private struct RoutineSection: View {
                         showEditSheet = true
                     }
                 Spacer()
+                if let streak = routine.currentStreak, streak >= 2 {
+                    Text("🔥 \(streak)일 연속")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
                 Text("\(completedCount)/\(routine.items.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)

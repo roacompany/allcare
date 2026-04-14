@@ -6,6 +6,8 @@ struct Routine: Identifiable, Codable, Hashable {
     var items: [RoutineItem]
     var babyId: String?
     var createdAt: Date
+    var lastResetDate: Date?     // 마지막 리셋 (startOfDay)
+    var currentStreak: Int?      // 연속 100% 완료 일수
 
     struct RoutineItem: Codable, Hashable, Identifiable {
         var id: String
@@ -31,12 +33,16 @@ struct Routine: Identifiable, Codable, Hashable {
         name: String,
         items: [RoutineItem] = [],
         babyId: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        lastResetDate: Date? = nil,
+        currentStreak: Int? = nil
     ) {
         self.id = id
         self.name = name
         self.items = items
         self.babyId = babyId
         self.createdAt = createdAt
+        self.lastResetDate = lastResetDate
+        self.currentStreak = currentStreak
     }
 }

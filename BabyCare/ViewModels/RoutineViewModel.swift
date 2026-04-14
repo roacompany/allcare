@@ -125,6 +125,44 @@ final class RoutineViewModel {
         }
     }
 
+    // MARK: - Auto Reset (날짜 변경 시 자동 리셋 + 스트릭 갱신)
+
+    func checkAndAutoResetIfNeeded(userId: String) async {
+        let today = Calendar.current.startOfDay(for: Date())
+
+        for rIdx in routines.indices {
+            let routine = routines[rIdx]
+            let last = routine.lastResetDate.map { Calendar.current.startOfDay(for: $0) }
+
+            // 이미 오늘 리셋된 경우 skip
+            if last == today { continue }
+
+            let wasFullyCompleted = !routine.items.isEmpty && routine.items.allSatisfy { $0.isCompleted }
+            let gapDays = last.map { Calendar.current.dateComponents([.day], from: $0, to: today).day ?? 0 } ?? 0
+
+            let newStreak: Int
+            if wasFullyCompleted && gapDays == 1 {
+                newStreak = (routine.currentStreak ?? 0) + 1
+            } else {
+                newStreak = 0
+            }
+
+            let backup = routines[rIdx]
+
+            for i in routines[rIdx].items.indices {
+                routines[rIdx].items[i].isCompleted = false
+            }
+            routines[rIdx].lastResetDate = today
+            routines[rIdx].currentStreak = newStreak
+
+            do {
+                try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
+            } catch {
+                routines[rIdx] = backup
+            }
+        }
+    }
+
     // MARK: - Reset All Items (for new day)
 
     func resetRoutine(_ routine: Routine, userId: String) async {
