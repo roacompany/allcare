@@ -256,6 +256,38 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: - Feeding Overdue Alert
+
+    func scheduleFeedingOverdueAlert(babyName: String, predictedTime: Date) {
+        let identifier = "feeding-overdue"
+
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let triggerDate = predictedTime.addingTimeInterval(1800)
+        guard triggerDate > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "\(babyName) 수유 알림"
+        content.body = "수유 예정 시간이 지났어요"
+        content.sound = .default
+        content.categoryIdentifier = "FEEDING_OVERDUE_ALERT"
+
+        let timeInterval = triggerDate.timeIntervalSinceNow
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: timeInterval,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {

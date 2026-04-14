@@ -115,4 +115,9 @@ enum ActivityReminderSettings {
         }
         rules = current
     }
+
+    static var feedingOverdueAlertEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "feedingOverdueAlertEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "feedingOverdueAlertEnabled") }
+    }
 }
