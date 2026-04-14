@@ -143,7 +143,7 @@ struct ActivityEditSheet: View {
                                     .tag(Optional(quality))
                             }
                         }
-                        Picker("잠드는 방법", selection: $editedSleepMethod) {
+                        Picker("잠든 곳", selection: $editedSleepMethod) {
                             Text("선택 안 함").tag(Optional<Activity.SleepMethodType>.none)
                             ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
                                 Label(method.displayName, systemImage: method.icon)

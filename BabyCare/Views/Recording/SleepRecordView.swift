@@ -84,9 +84,10 @@ struct SleepRecordView: View {
                     FlowLayout(spacing: 8) {
                         ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
                             Button {
-                                activityVM.sleepMethod = activityVM.sleepMethod == method ? nil : method
-                                if let babyId = babyVM.selectedBaby?.id {
-                                    UserDefaults.standard.set(method.rawValue, forKey: lastMethodKey(babyId: babyId))
+                                let newValue: Activity.SleepMethodType? = activityVM.sleepMethod == method ? nil : method
+                                activityVM.sleepMethod = newValue
+                                if let babyId = babyVM.selectedBaby?.id, let selected = newValue {
+                                    UserDefaults.standard.set(selected.rawValue, forKey: lastMethodKey(babyId: babyId))
                                 }
                             } label: {
                                 HStack(spacing: 4) {
