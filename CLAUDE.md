@@ -66,7 +66,14 @@ make status      # 버전/커밋/테스트 상태
 
 ## Harness
 
-harness-score: 96% (Grade A) — 2026-04-14 (was: 40% Grade D → +27점)
+harness-score: 96% (Grade A) — 2026-04-14
+
+## Recent Session (2026-04-14)
+
+- 코드 품질: arch-test 17→0, SwiftLint 21→0, 5 new VMs, 5 함수 분할
+- feat(prediction): 수유 예측 개인화 (day/night 시간대 인식, cross-midnight fallback, 오버듀 알림 opt-in)
+- feat(insight): 주간 인사이트 리포트 (WeeklyInsightService + 대시보드 카드 + 월요일 푸시)
+- 테스트: 50→63개 (+13)
 
 ## Current Status
 
