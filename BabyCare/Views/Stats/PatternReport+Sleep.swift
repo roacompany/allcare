@@ -57,7 +57,7 @@ extension PatternReportView {
 
             // Method distribution
             if !s.methodDistribution.isEmpty {
-                Text("잠드는 방법")
+                Text("잠든 곳")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
