@@ -696,4 +696,149 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNotNil(vm.lastFeeding, "오늘 수유 없을 때 recentFeedingActivities에서 lastFeeding을 fallback해야 합니다")
         XCTAssertEqual(vm.lastFeeding?.id, "rf1", "fallback된 lastFeeding은 recentFeedingActivities의 항목이어야 합니다")
     }
+
+    // MARK: - WeeklyInsight Tests
+
+    // MARK: Helpers
+
+    private func makePatternReport(
+        feedingDailyAverage: Double = 6,
+        feedingPrevious: Double? = nil,
+        sleepDailyAverageHours: Double = 12,
+        sleepPrevious: Double? = nil,
+        diaperDailyAverage: Double = 5,
+        diaperPrevious: Double? = nil
+    ) -> PatternReport {
+        let now = Date()
+        let feeding = FeedingPattern(
+            totalCount: 42,
+            dailyAverage: feedingDailyAverage,
+            averageInterval: nil,
+            intervalTrend: .stable,
+            totalMl: 0,
+            dailyMlAverage: 0,
+            breastVsBottleRatio: (breast: 1, bottle: 0),
+            peakHours: [],
+            dailyCounts: [],
+            previousDailyAverage: feedingPrevious
+        )
+        let sleep = SleepPattern(
+            totalHours: 84,
+            dailyAverageHours: sleepDailyAverageHours,
+            averageDuration: 3600,
+            durationTrend: .stable,
+            qualityDistribution: [:],
+            methodDistribution: [:],
+            peakSleepHours: [],
+            dailyHours: [],
+            previousDailyAverageHours: sleepPrevious
+        )
+        let diaper = DiaperPattern(
+            totalCount: 35,
+            dailyAverage: diaperDailyAverage,
+            wetVsDirtyRatio: (wet: 2, dirty: 1, both: 0),
+            stoolColorDistribution: [:],
+            consistencyDistribution: [:],
+            rashCount: 0,
+            dailyCounts: [],
+            previousDailyAverage: diaperPrevious
+        )
+        let health = HealthPattern(
+            temperatureReadings: [],
+            averageTemp: nil,
+            highTempDays: 0,
+            medicationCount: 0,
+            medicationNames: [:],
+            consecutiveFeverDays: 0
+        )
+        let summary = SummaryPattern(
+            totalRecords: 77,
+            mostActiveDay: nil,
+            leastActiveDay: nil,
+            categoryDistribution: [:],
+            missingDays: 0
+        )
+        return PatternReport(
+            period: "7일",
+            startDate: now.addingTimeInterval(-604800),
+            endDate: now,
+            feeding: feeding,
+            sleep: sleep,
+            diaper: diaper,
+            health: health,
+            summary: summary
+        )
+    }
+
+    /// 수유·수면·배변 모두 비교 데이터 있음 → 인사이트 3개 생성
+    func testGenerateInsights_withComparisonData() {
+        let report = makePatternReport(
+            feedingDailyAverage: 6,
+            feedingPrevious: 5,
+            sleepDailyAverageHours: 12,
+            sleepPrevious: 10,
+            diaperDailyAverage: 5,
+            diaperPrevious: 6
+        )
+        let insights = WeeklyInsightService.generateInsights(from: report)
+        XCTAssertEqual(insights.count, 3, "3개 카테고리 모두 이전 데이터 있을 때 인사이트 3개가 반환되어야 합니다")
+    }
+
+    /// 3개 카테고리가 모두 변화했을 때 최대 3개(prefix(3)) 동작 확인
+    func testGenerateInsights_maxThree() {
+        let report = makePatternReport(
+            feedingDailyAverage: 8,
+            feedingPrevious: 5,
+            sleepDailyAverageHours: 14,
+            sleepPrevious: 10,
+            diaperDailyAverage: 3,
+            diaperPrevious: 6
+        )
+        let insights = WeeklyInsightService.generateInsights(from: report)
+        XCTAssertLessThanOrEqual(insights.count, 3, "generateInsights는 최대 3개만 반환해야 합니다")
+        XCTAssertEqual(insights.count, 3, "3개 카테고리 모두 변화 시 정확히 3개가 반환되어야 합니다")
+    }
+
+    /// previousDailyAverage 모두 nil → 빈 배열
+    func testGenerateInsights_emptyPrevious() {
+        let report = makePatternReport(
+            feedingPrevious: nil,
+            sleepPrevious: nil,
+            diaperPrevious: nil
+        )
+        let insights = WeeklyInsightService.generateInsights(from: report)
+        XCTAssertTrue(insights.isEmpty, "이전 기간 데이터가 없으면 인사이트는 빈 배열이어야 합니다")
+    }
+
+    /// 변화율 3% → trend .stable, title에 "안정" 포함
+    func testGenerateInsights_stableUnder5Percent() {
+        // 수유: 이전 100, 현재 103 → 변화율 3% < 5% → .stable
+        let report = makePatternReport(
+            feedingDailyAverage: 103,
+            feedingPrevious: 100,
+            sleepPrevious: nil,
+            diaperPrevious: nil
+        )
+        let insights = WeeklyInsightService.generateInsights(from: report)
+        XCTAssertEqual(insights.count, 1, "수유만 이전 데이터 있을 때 인사이트 1개여야 합니다")
+        XCTAssertEqual(insights[0].trend, .stable, "3% 변화는 .stable 트렌드여야 합니다")
+        XCTAssertTrue(insights[0].title.contains("안정"), "stable 인사이트 title에 '안정'이 포함되어야 합니다")
+    }
+
+    /// feeding 10% 변화, sleep 30% 변화 → sleep이 첫 번째 (변화율 내림차순 정렬)
+    func testGenerateInsights_sortedByChangePercent() {
+        // feeding: 이전 10, 현재 11 → 10% 증가
+        // sleep: 이전 10, 현재 13 → 30% 증가
+        let report = makePatternReport(
+            feedingDailyAverage: 11,
+            feedingPrevious: 10,
+            sleepDailyAverageHours: 13,
+            sleepPrevious: 10,
+            diaperPrevious: nil
+        )
+        let insights = WeeklyInsightService.generateInsights(from: report)
+        XCTAssertEqual(insights.count, 2, "feeding+sleep 2개 인사이트가 반환되어야 합니다")
+        XCTAssertEqual(insights[0].category, .sleep, "변화율이 높은 sleep이 첫 번째여야 합니다")
+        XCTAssertEqual(insights[1].category, .feeding, "변화율이 낮은 feeding이 두 번째여야 합니다")
+    }
 }
