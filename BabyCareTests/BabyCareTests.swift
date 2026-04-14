@@ -582,4 +582,118 @@ final class BabyCareTests: XCTestCase {
     func test_firestoreCollections_cryRecords_equalsString() {
         XCTAssertEqual(FirestoreCollections.cryRecords, "cryRecords")
     }
+
+    // MARK: - FeedingPrediction v2 Tests
+
+    func testIsDayHour_daytime() {
+        XCTAssertTrue(FeedingPredictionService.isDayHour(14), "14시는 낮 시간대여야 합니다")
+        XCTAssertTrue(FeedingPredictionService.isDayHour(10), "10시는 낮 시간대여야 합니다")
+    }
+
+    func testIsDayHour_nighttime() {
+        XCTAssertFalse(FeedingPredictionService.isDayHour(2), "2시는 야간 시간대여야 합니다")
+        XCTAssertFalse(FeedingPredictionService.isDayHour(23), "23시는 야간 시간대여야 합니다")
+    }
+
+    func testIsDayHour_boundary() {
+        // dayStart=6 (inclusive) → true, dayEnd=22 (exclusive) → false
+        XCTAssertTrue(FeedingPredictionService.isDayHour(6), "6시는 낮 시작 경계이므로 true여야 합니다")
+        XCTAssertFalse(FeedingPredictionService.isDayHour(22), "22시는 낮 종료 경계(exclusive)이므로 false여야 합니다")
+    }
+
+    func testAverageInterval_dayContext() {
+        // 낮 시간대(14시)에 3개의 수유 기록을 2시간 간격으로 생성
+        // → dayIntervals에 2개 이상의 항목 → isPersonalized == true, interval ≈ 7200초
+        let cal = Calendar.current
+        let base = cal.date(bySettingHour: 14, minute: 0, second: 0, of: Date())!
+        let a1 = Activity(id: "d1", babyId: "b1", type: .feedingBreast, startTime: base)
+        let a2 = Activity(id: "d2", babyId: "b1", type: .feedingBreast, startTime: base.addingTimeInterval(7200))
+        let a3 = Activity(id: "d3", babyId: "b1", type: .feedingBreast, startTime: base.addingTimeInterval(14400))
+        // recentActivities에 넣어 allFeedings에 포함되도록 함
+        let result = FeedingPredictionService.averageInterval(
+            todayActivities: [],
+            recentActivities: [a1, a2, a3],
+            babyAgeInMonths: 3
+        )
+        // 낮(14시) 수유 3개 → gap이 7200초 × 2 = 평균 7200초
+        // dayIntervals에 2개 이상 → isPersonalized 결과는 현재 시간대에 따라 달라지나,
+        // 어느 시간대든 allIntervals에는 2개 이상 → interval은 age fallback이 아님
+        let ageFallback = AppConstants.feedingIntervalHours(ageInMonths: 3) * 3600
+        XCTAssertNotEqual(result.interval, ageFallback, "데이터가 충분하면 월령 기반 기본값을 사용하지 않아야 합니다")
+        XCTAssertEqual(result.interval, 7200, accuracy: 1.0, "낮 2시간 간격 수유의 평균 간격은 7200초여야 합니다")
+    }
+
+    func testAverageInterval_nightContext() {
+        // 야간 시간대(1시, 3시, 5시)에 3개의 수유 기록을 2시간 간격으로 생성
+        // → nightIntervals에 2개 이상의 항목 (gap 7200 < 43200 허용)
+        // 1개월 age fallback = 2.5h * 3600 = 9000초 → 7200 != 9000이므로 구분 가능
+        // 1시, 3시, 5시 모두 isDayHour == false → nightIntervals = [7200, 7200]
+        let cal = Calendar.current
+        let base = cal.date(bySettingHour: 1, minute: 0, second: 0, of: Date())!
+        let a1 = Activity(id: "n1", babyId: "b1", type: .feedingBottle, startTime: base)
+        let a2 = Activity(id: "n2", babyId: "b1", type: .feedingBottle, startTime: base.addingTimeInterval(7200))
+        let a3 = Activity(id: "n3", babyId: "b1", type: .feedingBottle, startTime: base.addingTimeInterval(14400))
+        let result = FeedingPredictionService.averageInterval(
+            todayActivities: [],
+            recentActivities: [a1, a2, a3],
+            babyAgeInMonths: 1  // fallback = 2.5h = 9000초 (7200과 다름)
+        )
+        let ageFallback = AppConstants.feedingIntervalHours(ageInMonths: 1) * 3600
+        XCTAssertNotEqual(result.interval, ageFallback, "야간 데이터가 충분하면 월령 기반 기본값을 사용하지 않아야 합니다")
+        XCTAssertEqual(result.interval, 7200, accuracy: 1.0, "야간 2시간 간격 수유의 평균 간격은 7200초여야 합니다")
+    }
+
+    func testAverageInterval_insufficientDayData_fallsBackToAll() {
+        // 낮 수유 2개(gap 1개, 어제) + 야간 수유 2개(gap 1개, 그제)
+        // 날짜를 분리해 교차 버킷 오염(day-night 경계 gap) 방지
+        // → dayIntervals.count == 1 < 2, nightIntervals.count == 1 < 2
+        // → 둘 다 시간대 threshold 미달 → allIntervals fallback → isPersonalized == false
+        let cal = Calendar.current
+        let yesterday = cal.date(byAdding: .day, value: -1, to: Date())!
+        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: Date())!
+        let dayBase  = cal.date(bySettingHour: 10, minute: 0, second: 0, of: yesterday)!
+        let nightBase = cal.date(bySettingHour: 2, minute: 0, second: 0, of: twoDaysAgo)!
+        let d1 = Activity(id: "fd1", babyId: "b1", type: .feedingBreast, startTime: dayBase)
+        let d2 = Activity(id: "fd2", babyId: "b1", type: .feedingBreast, startTime: dayBase.addingTimeInterval(7200))
+        let n1 = Activity(id: "fn1", babyId: "b1", type: .feedingBreast, startTime: nightBase)
+        let n2 = Activity(id: "fn2", babyId: "b1", type: .feedingBreast, startTime: nightBase.addingTimeInterval(10800))
+        let result = FeedingPredictionService.averageInterval(
+            todayActivities: [],
+            recentActivities: [d1, d2, n1, n2],
+            babyAgeInMonths: 3
+        )
+        // 4개 기록이지만 인접한 gap은 각 날짜 내에서만 발생 → day 1개, night 1개 gap
+        // allIntervals.count == 2 (>= 2) → 기본값 아님
+        // ageFallback = 3.0h = 10800초, allIntervals avg = (7200+10800)/2 = 9000 ≠ 10800
+        let ageFallback = AppConstants.feedingIntervalHours(ageInMonths: 3) * 3600
+        XCTAssertNotEqual(result.interval, ageFallback, accuracy: 1.0,
+                          "전체 interval 데이터가 있으면 월령 기본값으로 내려가지 않아야 합니다")
+        XCTAssertFalse(result.isPersonalized, "각 시간대 데이터가 1개씩(미달)일 때 isPersonalized는 false여야 합니다")
+    }
+
+    func testAverageInterval_noData_fallsBackToAgebased() {
+        // 활동 없음 → unique.count < 2 → ageFallback 반환, isPersonalized == false
+        let result = FeedingPredictionService.averageInterval(
+            todayActivities: [],
+            recentActivities: [],
+            babyAgeInMonths: 3
+        )
+        let ageFallback = AppConstants.feedingIntervalHours(ageInMonths: 3) * 3600
+        XCTAssertEqual(result.interval, ageFallback, accuracy: 1.0, "데이터 없음 시 월령 기반 기본값을 반환해야 합니다")
+        XCTAssertFalse(result.isPersonalized, "데이터 없음 시 isPersonalized는 false여야 합니다")
+    }
+
+    @MainActor
+    func testCrossMidnight_lastFeedingFallback() {
+        // todayActivities 비어 있고, recentFeedingActivities에 수유 기록이 있을 때
+        // deriveLatestActivities() 호출 후 lastFeeding이 nil이 아닌지 검증
+        let vm = ActivityViewModel()
+        let yesterday = Date().addingTimeInterval(-3600) // 1시간 전 (어제 혹은 오늘 초반)
+        let recentFeeding = Activity(id: "rf1", babyId: "b1", type: .feedingBreast, startTime: yesterday)
+        vm.todayActivities = []
+        vm.recentFeedingActivities = [recentFeeding]
+        vm.deriveLatestActivities()
+        XCTAssertNotNil(vm.lastFeeding, "오늘 수유 없을 때 recentFeedingActivities에서 lastFeeding을 fallback해야 합니다")
+        XCTAssertEqual(vm.lastFeeding?.id, "rf1", "fallback된 lastFeeding은 recentFeedingActivities의 항목이어야 합니다")
+    }
 }
