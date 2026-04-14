@@ -82,13 +82,16 @@ extension Activity {
     // MARK: - 잠드는 방법
 
     enum SleepMethodType: String, Codable, CaseIterable {
-        case selfSettled, nursing, holding, stroller, carSeat
+        case bed, selfSettled, holding, inArms, bouncer, nursing, stroller, carSeat
 
         var displayName: String {
             switch self {
+            case .bed: "침대"
             case .selfSettled: "스스로"
-            case .nursing: "수유 중"
             case .holding: "안아서"
+            case .inArms: "품안"
+            case .bouncer: "바운서"
+            case .nursing: "수유 중"
             case .stroller: "유모차"
             case .carSeat: "카시트"
             }
@@ -96,9 +99,12 @@ extension Activity {
 
         var icon: String {
             switch self {
-            case .selfSettled: "bed.double.fill"
-            case .nursing: "figure.and.child.holdinghands"
+            case .bed: "bed.double.fill"
+            case .selfSettled: "moon.zzz.fill"
             case .holding: "hands.and.sparkles.fill"
+            case .inArms: "figure.arms.open"
+            case .bouncer: "chair.lounge.fill"
+            case .nursing: "figure.and.child.holdinghands"
             case .stroller: "stroller.fill"
             case .carSeat: "car.fill"
             }
