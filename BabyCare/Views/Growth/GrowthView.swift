@@ -5,8 +5,7 @@ struct GrowthView: View {
     @Environment(BabyViewModel.self) var babyVM
     @Environment(AuthViewModel.self) var authVM
 
-    @State var records: [GrowthRecord] = []
-    @State var isLoading = false
+    @State var growthVM = GrowthViewModel()
     @State var showAddRecord = false
     @State var editingRecord: GrowthRecord?
     @State var showDeleteConfirm = false
@@ -25,7 +24,8 @@ struct GrowthView: View {
     @State var expandedHeight = false
     @State var expandedHead = false
 
-    let firestoreService = FirestoreService.shared
+    var records: [GrowthRecord] { growthVM.records }
+    var isLoading: Bool { growthVM.isLoading }
 
     var body: some View {
         NavigationStack {
@@ -144,9 +144,7 @@ struct GrowthView: View {
     func loadRecords() async {
         guard let userId = babyVM.resolvedUserId(auth: authVM),
               let babyId = babyVM.selectedBaby?.id else { return }
-        isLoading = true
-        records = (try? await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)) ?? []
-        isLoading = false
+        await growthVM.loadRecords(userId: userId, babyId: babyId)
     }
 
     func startEditing(_ record: GrowthRecord) {
@@ -201,35 +199,15 @@ struct GrowthView: View {
         )
 
         do {
-            try await firestoreService.saveGrowthRecord(record, userId: userId)
-            AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
-            records.append(record)
-            records.sort { $0.date < $1.date }
+            try await growthVM.saveRecord(record, userId: userId)
             showAddRecord = false
 
             // 성장 속도 알림 체크
-            checkAndNotifyGrowthVelocity()
+            if let baby = babyVM.selectedBaby {
+                growthVM.scheduleGrowthVelocityAlert(baby: baby)
+            }
         } catch {
             saveError = "저장에 실패했습니다: \(error.localizedDescription)"
-        }
-    }
-
-    func checkAndNotifyGrowthVelocity() {
-        guard let baby = babyVM.selectedBaby else { return }
-        let babyName = baby.name
-
-        for metric in [GrowthMetric.weight, .height, .headCircumference] {
-            if let result = PercentileCalculator.growthVelocity(
-                records: records,
-                metric: metric,
-                gender: baby.gender,
-                birthDate: baby.birthDate
-            ), result.isSignificant {
-                Task { @MainActor in
-                    await NotificationService.shared.scheduleGrowthVelocityAlert(babyName: babyName)
-                }
-                break
-            }
         }
     }
 
@@ -272,11 +250,7 @@ struct GrowthView: View {
         )
 
         do {
-            try await firestoreService.updateGrowthRecord(updated, userId: userId)
-            if let idx = records.firstIndex(where: { $0.id == original.id }) {
-                records[idx] = updated
-                records.sort { $0.date < $1.date }
-            }
+            try await growthVM.updateRecord(updated, userId: userId)
             editingRecord = nil
         } catch {
             saveError = "수정에 실패했습니다: \(error.localizedDescription)"
@@ -288,8 +262,7 @@ struct GrowthView: View {
               let babyId = babyVM.selectedBaby?.id else { return }
 
         do {
-            try await firestoreService.deleteGrowthRecord(record.id, userId: userId, babyId: babyId)
-            records.removeAll { $0.id == record.id }
+            try await growthVM.deleteRecord(record, userId: userId, babyId: babyId)
             recordToDelete = nil
         } catch {
             saveError = "삭제에 실패했습니다: \(error.localizedDescription)"

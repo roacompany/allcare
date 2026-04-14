@@ -11,6 +11,7 @@ struct NotificationSettingsView: View {
     @State private var temperatureTrendEnabled = NotificationSettings.temperatureTrendEnabled
     @State private var growthVelocityEnabled = NotificationSettings.growthVelocityEnabled
     @State private var notificationPermission: Bool = true
+    @State private var notificationSettingsVM = NotificationSettingsViewModel()
     @Environment(\.scenePhase) private var scenePhase
 
     private let intervalOptions: [Int] = [30, 60, 90, 120, 180, 240, 360, 480, 720, 1440]
@@ -56,7 +57,7 @@ struct NotificationSettingsView: View {
                     .onChange(of: rule.enabled) { _, newVal in
                         saveRules()
                         if !newVal, let type = rule.type {
-                            NotificationService.shared.cancelActivityReminder(type: type)
+                            notificationSettingsVM.cancelActivityReminder(type: type)
                         }
                     }
 

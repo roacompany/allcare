@@ -2,13 +2,13 @@ import SwiftUI
 
 struct AdminDashboardView: View {
     @Environment(AnnouncementViewModel.self) private var announcementVM
-    @State private var userCount: Int?
+    @State private var adminVM = AdminDashboardViewModel()
 
     var body: some View {
         List {
             Section("통계") {
                 HStack {
-                    StatCard(title: "총 사용자", value: userCount.map(String.init) ?? "-", icon: "person.2.fill", color: .blue)
+                    StatCard(title: "총 사용자", value: adminVM.userCount.map(String.init) ?? "-", icon: "person.2.fill", color: .blue)
                     StatCard(title: "총 공지", value: "\(announcementVM.allAnnouncements.count)", icon: "megaphone.fill", color: .orange)
                     StatCard(title: "활성 공지", value: "\(announcementVM.allAnnouncements.filter(\.isActive).count)", icon: "checkmark.circle.fill", color: .green)
                 }
@@ -33,15 +33,7 @@ struct AdminDashboardView: View {
         .navigationTitle("관리자 패널")
         .task {
             await announcementVM.loadAllAnnouncements()
-            await loadUserCount()
-        }
-    }
-
-    private func loadUserCount() async {
-        do {
-            userCount = try await FirestoreService.shared.fetchUserCount()
-        } catch {
-            print("[Admin] 사용자 수 조회 실패: \(error.localizedDescription)")
+            await adminVM.loadUserCount()
         }
     }
 }

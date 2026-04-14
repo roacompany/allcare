@@ -4,15 +4,9 @@ struct FamilySharingView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
 
-    @State private var inviteCode = ""
-    @State private var generatedInvite: FamilyInvite?
-    @State private var sharedAccess: [SharedBabyAccess] = []
-    @State private var isLoading = false
-    @State private var message: String?
+    @State private var vm = FamilySharingViewModel()
     @State private var showJoinSheet = false
     @State private var accessToDelete: SharedBabyAccess?
-
-    private let firestoreService = FirestoreService.shared
 
     var body: some View {
         List {
@@ -20,14 +14,17 @@ struct FamilySharingView: View {
             Section {
                 if let baby = babyVM.selectedBaby {
                     Button {
-                        Task { await generateInvite(for: baby) }
+                        Task {
+                            guard let userId = authVM.currentUserId else { return }
+                            await vm.generateInvite(for: baby, userId: userId)
+                        }
                     } label: {
                         Label("초대 코드 생성", systemImage: "person.badge.plus")
                     }
-                    .disabled(isLoading)
+                    .disabled(vm.isLoading)
                 }
 
-                if let invite = generatedInvite {
+                if let invite = vm.generatedInvite {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(invite.code)
@@ -36,7 +33,7 @@ struct FamilySharingView: View {
                             Spacer()
                             Button {
                                 UIPasteboard.general.string = invite.code
-                                message = "코드가 복사되었습니다"
+                                vm.message = "코드가 복사되었습니다"
                             } label: {
                                 Image(systemName: "doc.on.doc")
                             }
@@ -71,9 +68,9 @@ struct FamilySharingView: View {
             }
 
             // Shared babies
-            if !sharedAccess.isEmpty {
+            if !vm.sharedAccess.isEmpty {
                 Section("공유된 아기") {
-                    ForEach(sharedAccess) { access in
+                    ForEach(vm.sharedAccess) { access in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(access.babyName)
@@ -97,7 +94,7 @@ struct FamilySharingView: View {
                 }
             }
 
-            if let message {
+            if let message = vm.message {
                 Section {
                     Text(message)
                         .font(.caption)
@@ -108,15 +105,15 @@ struct FamilySharingView: View {
         .navigationTitle("가족 공유")
         .task {
             guard let userId = authVM.currentUserId else { return }
-            sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []
+            await vm.fetchSharedAccess(userId: userId)
         }
         .sheet(isPresented: $showJoinSheet) {
             JoinFamilySheet(onJoin: { access in
-                sharedAccess.append(access)
+                vm.sharedAccess.append(access)
             })
             .presentationDetents([.medium])
         }
-        .onChange(of: sharedAccess.count) { _, _ in
+        .onChange(of: vm.sharedAccess.count) { _, _ in
             guard let userId = authVM.currentUserId else { return }
             Task { await babyVM.loadBabies(userId: userId) }
         }
@@ -132,12 +129,7 @@ struct FamilySharingView: View {
                 guard let access = accessToDelete,
                       let userId = authVM.currentUserId else { return }
                 Task {
-                    do {
-                        try await firestoreService.removeSharedAccess(accessId: access.id, userId: userId)
-                        sharedAccess.removeAll { $0.id == access.id }
-                    } catch {
-                        message = "공유 삭제에 실패했습니다. 다시 시도해 주세요."
-                    }
+                    await vm.removeSharedAccess(access: access, userId: userId)
                     accessToDelete = nil
                 }
             }
@@ -146,24 +138,6 @@ struct FamilySharingView: View {
             if let access = accessToDelete {
                 Text("\(access.babyName)의 공유를 해제하면 해당 가족 구성원이 더 이상 기록을 볼 수 없습니다.")
             }
-        }
-    }
-
-    private func generateInvite(for baby: Baby) async {
-        guard let userId = authVM.currentUserId else { return }
-        isLoading = true
-        defer { isLoading = false }
-
-        let invite = FamilyInvite(
-            ownerUserId: userId,
-            babyId: baby.id,
-            babyName: baby.name
-        )
-        do {
-            try await firestoreService.saveInvite(invite)
-            generatedInvite = invite
-        } catch {
-            message = "초대 코드 생성에 실패했습니다."
         }
     }
 }
@@ -176,11 +150,10 @@ private struct JoinFamilySheet: View {
     @Environment(\.dismiss) private var dismiss
     let onJoin: (SharedBabyAccess) -> Void
 
+    @State private var vm = FamilySharingViewModel()
     @State private var code = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-
-    private let firestoreService = FirestoreService.shared
 
     var body: some View {
         NavigationStack {
@@ -242,40 +215,11 @@ private struct JoinFamilySheet: View {
         errorMessage = nil
 
         do {
-            guard let invite = try await firestoreService.findInviteByCode(code) else {
-                errorMessage = "유효하지 않은 코드입니다."
-                return
-            }
-            guard invite.expiresAt > Date() else {
-                errorMessage = "만료된 초대 코드입니다."
-                return
-            }
-            guard invite.ownerUserId != userId else {
-                errorMessage = "본인의 초대 코드는 사용할 수 없습니다."
-                return
-            }
-
-            // 중복 참여 검사
-            let isDuplicate = try await firestoreService.checkDuplicateAccess(
-                userId: userId,
-                ownerUserId: invite.ownerUserId,
-                babyId: invite.babyId
-            )
-            guard !isDuplicate else {
-                errorMessage = "이미 참여한 아기입니다."
-                return
-            }
-
-            let access = SharedBabyAccess(
-                ownerUserId: invite.ownerUserId,
-                babyId: invite.babyId,
-                babyName: invite.babyName
-            )
-            try await firestoreService.saveSharedAccess(access, userId: userId)
-            // markInviteUsed 실패해도 참여 성공 처리
-            try? await firestoreService.markInviteUsed(invite.id)
+            let access = try await vm.joinFamily(code: code, userId: userId)
             onJoin(access)
             dismiss()
+        } catch let error as FamilySharingError {
+            errorMessage = error.errorDescription
         } catch {
             errorMessage = "참여에 실패했습니다."
         }

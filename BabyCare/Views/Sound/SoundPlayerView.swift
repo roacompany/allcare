@@ -4,8 +4,7 @@ import SwiftUI
 // 카테고리 칩 + 트랙 목록. 로컬 SoundItem과 원격 SoundTrack을 통합 표시.
 
 struct SoundPlayerView: View {
-    @State private var soundPlayer = SoundPlayerService.shared
-    @State private var library = SoundLibraryService.shared
+    @State private var vm = SoundPlayerViewModel()
     @State private var selectedCategory: SoundTrack.SoundTrackCategory?
     @State private var showTimerPicker = false
 
@@ -19,12 +18,12 @@ struct SoundPlayerView: View {
                     nowPlayingSection
 
                     // ── 카테고리 칩
-                    if !library.isLoading {
+                    if !vm.library.isLoading {
                         categoryChips
                     }
 
                     // ── 트랙 목록
-                    if library.isLoading {
+                    if vm.library.isLoading {
                         loadingView
                     } else {
                         trackListSection
@@ -38,9 +37,7 @@ struct SoundPlayerView: View {
                 timerSheet
             }
             .task {
-                if library.tracks.isEmpty {
-                    await library.fetchTracks()
-                }
+                await vm.fetchTracksIfNeeded()
             }
         }
     }
@@ -49,11 +46,11 @@ struct SoundPlayerView: View {
 
     @ViewBuilder
     private var nowPlayingSection: some View {
-        if soundPlayer.isPlaying || soundPlayer.currentTrack != nil {
+        if vm.soundPlayer.isPlaying || vm.soundPlayer.currentTrack != nil {
             NowPlayingCard(
-                name: soundPlayer.currentName ?? "",
-                icon: soundPlayer.currentIcon ?? "music.note",
-                soundPlayer: soundPlayer,
+                name: vm.soundPlayer.currentName ?? "",
+                icon: vm.soundPlayer.currentIcon ?? "music.note",
+                soundPlayer: vm.soundPlayer,
                 showTimerPicker: $showTimerPicker
             )
             .padding(.horizontal)
@@ -89,7 +86,7 @@ struct SoundPlayerView: View {
     }
 
     private var availableCategories: [SoundTrack.SoundTrackCategory] {
-        let used = Set(library.tracks.map(\.category))
+        let used = Set(vm.library.tracks.map(\.category))
         return SoundTrack.SoundTrackCategory.allCases
             .filter { used.contains($0) }
             .sorted { $0.sortPriority < $1.sortPriority }
@@ -109,7 +106,7 @@ struct SoundPlayerView: View {
                 TrackGroupSection(
                     category: category,
                     tracks: tracks,
-                    soundPlayer: soundPlayer
+                    soundPlayer: vm.soundPlayer
                 )
             }
         }
@@ -117,9 +114,9 @@ struct SoundPlayerView: View {
 
     private var filteredGroups: [(SoundTrack.SoundTrackCategory, [SoundTrack])] {
         if let selected = selectedCategory {
-            return library.groupedTracks.filter { $0.0 == selected }
+            return vm.library.groupedTracks.filter { $0.0 == selected }
         }
-        return library.groupedTracks
+        return vm.library.groupedTracks
     }
 
     // MARK: - Loading
@@ -140,9 +137,9 @@ struct SoundPlayerView: View {
     private var timerSheet: some View {
         NavigationStack {
             List {
-                if soundPlayer.remainingSeconds != nil {
+                if vm.soundPlayer.remainingSeconds != nil {
                     Button(role: .destructive) {
-                        soundPlayer.cancelTimer()
+                        vm.soundPlayer.cancelTimer()
                         showTimerPicker = false
                     } label: {
                         Label("타이머 해제", systemImage: "timer.circle")
@@ -152,13 +149,13 @@ struct SoundPlayerView: View {
                 Section("자동 종료 시간") {
                     ForEach(timerOptions, id: \.self) { minutes in
                         Button {
-                            soundPlayer.startTimer(minutes: minutes)
+                            vm.soundPlayer.startTimer(minutes: minutes)
                             showTimerPicker = false
                         } label: {
                             HStack {
                                 Text(timerLabel(minutes))
                                 Spacer()
-                                if let remaining = soundPlayer.remainingSeconds,
+                                if let remaining = vm.soundPlayer.remainingSeconds,
                                    remaining > (minutes - 1) * 60,
                                    remaining <= minutes * 60 {
                                     Image(systemName: "checkmark")
