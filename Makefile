@@ -14,7 +14,7 @@ KEYCHAIN = ~/Library/Keychains/ci_new.keychain-db
 # 3단계: 개발 (Development)
 # ═══════════════════════════════════════
 
-.PHONY: generate build test verify screenshots
+.PHONY: generate build test lint arch-test verify screenshots
 
 ## 프로젝트 재생성
 generate:
@@ -42,9 +42,18 @@ design-verify:
 design-sync:
 	cd /Users/roque/roa-design-system && npx tsx cli/index.ts sync babycare
 
-## 전체 검증 (빌드 + 테스트 + 디자인)
-verify: build test design-verify
-	@echo "✅ 전체 검증 완료"
+## SwiftLint (파일:라인:규칙 형식 출력)
+lint:
+	@bash scripts/harness_lint.sh
+
+## 아키텍처 경계 검사 (Views→Services 직접 참조 탐지)
+arch-test:
+	@bash scripts/arch_test.sh
+
+## 전체 검증 (빌드 + 린트 + 아키텍처 + 테스트 + 디자인)
+verify: build lint arch-test test design-verify
+	@echo ""
+	@echo "━━━ ALL CHECKS PASSED ━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # ═══════════════════════════════════════
 # 4단계: 퍼블리싱 (Publishing)
@@ -108,7 +117,11 @@ deploy:
 # 유틸리티
 # ═══════════════════════════════════════
 
-.PHONY: clean status help
+.PHONY: dead-code clean status help
+
+## 미사용 코드 탐지
+dead-code:
+	@bash scripts/dead_code.sh
 
 ## 빌드 산출물 정리
 clean:
@@ -136,8 +149,10 @@ help:
 	@echo ""
 	@echo "개발:"
 	@echo "  make build         빌드"
+	@echo "  make lint          SwiftLint 검사"
+	@echo "  make arch-test     아키텍처 경계 검사"
 	@echo "  make test          단위 테스트"
-	@echo "  make verify        전체 검증 (빌드+테스트+디자인)"
+	@echo "  make verify        전체 검증 (빌드+린트+아키텍처+테스트+디자인)"
 	@echo "  make screenshots   스크린샷 캡처"
 	@echo ""
 	@echo "배포:"
@@ -146,6 +161,7 @@ help:
 	@echo "  make status        현재 상태"
 	@echo ""
 	@echo "유틸:"
+	@echo "  make dead-code     미사용 코드 탐지"
 	@echo "  make clean         빌드 산출물 정리"
 	@echo "  make design-verify 디자인 토큰 검증"
 	@echo "  make design-sync   디자인 토큰 동기화"

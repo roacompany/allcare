@@ -1,0 +1,91 @@
+# BabyCare SwiftLint Configuration
+# Harness Engineering: S3(아키텍처 경계) + C3(컨벤션 강제)
+# 기존 코드 위반 최소화 → 점진적 강화
+
+included:
+  - BabyCare
+
+excluded:
+  - BabyCare/DesignSystem.generated.swift
+  - build
+
+disabled_rules:
+  - trailing_comma
+  - todo
+  - implicit_optional_initialization
+  - multiple_closures_with_trailing_closure
+  - large_tuple
+  - comma                           # 108건 기존 위반 — 추후 일괄 수정
+  - redundant_string_enum_value     # 38건 기존 위반 — 명시적 rawValue 유지
+  - for_where                       # SwiftUI 패턴과 충돌
+  - control_statement               # 기존 코드 호환
+
+# 기존 코드 호환 — 점진적으로 줄여갈 것
+identifier_name:
+  min_length:
+    warning: 1
+    error: 0
+  max_length:
+    warning: 60
+    error: 70
+  excluded:
+    - id
+    - x
+    - y
+    - i
+    - a
+    - b
+    - f
+    - m
+    - n
+    - v
+    - q
+    - L    # WHO LMS 의학 표준 변수
+    - M    # WHO LMS 의학 표준 변수
+    - S    # WHO LMS 의학 표준 변수
+    - db
+    - vm
+    - ok
+    - to
+  allowed_symbols:
+    - _
+
+type_name:
+  min_length:
+    warning: 3
+    error: 2
+  max_length:
+    warning: 60
+    error: 70
+
+line_length:
+  warning: 200
+  error: 500
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 800
+  error: 1200
+
+function_body_length:
+  warning: 80
+  error: 300   # PDFReportService 275줄 함수 허용 — 추후 리팩토링
+
+type_body_length:
+  warning: 500
+  error: 800
+
+function_parameter_count:
+  warning: 8
+  error: 10
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+nesting:
+  type_level:
+    warning: 3
+  function_level:
+    warning: 5

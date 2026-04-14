@@ -64,6 +64,10 @@ make status      # 버전/커밋/테스트 상태
 - 외부 차트 라이브러리 금지 (Apple Charts만)
 - 데이터 로딩/저장 시 authVM.currentUserId 직접 사용 금지
 
+## Harness
+
+harness-score: 40% (Grade D) → 목표 81% (Grade B) — 2026-04-14
+
 ## Current Status
 
 - **Version**: v2.6.2 (빌드 52)
@@ -94,6 +98,19 @@ make status      # 버전/커밋/테스트 상태
 - [ ] `CryAnalysisService.analyzeStub()` → 실모델 호출로 교체, `topLabel` 채움 (argmax)
 - [ ] 히스토리 필터: stub 시절 저장된 `isStub=true` 레코드 숨김 또는 뱃지 카피 재검토
 - [ ] `CryAnalysisViewModel` phase 전이 단위 테스트 추가
+
+## Verification (검증 프로세스)
+
+```bash
+make verify      # 빌드+린트+아키텍처+테스트+디자인 (에이전트 자율 루프)
+make lint        # SwiftLint (.swiftlint.yml)
+make arch-test   # 아키텍처 경계 검사 (Views→Services 직접 참조 탐지)
+make dead-code   # 미사용 코드 탐지
+```
+
+- **CI**: `.github/workflows/ci.yml` — PR 시 make verify 자동 실행
+- **리뷰**: 주요 변경 시 `/review` 또는 교차 검증 에이전트 활용
+- **3-Agent QA**: Visual/UX + Code Quality + Mobile Responsive → 취합
 
 ## Active TODO
 

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -q 'git push.*--force\\|git push.*-f ' && echo 'BLOCK: force push 금지. 일반 push를 사용하세요.' && exit 1 || exit 0"
+      },
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -q 'rm -rf /\\|rm -rf ~' && echo 'BLOCK: 위험한 삭제 명령 차단' && exit 1 || exit 0"
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+# Harness Engineering: V1(불변량 CI 강제)
+# make verify를 CI에서 실행하여 머지 전 자동 검증
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project BabyCare.xcodeproj \
+            -scheme BabyCare \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -quiet
+
+      - name: Lint
+        run: swiftlint lint --strict --config .swiftlint.yml
+
+      - name: Architecture test
+        run: bash scripts/arch_test.sh
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project BabyCare.xcodeproj \
+            -scheme BabyCare \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -only-testing:BabyCareTests \
+            -quiet

@@ -127,9 +127,10 @@ final class LiveActivityManager {
             isRunning: true
         )
 
+        nonisolated(unsafe) let activityToUpdate = activity
         Task {
             let content = ActivityContent(state: state, staleDate: nil)
-            await activity.update(content)
+            await activityToUpdate.update(content)
         }
     }
 
