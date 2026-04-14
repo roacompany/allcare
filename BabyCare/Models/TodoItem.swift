@@ -55,6 +55,16 @@ struct TodoItem: Identifiable, Codable, Hashable {
         }
     }
 
+    static func nextDueDate(from current: Date?, interval: RecurringInterval) -> Date {
+        let base = current ?? Date()
+        let calendar = Calendar.current
+        switch interval {
+        case .daily: return calendar.date(byAdding: .day, value: 1, to: base) ?? base
+        case .weekly: return calendar.date(byAdding: .weekOfYear, value: 1, to: base) ?? base
+        case .monthly: return calendar.date(byAdding: .month, value: 1, to: base) ?? base
+        }
+    }
+
     init(
         id: String = UUID().uuidString,
         title: String,

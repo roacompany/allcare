@@ -169,6 +169,27 @@ final class TodoViewModel {
 
         do {
             try await firestoreService.saveTodo(updated, userId: userId)
+
+            if updated.isCompleted, todo.isRecurring, let interval = todo.recurringInterval {
+                let newTodo = TodoItem(
+                    title: todo.title,
+                    description: todo.description,
+                    dueDate: TodoItem.nextDueDate(from: todo.dueDate, interval: interval),
+                    isCompleted: false,
+                    category: todo.category,
+                    babyId: todo.babyId,
+                    isRecurring: todo.isRecurring,
+                    recurringInterval: todo.recurringInterval,
+                    createdAt: Date(),
+                    completedAt: nil
+                )
+                do {
+                    try await firestoreService.saveTodo(newTodo, userId: userId)
+                    todos.append(newTodo)
+                } catch {
+                    print("[TodoViewModel] 반복 할일 다음 occurrence 생성 실패: \(error.localizedDescription)")
+                }
+            }
         } catch {
             // Rollback
             if updated.isCompleted {
