@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var reorderProduct: BabyProduct?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
+    @Environment(\.scenePhase) private var scenePhase
 
     private let networkMonitor = NetworkMonitor.shared
     private let offlineQueue = OfflineQueue.shared
@@ -89,6 +90,11 @@ struct ContentView: View {
                 }
             }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                scheduleWeeklyInsightIfNeeded()
+            }
+        }
         .onChange(of: deepLinkDestination) { _, destination in
             guard let destination else { return }
             handleDeepLink(destination)
@@ -104,6 +110,17 @@ struct ContentView: View {
                 ProductDetailView(product: product)
             }
         }
+    }
+
+    // MARK: - Weekly Insight
+
+    private func scheduleWeeklyInsightIfNeeded() {
+        let calendar = Calendar.current
+        guard calendar.component(.weekday, from: Date()) == 2 else { return }
+        let today = calendar.startOfDay(for: Date())
+        guard ActivityReminderSettings.lastWeeklyInsightDate != today else { return }
+        NotificationService.shared.scheduleWeeklyInsight(topInsightTitle: "지난주 육아 패턴 변화를 확인해보세요")
+        ActivityReminderSettings.lastWeeklyInsightDate = today
     }
 
     // MARK: - Notification Routing

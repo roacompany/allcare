@@ -6,6 +6,7 @@ import UserNotifications
 struct NotificationSettingsView: View {
     @State private var rules = ActivityReminderSettings.rules
     @State private var feedingOverdueAlertEnabled = ActivityReminderSettings.feedingOverdueAlertEnabled
+    @State private var weeklyInsightEnabled = ActivityReminderSettings.weeklyInsightEnabled
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
@@ -179,6 +180,18 @@ struct NotificationSettingsView: View {
                 Text("용품")
             } footer: {
                 Text("용품 재고가 설정한 기준 이하로 떨어지면 알림을 보냅니다.")
+            }
+
+            // 주간 리포트
+            Section {
+                Toggle("주간 육아 리포트", isOn: $weeklyInsightEnabled)
+                    .onChange(of: weeklyInsightEnabled) { _, val in
+                        ActivityReminderSettings.weeklyInsightEnabled = val
+                    }
+            } header: {
+                Text("주간 리포트")
+            } footer: {
+                Text("매주 월요일 지난주 육아 패턴 변화를 알려드려요")
             }
         }
         .navigationTitle("알림 설정")
