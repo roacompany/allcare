@@ -29,25 +29,52 @@ extension ActivityViewModel {
         // stopTimer() 호출 전 수동 조정 여부 캡처 (stopTimer가 isTimeAdjusted를 덮어쓰기 전)
         let wasManuallyAdjusted = isTimeAdjusted
 
+        guard applyTypeFields(to: &activity, type: type, timerBelongsToMe: timerBelongsToMe) else { return }
+
+        applyManualTimeAdjustment(to: &activity, wasManuallyAdjusted: wasManuallyAdjusted)
+
+        guard validateActivity(activity, type: type, wasManuallyAdjusted: wasManuallyAdjusted) else { return }
+
+        if !note.isEmpty { activity.note = note }
+
+        // 낙관적 업데이트: 먼저 UI 반영
+        todayActivities.insert(activity, at: 0)
+
+        do {
+            try await firestoreService.saveActivity(activity, userId: userId)
+            deriveLatestActivities()
+            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
+            if type == .temperature && isFeverTrendDetected {
+                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
+            }
+            resetForm()
+        } catch {
+            enqueueOfflineActivity(activity, userId: userId, babyId: babyId)
+            deriveLatestActivities()
+            resetForm()
+            errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+        }
+    }
+
+    // MARK: - performSaveActivity Helpers
+
+    /// 각 activity type에 맞는 필드 적용. 유효성 실패 시 false 반환.
+    private func applyTypeFields(
+        to activity: inout Activity,
+        type: Activity.ActivityType,
+        timerBelongsToMe: Bool
+    ) -> Bool {
         switch type {
         case .feedingBreast:
-            if timerBelongsToMe {
-                let duration = stopTimer()
-                activity.duration = duration
-                activity.startTime = Date().addingTimeInterval(-duration)
-            }
+            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
             activity.side = selectedSide
 
         case .feedingBottle:
             guard isAmountValid else {
                 errorMessage = "수유량을 올바르게 입력해주세요. (1~500ml)"
-                return
+                return false
             }
-            if timerBelongsToMe {
-                let duration = stopTimer()
-                activity.duration = duration
-                activity.startTime = Date().addingTimeInterval(-duration)
-            }
+            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
             activity.amount = Double(amount)
 
         case .feedingSolid:
@@ -60,12 +87,7 @@ extension ActivityViewModel {
             activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
 
         case .sleep:
-            if timerBelongsToMe {
-                let duration = stopTimer()
-                activity.duration = duration
-                activity.startTime = Date().addingTimeInterval(-duration)
-                activity.endTime = Date()
-            }
+            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: true)
             activity.sleepQuality = sleepQuality
             activity.sleepMethod = sleepMethod
 
@@ -79,7 +101,7 @@ extension ActivityViewModel {
         case .temperature:
             guard isTemperatureValid else {
                 errorMessage = "체온을 올바르게 입력해주세요. (34.0~43.0°C)"
-                return
+                return false
             }
             activity.temperature = Double(temperatureInput)
 
@@ -88,68 +110,56 @@ extension ActivityViewModel {
             activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
 
         case .bath:
-            if timerBelongsToMe {
-                let duration = stopTimer()
-                activity.duration = duration
-                activity.startTime = Date().addingTimeInterval(-duration)
-            }
+            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
         }
+        return true
+    }
 
-        // 수동 시간 조정 (타이머보다 우선, 타이머 직접 저장 경로와 분리)
-        if wasManuallyAdjusted {
-            activity.startTime = manualStartTime
-            if let endTime = manualEndTime {
-                activity.endTime = endTime
-                activity.duration = endTime.timeIntervalSince(manualStartTime)
-            }
+    /// 타이머 경과시간을 activity에 적용
+    private func applyTimerDuration(to activity: inout Activity, timerBelongsToMe: Bool, includeEndTime: Bool) {
+        guard timerBelongsToMe else { return }
+        let duration = stopTimer()
+        activity.duration = duration
+        activity.startTime = Date().addingTimeInterval(-duration)
+        if includeEndTime { activity.endTime = Date() }
+    }
+
+    /// 수동 시간 조정 적용 (타이머보다 우선)
+    private func applyManualTimeAdjustment(to activity: inout Activity, wasManuallyAdjusted: Bool) {
+        guard wasManuallyAdjusted else { return }
+        activity.startTime = manualStartTime
+        if let endTime = manualEndTime {
+            activity.endTime = endTime
+            activity.duration = endTime.timeIntervalSince(manualStartTime)
         }
+    }
 
-        // 타이머 기반 기록: 최소 1초 검증
+    /// 저장 전 공통 유효성 검사. 실패 시 false 반환.
+    private func validateActivity(_ activity: Activity, type: Activity.ActivityType, wasManuallyAdjusted: Bool) -> Bool {
         if let duration = activity.duration, duration < 1, !wasManuallyAdjusted {
             errorMessage = "최소 1초 이상 기록해주세요."
-            return
+            return false
         }
-
-        // 수면 24시간 상한 검증
         if type == .sleep, let duration = activity.duration, duration > 86400 {
             errorMessage = "수면 시간이 24시간을 초과합니다. 시간을 확인해주세요."
-            return
+            return false
         }
+        return true
+    }
 
-        if !note.isEmpty {
-            activity.note = note
-        }
-
-        // 낙관적 업데이트: 먼저 UI 반영
-        todayActivities.insert(activity, at: 0)
-        let rollbackIndex = 0
-
-        do {
-            try await firestoreService.saveActivity(activity, userId: userId)
-            deriveLatestActivities()
-            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
-            if type == .temperature && isFeverTrendDetected {
-                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
-            }
-            resetForm()
-        } catch {
-            // 오프라인 큐에 저장 (낙관적 UI 유지)
-            let collectionPath = "\(FirestoreCollections.users)/\(userId)/\(FirestoreCollections.babies)/\(babyId)/\(FirestoreCollections.activities)"
-            let jsonData = try? JSONEncoder().encode(activity)
-            let pendingOp = PendingOperation(
-                id: UUID().uuidString,
-                timestamp: Date(),
-                type: .create,
-                collectionPath: collectionPath,
-                documentId: activity.id,
-                jsonData: jsonData
-            )
-            OfflineQueue.shared.enqueue(pendingOp)
-            // 낙관적 UI 유지 (롤백하지 않음)
-            deriveLatestActivities()
-            resetForm()
-            errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
-        }
+    /// 오프라인 큐에 activity 저장
+    private func enqueueOfflineActivity(_ activity: Activity, userId: String, babyId: String) {
+        let collectionPath = "\(FirestoreCollections.users)/\(userId)/\(FirestoreCollections.babies)/\(babyId)/\(FirestoreCollections.activities)"
+        let jsonData = try? JSONEncoder().encode(activity)
+        let pendingOp = PendingOperation(
+            id: UUID().uuidString,
+            timestamp: Date(),
+            type: .create,
+            collectionPath: collectionPath,
+            documentId: activity.id,
+            jsonData: jsonData
+        )
+        OfflineQueue.shared.enqueue(pendingOp)
     }
 
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)

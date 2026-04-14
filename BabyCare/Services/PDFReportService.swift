@@ -38,299 +38,60 @@ enum PDFReportService {
 
         let data = renderer.pdfData { context in
             var currentY: CGFloat = 0.0
-
-            // ── Page 1: 표지 + 요약 ────────────────────────────
             context.beginPage()
             currentY = margin
 
-            // Title
-            currentY = drawText(
-                "베이비케어 건강 리포트",
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                font: .systemFont(ofSize: 22, weight: .bold),
-                color: UIColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 1),
-                alignment: .center
+            currentY = drawCoverSection(
+                baby: baby, dateStr: dateStr, periodLabel: periodLabel,
+                startDate: startDate, endDate: endDate,
+                margin: margin, contentWidth: contentWidth, currentY: currentY
             )
-            currentY += 8
-
-            // Baby info
-            let babyInfoText = "\(baby.name) (\(baby.gender.displayName)) · \(baby.ageText)"
-            currentY = drawText(
-                babyInfoText,
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                font: .systemFont(ofSize: 14, weight: .medium),
-                color: .darkGray,
-                alignment: .center
-            )
-            currentY += 4
-
-            // Period & date
-            let periodText = "\(periodLabel) 리포트 (\(DateFormatters.shortDate.string(from: startDate)) ~ \(DateFormatters.shortDate.string(from: endDate)))"
-            currentY = drawText(
-                periodText,
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                font: .systemFont(ofSize: 12),
-                color: .gray,
-                alignment: .center
-            )
-            currentY += 4
-
-            currentY = drawText(
-                "생성일: \(dateStr)",
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                font: .systemFont(ofSize: 10),
-                color: .lightGray,
-                alignment: .center
-            )
-            currentY += 20
-
-            // Divider
-            currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-            currentY += 16
-
-            // ── 요약 카드 ────────────────────────────
-            currentY = drawSectionTitle("종합 요약", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY += 8
 
             let feedings = filtered.filter { $0.type.category == .feeding }
             let sleeps = filtered.filter { $0.type == .sleep }
             let diapers = filtered.filter { $0.type.category == .diaper }
             let temperatures = filtered.filter { $0.temperature != nil }
-
             let totalDays = max(1, periodDays)
-            let summaryItems: [(String, String)] = [
-                ("총 수유 횟수", "\(feedings.count)회 (일평균 \(String(format: "%.1f", Double(feedings.count) / Double(totalDays)))회)"),
-                ("총 분유량", "\(Int(feedings.compactMap(\.amount).reduce(0, +)))ml"),
-                ("총 수면 횟수", "\(sleeps.count)회"),
-                ("총 수면 시간", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600)),
-                ("일평균 수면", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600 / Double(totalDays))),
-                ("총 기저귀 교체", "\(diapers.count)회"),
-                ("체온 측정 횟수", "\(temperatures.count)회"),
-            ]
 
-            for (label, value) in summaryItems {
-                currentY = drawKeyValue(label: label, value: value, at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            }
-            currentY += 16
-
-            // ── 수유 상세 ────────────────────────────
-            currentY = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
-            currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-            currentY += 12
-            currentY = drawSectionTitle("수유 기록 상세", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY += 8
-
-            // Daily feeding table
-            let feedingByDay = groupByDay(feedings, startDate: startDate, days: periodDays)
-            currentY = drawDailyTable(
-                context: context,
-                title: "일자",
-                headers: ["날짜", "횟수", "분유량(ml)", "모유(분)"],
-                rows: feedingByDay.map { day in
-                    let dayFeedings = day.activities
-                    let bottleMl = Int(dayFeedings.filter { $0.type == .feedingBottle }.compactMap(\.amount).reduce(0, +))
-                    let breastMin = Int(dayFeedings.filter { $0.type == .feedingBreast }.compactMap(\.duration).reduce(0, +) / 60)
-                    return [day.dateLabel, "\(dayFeedings.count)", "\(bottleMl)", "\(breastMin)"]
-                },
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                pageHeight: pageHeight,
-                margin: margin
+            currentY = drawSummarySection(
+                feedings: feedings, sleeps: sleeps, diapers: diapers,
+                temperatures: temperatures, totalDays: totalDays,
+                margin: margin, contentWidth: contentWidth, currentY: currentY
             )
-            currentY += 12
 
-            // Feeding interval analysis
-            currentY = checkPageBreak(context: context, currentY: currentY, needed: 80, pageHeight: pageHeight, margin: margin)
-            let sortedFeedings = feedings.sorted { $0.startTime < $1.startTime }
-            if sortedFeedings.count >= 2 {
-                var intervals: [TimeInterval] = []
-                for i in 1..<sortedFeedings.count {
-                    intervals.append(sortedFeedings[i].startTime.timeIntervalSince(sortedFeedings[i-1].startTime))
-                }
-                let avgInterval = intervals.reduce(0, +) / Double(intervals.count)
-                let minInterval = intervals.min() ?? 0
-                let maxInterval = intervals.max() ?? 0
-                currentY = drawKeyValue(label: "평균 수유 간격", value: avgInterval.shortDuration, at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                currentY = drawKeyValue(label: "최소 간격", value: minInterval.shortDuration, at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                currentY = drawKeyValue(label: "최대 간격", value: maxInterval.shortDuration, at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            }
-            currentY += 12
-
-            // ── 수면 상세 ────────────────────────────
-            currentY = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
-            currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-            currentY += 12
-            currentY = drawSectionTitle("수면 기록 상세", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY += 8
-
-            let sleepByDay = groupByDay(sleeps, startDate: startDate, days: periodDays)
-            currentY = drawDailyTable(
-                context: context,
-                title: "일자",
-                headers: ["날짜", "횟수", "총 수면(시간)", "최장 수면"],
-                rows: sleepByDay.map { day in
-                    let totalHours = String(format: "%.1f", day.activities.compactMap(\.duration).reduce(0, +) / 3600)
-                    let longest = day.activities.compactMap(\.duration).max()
-                    let longestStr = longest.map { TimeInterval($0).shortDuration } ?? "-"
-                    return [day.dateLabel, "\(day.activities.count)", totalHours, longestStr]
-                },
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                pageHeight: pageHeight,
-                margin: margin
+            currentY = drawFeedingSection(
+                context: context, feedings: feedings, startDate: startDate,
+                periodDays: periodDays, margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
             )
-            currentY += 12
 
-            // ── 체온 이력 ────────────────────────────
-            if !temperatures.isEmpty {
-                currentY = checkPageBreak(context: context, currentY: currentY, needed: 150, pageHeight: pageHeight, margin: margin)
-                currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-                currentY += 12
-                currentY = drawSectionTitle("체온 이력", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                currentY += 8
+            currentY = drawSleepSection(
+                context: context, sleeps: sleeps, startDate: startDate,
+                periodDays: periodDays, margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
+            )
 
-                let tempValues = temperatures.compactMap(\.temperature)
-                if let maxTemp = tempValues.max(), let minTemp = tempValues.min() {
-                    let avgTemp = tempValues.reduce(0, +) / Double(tempValues.count)
-                    currentY = drawKeyValue(label: "평균 체온", value: String(format: "%.1f°C", avgTemp), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    currentY = drawKeyValue(label: "최고 체온", value: String(format: "%.1f°C", maxTemp), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    currentY = drawKeyValue(label: "최저 체온", value: String(format: "%.1f°C", minTemp), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    currentY += 4
+            currentY = drawTemperatureSection(
+                context: context, temperatures: temperatures,
+                margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
+            )
 
-                    // Fever alert
-                    let feverCount = tempValues.filter { $0 >= 38.0 }.count
-                    if feverCount > 0 {
-                        currentY = drawText(
-                            "⚠ 38.0°C 이상 기록: \(feverCount)회",
-                            at: CGPoint(x: margin, y: currentY),
-                            width: contentWidth,
-                            font: .systemFont(ofSize: 11, weight: .semibold),
-                            color: UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1)
-                        )
-                    }
-                }
-                currentY += 8
+            currentY = drawGrowthSection(
+                context: context, growthRecords: growthRecords,
+                startDate: startDate, margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
+            )
 
-                // Individual records
-                let sortedTemps = temperatures.sorted { $0.startTime < $1.startTime }
-                currentY = drawDailyTable(
-                    context: context,
-                    title: "체온",
-                    headers: ["날짜/시간", "체온(°C)", "메모"],
-                    rows: sortedTemps.prefix(30).map { act in
-                        let dateTimeStr = DateFormatters.dateTime.string(from: act.startTime)
-                        let tempStr = act.temperature.map { String(format: "%.1f", $0) } ?? "-"
-                        let noteStr = act.note ?? "-"
-                        return [dateTimeStr, tempStr, noteStr]
-                    },
-                    at: CGPoint(x: margin, y: currentY),
-                    width: contentWidth,
-                    pageHeight: pageHeight,
-                    margin: margin
-                )
-                currentY += 12
-            }
+            currentY = drawDiaperSection(
+                context: context, diapers: diapers, totalDays: totalDays,
+                margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
+            )
 
-            // ── 성장 곡선 요약 ────────────────────────────
-            let recentGrowth = growthRecords.filter { $0.date >= startDate.startOfDay }
-            if !recentGrowth.isEmpty {
-                currentY = checkPageBreak(context: context, currentY: currentY, needed: 150, pageHeight: pageHeight, margin: margin)
-                currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-                currentY += 12
-                currentY = drawSectionTitle("성장 기록", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                currentY += 8
-
-                currentY = drawDailyTable(
-                    context: context,
-                    title: "성장",
-                    headers: ["날짜", "키(cm)", "몸무게(kg)", "머리둘레(cm)"],
-                    rows: recentGrowth.map { record in
-                        let dateStr = DateFormatters.shortDate.string(from: record.date)
-                        let height = record.height.map { String(format: "%.1f", $0) } ?? "-"
-                        let weight = record.weight.map { String(format: "%.2f", $0) } ?? "-"
-                        let head = record.headCircumference.map { String(format: "%.1f", $0) } ?? "-"
-                        return [dateStr, height, weight, head]
-                    },
-                    at: CGPoint(x: margin, y: currentY),
-                    width: contentWidth,
-                    pageHeight: pageHeight,
-                    margin: margin
-                )
-                currentY += 12
-            }
-
-            // 전체 성장 추이 (마지막 5개)
-            let lastFiveGrowth = growthRecords.suffix(5)
-            if lastFiveGrowth.count >= 2 {
-                currentY = checkPageBreak(context: context, currentY: currentY, needed: 100, pageHeight: pageHeight, margin: margin)
-                if recentGrowth.isEmpty {
-                    currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-                    currentY += 12
-                    currentY = drawSectionTitle("성장 추이 (최근 5회)", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    currentY += 8
-                } else {
-                    currentY = drawText(
-                        "최근 성장 추이",
-                        at: CGPoint(x: margin, y: currentY),
-                        width: contentWidth,
-                        font: .systemFont(ofSize: 13, weight: .semibold),
-                        color: .darkGray
-                    )
-                    currentY += 4
-                }
-
-                if let first = lastFiveGrowth.first, let last = lastFiveGrowth.last {
-                    if let h1 = first.height, let h2 = last.height {
-                        currentY = drawKeyValue(label: "키 변화", value: String(format: "%.1fcm → %.1fcm (%+.1fcm)", h1, h2, h2 - h1), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    }
-                    if let w1 = first.weight, let w2 = last.weight {
-                        currentY = drawKeyValue(label: "몸무게 변화", value: String(format: "%.2fkg → %.2fkg (%+.2fkg)", w1, w2, w2 - w1), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-                    }
-                }
-            }
-
-            // ── 기저귀 요약 ────────────────────────────
-            currentY = checkPageBreak(context: context, currentY: currentY, needed: 100, pageHeight: pageHeight, margin: margin)
-            currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-            currentY += 12
-            currentY = drawSectionTitle("기저귀 기록 요약", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY += 8
-
-            let wetCount = diapers.filter { $0.type == .diaperWet || $0.type == .diaperBoth }.count
-            let dirtyCount = diapers.filter { $0.type == .diaperDirty || $0.type == .diaperBoth }.count
-            currentY = drawKeyValue(label: "소변 포함", value: "\(wetCount)회", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY = drawKeyValue(label: "대변 포함", value: "\(dirtyCount)회", at: CGPoint(x: margin, y: currentY), width: contentWidth)
-            currentY = drawKeyValue(label: "일평균 교체", value: String(format: "%.1f회", Double(diapers.count) / Double(totalDays)), at: CGPoint(x: margin, y: currentY), width: contentWidth)
-
-            // Stool color alerts
-            let abnormalStools = diapers.filter { $0.stoolColor?.needsAttention == true }
-            if !abnormalStools.isEmpty {
-                currentY += 4
-                currentY = drawText(
-                    "⚠ 주의가 필요한 대변 색상 \(abnormalStools.count)회 (붉은색/흰색)",
-                    at: CGPoint(x: margin, y: currentY),
-                    width: contentWidth,
-                    font: .systemFont(ofSize: 11, weight: .semibold),
-                    color: UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1)
-                )
-            }
-
-            // ── Footer ────────────────────────────
-            currentY = checkPageBreak(context: context, currentY: currentY, needed: 60, pageHeight: pageHeight, margin: margin)
-            currentY = max(currentY + 20, pageHeight - margin - 40)
-            currentY = drawDivider(y: currentY, x: margin, width: contentWidth)
-            currentY += 8
-            _ = drawText(
-                "이 리포트는 베이비케어 앱에서 자동 생성되었습니다.\n소아과 진료 시 참고 자료로 활용하세요. 의학적 판단은 반드시 전문의와 상담하세요.",
-                at: CGPoint(x: margin, y: currentY),
-                width: contentWidth,
-                font: .systemFont(ofSize: 9),
-                color: .lightGray,
-                alignment: .center
+            drawFooter(
+                context: context, margin: margin, contentWidth: contentWidth,
+                pageHeight: pageHeight, currentY: currentY
             )
         }
 
@@ -340,6 +101,267 @@ enum PDFReportService {
         } catch {
             return nil
         }
+    }
+
+    // MARK: - Section Renderers
+
+    @discardableResult
+    private static func drawCoverSection(
+        baby: Baby, dateStr: String, periodLabel: String,
+        startDate: Date, endDate: Date,
+        margin: CGFloat, contentWidth: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = currentY
+        y = drawText(
+            "베이비케어 건강 리포트",
+            at: CGPoint(x: margin, y: y), width: contentWidth,
+            font: .systemFont(ofSize: 22, weight: .bold),
+            color: UIColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 1),
+            alignment: .center
+        )
+        y += 8
+        y = drawText(
+            "\(baby.name) (\(baby.gender.displayName)) · \(baby.ageText)",
+            at: CGPoint(x: margin, y: y), width: contentWidth,
+            font: .systemFont(ofSize: 14, weight: .medium), color: .darkGray, alignment: .center
+        )
+        y += 4
+        let periodText = "\(periodLabel) 리포트 (\(DateFormatters.shortDate.string(from: startDate)) ~ \(DateFormatters.shortDate.string(from: endDate)))"
+        y = drawText(periodText, at: CGPoint(x: margin, y: y), width: contentWidth,
+                     font: .systemFont(ofSize: 12), color: .gray, alignment: .center)
+        y += 4
+        y = drawText("생성일: \(dateStr)", at: CGPoint(x: margin, y: y), width: contentWidth,
+                     font: .systemFont(ofSize: 10), color: .lightGray, alignment: .center)
+        y += 20
+        y = drawDivider(y: y, x: margin, width: contentWidth)
+        y += 16
+        return y
+    }
+
+    @discardableResult
+    private static func drawSummarySection(
+        feedings: [Activity], sleeps: [Activity], diapers: [Activity],
+        temperatures: [Activity], totalDays: Int,
+        margin: CGFloat, contentWidth: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = currentY
+        y = drawSectionTitle("종합 요약", at: CGPoint(x: margin, y: y), width: contentWidth)
+        y += 8
+        let summaryItems: [(String, String)] = [
+            ("총 수유 횟수", "\(feedings.count)회 (일평균 \(String(format: "%.1f", Double(feedings.count) / Double(totalDays)))회)"),
+            ("총 분유량", "\(Int(feedings.compactMap(\.amount).reduce(0, +)))ml"),
+            ("총 수면 횟수", "\(sleeps.count)회"),
+            ("총 수면 시간", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600)),
+            ("일평균 수면", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600 / Double(totalDays))),
+            ("총 기저귀 교체", "\(diapers.count)회"),
+            ("체온 측정 횟수", "\(temperatures.count)회"),
+        ]
+        for (label, value) in summaryItems {
+            y = drawKeyValue(label: label, value: value, at: CGPoint(x: margin, y: y), width: contentWidth)
+        }
+        y += 16
+        return y
+    }
+
+    @discardableResult
+    private static func drawFeedingSection(
+        context: UIGraphicsPDFRendererContext,
+        feedings: [Activity], startDate: Date, periodDays: Int,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle("수유 기록 상세", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+
+        let feedingByDay = groupByDay(feedings, startDate: startDate, days: periodDays)
+        y = drawDailyTable(
+            context: context, title: "일자",
+            headers: ["날짜", "횟수", "분유량(ml)", "모유(분)"],
+            rows: feedingByDay.map { day in
+                let bottleMl = Int(day.activities.filter { $0.type == .feedingBottle }.compactMap(\.amount).reduce(0, +))
+                let breastMin = Int(day.activities.filter { $0.type == .feedingBreast }.compactMap(\.duration).reduce(0, +) / 60)
+                return [day.dateLabel, "\(day.activities.count)", "\(bottleMl)", "\(breastMin)"]
+            },
+            at: CGPoint(x: margin, y: y), width: contentWidth, pageHeight: pageHeight, margin: margin
+        )
+        y += 12
+
+        y = checkPageBreak(context: context, currentY: y, needed: 80, pageHeight: pageHeight, margin: margin)
+        let sortedFeedings = feedings.sorted { $0.startTime < $1.startTime }
+        if sortedFeedings.count >= 2 {
+            var intervals: [TimeInterval] = []
+            for i in 1..<sortedFeedings.count {
+                intervals.append(sortedFeedings[i].startTime.timeIntervalSince(sortedFeedings[i-1].startTime))
+            }
+            let avgInterval = intervals.reduce(0, +) / Double(intervals.count)
+            y = drawKeyValue(label: "평균 수유 간격", value: avgInterval.shortDuration, at: CGPoint(x: margin, y: y), width: contentWidth)
+            y = drawKeyValue(label: "최소 간격", value: (intervals.min() ?? 0).shortDuration, at: CGPoint(x: margin, y: y), width: contentWidth)
+            y = drawKeyValue(label: "최대 간격", value: (intervals.max() ?? 0).shortDuration, at: CGPoint(x: margin, y: y), width: contentWidth)
+        }
+        y += 12
+        return y
+    }
+
+    @discardableResult
+    private static func drawSleepSection(
+        context: UIGraphicsPDFRendererContext,
+        sleeps: [Activity], startDate: Date, periodDays: Int,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle("수면 기록 상세", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+
+        let sleepByDay = groupByDay(sleeps, startDate: startDate, days: periodDays)
+        y = drawDailyTable(
+            context: context, title: "일자",
+            headers: ["날짜", "횟수", "총 수면(시간)", "최장 수면"],
+            rows: sleepByDay.map { day in
+                let totalHours = String(format: "%.1f", day.activities.compactMap(\.duration).reduce(0, +) / 3600)
+                let longestStr = day.activities.compactMap(\.duration).max().map { TimeInterval($0).shortDuration } ?? "-"
+                return [day.dateLabel, "\(day.activities.count)", totalHours, longestStr]
+            },
+            at: CGPoint(x: margin, y: y), width: contentWidth, pageHeight: pageHeight, margin: margin
+        )
+        y += 12
+        return y
+    }
+
+    @discardableResult
+    private static func drawTemperatureSection(
+        context: UIGraphicsPDFRendererContext,
+        temperatures: [Activity],
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        guard !temperatures.isEmpty else { return currentY }
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 150, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle("체온 이력", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+
+        let tempValues = temperatures.compactMap(\.temperature)
+        if let maxTemp = tempValues.max(), let minTemp = tempValues.min() {
+            let avgTemp = tempValues.reduce(0, +) / Double(tempValues.count)
+            y = drawKeyValue(label: "평균 체온", value: String(format: "%.1f°C", avgTemp), at: CGPoint(x: margin, y: y), width: contentWidth)
+            y = drawKeyValue(label: "최고 체온", value: String(format: "%.1f°C", maxTemp), at: CGPoint(x: margin, y: y), width: contentWidth)
+            y = drawKeyValue(label: "최저 체온", value: String(format: "%.1f°C", minTemp), at: CGPoint(x: margin, y: y), width: contentWidth)
+            y += 4
+            let feverCount = tempValues.filter { $0 >= 38.0 }.count
+            if feverCount > 0 {
+                y = drawText("⚠ 38.0°C 이상 기록: \(feverCount)회",
+                             at: CGPoint(x: margin, y: y), width: contentWidth,
+                             font: .systemFont(ofSize: 11, weight: .semibold),
+                             color: UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1))
+            }
+        }
+        y += 8
+
+        let sortedTemps = temperatures.sorted { $0.startTime < $1.startTime }
+        y = drawDailyTable(
+            context: context, title: "체온",
+            headers: ["날짜/시간", "체온(°C)", "메모"],
+            rows: sortedTemps.prefix(30).map { act in
+                [DateFormatters.dateTime.string(from: act.startTime),
+                 act.temperature.map { String(format: "%.1f", $0) } ?? "-",
+                 act.note ?? "-"]
+            },
+            at: CGPoint(x: margin, y: y), width: contentWidth, pageHeight: pageHeight, margin: margin
+        )
+        y += 12
+        return y
+    }
+
+    @discardableResult
+    private static func drawGrowthSection(
+        context: UIGraphicsPDFRendererContext,
+        growthRecords: [GrowthRecord], startDate: Date,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = currentY
+        let recentGrowth = growthRecords.filter { $0.date >= startDate.startOfDay }
+        if !recentGrowth.isEmpty {
+            y = checkPageBreak(context: context, currentY: y, needed: 150, pageHeight: pageHeight, margin: margin)
+            y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+            y = drawSectionTitle("성장 기록", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+            y = drawDailyTable(
+                context: context, title: "성장",
+                headers: ["날짜", "키(cm)", "몸무게(kg)", "머리둘레(cm)"],
+                rows: recentGrowth.map { record in
+                    [DateFormatters.shortDate.string(from: record.date),
+                     record.height.map { String(format: "%.1f", $0) } ?? "-",
+                     record.weight.map { String(format: "%.2f", $0) } ?? "-",
+                     record.headCircumference.map { String(format: "%.1f", $0) } ?? "-"]
+                },
+                at: CGPoint(x: margin, y: y), width: contentWidth, pageHeight: pageHeight, margin: margin
+            )
+            y += 12
+        }
+
+        let lastFiveGrowth = growthRecords.suffix(5)
+        if lastFiveGrowth.count >= 2 {
+            y = checkPageBreak(context: context, currentY: y, needed: 100, pageHeight: pageHeight, margin: margin)
+            if recentGrowth.isEmpty {
+                y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+                y = drawSectionTitle("성장 추이 (최근 5회)", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+            } else {
+                y = drawText("최근 성장 추이", at: CGPoint(x: margin, y: y), width: contentWidth,
+                             font: .systemFont(ofSize: 13, weight: .semibold), color: .darkGray)
+                y += 4
+            }
+            if let first = lastFiveGrowth.first, let last = lastFiveGrowth.last {
+                if let h1 = first.height, let h2 = last.height {
+                    y = drawKeyValue(label: "키 변화", value: String(format: "%.1fcm → %.1fcm (%+.1fcm)", h1, h2, h2 - h1),
+                                    at: CGPoint(x: margin, y: y), width: contentWidth)
+                }
+                if let w1 = first.weight, let w2 = last.weight {
+                    y = drawKeyValue(label: "몸무게 변화", value: String(format: "%.2fkg → %.2fkg (%+.2fkg)", w1, w2, w2 - w1),
+                                    at: CGPoint(x: margin, y: y), width: contentWidth)
+                }
+            }
+        }
+        return y
+    }
+
+    @discardableResult
+    private static func drawDiaperSection(
+        context: UIGraphicsPDFRendererContext,
+        diapers: [Activity], totalDays: Int,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 100, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle("기저귀 기록 요약", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
+
+        let wetCount = diapers.filter { $0.type == .diaperWet || $0.type == .diaperBoth }.count
+        let dirtyCount = diapers.filter { $0.type == .diaperDirty || $0.type == .diaperBoth }.count
+        y = drawKeyValue(label: "소변 포함", value: "\(wetCount)회", at: CGPoint(x: margin, y: y), width: contentWidth)
+        y = drawKeyValue(label: "대변 포함", value: "\(dirtyCount)회", at: CGPoint(x: margin, y: y), width: contentWidth)
+        y = drawKeyValue(label: "일평균 교체", value: String(format: "%.1f회", Double(diapers.count) / Double(totalDays)),
+                         at: CGPoint(x: margin, y: y), width: contentWidth)
+
+        let abnormalStools = diapers.filter { $0.stoolColor?.needsAttention == true }
+        if !abnormalStools.isEmpty {
+            y += 4
+            y = drawText("⚠ 주의가 필요한 대변 색상 \(abnormalStools.count)회 (붉은색/흰색)",
+                         at: CGPoint(x: margin, y: y), width: contentWidth,
+                         font: .systemFont(ofSize: 11, weight: .semibold),
+                         color: UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1))
+        }
+        return y
+    }
+
+    private static func drawFooter(
+        context: UIGraphicsPDFRendererContext,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 60, pageHeight: pageHeight, margin: margin)
+        y = max(y + 20, pageHeight - margin - 40)
+        y = drawDivider(y: y, x: margin, width: contentWidth)
+        y += 8
+        _ = drawText(
+            "이 리포트는 베이비케어 앱에서 자동 생성되었습니다.\n소아과 진료 시 참고 자료로 활용하세요. 의학적 판단은 반드시 전문의와 상담하세요.",
+            at: CGPoint(x: margin, y: y), width: contentWidth,
+            font: .systemFont(ofSize: 9), color: .lightGray, alignment: .center
+        )
     }
 
     // MARK: - Drawing Helpers
