@@ -28,8 +28,10 @@ make screenshots     # 주요 화면 스크린샷 캡처
 
 ```bash
 make build       # xcodegen + xcodebuild
-make test        # 단위 테스트 25개
-make verify      # 빌드 + 테스트 + 디자인토큰
+make test        # 단위 테스트 63개
+make lint        # SwiftLint 검사
+make arch-test   # 아키텍처 경계 검사
+make verify      # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
 make deploy      # 원커맨드 배포 (verify→bump→archive→export→upload)
 make bump        # 빌드 번호 +1
 make status      # 버전/커밋/테스트 상태
@@ -37,8 +39,9 @@ make status      # 버전/커밋/테스트 상태
 
 ## Architecture
 
-- **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (18 VM)
-- **서비스 분리**: ActivityTimerManager, FeedingPredictionService, PercentileCalculator, MedicationSafetyService
+- **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (23 VM)
+- **서비스 분리**: ActivityTimerManager, FeedingPredictionService v2 (day/night 개인화), WeeklyInsightService, PercentileCalculator, MedicationSafetyService
+- **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
 - **Firestore**: 200MB persistent cache, 21개 컬렉션 상수 (FirestoreCollections), 페이지네이션 (일기 커서/구매 limit/할일 필터)
@@ -70,10 +73,11 @@ harness-score: 96% (Grade A) — 2026-04-14
 
 ## Recent Session (2026-04-14)
 
-- 코드 품질: arch-test 17→0, SwiftLint 21→0, 5 new VMs, 5 함수 분할
+- 코드 품질: arch-test 17→0, SwiftLint 21→0, 5 new VMs (FamilySharing/Growth/SoundPlayer/AdminDashboard/NotificationSettings), 5 함수 분할
 - feat(prediction): 수유 예측 개인화 (day/night 시간대 인식, cross-midnight fallback, 오버듀 알림 opt-in)
 - feat(insight): 주간 인사이트 리포트 (WeeklyInsightService + 대시보드 카드 + 월요일 푸시)
-- 테스트: 50→63개 (+13)
+- feat(growth): 성장 차트 v2 (WHO AreaMark 밴드 + 백분위 추이 트렌드 + "또래 상위 XX%")
+- 테스트: 50→63개 (+13), VM: 18→23개 (+5)
 
 ## Current Status
 
@@ -81,8 +85,8 @@ harness-score: 96% (Grade A) — 2026-04-14
 - **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
 - **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
-- **테스트**: 50개 PASS, 경고 0건
-- **규모**: 211+ Swift 파일 (cry-analysis 6개 신규)
+- **테스트**: 63개 PASS, 경고 0건
+- **규모**: 220+ Swift 파일, 23개 VM
 - **QA**: 3-Agent ALL PASS (2026-04-04)
 
 ## Recent Changes (v2.6.2)
@@ -91,6 +95,7 @@ harness-score: 96% (Grade A) — 2026-04-14
 - **chore(privacy)**: NSMicrophoneUsageDescription + PrivacyInfo NSPrivacyCollectedDataTypeAudioData + privacy.html 울음분석 섹션
 - **chore(ads)**: AdMob production App ID (ca-app-pub-6369815556964095~1504777334) + Banner Unit ID + SKAdNetworkItems 43개 확장 + app-ads.txt
 - **fix(ads)**: AdBannerView `UIScreen.main` → scene-aware `safeScreenWidth()` (iOS 26.5 Beta TestFlight 51 크래시 fix — WindowScene 기반)
+- feat(growth): 성장 차트 v2 — WHO AreaMark 밴드(3rd~97th) + 백분위 추이 트렌드 + "또래 상위 XX%"
 - feat(analytics): Firebase Analytics (GA) 통합 — 10개 뷰 트래킹, 옵트아웃, PrivacyInfo
 - feat(pattern-report): 패턴분석 v2 — 발열 연속일, 데이터 품질 경고, 기간 비교 토글, 수유 예측
 - feat(timer): FloatingTimerBanner — 메인 화면 상단에 진행 중인 타이머 표시
