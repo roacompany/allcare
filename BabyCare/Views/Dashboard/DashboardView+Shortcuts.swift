@@ -20,6 +20,9 @@ extension DashboardView {
                     Text(predictionText)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(activityVM.isFeedingOverdue ? .red : .primary)
+                    Text(activityVM.nextFeedingSubtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()

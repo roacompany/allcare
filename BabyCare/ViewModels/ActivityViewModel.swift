@@ -104,6 +104,10 @@ final class ActivityViewModel {
         FeedingPredictionService.isOverdue(estimate: nextFeedingEstimate)
     }
 
+    var nextFeedingSubtitle: String {
+        averageFeedingIntervalResult.isPersonalized ? "지난 7일 패턴 기준" : "월령 기준 평균"
+    }
+
     // MARK: - Data Loading
 
     func loadTodayActivities(userId: String, babyId: String) async {
@@ -116,7 +120,6 @@ final class ActivityViewModel {
                     userId: userId, babyId: babyId, date: Date()
                 )
             }
-            deriveLatestActivities()
 
             // 수유 예측 정확도를 위해 최근 7일 수유 데이터도 로드
             let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -128,6 +131,8 @@ final class ActivityViewModel {
                     )
                 }.filter { $0.type.category == .feeding }
             }
+            // recentFeedingActivities 로드 완료 후 derive — 자정 경계 fallback 가능
+            deriveLatestActivities()
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-172800)
@@ -142,9 +147,15 @@ final class ActivityViewModel {
     }
 
     /// todayActivities에서 최근 수유/수면/기저귀를 추출 (Firestore 추가 쿼리 없음)
+    /// 자정 경계: todayActivities에 수유 기록이 없으면 recentFeedingActivities에서 fallback
     func deriveLatestActivities() {
         let feedings = todayActivities.filter { $0.type.category == .feeding }
-        lastFeeding = feedings.max(by: { $0.startTime < $1.startTime })
+        if let todayLatest = feedings.max(by: { $0.startTime < $1.startTime }) {
+            lastFeeding = todayLatest
+        } else {
+            // 자정 경계 fallback — 오늘 수유가 없을 경우 최근 7일 수유 중 가장 최근 항목 사용
+            lastFeeding = recentFeedingActivities.max(by: { $0.startTime < $1.startTime })
+        }
 
         let sleeps = todayActivities.filter { $0.type == .sleep }
         lastSleep = sleeps.max(by: { $0.startTime < $1.startTime })
