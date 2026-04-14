@@ -65,9 +65,13 @@ final class AuthViewModel {
 
     func signUp() async {
         guard isSignUpFormValid else {
-            if email.isEmpty { errorMessage = "이메일을 입력해주세요." }
-            else if password.count < 6 { errorMessage = "비밀번호는 6자 이상이어야 합니다." }
-            else if password != confirmPassword { errorMessage = "비밀번호가 일치하지 않습니다." }
+            if email.isEmpty {
+                errorMessage = "이메일을 입력해주세요."
+            } else if password.count < 6 {
+                errorMessage = "비밀번호는 6자 이상이어야 합니다."
+            } else if password != confirmPassword {
+                errorMessage = "비밀번호가 일치하지 않습니다."
+            }
             return
         }
 
@@ -145,7 +149,13 @@ final class AuthViewModel {
         let db = FirebaseFirestore.Firestore.firestore()
         let userDoc = db.collection(FirestoreCollections.users).document(userId)
         // "familySharing"(구형) + "sharedAccess"(신형) 모두 삭제
-        let subcollections = ["premiumStatus", FirestoreCollections.babies, FirestoreCollections.activities, FirestoreCollections.hospitalVisits, FirestoreCollections.vaccinations, FirestoreCollections.milestones, "diaryEntries", FirestoreCollections.todos, FirestoreCollections.routines, FirestoreCollections.products, "purchaseRecords", FirestoreCollections.sharedAccess, FirestoreCollections.familySharing]
+        let subcollections = [
+            "premiumStatus", FirestoreCollections.babies, FirestoreCollections.activities,
+            FirestoreCollections.hospitalVisits, FirestoreCollections.vaccinations,
+            FirestoreCollections.milestones, "diaryEntries", FirestoreCollections.todos,
+            FirestoreCollections.routines, FirestoreCollections.products,
+            "purchaseRecords", FirestoreCollections.sharedAccess, FirestoreCollections.familySharing
+        ]
         // 배치 쓰기로 원자적 삭제 (최대 500개)
         var batch = db.batch()
         var count = 0

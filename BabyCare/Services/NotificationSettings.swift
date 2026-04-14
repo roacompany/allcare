@@ -1,9 +1,6 @@
 import Foundation
 import UserNotifications
 
-import Foundation
-import UserNotifications
-
 // MARK: - Notification Settings Keys
 
 enum NotificationSettings {

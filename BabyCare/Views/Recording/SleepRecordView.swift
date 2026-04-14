@@ -143,7 +143,6 @@ struct SleepRecordView: View {
     }
 }
 
-
 #Preview {
     SleepRecordView()
         .environment(ActivityViewModel())

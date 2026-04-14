@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 // MARK: - TemperatureSection
 
 struct TemperatureSection: View {

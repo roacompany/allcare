@@ -143,4 +143,3 @@ struct CalendarTodoRow: View {
         .padding(.vertical, 2)
     }
 }
-

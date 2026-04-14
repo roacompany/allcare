@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 // MARK: - StoolDetailSection
 
 struct StoolDetailSection: View {

@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 // MARK: - SolidFoodSection (이유식)
 
 struct SolidFoodSection: View {

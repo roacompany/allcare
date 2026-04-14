@@ -1,7 +1,5 @@
 import Foundation
 
-import Foundation
-
 // MARK: - Data Structures
 
 enum Trend: String {
