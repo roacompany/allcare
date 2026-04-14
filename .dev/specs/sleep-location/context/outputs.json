@@ -1,3 +1,17 @@
 {
-  "todo-1": { "enum_extended": true }
+  "todo-1": { "enum_extended": true },
+  "todo-2": { "record_view_done": true },
+  "todo-3": { "stats_view_done": true },
+  "todo-4": { "tests_added": [
+    "testSleepMethodType_newCases_exist",
+    "testSleepMethodType_newCases_rawValues",
+    "testSleepMethodType_existingRawValuesPreserved",
+    "testSleepMethodType_allCasesOrder",
+    "testSleepMethodType_displayNames_nonEmpty",
+    "testSleepMethodType_icons_nonEmpty",
+    "testSleepMethodType_backwardCompat_decode",
+    "testSleepMethodType_appStorageKeyFormat",
+    "testMethodDistribution_crashFreeOnNewCases"
+  ] },
+  "todo-final": { "verify_passed": true, "test_count": 80 }
 }

@@ -263,7 +263,7 @@ TODO-2/3/4는 TODO-1 완료 후 병렬 가능 (서로 다른 파일).
 
 ---
 
-### [ ] TODO 2: SleepRecordView 섹션 제목 + @AppStorage 기본값
+### [x] TODO 2: SleepRecordView 섹션 제목 + @AppStorage 기본값
 
 **Type**: work
 
@@ -338,7 +338,7 @@ TODO-2/3/4는 TODO-1 완료 후 병렬 가능 (서로 다른 파일).
 
 ---
 
-### [ ] TODO 3: PatternReport+Sleep 섹션 제목 변경
+### [x] TODO 3: PatternReport+Sleep 섹션 제목 변경
 
 **Type**: work
 
@@ -381,7 +381,7 @@ TODO-2/3/4는 TODO-1 완료 후 병렬 가능 (서로 다른 파일).
 
 ---
 
-### [ ] TODO 4: 단위 테스트 추가
+### [x] TODO 4: 단위 테스트 추가
 
 **Type**: work
 
@@ -435,7 +435,7 @@ TODO-2/3/4는 TODO-1 완료 후 병렬 가능 (서로 다른 파일).
 
 ---
 
-### [ ] TODO Final: Verification
+### [x] TODO Final: Verification
 
 **Type**: verification
 
