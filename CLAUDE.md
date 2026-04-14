@@ -99,6 +99,13 @@ harness-score: 90% (Grade A) — 2026-04-14 (was: 40% Grade D → +24점)
 - [ ] 히스토리 필터: stub 시절 저장된 `isStub=true` 레코드 숨김 또는 뱃지 카피 재검토
 - [ ] `CryAnalysisViewModel` phase 전이 단위 테스트 추가
 
+## Compound (개선 루프)
+
+- **3번 반복** → Skill로 자동화
+- **3번 같은 실수** → `.claude/rules/`에 규칙 추가
+- **learnings**: `.dev/learnings/` (세션별 학습 기록)
+- **세션 마무리**: `/wrap`으로 패턴 발견 + learnings 축적
+
 ## Verification (검증 프로세스)
 
 ```bash
