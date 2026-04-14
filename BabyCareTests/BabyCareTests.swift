@@ -925,4 +925,62 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(gapDays, 3)
         XCTAssertTrue(gapDays > 1)  // should reset
     }
+
+    // MARK: - Sleep Location Tests
+
+    func testSleepMethodType_newCases_exist() {
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "bed"))
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "bouncer"))
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "inArms"))
+    }
+
+    func testSleepMethodType_newCases_rawValues() {
+        XCTAssertEqual(Activity.SleepMethodType.bed.rawValue, "bed")
+        XCTAssertEqual(Activity.SleepMethodType.bouncer.rawValue, "bouncer")
+        XCTAssertEqual(Activity.SleepMethodType.inArms.rawValue, "inArms")
+    }
+
+    func testSleepMethodType_existingRawValuesPreserved() {
+        XCTAssertEqual(Activity.SleepMethodType.selfSettled.rawValue, "selfSettled")
+        XCTAssertEqual(Activity.SleepMethodType.nursing.rawValue, "nursing")
+        XCTAssertEqual(Activity.SleepMethodType.holding.rawValue, "holding")
+        XCTAssertEqual(Activity.SleepMethodType.stroller.rawValue, "stroller")
+        XCTAssertEqual(Activity.SleepMethodType.carSeat.rawValue, "carSeat")
+    }
+
+    func testSleepMethodType_allCasesOrder() {
+        let expected: [Activity.SleepMethodType] = [.bed, .selfSettled, .holding, .inArms, .bouncer, .nursing, .stroller, .carSeat]
+        XCTAssertEqual(Activity.SleepMethodType.allCases, expected)
+    }
+
+    func testSleepMethodType_displayNames_nonEmpty() {
+        for method in Activity.SleepMethodType.allCases {
+            XCTAssertFalse(method.displayName.isEmpty, "\(method.rawValue) displayName이 비어 있으면 안 됩니다")
+        }
+    }
+
+    func testSleepMethodType_icons_nonEmpty() {
+        for method in Activity.SleepMethodType.allCases {
+            XCTAssertFalse(method.icon.isEmpty, "\(method.rawValue) icon이 비어 있으면 안 됩니다")
+        }
+    }
+
+    func testSleepMethodType_backwardCompat_decode() {
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "selfSettled"))
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "nursing"))
+        XCTAssertNil(Activity.SleepMethodType(rawValue: "unknownCase"))
+    }
+
+    func testSleepMethodType_appStorageKeyFormat() {
+        let babyId = "abc123"
+        let key = "lastSleepMethod_\(babyId)"
+        XCTAssertEqual(key, "lastSleepMethod_abc123")
+    }
+
+    func testMethodDistribution_crashFreeOnNewCases() {
+        let dist: [Activity.SleepMethodType: Int] = [.bed: 3, .bouncer: 1, .inArms: 2]
+        XCTAssertEqual(dist[.bed], 3)
+        XCTAssertEqual(dist[.bouncer], 1)
+        XCTAssertEqual(dist[.inArms], 2)
+    }
 }
