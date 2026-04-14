@@ -75,9 +75,9 @@ struct SleepRecordView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal)
 
-                // ── Sleep method (잠드는 방법) ───────────────────────────
+                // ── Sleep method (잠든 곳) ───────────────────────────
                 VStack(alignment: .leading, spacing: 10) {
-                    Label("잠드는 방법", systemImage: "zzz")
+                    Label("잠든 곳", systemImage: "zzz")
                         .font(.subheadline.bold())
                         .foregroundStyle(.secondary)
 
@@ -85,6 +85,9 @@ struct SleepRecordView: View {
                         ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
                             Button {
                                 activityVM.sleepMethod = activityVM.sleepMethod == method ? nil : method
+                                if let babyId = babyVM.selectedBaby?.id {
+                                    UserDefaults.standard.set(method.rawValue, forKey: lastMethodKey(babyId: babyId))
+                                }
                             } label: {
                                 HStack(spacing: 4) {
                                     Image(systemName: method.icon)
@@ -123,9 +126,21 @@ struct SleepRecordView: View {
             }
             .padding(.top, 8)
         }
+        .onAppear {
+            if let babyId = babyVM.selectedBaby?.id,
+               activityVM.sleepMethod == nil,
+               let raw = UserDefaults.standard.string(forKey: lastMethodKey(babyId: babyId)),
+               let method = Activity.SleepMethodType(rawValue: raw) {
+                activityVM.sleepMethod = method
+            }
+        }
     }
 
     // MARK: - Actions
+
+    private func lastMethodKey(babyId: String) -> String {
+        "lastSleepMethod_\(babyId)"
+    }
 
     private func save() {
         guard let currentUserId = authVM.currentUserId,
