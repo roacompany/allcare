@@ -65,6 +65,11 @@ final class ActivityViewModel {
         todayActivities.filter { $0.type.category == .feeding }.compactMap(\.amount).reduce(0, +)
     }
 
+    // MARK: - Weekly Insights
+
+    /// 주간 인사이트 (loadTodayActivities에서 함께 로드)
+    var weeklyInsights: [WeeklyInsightService.Insight] = []
+
     // MARK: - Predictions
 
     /// 최근 7일 수유 데이터 (loadTodayActivities에서 함께 로드)
@@ -133,6 +138,33 @@ final class ActivityViewModel {
             }
             // recentFeedingActivities 로드 완료 후 derive — 자정 경계 fallback 가능
             deriveLatestActivities()
+
+            // 주간 인사이트 생성 — 이전 7일(current) vs 이전 14일~8일(previous) 비교
+            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+            let eightDaysAgo = Calendar.current.date(byAdding: .day, value: -8, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+            let currentWeekActivities = recentFeedingActivities + todayActivities
+            let previousWeekActivities: [Activity]
+            if twoWeeksAgo < eightDaysAgo {
+                previousWeekActivities = try await RetryHelper.withRetry {
+                    try await self.firestoreService.fetchActivities(
+                        userId: userId, babyId: babyId, from: twoWeeksAgo, to: eightDaysAgo
+                    )
+                }
+            } else {
+                previousWeekActivities = []
+            }
+            let currentReport = PatternAnalysisService.analyze(
+                activities: currentWeekActivities,
+                period: "이번 주",
+                startDate: weekAgo,
+                endDate: Date()
+            )
+            let comparisonReport = PatternAnalysisService.analyzeComparison(
+                currentReport: currentReport,
+                previousActivities: previousWeekActivities,
+                previousPeriod: (start: twoWeeksAgo, end: eightDaysAgo)
+            )
+            weeklyInsights = WeeklyInsightService.generateInsights(from: comparisonReport)
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-172800)

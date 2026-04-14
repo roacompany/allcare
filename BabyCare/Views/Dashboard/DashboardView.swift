@@ -32,6 +32,7 @@ struct DashboardView: View {
                     AnnouncementBanner()
                     alertBannersSection
                     quickActionsSection
+                    weeklyInsightsCard
                     predictionSection
                     if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 0) {
                         AdBannerView()

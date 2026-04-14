@@ -1,6 +1,66 @@
 import SwiftUI
 
 extension DashboardView {
+    // MARK: - Weekly Insights Card
+
+    @ViewBuilder
+    var weeklyInsightsCard: some View {
+        if !activityVM.weeklyInsights.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("이번 주 하이라이트")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                ForEach(activityVM.weeklyInsights) { insight in
+                    HStack(spacing: 10) {
+                        Image(systemName: insightSymbol(for: insight.category))
+                            .font(.body)
+                            .foregroundStyle(insightColor(for: insight.category))
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(insight.title)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary)
+                            Text(insight.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        if let changePercent = insight.changePercent, abs(changePercent) >= 5 {
+                            Text("\(changePercent > 0 ? "↑" : "↓")\(Int(abs(changePercent).rounded()))%")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(changePercent > 0 ? Color.green : Color.red)
+                        }
+                    }
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.systemGroupedBackground))
+            )
+        }
+    }
+
+    private func insightSymbol(for category: WeeklyInsightService.InsightCategory) -> String {
+        switch category {
+        case .feeding: return "fork.knife"
+        case .sleep:   return "moon.zzz.fill"
+        case .diaper:  return "drop.fill"
+        }
+    }
+
+    private func insightColor(for category: WeeklyInsightService.InsightCategory) -> Color {
+        switch category {
+        case .feeding: return feedingColor
+        case .sleep:   return sleepColor
+        case .diaper:  return diaperColor
+        }
+    }
+
     // MARK: - Prediction
 
     @ViewBuilder
