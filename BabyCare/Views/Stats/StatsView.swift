@@ -57,7 +57,7 @@ struct StatsView: View {
                     Menu {
                         Button {
                             let babyName = babyVM.selectedBaby?.name ?? "아기"
-                            if let url = ExportService.generateCSV(activities: statsVM.weeklyActivities, babyName: babyName) {
+                            if let url = statsVM.generateCSVExport(activities: statsVM.weeklyActivities, babyName: babyName) {
                                 exportURL = url
                                 showShareSheet = true
                             }
@@ -241,17 +241,9 @@ struct StatsView: View {
 
         let periodDays = statsVM.selectedPeriod == .week ? 7 : 30
 
-        // Fetch growth records for the report
-        var growthRecords: [GrowthRecord] = []
-        do {
-            growthRecords = try await FirestoreService.shared.fetchGrowthRecords(
-                userId: dataUserId, babyId: baby.id
-            )
-        } catch {
-            // Growth records are optional for the report
-        }
+        let growthRecords = await statsVM.fetchGrowthRecords(userId: dataUserId, babyId: baby.id)
 
-        if let url = PDFReportService.generateReport(
+        if let url = statsVM.generatePDFReport(
             baby: baby,
             activities: statsVM.weeklyActivities,
             growthRecords: growthRecords,

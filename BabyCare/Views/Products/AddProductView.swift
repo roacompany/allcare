@@ -99,10 +99,6 @@ struct AddProductView: View {
             inlineSuggestions = []
             return
         }
-        inlineSuggestions = CatalogService.findMatches(
-            userText: text,
-            category: productVM.category,
-            catalog: productVM.catalog
-        )
+        inlineSuggestions = productVM.fetchCatalogSuggestions(text: text, category: productVM.category)
     }
 }

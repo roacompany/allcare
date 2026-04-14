@@ -101,4 +101,10 @@ final class ProductViewModel {
             return total > 0 ? (category, total) : nil
         }.sorted { $0.1 > $1.1 }
     }
+
+    // MARK: - Catalog Suggestions
+
+    func fetchCatalogSuggestions(text: String, category: BabyProduct.ProductCategory) -> [CatalogProduct] {
+        CatalogService.findMatches(userText: text, category: category, catalog: catalog)
+    }
 }

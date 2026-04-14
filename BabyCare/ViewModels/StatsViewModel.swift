@@ -105,6 +105,24 @@ final class StatsViewModel {
         }
     }
 
+    // MARK: - Export
+
+    func generateCSVExport(activities: [Activity], babyName: String) -> URL? {
+        ExportService.generateCSV(activities: activities, babyName: babyName)
+    }
+
+    func generatePDFReport(baby: Baby, activities: [Activity], growthRecords: [GrowthRecord], periodDays: Int) -> URL? {
+        PDFReportService.generateReport(baby: baby, activities: activities, growthRecords: growthRecords, periodDays: periodDays)
+    }
+
+    func fetchGrowthRecords(userId: String, babyId: String) async -> [GrowthRecord] {
+        do {
+            return try await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)
+        } catch {
+            return []
+        }
+    }
+
     // MARK: - Helper
 
     private func groupByDay(_ activities: [Activity]) -> [Date: [Activity]] {

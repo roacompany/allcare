@@ -213,7 +213,7 @@ struct HospitalVisitFormSheet: View {
                 Button("취소", role: .cancel) {}
                 Button("삭제", role: .destructive) {
                     if let visitId = existingVisit?.id {
-                        NotificationService.shared.cancelHospitalReminder(visitId: visitId)
+                        healthVM.cancelHospitalReminder(visitId: visitId)
                     }
                     onDelete?()
                     dismiss()

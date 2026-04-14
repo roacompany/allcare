@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 // MARK: - DevelopmentCategory
 
@@ -16,15 +16,6 @@ enum DevelopmentCategory: String, CaseIterable, Identifiable {
         case .sleep: "🌙"
         case .mentalCare: "🧘"
         case .insight: "📊"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .play: AppColors.feedingColor
-        case .sleep: AppColors.sleepColor
-        case .mentalCare: AppColors.softPurpleColor
-        case .insight: AppColors.indigoColor
         }
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct AllergyListView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
+    @Environment(HealthViewModel.self) private var healthVM
 
     @State private var records: [AllergyRecord] = []
     @State private var isLoading = false
@@ -10,8 +11,6 @@ struct AllergyListView: View {
     @State private var showAddSheet = false
     @State private var editingRecord: AllergyRecord?
     @State private var savedMessage: String?
-
-    private let service = FirestoreService.shared
 
     var body: some View {
         Group {
@@ -149,11 +148,9 @@ struct AllergyListView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isLoading = true
-        do {
-            records = try await service.fetchAllergyRecords(userId: dataUserId, babyId: baby.id)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        await healthVM.loadAllergyRecords(userId: dataUserId, babyId: baby.id)
+        records = healthVM.allergyRecords
+        if let msg = healthVM.errorMessage { errorMessage = msg }
         isLoading = false
     }
 
@@ -164,13 +161,10 @@ struct AllergyListView: View {
         let toDelete = indexSet.map { source[$0] }
         Task {
             for record in toDelete {
-                do {
-                    try await service.deleteAllergyRecord(record.id, userId: dataUserId, babyId: baby.id)
-                    records.removeAll { $0.id == record.id }
-                } catch {
-                    errorMessage = error.localizedDescription
-                }
+                await healthVM.deleteAllergyRecord(userId: dataUserId, babyId: baby.id, recordId: record.id)
+                records.removeAll { $0.id == record.id }
             }
+            if let msg = healthVM.errorMessage { errorMessage = msg }
         }
     }
 }

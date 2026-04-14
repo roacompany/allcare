@@ -257,4 +257,45 @@ final class HealthViewModel {
         let upcoming = vaccinations.filter { !$0.isCompleted && $0.scheduledDate > Date() }
         NotificationService.shared.scheduleVaccinationReminders(vaccinations: upcoming, babyName: babyName)
     }
+
+    // MARK: - Allergy Records
+
+    var allergyRecords: [AllergyRecord] = []
+
+    func loadAllergyRecords(userId: String, babyId: String) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            allergyRecords = try await firestoreService.fetchAllergyRecords(userId: userId, babyId: babyId)
+        } catch {
+            errorMessage = "알레르기 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    func saveAllergyRecord(_ record: AllergyRecord, userId: String, babyId: String) async throws {
+        try await firestoreService.saveAllergyRecord(record, userId: userId, babyId: babyId)
+    }
+
+    func deleteAllergyRecord(userId: String, babyId: String, recordId: String) async {
+        do {
+            try await firestoreService.deleteAllergyRecord(recordId, userId: userId, babyId: babyId)
+            allergyRecords.removeAll { $0.id == recordId }
+        } catch {
+            errorMessage = "알레르기 기록 삭제에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Hospital Reminders (Form-level)
+
+    func scheduleHospitalReminder(visitId: String, hospitalName: String, visitDate: Date) {
+        NotificationService.shared.scheduleHospitalReminder(
+            visitId: visitId,
+            hospitalName: hospitalName,
+            visitDate: visitDate
+        )
+    }
+
+    func cancelHospitalReminder(visitId: String) {
+        NotificationService.shared.cancelHospitalReminder(visitId: visitId)
+    }
 }

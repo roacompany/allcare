@@ -19,8 +19,9 @@ struct AddAllergyView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    @Environment(HealthViewModel.self) private var healthVM
+
     private let allSymptoms = ["발진", "두드러기", "구토", "설사", "호흡곤란", "부종", "기타"]
-    private let service = FirestoreService.shared
 
     init(editingRecord: AllergyRecord? = nil, onSave: @escaping (AllergyRecord) -> Void) {
         self.editingRecord = editingRecord
@@ -228,7 +229,7 @@ struct AddAllergyView: View {
         )
 
         do {
-            try await service.saveAllergyRecord(record, userId: userId, babyId: baby.id)
+            try await healthVM.saveAllergyRecord(record, userId: userId, babyId: baby.id)
             onSave(record)
             dismiss()
         } catch {

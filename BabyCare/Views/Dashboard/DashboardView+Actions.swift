@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 extension DashboardView {
     // MARK: - Actions
@@ -9,7 +10,7 @@ extension DashboardView {
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
-        Task { _ = await NotificationService.shared.requestPermission() }
+        Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) }
 
         // 아기 월령을 수유 예측에 반영
         let ageMonths = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 3
