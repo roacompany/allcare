@@ -5,6 +5,7 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     @State private var rules = ActivityReminderSettings.rules
+    @State private var feedingOverdueAlertEnabled = ActivityReminderSettings.feedingOverdueAlertEnabled
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
     @State private var reorderEnabled = NotificationSettings.reorderReminderEnabled
@@ -82,6 +83,26 @@ struct NotificationSettingsView: View {
                 Text("활동 기록 알림")
             } footer: {
                 Text("마지막 기록 후 설정한 시간이 지나면 다음 기록을 알려드립니다. 예: 수유 알림을 3시간으로 설정하면, 마지막 수유 3시간 후 알림이 옵니다.")
+            }
+
+            // 수유 오버듀 알림
+            Section {
+                Toggle(isOn: $feedingOverdueAlertEnabled) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(Color("feedingColor"))
+                            .frame(width: 24)
+                        Text("수유 오버듀 알림")
+                    }
+                }
+                .onChange(of: feedingOverdueAlertEnabled) { _, val in
+                    ActivityReminderSettings.feedingOverdueAlertEnabled = val
+                }
+            } header: {
+                Text("수유 예측")
+            } footer: {
+                Text("예측된 수유 시간에서 30분이 지나도 수유 기록이 없으면 알림을 보냅니다.")
             }
 
             // 접종 알림

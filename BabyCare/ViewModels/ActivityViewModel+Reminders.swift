@@ -10,6 +10,12 @@ extension ActivityViewModel {
         NotificationService.shared.scheduleActivityReminder(
             type: type, babyName: babyName, afterMinutes: rule.intervalMinutes
         )
+
+        if (type == .feedingBreast || type == .feedingBottle),
+           ActivityReminderSettings.feedingOverdueAlertEnabled,
+           let predictedTime = nextFeedingEstimate {
+            NotificationService.shared.scheduleFeedingOverdueAlert(babyName: babyName, predictedTime: predictedTime)
+        }
     }
 
     // MARK: - Widget Data Sync
