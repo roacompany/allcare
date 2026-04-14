@@ -11,75 +11,25 @@ extension GrowthView {
             HStack {
                 Text(DateFormatters.shortDate.string(from: record.date))
                     .font(.subheadline)
-
                 Spacer()
-
                 HStack(spacing: 6) {
                     if let w = record.weight {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fkg", w))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: w,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .weight
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
+                        recordMetricView(
+                            value: String(format: "%.1fkg", w),
+                            baby: baby, rawValue: w, recordDate: record.date, metric: .weight
+                        )
                     }
                     if let h = record.height {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fcm", h))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: h,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .height
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
+                        recordMetricView(
+                            value: String(format: "%.1fcm", h),
+                            baby: baby, rawValue: h, recordDate: record.date, metric: .height
+                        )
                     }
                     if let hc = record.headCircumference {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(String(format: "%.1fcm", hc))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            if let baby,
-                               let p = PercentileCalculator.percentile(
-                                value: hc,
-                                ageMonths: ageMonths(from: baby.birthDate, to: record.date),
-                                gender: baby.gender,
-                                metric: .headCircumference
-                               ) {
-                                Text(percentileLabel(p))
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                            }
-                        }
+                        recordMetricView(
+                            value: String(format: "%.1fcm", hc),
+                            baby: baby, rawValue: hc, recordDate: record.date, metric: .headCircumference
+                        )
                     }
                 }
             }
@@ -96,6 +46,37 @@ extension GrowthView {
                 showDeleteConfirm = true
             } label: {
                 Label("삭제", systemImage: "trash")
+            }
+        }
+    }
+
+    /// 단일 성장 지표(값 + 백분위)를 표시하는 헬퍼 뷰
+    @ViewBuilder
+    private func recordMetricView(
+        value: String,
+        baby: Baby?,
+        rawValue: Double,
+        recordDate: Date,
+        metric: GrowthMetric
+    ) -> some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            if let baby,
+               let p = PercentileCalculator.percentile(
+                value: rawValue,
+                ageMonths: ageMonths(from: baby.birthDate, to: recordDate),
+                gender: baby.gender,
+                metric: metric
+               ) {
+                Text(percentileLabel(p))
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
     }
