@@ -2115,3 +2115,166 @@ final class HospitalChecklistServiceTests: XCTestCase {
         }
     }
 }
+
+// MARK: - ProductRecommendationService Tests
+
+final class ProductRecommendationServiceTests: XCTestCase {
+
+    // MARK: - 테스트용 픽스처 카탈로그
+
+    private var mockCatalog: [ProductRecommendation] {
+        [
+            ProductRecommendation(name: "신생아 기저귀", category: .diaper, ageRangeStart: 0, ageRangeEnd: 2, reason: "테스트"),
+            ProductRecommendation(name: "분유", category: .formula, ageRangeStart: 0, ageRangeEnd: 12, reason: "테스트"),
+            ProductRecommendation(name: "이유식 그릇", category: .babyFood, ageRangeStart: 4, ageRangeEnd: 24, reason: "테스트"),
+            ProductRecommendation(name: "범용 바디로션", category: .skincare, ageRangeStart: 0, ageRangeEnd: 36, reason: "테스트"),
+            ProductRecommendation(name: "신생아 전용 용품", category: .bedding, ageRangeStart: 0, ageRangeEnd: 1, reason: "테스트"),
+            ProductRecommendation(name: "장난감", category: .toy, ageRangeStart: 3, ageRangeEnd: 36, reason: "테스트")
+        ]
+    }
+
+    // MARK: - 카탈로그 구조 검증 (픽스처 기반)
+
+    // Test 1: 픽스처 카탈로그 — recommendations(for:catalog:)가 올바른 결과를 반환해야 한다
+    func testCatalogStructure_recommendationsFilterCorrectly() {
+        let catalog = mockCatalog
+        let recs = ProductRecommendationService.recommendations(for: 0, catalog: catalog)
+        XCTAssertFalse(recs.isEmpty, "0개월 추천 목록은 픽스처 카탈로그에서 비어있지 않아야 한다")
+    }
+
+    // Test 2: 픽스처 카탈로그 — 유효한 category만 포함
+    func testCatalogStructure_allCategoriesValid() {
+        let catalog = mockCatalog
+        for item in catalog {
+            XCTAssertNotNil(
+                BabyProduct.ProductCategory(rawValue: item.category.rawValue),
+                "카탈로그 항목 '\(item.name)'의 category가 유효해야 한다"
+            )
+        }
+    }
+
+    // MARK: - 월령별 추천
+
+    // Test 3: 월령 0개월 — 픽스처에서 기저귀 카테고리 포함
+    func testRecommendations_ageZero_containsNewbornItems() {
+        let recs = ProductRecommendationService.recommendations(for: 0, catalog: mockCatalog)
+        XCTAssertFalse(recs.isEmpty, "0개월 추천 목록은 비어있지 않아야 한다")
+        let hasDiaper = recs.contains { $0.category == .diaper }
+        XCTAssertTrue(hasDiaper, "0개월 추천에는 기저귀 카테고리가 포함되어야 한다")
+    }
+
+    // Test 4: 월령 6개월 — 픽스처에서 이유식 관련 용품 포함
+    func testRecommendations_ageSix_containsSolidFoodItems() {
+        let recs = ProductRecommendationService.recommendations(for: 6, catalog: mockCatalog)
+        let hasBabyFood = recs.contains { $0.category == .babyFood }
+        XCTAssertTrue(hasBabyFood, "6개월 추천에는 이유식 카테고리가 포함되어야 한다")
+    }
+
+    // Test 5: 월령 범위 필터링 — ageRangeEnd 초과 항목은 제외되어야 한다
+    func testRecommendations_ageFiltering_excludesOutOfRange() {
+        let catalog: [ProductRecommendation] = [
+            ProductRecommendation(
+                name: "신생아 전용",
+                category: .diaper,
+                ageRangeStart: 0,
+                ageRangeEnd: 1,
+                reason: "테스트용"
+            ),
+            ProductRecommendation(
+                name: "범용 용품",
+                category: .other,
+                ageRangeStart: 0,
+                ageRangeEnd: 36,
+                reason: "테스트용"
+            )
+        ]
+        let recs = ProductRecommendationService.recommendations(for: 12, catalog: catalog)
+        XCTAssertFalse(
+            recs.contains { $0.name == "신생아 전용" },
+            "ageRangeEnd=1인 항목은 12개월 추천에서 제외되어야 한다"
+        )
+        XCTAssertTrue(
+            recs.contains { $0.name == "범용 용품" },
+            "ageRangeEnd=36인 항목은 12개월 추천에 포함되어야 한다"
+        )
+    }
+
+    // Test 6: 37개월(범위 초과) — 추천 결과가 비어있어야 한다
+    func testRecommendations_ageOverMax_returnsEmpty() {
+        let catalog: [ProductRecommendation] = [
+            ProductRecommendation(
+                name: "유아 용품",
+                category: .toy,
+                ageRangeStart: 0,
+                ageRangeEnd: 36,
+                reason: "테스트용"
+            )
+        ]
+        let recs = ProductRecommendationService.recommendations(for: 37, catalog: catalog)
+        XCTAssertTrue(recs.isEmpty, "37개월은 모든 범위를 초과하므로 추천이 비어있어야 한다")
+    }
+
+    // MARK: - 인기 용품
+
+    // Test 7: 인기 용품 — 등록이 많은 카테고리가 상위에 오는지 확인
+    func testPopularProducts_returnsMostFrequentCategory() {
+        let products: [BabyProduct] = [
+            makeBabyProduct(category: .diaper),
+            makeBabyProduct(category: .diaper),
+            makeBabyProduct(category: .diaper),
+            makeBabyProduct(category: .formula),
+            makeBabyProduct(category: .toy)
+        ]
+        let popular = ProductRecommendationService.popularProducts(from: products, limit: 3)
+        XCTAssertFalse(popular.isEmpty, "인기 용품 목록이 비어있지 않아야 한다")
+        XCTAssertEqual(popular.first?.category, .diaper, "가장 많이 등록된 기저귀 카테고리가 1위여야 한다")
+    }
+
+    // Test 8: 인기 용품 limit — limit 개수를 초과하지 않아야 한다
+    func testPopularProducts_respectsLimit() {
+        let products: [BabyProduct] = (0..<10).map { _ in makeBabyProduct(category: .diaper) }
+        let popular = ProductRecommendationService.popularProducts(from: products, limit: 3)
+        XCTAssertLessThanOrEqual(popular.count, 3, "인기 용품은 limit 개수를 초과하지 않아야 한다")
+    }
+
+    // Test 9: 재구매 후보 — 7일 이내 항목만 반환되어야 한다
+    func testReorderCandidates_within7Days() {
+        let product1 = makeBabyProduct(category: .diaper)
+        let product2 = makeBabyProduct(category: .formula)
+        let product3 = makeBabyProduct(category: .toy)
+
+        let reorderDates: [String: Date] = [
+            product1.id: Calendar.current.date(byAdding: .day, value: 3, to: Date())!,
+            product2.id: Calendar.current.date(byAdding: .day, value: 10, to: Date())!,
+            product3.id: Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        ]
+
+        let candidates = ProductRecommendationService.reorderCandidates(
+            from: [product1, product2, product3],
+            reorderDates: reorderDates,
+            thresholdDays: 7
+        )
+        XCTAssertTrue(candidates.contains { $0.id == product1.id }, "3일 후 재구매 예정은 포함되어야 한다")
+        XCTAssertFalse(candidates.contains { $0.id == product2.id }, "10일 후 재구매 예정은 제외되어야 한다")
+    }
+
+    // Test 10: 재구매 후보 — 재구매일 없는 항목은 제외되어야 한다
+    func testReorderCandidates_noReorderDate_excluded() {
+        let product = makeBabyProduct(category: .diaper)
+        let candidates = ProductRecommendationService.reorderCandidates(
+            from: [product],
+            reorderDates: [:],
+            thresholdDays: 7
+        )
+        XCTAssertTrue(candidates.isEmpty, "재구매일 없는 항목은 재구매 후보에서 제외되어야 한다")
+    }
+
+    // MARK: - Helpers
+
+    private func makeBabyProduct(category: BabyProduct.ProductCategory) -> BabyProduct {
+        BabyProduct(
+            name: "테스트 \(category.displayName)",
+            category: category
+        )
+    }
+}

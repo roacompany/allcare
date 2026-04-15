@@ -1,0 +1,302 @@
+[
+  {
+    "id": "nbp-001",
+    "name": "신생아 기저귀",
+    "category": "diaper",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 1,
+    "reason": "신생아 시기에 흔히 사용해요",
+    "icon": "humidity.fill",
+    "coupangKeyword": "신생아 기저귀"
+  },
+  {
+    "id": "nbp-002",
+    "name": "신생아 분유",
+    "category": "formula",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 5,
+    "reason": "모유 수유 보완 또는 분유 수유 시 흔히 사용해요",
+    "icon": "cup.and.saucer.fill",
+    "coupangKeyword": "신생아 분유"
+  },
+  {
+    "id": "nbp-003",
+    "name": "젖병",
+    "category": "feeding",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 12,
+    "reason": "수유 보완 또는 분유 수유 시 이 시기 흔히 사용해요",
+    "icon": "cup.and.saucer",
+    "coupangKeyword": "아기 젖병"
+  },
+  {
+    "id": "nbp-004",
+    "name": "아기 면 속싸개",
+    "category": "bedding",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 3,
+    "reason": "포근하게 감싸주는 용도로 이 시기 흔히 사용해요",
+    "icon": "bed.double.fill",
+    "coupangKeyword": "신생아 속싸개"
+  },
+  {
+    "id": "nbp-005",
+    "name": "아기 배냇저고리",
+    "category": "clothes",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 2,
+    "reason": "신생아 시기에 흔히 입히는 의류예요",
+    "icon": "tshirt.fill",
+    "coupangKeyword": "배냇저고리"
+  },
+  {
+    "id": "nbp-006",
+    "name": "아기 바디로션",
+    "category": "skincare",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 36,
+    "reason": "피부 보습에 이 시기 흔히 사용해요",
+    "icon": "drop.fill",
+    "coupangKeyword": "아기 바디로션"
+  },
+  {
+    "id": "nbp-007",
+    "name": "신생아 목욕 타월",
+    "category": "bath",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 12,
+    "reason": "목욕 후 감싸는 용도로 이 시기 흔히 사용해요",
+    "icon": "bathtub.fill",
+    "coupangKeyword": "아기 목욕 타월"
+  },
+  {
+    "id": "nbp-008",
+    "name": "아기 딸랑이",
+    "category": "toy",
+    "ageRangeStart": 1,
+    "ageRangeEnd": 6,
+    "reason": "청각 자극에 이 시기 흔히 사용해요",
+    "icon": "teddybear.fill",
+    "coupangKeyword": "아기 딸랑이"
+  },
+  {
+    "id": "nbp-009",
+    "name": "유아용 비타민D 보충제",
+    "category": "medicine",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 12,
+    "reason": "비타민D 보충을 위해 이 시기 흔히 사용해요 (소아과 상담 권장)",
+    "icon": "pills.fill",
+    "coupangKeyword": "아기 비타민D"
+  },
+  {
+    "id": "nbp-010",
+    "name": "기저귀 사이즈 1단계",
+    "category": "diaper",
+    "ageRangeStart": 2,
+    "ageRangeEnd": 4,
+    "reason": "이 시기 체중 증가에 맞춰 흔히 교체해요",
+    "icon": "humidity.fill",
+    "coupangKeyword": "아기 기저귀 1단계"
+  },
+  {
+    "id": "nbp-011",
+    "name": "유아용 침대 가드",
+    "category": "bedding",
+    "ageRangeStart": 3,
+    "ageRangeEnd": 24,
+    "reason": "뒤집기 시작 후 낙상 방지용으로 이 시기 흔히 사용해요",
+    "icon": "bed.double.fill",
+    "coupangKeyword": "아기 침대 가드"
+  },
+  {
+    "id": "nbp-012",
+    "name": "아기 치발기",
+    "category": "toy",
+    "ageRangeStart": 3,
+    "ageRangeEnd": 12,
+    "reason": "이 시기 잇몸 가려움 해소에 흔히 사용해요",
+    "icon": "teddybear.fill",
+    "coupangKeyword": "아기 치발기"
+  },
+  {
+    "id": "nbp-013",
+    "name": "유모차",
+    "category": "gear",
+    "ageRangeStart": 3,
+    "ageRangeEnd": 36,
+    "reason": "외출 시 이 시기 흔히 사용해요",
+    "icon": "stroller.fill",
+    "coupangKeyword": "유모차"
+  },
+  {
+    "id": "nbp-014",
+    "name": "카시트",
+    "category": "gear",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 36,
+    "reason": "차량 이동 시 안전을 위해 이 시기 흔히 사용해요",
+    "icon": "stroller.fill",
+    "coupangKeyword": "영아용 카시트"
+  },
+  {
+    "id": "nbp-015",
+    "name": "이유식 그릇 세트",
+    "category": "babyFood",
+    "ageRangeStart": 4,
+    "ageRangeEnd": 24,
+    "reason": "이유식 시작 시기에 흔히 준비해요",
+    "icon": "carrot.fill",
+    "coupangKeyword": "아기 이유식 그릇"
+  },
+  {
+    "id": "nbp-016",
+    "name": "실리콘 이유식 턱받이",
+    "category": "babyFood",
+    "ageRangeStart": 4,
+    "ageRangeEnd": 24,
+    "reason": "이유식 시기에 흔히 사용해요",
+    "icon": "carrot.fill",
+    "coupangKeyword": "실리콘 이유식 턱받이"
+  },
+  {
+    "id": "nbp-017",
+    "name": "이유식 냉동 용기",
+    "category": "babyFood",
+    "ageRangeStart": 5,
+    "ageRangeEnd": 18,
+    "reason": "이유식을 직접 만들어 보관할 때 이 시기 흔히 사용해요",
+    "icon": "carrot.fill",
+    "coupangKeyword": "이유식 냉동 용기"
+  },
+  {
+    "id": "nbp-018",
+    "name": "기저귀 사이즈 2단계",
+    "category": "diaper",
+    "ageRangeStart": 4,
+    "ageRangeEnd": 8,
+    "reason": "이 시기 체중 증가에 맞춰 흔히 교체해요",
+    "icon": "humidity.fill",
+    "coupangKeyword": "아기 기저귀 2단계"
+  },
+  {
+    "id": "nbp-019",
+    "name": "보행기",
+    "category": "gear",
+    "ageRangeStart": 6,
+    "ageRangeEnd": 12,
+    "reason": "앉기 시작 후 이 시기 흔히 사용해요",
+    "icon": "stroller.fill",
+    "coupangKeyword": "아기 보행기"
+  },
+  {
+    "id": "nbp-020",
+    "name": "아기 욕조",
+    "category": "bath",
+    "ageRangeStart": 0,
+    "ageRangeEnd": 18,
+    "reason": "목욕 시 이 시기 흔히 사용해요",
+    "icon": "bathtub.fill",
+    "coupangKeyword": "아기 욕조"
+  },
+  {
+    "id": "nbp-021",
+    "name": "빨대컵",
+    "category": "feeding",
+    "ageRangeStart": 6,
+    "ageRangeEnd": 24,
+    "reason": "이유식 시작 후 물 섭취용으로 이 시기 흔히 사용해요",
+    "icon": "cup.and.saucer",
+    "coupangKeyword": "아기 빨대컵"
+  },
+  {
+    "id": "nbp-022",
+    "name": "아기 첫 치솔",
+    "category": "medicine",
+    "ageRangeStart": 6,
+    "ageRangeEnd": 24,
+    "reason": "첫 이가 나는 시기에 이 시기 흔히 사용해요",
+    "icon": "pills.fill",
+    "coupangKeyword": "아기 첫 칫솔"
+  },
+  {
+    "id": "nbp-023",
+    "name": "기저귀 사이즈 3단계",
+    "category": "diaper",
+    "ageRangeStart": 7,
+    "ageRangeEnd": 14,
+    "reason": "이 시기 체중에 맞춰 흔히 교체해요",
+    "icon": "humidity.fill",
+    "coupangKeyword": "아기 기저귀 3단계"
+  },
+  {
+    "id": "nbp-024",
+    "name": "아기 안전문",
+    "category": "gear",
+    "ageRangeStart": 8,
+    "ageRangeEnd": 24,
+    "reason": "기기 시작 후 낙상 방지용으로 이 시기 흔히 사용해요",
+    "icon": "stroller.fill",
+    "coupangKeyword": "아기 안전문"
+  },
+  {
+    "id": "nbp-025",
+    "name": "돌잡이 완구 세트",
+    "category": "toy",
+    "ageRangeStart": 10,
+    "ageRangeEnd": 18,
+    "reason": "소근육 발달에 이 시기 흔히 사용해요",
+    "icon": "teddybear.fill",
+    "coupangKeyword": "돌잡이 완구"
+  },
+  {
+    "id": "nbp-026",
+    "name": "유아 변기 시트",
+    "category": "other",
+    "ageRangeStart": 18,
+    "ageRangeEnd": 36,
+    "reason": "배변 훈련 시기에 흔히 사용해요",
+    "icon": "bag.fill",
+    "coupangKeyword": "유아 변기 시트"
+  },
+  {
+    "id": "nbp-027",
+    "name": "기저귀 사이즈 4단계",
+    "category": "diaper",
+    "ageRangeStart": 12,
+    "ageRangeEnd": 24,
+    "reason": "이 시기 체중에 맞춰 흔히 교체해요",
+    "icon": "humidity.fill",
+    "coupangKeyword": "아기 기저귀 4단계"
+  },
+  {
+    "id": "nbp-028",
+    "name": "유아 낙서 그림책",
+    "category": "toy",
+    "ageRangeStart": 12,
+    "ageRangeEnd": 36,
+    "reason": "창의력 발달을 위해 이 시기 흔히 사용해요",
+    "icon": "teddybear.fill",
+    "coupangKeyword": "유아 낙서 그림책"
+  },
+  {
+    "id": "nbp-029",
+    "name": "유아 음식 가위",
+    "category": "babyFood",
+    "ageRangeStart": 8,
+    "ageRangeEnd": 24,
+    "reason": "유아식 준비 시 이 시기 흔히 사용해요",
+    "icon": "carrot.fill",
+    "coupangKeyword": "유아 음식 가위"
+  },
+  {
+    "id": "nbp-030",
+    "name": "풍선 완구",
+    "category": "toy",
+    "ageRangeStart": 24,
+    "ageRangeEnd": 36,
+    "reason": "감각 놀이용으로 이 시기 흔히 사용해요",
+    "icon": "teddybear.fill",
+    "coupangKeyword": "유아 풍선 완구"
+  }
+]

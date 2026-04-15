@@ -43,4 +43,19 @@ enum CoupangAffiliateService {
         }
         return searchURL(for: product)
     }
+
+    // MARK: - Recommendation Deep Link
+
+    /// 추천 용품명 기반 쿠팡 딥링크를 반환합니다.
+    /// coupangKeyword가 있으면 해당 키워드로, 없으면 productName으로 검색 URL을 생성합니다.
+    static func deepLink(productName: String, keyword: String? = nil) -> URL? {
+        let searchKeyword = keyword ?? productName
+        return CoupangConfig.searchURL(keyword: searchKeyword)
+    }
+
+    /// ProductRecommendation 기반 쿠팡 검색 URL 반환.
+    static func searchURL(for recommendation: ProductRecommendation) -> URL? {
+        let keyword = recommendation.coupangKeyword ?? recommendation.name
+        return CoupangConfig.searchURL(keyword: keyword)
+    }
 }

@@ -4,6 +4,15 @@ struct ProductListView: View {
     @Environment(ProductViewModel.self) private var productVM
     @Environment(PurchaseViewModel.self) private var purchaseVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) private var babyVM
+
+    @State private var safariURL: URL?
+    @State private var showSafari = false
+
+    private var babyAgeMonths: Int {
+        guard let baby = babyVM.selectedBaby else { return 0 }
+        return Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 0
+    }
 
     var body: some View {
         @Bindable var vm = productVM
@@ -33,15 +42,22 @@ struct ProductListView: View {
 
                 // Product list
                 if productVM.filteredProducts.isEmpty && !productVM.isLoading {
-                    EmptyStateView(
-                        icon: "bag.fill",
-                        title: "등록된 용품 없음",
-                        message: "아기 용품을 등록하고 관리해보세요",
-                        actionTitle: "용품 추가"
-                    ) {
-                        productVM.showAddProduct = true
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            EmptyStateView(
+                                icon: "bag.fill",
+                                title: "등록된 용품 없음",
+                                message: "아기 용품을 등록하고 관리해보세요",
+                                actionTitle: "용품 추가"
+                            ) {
+                                productVM.showAddProduct = true
+                            }
+                            .padding(.top, 40)
+
+                            recommendationSection
+                            popularSection
+                        }
                     }
-                    .frame(maxHeight: .infinity)
                 } else {
                     productList
                 }
@@ -73,6 +89,11 @@ struct ProductListView: View {
             }
             .sheet(isPresented: $vm.showAddProduct) {
                 AddProductView()
+            }
+            .sheet(isPresented: $showSafari) {
+                if let url = safariURL {
+                    SafariView(url: url).ignoresSafeArea()
+                }
             }
             .task {
                 guard let userId = authVM.currentUserId else { return }
@@ -162,6 +183,57 @@ struct ProductListView: View {
         .padding(.horizontal)
     }
 
+    // MARK: - Recommendation Section
+
+    private var recommendationSection: some View {
+        let recs = productVM.ageBasedRecommendations(ageInMonths: babyAgeMonths)
+        return Group {
+            if !recs.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label(
+                        NSLocalizedString("product.recommend.section.title", comment: ""),
+                        systemImage: "sparkles"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(AppColors.primaryAccent)
+                    .padding(.horizontal)
+
+                    if babyVM.selectedBaby != nil {
+                        Text(
+                            String(
+                                format: NSLocalizedString("product.recommend.age.label", comment: ""),
+                                babyAgeMonths
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                    }
+
+                    VStack(spacing: 8) {
+                        ForEach(recs.prefix(5)) { rec in
+                            ProductRecommendationCard(recommendation: rec) { url in
+                                safariURL = url
+                                showSafari = true
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Popular Section
+
+    private var popularSection: some View {
+        let popular = productVM.popularCatalogProducts(limit: 5)
+        return PopularProductsSection(popularProducts: popular) { url in
+            safariURL = url
+            showSafari = true
+        }
+    }
+
     // MARK: - Product List
 
     private var productList: some View {
@@ -205,6 +277,26 @@ struct ProductListView: View {
                                 await productVM.deleteProduct(product, userId: userId)
                             }
                         }
+                    }
+                }
+            }
+
+            // 추천 섹션 (리스트 맨 아래)
+            let recs = productVM.ageBasedRecommendations(ageInMonths: babyAgeMonths)
+            if !recs.isEmpty {
+                Section(
+                    header: Label(
+                        NSLocalizedString("product.recommend.section.title", comment: ""),
+                        systemImage: "sparkles"
+                    )
+                ) {
+                    ForEach(recs.prefix(5)) { rec in
+                        ProductRecommendationCard(recommendation: rec) { url in
+                            safariURL = url
+                            showSafari = true
+                        }
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowBackground(Color.clear)
                     }
                 }
             }

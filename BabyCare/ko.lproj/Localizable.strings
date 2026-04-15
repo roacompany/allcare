@@ -265,3 +265,22 @@
 "hospital.report.share.button" = "PDF 공유";
 "hospital.report.checklist.preview.title" = "소아과 체크리스트";
 "hospital.report.checklist.preview.empty" = "체크리스트 항목이 없습니다";
+
+/* Product Recommendation — 월령 기반 추천 */
+"product.recommend.section.title" = "이 시기 흔히 사용해요";
+"product.recommend.age.label" = "%d개월 기준 추천 용품";
+"product.recommend.age.range" = "%d~%d개월 시기";
+"product.recommend.coupang.button" = "쿠팡 보기";
+
+/* Product Popular — 인기 용품 */
+"product.popular.section.title" = "인기 용품";
+"product.popular.buy" = "구매하기";
+
+/* Product Reorder — 소모품 재구매 알림 */
+"product.reorder.insight.single" = "%@ 재구매 시기가 다가오고 있어요";
+"product.reorder.insight.multiple" = "%@ 외 %d개 소모품 재구매 시기가 다가오고 있어요";
+"product.reorder.insight.sub" = "용품 탭에서 확인하세요";
+"product.reorder.days.left" = "%d일 후 재구매 예정";
+"product.reorder.overdue" = "재구매 시기가 지났어요";
+"product.reorder.notification.title" = "소모품 재구매 알림";
+"product.reorder.notification.body" = "%@의 %@ 재구매 시기가 다가오고 있어요";

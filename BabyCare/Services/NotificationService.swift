@@ -379,6 +379,54 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: - Reorder Reminder (소모품 재구매 알림)
+
+    /// 소모품 재구매 예정일 기준 푸시 알림을 예약합니다.
+    /// 기존 권한을 재사용하며 새 권한 요청을 하지 않습니다.
+    /// - Parameters:
+    ///   - product: 재구매 알림 대상 제품
+    ///   - reorderDate: 재구매 예정일
+    ///   - babyName: 아기 이름 (알림 메시지에 포함)
+    func scheduleReorderReminder(product: BabyProduct, reorderDate: Date, babyName: String) {
+        guard reorderDate > Date() else { return }
+
+        let identifier = "reorder-reminder-\(product.id)"
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString("product.reorder.notification.title", comment: "")
+        content.body = String(
+            format: NSLocalizedString("product.reorder.notification.body", comment: ""),
+            babyName,
+            product.name
+        )
+        content.sound = .default
+        content.categoryIdentifier = "REORDER_REMINDER"
+        content.userInfo = [
+            "type": "reorder",
+            "productId": product.id,
+            "productName": product.name
+        ]
+
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: reorderDate)
+        components.hour = 9
+        components.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelReorderReminder(productId: String) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["reorder-reminder-\(productId)"])
+    }
+
     // MARK: - Cancel
 
     func cancelNotification(identifier: String) {

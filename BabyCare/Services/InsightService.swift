@@ -30,6 +30,42 @@ final class InsightService {
 
     private(set) var insights: [DashboardInsight] = []
 
+    // MARK: - Reorder Insight
+
+    /// 재구매 임박 소모품이 있을 때 대시보드 인사이트 카드를 생성합니다.
+    /// - Parameters:
+    ///   - products: 재구매 임박 제품 목록 (이미 7일 이내 필터링된 목록)
+    /// - Returns: 재구매 알림 카드 (제품이 없으면 nil)
+    func makeReorderInsight(products: [BabyProduct]) -> DashboardInsight? {
+        guard let first = products.first else { return nil }
+
+        let primaryText: String
+        let secondaryText: String?
+
+        if products.count == 1 {
+            primaryText = String(
+                format: NSLocalizedString("product.reorder.insight.single", comment: ""),
+                first.name
+            )
+            secondaryText = NSLocalizedString("product.reorder.insight.sub", comment: "")
+        } else {
+            primaryText = String(
+                format: NSLocalizedString("product.reorder.insight.multiple", comment: ""),
+                first.name,
+                products.count - 1
+            )
+            secondaryText = NSLocalizedString("product.reorder.insight.sub", comment: "")
+        }
+
+        return DashboardInsight(
+            kind: .milestone,
+            icon: "cart.badge.plus",
+            colorName: "warmOrangeColor",
+            primaryText: primaryText,
+            secondaryText: secondaryText
+        )
+    }
+
     // MARK: - Public API
 
     /// 인사이트를 갱신합니다.

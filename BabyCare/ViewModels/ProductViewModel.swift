@@ -107,4 +107,37 @@ final class ProductViewModel {
     func fetchCatalogSuggestions(text: String, category: BabyProduct.ProductCategory) -> [CatalogProduct] {
         CatalogService.findMatches(userText: text, category: category, catalog: catalog)
     }
+
+    // MARK: - Age-based Recommendations
+
+    /// 아기 월령 기반 추천 용품 목록 (정적 카탈로그).
+    /// babyAgeMonths를 외부에서 주입받아 computed property로 노출합니다.
+    func ageBasedRecommendations(ageInMonths: Int) -> [ProductRecommendation] {
+        ProductRecommendationService.recommendations(for: ageInMonths)
+    }
+
+    // MARK: - Popular Products (카탈로그 기반)
+
+    /// 카탈로그에서 인기 용품 top-N을 반환합니다.
+    func popularCatalogProducts(limit: Int = 5) -> [CatalogProduct] {
+        CatalogService.popularProducts(from: catalog, limit: limit)
+    }
+
+    // MARK: - Reorder Insights
+
+    /// 재구매 임박 소모품 목록 (7일 이내).
+    func reorderInsights(reorderDates: [String: Date]) -> [BabyProduct] {
+        ProductRecommendationService.reorderCandidates(
+            from: activeProducts,
+            reorderDates: reorderDates,
+            thresholdDays: 7
+        )
+    }
+
+    // MARK: - Coupang Deep Link (추천용)
+
+    /// 추천 용품에 대한 쿠팡 검색 URL을 반환합니다.
+    func coupangURL(for recommendation: ProductRecommendation) -> URL? {
+        CoupangAffiliateService.searchURL(for: recommendation)
+    }
 }

@@ -58,4 +58,16 @@ enum CatalogService {
             return matchCount >= 1
         }
     }
+
+    // MARK: - Popular Products (카탈로그 기반 top-N)
+
+    /// Firestore 카탈로그에서 태그 수(= 구매 기록 대리 지표) 기준 상위 N개 반환.
+    /// 외부 추천 API 호출 없이 정적 카탈로그 데이터만 사용합니다.
+    static func popularProducts(from catalog: [CatalogProduct], limit: Int = 5) -> [CatalogProduct] {
+        // 태그가 많을수록 더 구체적으로 등록된 인기 제품으로 간주
+        return catalog
+            .sorted { $0.tags.count > $1.tags.count }
+            .prefix(limit)
+            .map { $0 }
+    }
 }
