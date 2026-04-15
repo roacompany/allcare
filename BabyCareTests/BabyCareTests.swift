@@ -983,4 +983,124 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(dist[.bouncer], 1)
         XCTAssertEqual(dist[.inArms], 2)
     }
+
+    // MARK: - Badge Phase 1 Tests
+
+    func testBadge_codableRoundTrip() throws {
+        let badge = Badge(
+            id: "feeding100",
+            category: .aggregate,
+            earnedByUserId: "user1",
+            babyId: "babyA",
+            earnedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            earnedAtDateUTC: "2023-11-14",
+            conditionVersion: 1
+        )
+        let data = try JSONEncoder().encode(badge)
+        let decoded = try JSONDecoder().decode(Badge.self, from: data)
+        XCTAssertEqual(decoded, badge)
+    }
+
+    func testBadgeCategory_allCases() {
+        let all = BadgeCategory.allCases
+        XCTAssertEqual(Set(all), Set([.firstTime, .aggregate, .streak]))
+        XCTAssertEqual(all.count, 3)
+    }
+
+    func testBadgeCatalog_hasEight() {
+        XCTAssertEqual(BadgeCatalog.all.count, 8)
+    }
+
+    func testBadgeCatalog_allIdsUnique() {
+        let ids = BadgeCatalog.all.map { $0.id }
+        XCTAssertEqual(Set(ids).count, ids.count)
+    }
+
+    func testBadgeCatalog_iconNonEmpty() {
+        for def in BadgeCatalog.all {
+            XCTAssertFalse(def.iconSFSymbol.isEmpty, "iconSFSymbol empty for \(def.id)")
+        }
+    }
+
+    func testBadgeCatalog_definitionLookup() {
+        XCTAssertNotNil(BadgeCatalog.definition(id: "feeding100"))
+        XCTAssertNotNil(BadgeCatalog.definition(id: "routineStreak7"))
+        XCTAssertNil(BadgeCatalog.definition(id: "unknownBadge"))
+    }
+
+    func testBadgeCatalog_thresholds() {
+        XCTAssertEqual(BadgeCatalog.definition(id: "feeding100")?.threshold, 100)
+        XCTAssertEqual(BadgeCatalog.definition(id: "sleep50")?.threshold, 50)
+        XCTAssertEqual(BadgeCatalog.definition(id: "diaper200")?.threshold, 200)
+        XCTAssertEqual(BadgeCatalog.definition(id: "growth10")?.threshold, 10)
+        XCTAssertEqual(BadgeCatalog.definition(id: "routineStreak3")?.threshold, 3)
+        XCTAssertEqual(BadgeCatalog.definition(id: "routineStreak7")?.threshold, 7)
+        XCTAssertEqual(BadgeCatalog.definition(id: "routineStreak30")?.threshold, 30)
+        XCTAssertEqual(BadgeCatalog.definition(id: "firstRecord")?.threshold, 1)
+    }
+
+    func testBadgeCatalog_statsFieldCoverage() {
+        for def in BadgeCatalog.all {
+            switch def.category {
+            case .aggregate:
+                XCTAssertNotNil(def.statsField, "aggregate \(def.id) must have statsField")
+            case .firstTime, .streak:
+                XCTAssertNil(def.statsField, "\(def.category.rawValue) \(def.id) must NOT have statsField")
+            }
+        }
+    }
+
+    func testFirestoreCollections_badgesAndStats() {
+        XCTAssertEqual(FirestoreCollections.badges, "badges")
+        XCTAssertEqual(FirestoreCollections.stats, "stats")
+    }
+
+    func testUserStats_emptyFactory() {
+        let stats = UserStats.empty()
+        XCTAssertEqual(stats.id, "lifetime")
+        XCTAssertEqual(stats.feedingCount, 0)
+        XCTAssertEqual(stats.sleepCount, 0)
+        XCTAssertEqual(stats.diaperCount, 0)
+        XCTAssertEqual(stats.growthRecordCount, 0)
+        XCTAssertNil(stats.firstRecordAt)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_shouldCheckFirstRecord() {
+        XCTAssertTrue(BadgeEvaluator.shouldCheckFirstRecord(kind: .feedingLogged))
+        XCTAssertTrue(BadgeEvaluator.shouldCheckFirstRecord(kind: .sleepLogged))
+        XCTAssertTrue(BadgeEvaluator.shouldCheckFirstRecord(kind: .diaperLogged))
+        XCTAssertTrue(BadgeEvaluator.shouldCheckFirstRecord(kind: .growthLogged))
+        XCTAssertFalse(BadgeEvaluator.shouldCheckFirstRecord(kind: .routineStreakUpdated(newStreak: 7)))
+    }
+
+    @MainActor
+    func testBadgeEvaluator_aggregateMapping() {
+        XCTAssertEqual(BadgeEvaluator.aggregateMapping(kind: .feedingLogged)?.field, "feedingCount")
+        XCTAssertEqual(BadgeEvaluator.aggregateMapping(kind: .feedingLogged)?.badgeIds, ["feeding100"])
+        XCTAssertEqual(BadgeEvaluator.aggregateMapping(kind: .sleepLogged)?.field, "sleepCount")
+        XCTAssertEqual(BadgeEvaluator.aggregateMapping(kind: .diaperLogged)?.field, "diaperCount")
+        XCTAssertEqual(BadgeEvaluator.aggregateMapping(kind: .growthLogged)?.field, "growthRecordCount")
+        XCTAssertNil(BadgeEvaluator.aggregateMapping(kind: .routineStreakUpdated(newStreak: 3)))
+    }
+
+    @MainActor
+    func testBadgeEvaluator_statsValue() {
+        var stats = UserStats.empty()
+        stats.feedingCount = 42
+        stats.sleepCount = 17
+        stats.diaperCount = 108
+        stats.growthRecordCount = 5
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "feedingCount"), 42)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "sleepCount"), 17)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "diaperCount"), 108)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "growthRecordCount"), 5)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "unknown"), 0)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_utcDateString_format() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)  // 2023-11-14 22:13:20 UTC
+        XCTAssertEqual(BadgeEvaluator.utcDateString(date), "2023-11-14")
+    }
 }
