@@ -74,13 +74,28 @@ harness-score: 96% (Grade A) — 2026-04-15
 
 ## Recent Session (2026-04-15)
 
-- chore(firestore): `badges` + `stats` 보안 규칙 추가 및 프로덕션 배포 — 본인(uid)만 read/write
-- feat(badges): BadgeEvaluator를 Activity/Growth/Routine save path에 wire-in — `BadgeEvaluator+Mapping.swift` (Activity.ActivityType → Event.Kind)
-- docs(badges-ui): Phase 2 UI 스펙 작성 — `.dev/specs/badges-ui/PLAN.md` (Snackbar + Gallery + HomeStrip + Localizable, 14 A-items / 5 H-items / 6 TODOs)
-- refactor(sleep-method): SleepMethodType 중복(`holding`≈`inArms`) + 카테고리 불일치(`nursing`=상황) 정리 — raw value 유지(decode 호환), `selectableCases` 도입, UserDefaults 기본값 마이그레이션
-- feat(badges-ui Phase 2 TODO 1): BadgePresenter (@MainActor @Observable FIFO 큐) + AppState 통합, 3 save path에서 presenter.enqueue 연결
-- feat(badges-ui Phase 2 완료): BadgeSnackbarView (spring 3s dismiss + haptic + FIFO 큐 전이) + BadgeGalleryView (3섹션 그리드 + progress clamp + DetailSheet) + BadgeHomeStrip (Dashboard 상단) + SettingsView "내 배지" row + BadgeViewModel (arch-test 0 유지) + Localizable 25키
-- 테스트: 94→107개 (+13), 누적 커밋 7개, harness-score 96% Grade A 유지
+### Phase 2 UI + Code Review
+- 배지 Phase 2 UI 완료 (Snackbar + Gallery + HomeStrip + 26 Localizable)
+- code-reviewer 다중모델 리뷰 → CR-001(공유 아기 경로) / CR-002(로컬라이즈) / CR-003(햅틱 재사용) / CR-006(@unknown default) 수정
+
+### Feature Enhancement Rollout (master spec: `.dev/specs/feature-enhancement-rollout/PLAN.md`)
+잔여 9개 항목 하네스 엔지니어링 6축 순환 (specify→execute→verify→commit→compound→context)으로 일괄 실행:
+
+- **#4 대시보드 인사이트 카드 (T1)**: InsightService (4종 — 수유/수면/건강/마일스톤) + DashboardInsightCards
+- **#5 수면 퇴행 감지 (T2)**: SleepAnalysisService (4/8/12개월 ±2주 윈도우, 최적 취침, 낮밤 비율, 품질 점수)
+- **#6 예방접종 강화 (T3)**: D-day 카드 + D-14/7/1 단계별 푸시 + 부작용 기록 + 완료율 ProgressView
+- **#7 할일/루틴 자동화 (T2)**: 검증 완료 (.dev/specs/done/todo-routine-automation/)
+- **#8 일기 자동 요약 (T2)**: DiaryAnalysisService + 월간 분포 + N개월 회고 + 기분 트렌드 차트 + 사진 갤러리
+- **#9 알레르기 추적 강화 (T3)**: FoodSafetyService + 이유식↔알레르기 자동 연동 + safe/caution/forbidden 대시보드
+- **#10 병원 리포트 강화 (T2)**: HospitalChecklistService + PDF 통합 (체크리스트/백분위/활동 요약) + UIActivityViewController 공유
+- **#11 제품 추천 (T3)**: ProductRecommendationService (정적 카탈로그) + 재구매 InsightService 카드 + 쿠팡 딥링크 + 인기 용품
+- **#12 위젯 강화 (T3)**: NextFeeding/NextNap/TodaySummary/GrowthPercentile + Lock Screen 3종 (accessoryCircular/Rectangular/Inline)
+
+### 누적 결과
+- 테스트: 107 → 195 (+88)
+- 커밋: 9개 (feature 8 + fix 1)
+- arch-test: 0 violations 유지
+- SwiftLint warnings: 8개 (기존 Badge.swift) 동일
 
 ## Current Status
 
