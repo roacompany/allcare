@@ -205,7 +205,8 @@ extension ActivityViewModel {
     private func evaluateBadgesIfNeeded(type: Activity.ActivityType, babyId: String, userId: String, at date: Date) async {
         guard let kind = BadgeEvaluator.eventKind(for: type) else { return }
         let event = BadgeEvaluator.Event(kind: kind, babyId: babyId, at: date)
-        _ = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        AppState.shared.badgePresenter.enqueue(earned)
     }
 
     func updateActivity(_ activity: Activity, userId: String) async {

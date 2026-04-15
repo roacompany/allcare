@@ -21,6 +21,7 @@ final class AppState {
     let patternReport: PatternReportViewModel
     let purchase: PurchaseViewModel
     let hospitalReport: HospitalReportViewModel
+    let badgePresenter: BadgePresenter
 
     private init() {
         // Firebase는 AppDelegate에서 초기화됨
@@ -39,5 +40,6 @@ final class AppState {
         patternReport = PatternReportViewModel()
         purchase = PurchaseViewModel()
         hospitalReport = HospitalReportViewModel()
+        badgePresenter = BadgePresenter()
     }
 }

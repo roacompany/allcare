@@ -163,7 +163,8 @@ final class RoutineViewModel {
                         babyId: nil,
                         at: today
                     )
-                    _ = await BadgeEvaluator().evaluate(event: event, userId: userId)
+                    let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
+                    AppState.shared.badgePresenter.enqueue(earned)
                 }
             } catch {
                 routines[rIdx] = backup

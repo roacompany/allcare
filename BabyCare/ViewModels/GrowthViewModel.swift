@@ -24,7 +24,8 @@ final class GrowthViewModel {
         records.append(record)
         records.sort { $0.date < $1.date }
         let event = BadgeEvaluator.Event(kind: .growthLogged, babyId: record.babyId, at: record.date)
-        _ = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        AppState.shared.badgePresenter.enqueue(earned)
     }
 
     // MARK: - Update

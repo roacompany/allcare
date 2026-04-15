@@ -1010,7 +1010,62 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(Activity.SleepMethodType.allCases.count, 8)
     }
 
-    // MARK: - Badge Phase 1 Tests
+    // MARK: - BadgePresenter Tests
+
+    @MainActor
+    func testBadgePresenter_enqueueSingle_setsCurrent() {
+        let p = BadgePresenter()
+        let b = Self.makeTestBadge(id: "firstRecord")
+        p.enqueue([b])
+        XCTAssertEqual(p.current?.id, "firstRecord")
+        XCTAssertEqual(p.pending.count, 0)
+    }
+
+    @MainActor
+    func testBadgePresenter_enqueueMultiple_fifoDrain() {
+        let p = BadgePresenter()
+        let b1 = Self.makeTestBadge(id: "firstRecord")
+        let b2 = Self.makeTestBadge(id: "feeding100")
+        let b3 = Self.makeTestBadge(id: "sleep50")
+        p.enqueue([b1, b2, b3])
+        XCTAssertEqual(p.current?.id, "firstRecord")
+        XCTAssertEqual(p.pending.map(\.id), ["feeding100", "sleep50"])
+        p.dismiss()
+        XCTAssertEqual(p.current?.id, "feeding100")
+        p.dismiss()
+        XCTAssertEqual(p.current?.id, "sleep50")
+        p.dismiss()
+        XCTAssertNil(p.current)
+    }
+
+    @MainActor
+    func testBadgePresenter_dismissEmpty_noOp() {
+        let p = BadgePresenter()
+        p.dismiss()
+        XCTAssertNil(p.current)
+        XCTAssertTrue(p.pending.isEmpty)
+    }
+
+    @MainActor
+    func testBadgePresenter_enqueueEmpty_noOp() {
+        let p = BadgePresenter()
+        p.enqueue([])
+        XCTAssertNil(p.current)
+    }
+
+    private static func makeTestBadge(id: String) -> Badge {
+        Badge(
+            id: id,
+            category: .firstTime,
+            earnedByUserId: "u1",
+            babyId: nil,
+            earnedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            earnedAtDateUTC: "2023-11-14",
+            conditionVersion: 1
+        )
+    }
+
+
 
     func testBadge_codableRoundTrip() throws {
         let badge = Badge(
