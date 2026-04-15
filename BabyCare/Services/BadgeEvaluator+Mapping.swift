@@ -12,6 +12,8 @@ extension BadgeEvaluator {
             return .diaperLogged
         case .temperature, .medication, .bath:
             return nil
+        @unknown default:
+            return nil
         }
     }
 }

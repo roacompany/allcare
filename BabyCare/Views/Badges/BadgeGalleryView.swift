@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BadgeGalleryView: View {
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) private var babyVM
 
     @State private var vm = BadgeViewModel()
     @State private var selected: BadgeCatalog.Definition?
@@ -30,7 +31,7 @@ struct BadgeGalleryView: View {
             BadgeDetailSheet(definition: def, earned: vm.earnedBadge(for: def), stats: vm.stats)
         }
         .task {
-            if let uid = authVM.currentUserId {
+            if let uid = babyVM.resolvedUserId(auth: authVM) {
                 await vm.load(userId: uid)
             }
         }
@@ -181,7 +182,7 @@ struct BadgeDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    Button(LocalizedStringKey("badge.detail.close")) { dismiss() }
                 }
             }
         }

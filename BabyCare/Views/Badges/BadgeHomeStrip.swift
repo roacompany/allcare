@@ -3,6 +3,7 @@ import SwiftUI
 /// 홈 상단 배지 스트립. 최근 획득 5개 + "전체 보기". 0개일 때는 empty prompt.
 struct BadgeHomeStrip: View {
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(BabyViewModel.self) private var babyVM
     @State private var vm = BadgeViewModel()
 
     var body: some View {
@@ -16,7 +17,7 @@ struct BadgeHomeStrip: View {
             }
         }
         .task {
-            if let uid = authVM.currentUserId {
+            if let uid = babyVM.resolvedUserId(auth: authVM) {
                 await vm.load(userId: uid)
             }
         }

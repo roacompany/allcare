@@ -9,6 +9,7 @@ struct BadgeSnackbarView: View {
 
     @State private var visible = false
     @State private var dismissTask: Task<Void, Never>?
+    private let haptic = UINotificationFeedbackGenerator()
 
     var body: some View {
         ZStack {
@@ -85,7 +86,8 @@ struct BadgeSnackbarView: View {
     }
 
     private func show() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        haptic.prepare()
+        haptic.notificationOccurred(.success)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
             visible = true
         }

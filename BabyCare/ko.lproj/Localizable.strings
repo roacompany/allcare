@@ -30,6 +30,7 @@
 "badge.home.seeAll" = "전체 보기";
 "badge.detail.earnedAt" = "획득일";
 "badge.detail.progress" = "진행도";
+"badge.detail.close" = "닫기";
 
 /* Badge Snackbar */
 "badge.snackbar.congrats" = "축하합니다!";
