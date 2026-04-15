@@ -221,7 +221,7 @@ struct GrowthView: View {
         )
 
         do {
-            try await growthVM.saveRecord(record, userId: userId)
+            try await growthVM.saveRecord(record, userId: userId, baby: babyVM.selectedBaby)
             showAddRecord = false
 
             // 성장 속도 알림 체크

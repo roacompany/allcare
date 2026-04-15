@@ -201,8 +201,12 @@ struct HealthView: View {
             .navigationTitle("건강")
             .onAppear {
                 AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
-                // #9 이슈 해결: solidFoodActivities 주입 (FoodSafetyDashboard 데이터 공급)
-                healthVM.solidFoodActivities = activityVM.todayActivities.filter { $0.type == .feedingSolid }
+            }
+            .task {
+                guard let currentUserId = authVM.currentUserId,
+                      let babyId = babyVM.selectedBaby?.id else { return }
+                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                await healthVM.loadRecentSolidFoods(userId: dataUserId, babyId: babyId)
             }
             .toolbar {
                 if babyVM.babies.count > 1 {

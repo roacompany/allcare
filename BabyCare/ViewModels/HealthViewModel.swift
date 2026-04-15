@@ -288,9 +288,21 @@ final class HealthViewModel {
 
     var allergyRecords: [AllergyRecord] = []
 
-    // MARK: - Solid Food Activities (주입용 — ActivityViewModel에서 전달)
+    // MARK: - Solid Food Activities (최근 90일 fetch — FoodSafety 분류용)
 
     var solidFoodActivities: [Activity] = []
+
+    func loadRecentSolidFoods(userId: String, babyId: String) async {
+        let ninetyDaysAgo = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+        do {
+            let activities = try await firestoreService.fetchActivities(
+                userId: userId, babyId: babyId, from: ninetyDaysAgo, to: Date()
+            )
+            solidFoodActivities = activities.filter { $0.type == .feedingSolid }
+        } catch {
+            errorMessage = "이유식 기록 로드 실패: \(error.localizedDescription)"
+        }
+    }
 
     // MARK: - Food Safety Computed
 
