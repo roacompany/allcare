@@ -11,11 +11,27 @@ struct WidgetActivity: Codable {
     let detail: String?       // "15분", "120ml" 등
 }
 
+/// 위젯 성장 백분위 모델 (App Group 공유).
+struct WidgetGrowthPercentile: Codable {
+    let weightKg: Double?
+    let weightPercentile: Double?    // 0~100
+    let heightCm: Double?
+    let heightPercentile: Double?    // 0~100
+    let measuredAt: Date?
+}
+
+/// 위젯 낮잠 예측 모델 (App Group 공유).
+struct WidgetNapPrediction: Codable {
+    let lastNapTime: Date?
+    let nextNapTime: Date?
+    let napIntervalMinutes: Int      // 예상 낮잠 간격 (분)
+}
+
 /// 메인 앱과 위젯 간 데이터 공유용 UserDefaults wrapper.
 enum WidgetDataStore {
-    private static let suiteName: String? = "group.com.roacompany.allcare"
+    static let suiteName: String? = "group.com.roacompany.allcare"
 
-    private static var defaults: UserDefaults {
+    static var defaults: UserDefaults {
         if let suiteName, let shared = UserDefaults(suiteName: suiteName) {
             return shared
         }
@@ -24,7 +40,7 @@ enum WidgetDataStore {
 
     // MARK: - Keys
 
-    private enum Keys {
+    enum Keys {
         static let babyName = "widget_babyName"
         static let babyAge = "widget_babyAge"
         static let lastFeedingTime = "widget_lastFeedingTime"
@@ -39,6 +55,10 @@ enum WidgetDataStore {
         static let todayTotalMl = "widget_todayTotalMl"
         static let recentActivities = "widget_recentActivities"
         static let lastSleepDuration = "widget_lastSleepDuration"
+        // Phase 2 — 위젯 강화
+        static let nextFeedingEstimate = "widget_nextFeedingEstimate"
+        static let growthPercentile = "widget_growthPercentile"
+        static let napPrediction = "widget_napPrediction"
     }
 
     // MARK: - Write (from main app)
@@ -56,7 +76,10 @@ enum WidgetDataStore {
         todayDiaperCount: Int = 0,
         todayTotalMl: Double = 0,
         recentActivities: [WidgetActivity] = [],
-        lastSleepDuration: String? = nil
+        lastSleepDuration: String? = nil,
+        nextFeedingEstimate: Date? = nil,
+        growthPercentile: WidgetGrowthPercentile? = nil,
+        napPrediction: WidgetNapPrediction? = nil
     ) {
         defaults.set(babyName, forKey: Keys.babyName)
         defaults.set(babyAge, forKey: Keys.babyAge)
@@ -76,7 +99,28 @@ enum WidgetDataStore {
             defaults.set(data, forKey: Keys.recentActivities)
         }
 
+        // Phase 2 데이터
+        if let estimate = nextFeedingEstimate {
+            defaults.set(estimate, forKey: Keys.nextFeedingEstimate)
+        }
+        if let growth = growthPercentile,
+           let data = try? JSONEncoder().encode(growth) {
+            defaults.set(data, forKey: Keys.growthPercentile)
+        }
+        if let nap = napPrediction,
+           let data = try? JSONEncoder().encode(nap) {
+            defaults.set(data, forKey: Keys.napPrediction)
+        }
+
         // 위젯 즉시 갱신
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// 성장 백분위만 독립 업데이트 (GrowthViewModel save 시 호출).
+    static func updateGrowthPercentile(_ percentile: WidgetGrowthPercentile) {
+        if let data = try? JSONEncoder().encode(percentile) {
+            defaults.set(data, forKey: Keys.growthPercentile)
+        }
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -112,6 +156,11 @@ enum WidgetDataStore {
     }
 
     static var nextFeedingTime: Date? {
+        // Phase 2: InsightService가 계산한 정밀 예측 우선 사용
+        if let estimated = defaults.object(forKey: Keys.nextFeedingEstimate) as? Date {
+            return estimated
+        }
+        // fallback: lastFeeding + interval
         guard let last = lastFeedingTime else { return nil }
         return last.addingTimeInterval(Double(feedingIntervalMinutes) * 60)
     }
@@ -144,5 +193,17 @@ enum WidgetDataStore {
             return []
         }
         return activities
+    }
+
+    // MARK: - Phase 2 Read
+
+    static var growthPercentile: WidgetGrowthPercentile? {
+        guard let data = defaults.data(forKey: Keys.growthPercentile) else { return nil }
+        return try? JSONDecoder().decode(WidgetGrowthPercentile.self, from: data)
+    }
+
+    static var napPrediction: WidgetNapPrediction? {
+        guard let data = defaults.data(forKey: Keys.napPrediction) else { return nil }
+        return try? JSONDecoder().decode(WidgetNapPrediction.self, from: data)
     }
 }

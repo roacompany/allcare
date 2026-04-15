@@ -18,7 +18,7 @@ final class GrowthViewModel {
 
     // MARK: - Save
 
-    func saveRecord(_ record: GrowthRecord, userId: String) async throws {
+    func saveRecord(_ record: GrowthRecord, userId: String, baby: Baby? = nil) async throws {
         try await firestoreService.saveGrowthRecord(record, userId: userId)
         AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
         records.append(record)
@@ -26,6 +26,41 @@ final class GrowthViewModel {
         let event = BadgeEvaluator.Event(kind: .growthLogged, babyId: record.babyId, at: record.date)
         let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
         AppState.shared.badgePresenter.enqueue(earned)
+
+        // 위젯 성장 백분위 동기화
+        if let baby {
+            syncWidgetGrowthPercentile(record: record, baby: baby)
+        }
+    }
+
+    // MARK: - Widget Sync
+
+    private func syncWidgetGrowthPercentile(record: GrowthRecord, baby: Baby) {
+        let calendar = Calendar.current
+        let ageMonths = calendar.dateComponents([.month], from: baby.birthDate, to: record.date).month ?? 0
+
+        let weightPct: Double?
+        if let weight = record.weight {
+            weightPct = PercentileCalculator.percentile(value: weight, ageMonths: ageMonths, gender: baby.gender, metric: .weight)
+        } else {
+            weightPct = nil
+        }
+
+        let heightPct: Double?
+        if let height = record.height {
+            heightPct = PercentileCalculator.percentile(value: height, ageMonths: ageMonths, gender: baby.gender, metric: .height)
+        } else {
+            heightPct = nil
+        }
+
+        let percentile = WidgetGrowthPercentile(
+            weightKg: record.weight,
+            weightPercentile: weightPct,
+            heightCm: record.height,
+            heightPercentile: heightPct,
+            measuredAt: record.date
+        )
+        WidgetDataStore.updateGrowthPercentile(percentile)
     }
 
     // MARK: - Update

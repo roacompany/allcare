@@ -4,9 +4,16 @@ import SwiftUI
 @main
 struct BabyCareWidgetBundle: WidgetBundle {
     var body: some Widget {
+        // 기존 위젯
         BabyCareHomeWidget()
         BabyCareLockScreenWidget()
         FeedingTimerLiveActivity()
+
+        // Phase 2 — 위젯 강화
+        NextFeedingWidget()
+        NextNapWidget()
+        TodaySummaryWidget()
+        GrowthPercentileWidget()
     }
 }
 
@@ -65,13 +72,13 @@ private struct LockScreenEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            LockScreenCircularView(entry: entry)
+            EnhancedLockScreenCircularView(entry: entry)
         case .accessoryRectangular:
-            LockScreenRectangularView(entry: entry)
+            EnhancedLockScreenRectangularView(entry: entry)
         case .accessoryInline:
-            LockScreenInlineView(entry: entry)
+            EnhancedLockScreenInlineView(entry: entry)
         default:
-            LockScreenCircularView(entry: entry)
+            EnhancedLockScreenCircularView(entry: entry)
         }
     }
 }

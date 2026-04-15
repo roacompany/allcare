@@ -33,7 +33,9 @@ struct BabyCareProvider: TimelineProvider {
             todayTotalMl: WidgetDataStore.todayTotalMl,
             recentActivities: WidgetDataStore.recentActivities,
             lastSleepDuration: WidgetDataStore.lastSleepDuration,
-            feedingIntervalMinutes: WidgetDataStore.feedingIntervalMinutes
+            feedingIntervalMinutes: WidgetDataStore.feedingIntervalMinutes,
+            growthPercentile: WidgetDataStore.growthPercentile,
+            napPrediction: WidgetDataStore.napPrediction
         )
     }
 }

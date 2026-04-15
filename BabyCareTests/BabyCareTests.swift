@@ -2278,3 +2278,171 @@ final class ProductRecommendationServiceTests: XCTestCase {
         )
     }
 }
+
+// MARK: - WidgetDataStore Tests (#12 위젯 강화)
+
+final class WidgetDataStoreTests: XCTestCase {
+
+    private let testSuite = "group.test.widget.datastore"
+
+    // 테스트용 UserDefaults (앱 그룹 없음 → .standard fallback 검증)
+    private var testDefaults: UserDefaults { .standard }
+
+    // 테스트 전 정리
+    override func setUp() {
+        super.setUp()
+        // 테스트 키 정리
+        for key in [
+            WidgetDataStore.Keys.growthPercentile,
+            WidgetDataStore.Keys.napPrediction,
+            WidgetDataStore.Keys.nextFeedingEstimate,
+            WidgetDataStore.Keys.recentActivities
+        ] {
+            WidgetDataStore.defaults.removeObject(forKey: key)
+        }
+    }
+
+    // Test 1: WidgetGrowthPercentile 직렬화/역직렬화
+    func testWidgetGrowthPercentile_encodeDecode() throws {
+        let original = WidgetGrowthPercentile(
+            weightKg: 7.2,
+            weightPercentile: 55.3,
+            heightCm: 68.0,
+            heightPercentile: 60.1,
+            measuredAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(WidgetGrowthPercentile.self, from: data)
+
+        XCTAssertEqual(decoded.weightKg ?? 0, 7.2, accuracy: 0.001, "체중 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.weightPercentile ?? 0, 55.3, accuracy: 0.001, "체중 백분위 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.heightCm ?? 0, 68.0, accuracy: 0.001, "키 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.heightPercentile ?? 0, 60.1, accuracy: 0.001, "키 백분위 직렬화 일치해야 한다")
+    }
+
+    // Test 2: WidgetNapPrediction 직렬화/역직렬화
+    func testWidgetNapPrediction_encodeDecode() throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let original = WidgetNapPrediction(
+            lastNapTime: now,
+            nextNapTime: now.addingTimeInterval(7200),
+            napIntervalMinutes: 120
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(WidgetNapPrediction.self, from: data)
+
+        XCTAssertEqual(decoded.napIntervalMinutes, 120, "낮잠 간격 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.lastNapTime?.timeIntervalSince1970 ?? 0, now.timeIntervalSince1970, accuracy: 0.001, "마지막 낮잠 시각 일치해야 한다")
+        XCTAssertEqual(
+            decoded.nextNapTime?.timeIntervalSince1970 ?? 0,
+            now.addingTimeInterval(7200).timeIntervalSince1970,
+            accuracy: 0.001,
+            "다음 낮잠 시각 일치해야 한다"
+        )
+    }
+
+    // Test 3: updateGrowthPercentile sync 후 read 일치
+    func testUpdateGrowthPercentile_syncAndRead() throws {
+        let percentile = WidgetGrowthPercentile(
+            weightKg: 8.5,
+            weightPercentile: 70.0,
+            heightCm: 72.0,
+            heightPercentile: 65.0,
+            measuredAt: Date()
+        )
+
+        // UserDefaults에 직접 저장 (WidgetCenter 없이 테스트)
+        if let data = try? JSONEncoder().encode(percentile) {
+            WidgetDataStore.defaults.set(data, forKey: WidgetDataStore.Keys.growthPercentile)
+        }
+
+        let read = WidgetDataStore.growthPercentile
+        XCTAssertNotNil(read, "저장된 성장 백분위 데이터가 있어야 한다")
+        XCTAssertEqual(read?.weightKg ?? 0, 8.5, accuracy: 0.001, "체중 읽기 일치해야 한다")
+        XCTAssertEqual(read?.weightPercentile ?? 0, 70.0, accuracy: 0.001, "체중 백분위 읽기 일치해야 한다")
+    }
+
+    // Test 4: napPrediction fallback — 데이터 없으면 nil 반환
+    func testNapPrediction_fallbackNilWhenNoData() {
+        WidgetDataStore.defaults.removeObject(forKey: WidgetDataStore.Keys.napPrediction)
+        XCTAssertNil(WidgetDataStore.napPrediction, "낮잠 예측 데이터 없으면 nil이어야 한다")
+    }
+
+    // Test 5: growthPercentile fallback — 데이터 없으면 nil 반환
+    func testGrowthPercentile_fallbackNilWhenNoData() {
+        WidgetDataStore.defaults.removeObject(forKey: WidgetDataStore.Keys.growthPercentile)
+        XCTAssertNil(WidgetDataStore.growthPercentile, "성장 백분위 데이터 없으면 nil이어야 한다")
+    }
+
+    // Test 6: WidgetActivity 배열 직렬화/역직렬화
+    func testWidgetActivity_encodeDecode() throws {
+        let activity = WidgetActivity(
+            typeRaw: "feeding_breast",
+            displayName: "모유수유",
+            icon: "cup.and.saucer.fill",
+            colorHex: "#FF9FB5",
+            startTime: Date(timeIntervalSince1970: 1_700_000_000),
+            detail: "15분"
+        )
+        let data = try JSONEncoder().encode([activity])
+        let decoded = try JSONDecoder().decode([WidgetActivity].self, from: data)
+
+        XCTAssertEqual(decoded.count, 1, "WidgetActivity 배열 개수 일치해야 한다")
+        XCTAssertEqual(decoded.first?.typeRaw, "feeding_breast", "typeRaw 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.first?.displayName, "모유수유", "displayName 직렬화 일치해야 한다")
+        XCTAssertEqual(decoded.first?.detail, "15분", "detail 직렬화 일치해야 한다")
+    }
+
+    // Test 7: nextFeedingTime fallback — nextFeedingEstimate 없으면 lastFeeding + interval 사용
+    func testNextFeedingTime_fallbackToIntervalCalc() {
+        let now = Date()
+        WidgetDataStore.defaults.removeObject(forKey: WidgetDataStore.Keys.nextFeedingEstimate)
+        WidgetDataStore.defaults.set(now.addingTimeInterval(-7200), forKey: WidgetDataStore.Keys.lastFeedingTime)
+        WidgetDataStore.defaults.set(180, forKey: WidgetDataStore.Keys.feedingIntervalMinutes)
+
+        let nextFeeding = WidgetDataStore.nextFeedingTime
+        XCTAssertNotNil(nextFeeding, "마지막 수유 + 간격으로 다음 수유 시각을 계산해야 한다")
+        // 2시간 전 수유 + 3시간 간격 = 1시간 후
+        let expected = now.addingTimeInterval(-7200 + 180 * 60)
+        XCTAssertEqual(
+            nextFeeding?.timeIntervalSince1970 ?? 0,
+            expected.timeIntervalSince1970,
+            accuracy: 5,
+            "다음 수유 = 마지막 수유 + 180분이어야 한다"
+        )
+    }
+
+    // Test 8: WidgetGrowthPercentile optional fields — nil 포함 Codable 호환
+    func testWidgetGrowthPercentile_optionalFields() throws {
+        let partial = WidgetGrowthPercentile(
+            weightKg: 6.0,
+            weightPercentile: 40.0,
+            heightCm: nil,
+            heightPercentile: nil,
+            measuredAt: nil
+        )
+        let data = try JSONEncoder().encode(partial)
+        let decoded = try JSONDecoder().decode(WidgetGrowthPercentile.self, from: data)
+
+        XCTAssertEqual(decoded.weightKg ?? 0, 6.0, accuracy: 0.001, "체중은 있어야 한다")
+        XCTAssertNil(decoded.heightCm, "키는 nil이어야 한다")
+        XCTAssertNil(decoded.heightPercentile, "키 백분위는 nil이어야 한다")
+        XCTAssertNil(decoded.measuredAt, "측정일은 nil이어야 한다")
+    }
+
+    // Test 9: napPrediction sync 후 read 일치
+    func testNapPrediction_syncAndRead() throws {
+        let prediction = WidgetNapPrediction(
+            lastNapTime: Date(timeIntervalSince1970: 1_700_000_000),
+            nextNapTime: Date(timeIntervalSince1970: 1_700_007_200),
+            napIntervalMinutes: 90
+        )
+        if let data = try? JSONEncoder().encode(prediction) {
+            WidgetDataStore.defaults.set(data, forKey: WidgetDataStore.Keys.napPrediction)
+        }
+
+        let read = WidgetDataStore.napPrediction
+        XCTAssertNotNil(read, "저장된 낮잠 예측 데이터가 있어야 한다")
+        XCTAssertEqual(read?.napIntervalMinutes, 90, "낮잠 간격 읽기 일치해야 한다")
+    }
+}

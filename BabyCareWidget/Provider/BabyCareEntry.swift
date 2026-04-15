@@ -22,6 +22,10 @@ struct BabyCareEntry: TimelineEntry {
     let lastSleepDuration: String?
     let feedingIntervalMinutes: Int
 
+    // Phase 2 — 위젯 강화
+    let growthPercentile: WidgetGrowthPercentile?
+    let napPrediction: WidgetNapPrediction?
+
     // MARK: - Computed
 
     var isFeedingOverdue: Bool {
@@ -64,6 +68,26 @@ struct BabyCareEntry: TimelineEntry {
         return "\(mins)m"
     }
 
+    // MARK: - Computed (낮잠 예측)
+
+    var nextNapTime: Date? { napPrediction?.nextNapTime }
+
+    var nextNapText: String {
+        guard let next = nextNapTime else { return "데이터 없음" }
+        let now = date
+        if next < now { return "낮잠 시간이에요" }
+        let remaining = Int(next.timeIntervalSince(now) / 60)
+        let hours = remaining / 60
+        let mins = remaining % 60
+        if hours > 0 { return "\(hours)시간 \(mins)분 후" }
+        return "\(mins)분 후"
+    }
+
+    var nextNapMinutesUntil: Int {
+        guard let next = nextNapTime else { return 0 }
+        return max(0, Int(next.timeIntervalSince(date) / 60))
+    }
+
     // MARK: - Placeholder
 
     static let placeholder = BabyCareEntry(
@@ -81,6 +105,18 @@ struct BabyCareEntry: TimelineEntry {
         todayTotalMl: 420,
         recentActivities: [],
         lastSleepDuration: "45분",
-        feedingIntervalMinutes: 180
+        feedingIntervalMinutes: 180,
+        growthPercentile: WidgetGrowthPercentile(
+            weightKg: 7.2,
+            weightPercentile: 55,
+            heightCm: 68,
+            heightPercentile: 60,
+            measuredAt: Date().addingTimeInterval(-86400 * 7)
+        ),
+        napPrediction: WidgetNapPrediction(
+            lastNapTime: Date().addingTimeInterval(-5400),
+            nextNapTime: Date().addingTimeInterval(2700),
+            napIntervalMinutes: 120
+        )
     )
 }
