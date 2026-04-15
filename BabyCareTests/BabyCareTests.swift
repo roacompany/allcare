@@ -1282,6 +1282,53 @@ final class BabyCareTests: XCTestCase {
     }
 
     @MainActor
+    func testInsightService_feedingInsight_lessInMorning_noWarning() {
+        // 오전 10시에 "적음" 문구가 뜨면 불안 조성 — 현재 시각까지 expected로 평가
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let morning = calendar.date(byAdding: .hour, value: 10, to: todayStart) ?? Date()
+        // 오전 10시에 오늘 수유 1회, 풀일 평균 5회 (expected by 10am = 5 * 10/24 ≈ 2.08)
+        let todayFeedings = [Activity(babyId: baby.id, type: .feedingBreast, startTime: morning)]
+        let recentFeedings: [Activity] = (1...7).flatMap { day -> [Activity] in
+            (0..<5).map { _ in
+                let date = calendar.date(byAdding: .day, value: -day, to: morning) ?? morning
+                return Activity(babyId: baby.id, type: .feedingBreast, startTime: date)
+            }
+        }
+        let insight = svc.makeFeedingInsight(
+            todayActivities: todayFeedings, recentActivities: recentFeedings, now: morning
+        )
+        XCTAssertNotNil(insight)
+        // 오전에는 less.sub("오늘은 N회 적네요") 대신 normal.sub 노출
+        XCTAssertNotEqual(insight?.secondaryText, "오늘은 4회 적네요")
+    }
+
+    @MainActor
+    func testInsightService_feedingInsight_lessAtNight_showsWarning() {
+        // 오후 8시에는 하루가 거의 끝났으니 "적음" 문구 표시 허용
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let evening = calendar.date(byAdding: .hour, value: 20, to: todayStart) ?? Date()
+        let todayFeedings = [Activity(babyId: baby.id, type: .feedingBreast, startTime: evening)]
+        let recentFeedings: [Activity] = (1...7).flatMap { day -> [Activity] in
+            (0..<5).map { _ in
+                let date = calendar.date(byAdding: .day, value: -day, to: evening) ?? evening
+                return Activity(babyId: baby.id, type: .feedingBreast, startTime: date)
+            }
+        }
+        let insight = svc.makeFeedingInsight(
+            todayActivities: todayFeedings, recentActivities: recentFeedings, now: evening
+        )
+        XCTAssertNotNil(insight)
+        // 오후 8시 + 1회 vs 평균 5회 → less.sub 노출
+        XCTAssertEqual(insight?.secondaryText, "오늘은 4회 적네요")
+    }
+
+    @MainActor
     func testInsightService_healthInsight_noHighTemp_returnsNil() {
         let svc = InsightService()
         let result = svc.makeHealthInsight(recentTemperatureActivities: [])

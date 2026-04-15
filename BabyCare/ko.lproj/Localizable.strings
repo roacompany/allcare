@@ -44,7 +44,7 @@
 "insight.feeding.more" = "오늘 수유 %d회";
 "insight.feeding.more.sub" = "평소보다 %d회 많아요";
 "insight.feeding.less" = "오늘 수유 %d회";
-"insight.feeding.less.sub" = "평소보다 %d회 적어요";
+"insight.feeding.less.sub" = "오늘은 %d회 적네요";
 
 /* Sleep Insight */
 "insight.sleep.now" = "낮잠 시간이에요";

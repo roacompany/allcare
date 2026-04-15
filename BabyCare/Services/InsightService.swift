@@ -123,10 +123,12 @@ final class InsightService {
 
     // MARK: - Feeding Insight
 
-    /// 오늘 수유 횟수와 최근 7일 일평균을 비교합니다.
+    /// 오늘 수유 횟수와 "현재 시각까지 기대 횟수"를 비교합니다.
+    /// 하루가 끝나지 않은 시점에 풀일 평균과 비교하면 불안 조성 — 경과 시간 비례 expected count 사용.
     func makeFeedingInsight(
         todayActivities: [Activity],
-        recentActivities: [Activity]
+        recentActivities: [Activity],
+        now: Date = Date()
     ) -> DashboardInsight? {
         let todayCount = todayActivities.filter { $0.type.category == .feeding }.count
         guard todayCount > 0 else { return nil }
@@ -142,34 +144,55 @@ final class InsightService {
             ? Double(recentFeedings.count) / Double(days)
             : Double(todayCount)
 
-        let diff = todayCount - Int(dailyAverage.rounded())
+        // 경과 시간 기반 expected count — 자정부터 현재까지 분 / 1440
+        let startOfToday = calendar.startOfDay(for: now)
+        let minutesElapsed = now.timeIntervalSince(startOfToday) / 60.0
+        // 최소 60분 (앱 오픈 직후 분모 0 방지), 최대 1440분
+        let dayFraction = min(max(minutesElapsed, 60.0), 1440.0) / 1440.0
+        let expectedByNow = dailyAverage * dayFraction
+
+        // 의미 있는 차이 임계: max(1, expected * 0.25) — 25% 편차만 경고
+        let tolerance = max(1.0, expectedByNow * 0.25)
+        let deltaRaw = Double(todayCount) - expectedByNow
+
         let primaryText: String
         let secondaryText: String?
 
-        if diff == 0 || dailyAverage <= 0 {
+        if dailyAverage <= 0 || abs(deltaRaw) < tolerance {
+            // 정상 범위 (또는 데이터 부족) — 비교 문구 없이 현재 횟수만
             primaryText = String(
                 format: NSLocalizedString("insight.feeding.normal", comment: ""),
                 todayCount
             )
             secondaryText = NSLocalizedString("insight.feeding.normal.sub", comment: "")
-        } else if diff > 0 {
+        } else if deltaRaw > 0 {
+            // 기대보다 많음 — 풀일 평균 대비 차이로 표시 (하루가 끝나야 완전 비교)
+            let dailyDiff = todayCount - Int(dailyAverage.rounded())
             primaryText = String(
                 format: NSLocalizedString("insight.feeding.more", comment: ""),
                 todayCount
             )
-            secondaryText = String(
+            secondaryText = dailyDiff > 0 ? String(
                 format: NSLocalizedString("insight.feeding.more.sub", comment: ""),
-                diff
-            )
+                dailyDiff
+            ) : NSLocalizedString("insight.feeding.normal.sub", comment: "")
         } else {
+            // 기대보다 적음 — 오후 6시 이후에만 경고 문구 노출 (새벽/오전 불안 조성 방지)
+            let hour = calendar.component(.hour, from: now)
+            let showLessWarning = hour >= 18
             primaryText = String(
                 format: NSLocalizedString("insight.feeding.less", comment: ""),
                 todayCount
             )
-            secondaryText = String(
-                format: NSLocalizedString("insight.feeding.less.sub", comment: ""),
-                abs(diff)
-            )
+            if showLessWarning {
+                let dailyDiff = Int(dailyAverage.rounded()) - todayCount
+                secondaryText = dailyDiff > 0 ? String(
+                    format: NSLocalizedString("insight.feeding.less.sub", comment: ""),
+                    dailyDiff
+                ) : NSLocalizedString("insight.feeding.normal.sub", comment: "")
+            } else {
+                secondaryText = NSLocalizedString("insight.feeding.normal.sub", comment: "")
+            }
         }
 
         return DashboardInsight(

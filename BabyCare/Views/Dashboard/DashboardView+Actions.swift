@@ -38,7 +38,7 @@ extension DashboardView {
         // 인사이트 카드 갱신
         insightService.refresh(
             todayActivities: activityVM.todayActivities,
-            recentActivities: activityVM.recentFeedingActivities,
+            recentActivities: activityVM.recentWeekActivities,
             recentTemperatureActivities: activityVM.recentTemperatureActivities,
             baby: babyVM.selectedBaby,
             pendingMilestones: healthVM.pendingMilestones,

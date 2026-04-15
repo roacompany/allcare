@@ -74,6 +74,8 @@ final class ActivityViewModel {
 
     /// 최근 7일 수유 데이터 (loadTodayActivities에서 함께 로드)
     var recentFeedingActivities: [Activity] = []
+    /// 최근 7일 전체 활동 (주간 인사이트/컨텍스트 계산용)
+    var recentWeekActivities: [Activity] = []
     /// 최근 48시간 체온 데이터 — 자정 경계 야간 발열 감지용
     var recentTemperatureActivities: [Activity] = []
     /// 아기 월령 (외부에서 주입)
@@ -126,43 +128,44 @@ final class ActivityViewModel {
                 )
             }
 
-            // 수유 예측 정확도를 위해 최근 7일 수유 데이터도 로드
-            let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
-            if weekAgo < yesterday {
-                recentFeedingActivities = try await RetryHelper.withRetry {
+            // 최근 7일 전체 활동 로드 — 범위 [7일 전 .. 오늘 00:00] (어제 전체 포함, 새벽 시간대 fallback 보장)
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: todayStart) ?? todayStart
+            if weekAgo < todayStart {
+                recentWeekActivities = try await RetryHelper.withRetry {
                     try await self.firestoreService.fetchActivities(
-                        userId: userId, babyId: babyId, from: weekAgo, to: yesterday
+                        userId: userId, babyId: babyId, from: weekAgo, to: todayStart
                     )
-                }.filter { $0.type.category == .feeding }
+                }
+                recentFeedingActivities = recentWeekActivities.filter { $0.type.category == .feeding }
             }
             // recentFeedingActivities 로드 완료 후 derive — 자정 경계 fallback 가능
             deriveLatestActivities()
 
-            // 주간 인사이트 생성 — 이전 7일(current) vs 이전 14일~8일(previous) 비교
-            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-            let eightDaysAgo = Calendar.current.date(byAdding: .day, value: -8, to: Calendar.current.startOfDay(for: Date())) ?? Date()
-            let currentWeekActivities = recentFeedingActivities + todayActivities
+            // 주간 인사이트 — current [7일 전..오늘 00:00), previous [14일 전..7일 전)
+            // 두 기간 모두 정확히 7일로 맞춰 평균 비교 공정성 확보
+            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: todayStart) ?? todayStart
             let previousWeekActivities: [Activity]
-            if twoWeeksAgo < eightDaysAgo {
+            if twoWeeksAgo < weekAgo {
                 previousWeekActivities = try await RetryHelper.withRetry {
                     try await self.firestoreService.fetchActivities(
-                        userId: userId, babyId: babyId, from: twoWeeksAgo, to: eightDaysAgo
+                        userId: userId, babyId: babyId, from: twoWeeksAgo, to: weekAgo
                     )
                 }
             } else {
                 previousWeekActivities = []
             }
+            // current에는 오늘 제외 (부분일 = 불공정 비교) — 완료된 7일만 사용
             let currentReport = PatternAnalysisService.analyze(
-                activities: currentWeekActivities,
-                period: "이번 주",
+                activities: recentWeekActivities,
+                period: "지난 7일",
                 startDate: weekAgo,
-                endDate: Date()
+                endDate: todayStart
             )
             let comparisonReport = PatternAnalysisService.analyzeComparison(
                 currentReport: currentReport,
                 previousActivities: previousWeekActivities,
-                previousPeriod: (start: twoWeeksAgo, end: eightDaysAgo)
+                previousPeriod: (start: twoWeeksAgo, end: weekAgo)
             )
             weeklyInsights = WeeklyInsightService.generateInsights(from: comparisonReport)
 
