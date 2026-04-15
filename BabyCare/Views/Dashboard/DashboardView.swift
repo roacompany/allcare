@@ -31,6 +31,7 @@ struct DashboardView: View {
                 VStack(spacing: 20) {
                     AnnouncementBanner()
                     alertBannersSection
+                    BadgeHomeStrip()
                     quickActionsSection
                     weeklyInsightsCard
                     predictionSection

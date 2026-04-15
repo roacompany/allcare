@@ -49,44 +49,40 @@ none — iOS 네이티브 앱, sandbox infra 없음
 - [x] BadgeEvaluator 호출 3지점에서 반환값 `newlyEarned`을 `AppState.shared.badgePresenter.enqueue(_:)`로 연결
 - [x] **검증**: 단위 테스트 4개 — enqueue 1건, FIFO drain, 빈 큐 dismiss no-op, 빈 enqueue no-op (테스트 94→102, +8 sleep-method 포함)
 
-### TODO 2 — BadgeSnackbarView
-- [ ] `Views/Badges/BadgeSnackbarView.swift` — `.overlay` modifier로 `RootTabView`에 부착. 아이콘(`iconSFSymbol`) + 타이틀(LocalizedStringKey) + "축하합니다!" 부제
-- [ ] 진입 애니메이션: spring from top, 3초 후 자동 dismiss, 탭 시 `BadgeGalleryView` 네비게이션
-- [ ] 다중 획득 큐 — presenter.current 변경 감지 `.onChange(of:)` → 현재 snackbar 닫고 다음 표시 (0.3초 간격)
-- [ ] Haptic: `UINotificationFeedbackGenerator().notificationOccurred(.success)`
-- [ ] **검증**: presenter 단위 테스트로 큐 동작 확인 (A-9), 실기기에서 A-2 애니메이션 확인
+### TODO 2 — BadgeSnackbarView ✅ 2026-04-15
+- [x] `Views/Badges/BadgeSnackbarView.swift` — ContentView overlay (`.top`), 아이콘 + 타이틀 + "축하합니다!" + 탭 시 chevron
+- [x] spring 애니메이션, 3초 auto-dismiss, 탭 시 설정 탭 이동 + `.showBadgeGallery` notification
+- [x] 다중 획득 큐 처리 — `.onChange(of: presenter.current?.id)` 감지, 0.3초 gap 후 다음 표시
+- [x] Haptic `UINotificationFeedbackGenerator().notificationOccurred(.success)` on show
 
-### TODO 3 — BadgeGalleryView + Progress
-- [ ] `Views/Badges/BadgeGalleryView.swift` — ScrollView + LazyVGrid(3열, spacing: 12). 섹션 3개: `firstTime` / `aggregate` / `streak` (섹션 헤더는 `LocalizedStringKey("badge.section.*")`)
-- [ ] `BadgeTileView` — 정사각 타일, earned 시 풀컬러 + earnedAt 짧은 날짜, locked 시 grayscale(1.0) + `lock.fill` overlay + 진행도 ProgressView (aggregate만, `value/threshold` clamp 0~1)
-- [ ] `BadgeDetailSheet` — 탭 시 `.sheet` 표시: 아이콘 big + 타이틀 + 설명 + earned "획득일" or locked "현재 XX/YY" 진행도
-- [ ] earned 데이터 로드: `FirestoreService.fetchBadges(userId:)` + UserStats는 `fetchStats(userId:)` 둘 다 `.task` 에서 조회
-- [ ] **검증**: 단위 테스트 — 1) locked 진행도 clamp (120/100 → 1.0), 2) earned/locked 필터링, 3) 섹션 카운트 정확 (A-6, A-10)
+### TODO 3 — BadgeGalleryView + Progress ✅ 2026-04-15
+- [x] `BadgeGalleryView.swift` — ScrollView + LazyVStack + LazyVGrid(3열), 섹션 3개 (firstTime/aggregate/streak)
+- [x] `BadgeTileView` — saturation 1.0↔0.1 + opacity 1.0↔0.7 + `lock.fill` overlay + aggregate 진행도 ProgressView
+- [x] `BadgeDetailSheet` — `.sheet` presentationDetents(.medium), 아이콘 + 타이틀 + 설명 + earnedAt/progress 분기
+- [x] `BadgeViewModel` (@MainActor @Observable) — Service 직접 호출 금지 원칙 준수 (arch-test 통과)
+- [x] **단위 테스트 3건**: progress clamp (underflow/overflow/inRange), 섹션 카운트
 
-### TODO 4 — BadgeHomeStrip + 설정 동선
-- [ ] `Views/Badges/BadgeHomeStrip.swift` — `HomeView` 상단 배너 아래에 삽입. earned 있을 때만 표시 (0개 시: prompt "첫 배지를 획득해보세요 🌟" + 갤러리 링크)
-- [ ] 가로 ScrollView + HStack, 최근 획득 5개 (earnedAt desc) + 마지막 "전체 보기" 네비게이션 링크
-- [ ] 설정 탭: `SettingsView`에 "내 배지" row 추가 (`NavigationLink` → BadgeGalleryView)
-- [ ] **검증**: `make build` 통과, HomeView 진입 시 배지 strip 렌더 (A-5, A-8)
+### TODO 4 — BadgeHomeStrip + 설정 동선 ✅ 2026-04-15
+- [x] `BadgeHomeStrip.swift` — DashboardView 상단 alertBannersSection 아래 삽입, BadgeViewModel 로드
+- [x] earned 0개 시 empty prompt (링크 → 갤러리), earned 있을 때 가로 ScrollView + 최근 5개 + "전체 보기"
+- [x] SettingsView "내 배지" row 추가 (NavigationLink → BadgeGalleryView)
 
-### TODO 5 — Localizable.strings (16 키)
-- [ ] `BabyCare/Resources/ko.lproj/Localizable.strings` — 8개 × (title + desc) 쌍 추가
-- [ ] 섹션 헤더 3개: `badge.section.firstTime`, `badge.section.aggregate`, `badge.section.streak`
-- [ ] 공통 키 5개: `badge.gallery.title`, `badge.home.empty`, `badge.home.seeAll`, `badge.detail.earnedAt`, `badge.detail.progress`
-- [ ] **검증**: 키 누락 방지 — BadgeCatalog.all.forEach { NSLocalizedString(it.titleKey) != it.titleKey } 런타임 단위 테스트 (A-7)
+### TODO 5 — Localizable.strings ✅ 2026-04-15
+- [x] 8개 배지 × (title + desc) = 16키 + 섹션 헤더 3개 + 공통 5개 + snackbar 1개 = 총 25키
+- [x] `BabyCare/ko.lproj/Localizable.strings` 업데이트
 
-### TODO 6 — 단위 테스트 추가
-- [ ] BadgePresenter 큐 3건
-- [ ] BadgeTile 진행도 clamp 2건 (underflow 0.0, overflow 1.0)
-- [ ] 섹션 카운트 1건 (firstTime:1 / aggregate:4 / streak:3)
-- [ ] Localizable 키 매핑 1건 (BadgeCatalog.all 전체 NSLocalizedString 존재)
-- [ ] **목표**: 94 → 105+ 테스트 (A-11)
+### TODO 6 — 단위 테스트 추가 ✅ 2026-04-15
+- [x] BadgePresenter 큐 4건 (TODO 1에서 추가 완료)
+- [x] BadgeTile 진행도 clamp 3건 (underflow 0, overflow 1, 0.5)
+- [x] 섹션 카운트 1건 (firstTime:1 / aggregate:4 / streak:3)
+- [x] Localizable 키 매핑 1건 (BadgeCatalog.all 전체 NSLocalizedString 검증)
+- [x] **실제**: 94 → 107 테스트 (+13, 목표 105+ 초과)
 
-### TODO Final — Verify + 3-Agent QA
-- [ ] `make verify` 통과 (A-12, A-13)
-- [ ] `make design-verify` 100% (A-14)
-- [ ] 3-Agent QA (Visual/UX + Code Quality + Mobile Responsive)
-- [ ] Code review (`hoyeon:code-reviewer`) SHIP 판정
+### TODO Final — Verify ✅ 2026-04-15
+- [x] `make verify` ALL CHECKS PASSED (빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰 100%)
+- [x] arch-test baseline 0 유지 (BadgeViewModel 도입으로 View→Service 직접참조 제거)
+- [ ] 3-Agent QA — 사용자 액션 (실기기 확인 필요)
+- [ ] Code review — 다음 세션
 
 ## Architecture Notes
 

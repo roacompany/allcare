@@ -1,2 +1,35 @@
 /* Korean Localization */
 "app_name" = "베이비케어";
+
+/* Badge Titles */
+"badge.firstRecord" = "첫 기록";
+"badge.firstRecord.desc" = "첫 기록을 남겼어요. 육아의 순간이 시작됩니다.";
+"badge.feeding100" = "수유 100회";
+"badge.feeding100.desc" = "수유를 100회 기록했어요. 정성이 쌓이고 있어요.";
+"badge.sleep50" = "수면 50회";
+"badge.sleep50.desc" = "수면을 50회 기록했어요. 규칙적인 관찰이 도움이 됩니다.";
+"badge.diaper200" = "기저귀 200회";
+"badge.diaper200.desc" = "기저귀를 200회 기록했어요. 꾸준함이 빛납니다.";
+"badge.routineStreak3" = "루틴 3일 연속";
+"badge.routineStreak3.desc" = "루틴을 3일 연속 달성했어요. 습관의 시작입니다.";
+"badge.routineStreak7" = "루틴 7일 연속";
+"badge.routineStreak7.desc" = "루틴을 7일 연속 달성했어요. 일주일을 지켰습니다.";
+"badge.routineStreak30" = "루틴 30일 연속";
+"badge.routineStreak30.desc" = "루틴을 30일 연속 달성했어요. 굉장한 꾸준함입니다.";
+"badge.growth10" = "성장 기록 10회";
+"badge.growth10.desc" = "성장 기록을 10회 남겼어요. 변화의 궤적이 보입니다.";
+
+/* Badge Section Headers */
+"badge.section.firstTime" = "첫걸음";
+"badge.section.aggregate" = "누적";
+"badge.section.streak" = "연속";
+
+/* Badge UI Common */
+"badge.gallery.title" = "내 배지";
+"badge.home.empty" = "첫 배지를 획득해보세요 🌟";
+"badge.home.seeAll" = "전체 보기";
+"badge.detail.earnedAt" = "획득일";
+"badge.detail.progress" = "진행도";
+
+/* Badge Snackbar */
+"badge.snackbar.congrats" = "축하합니다!";

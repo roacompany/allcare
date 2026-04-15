@@ -288,5 +288,16 @@ struct ContentView: View {
             }
             .padding(.bottom, 52) // TabBar 위
         }
+        .overlay(alignment: .top) {
+            BadgeSnackbarView(presenter: AppState.shared.badgePresenter) {
+                // 설정 탭으로 이동 → 사용자가 "내 배지" row 탭하여 갤러리 진입
+                selectedTab = 4
+                NotificationCenter.default.post(name: .showBadgeGallery, object: nil)
+            }
+        }
     }
+}
+
+extension Notification.Name {
+    static let showBadgeGallery = Notification.Name("showBadgeGallery")
 }

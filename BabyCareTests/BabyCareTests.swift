@@ -1010,6 +1010,51 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(Activity.SleepMethodType.allCases.count, 8)
     }
 
+    // MARK: - Badge UI Tests (Phase 2)
+
+    @MainActor
+    func testBadgeTile_progressClamp_underflow() {
+        let def = BadgeCatalog.definition(id: "feeding100")!
+        let result = BadgeTileView.progress(definition: def, stats: nil)
+        XCTAssertEqual(result, 0.0, "stats nil → 0.0")
+    }
+
+    @MainActor
+    func testBadgeTile_progressClamp_overflow() {
+        let def = BadgeCatalog.definition(id: "feeding100")!
+        var stats = UserStats.empty()
+        stats.feedingCount = 250 // > 100 threshold
+        let result = BadgeTileView.progress(definition: def, stats: stats)
+        XCTAssertEqual(result, 1.0, "250/100 → clamp 1.0")
+    }
+
+    @MainActor
+    func testBadgeTile_progressClamp_inRange() {
+        let def = BadgeCatalog.definition(id: "sleep50")!
+        var stats = UserStats.empty()
+        stats.sleepCount = 25 // 50% of threshold 50
+        let result = BadgeTileView.progress(definition: def, stats: stats)
+        XCTAssertEqual(result, 0.5, accuracy: 0.001)
+    }
+
+    func testBadgeCategory_sectionCounts() {
+        let firstTime = BadgeCatalog.all.filter { $0.category == .firstTime }
+        let aggregate = BadgeCatalog.all.filter { $0.category == .aggregate }
+        let streak = BadgeCatalog.all.filter { $0.category == .streak }
+        XCTAssertEqual(firstTime.count, 1, "firstRecord 1개")
+        XCTAssertEqual(aggregate.count, 4, "feeding100/sleep50/diaper200/growth10 = 4개")
+        XCTAssertEqual(streak.count, 3, "routineStreak 3/7/30 = 3개")
+    }
+
+    func testBadgeCatalog_localizableKeys_allPresent() {
+        for def in BadgeCatalog.all {
+            let title = NSLocalizedString(def.titleKey, comment: "")
+            let desc = NSLocalizedString(def.descriptionKey, comment: "")
+            XCTAssertNotEqual(title, def.titleKey, "\(def.id) 타이틀 Localizable 누락: \(def.titleKey)")
+            XCTAssertNotEqual(desc, def.descriptionKey, "\(def.id) 설명 Localizable 누락: \(def.descriptionKey)")
+        }
+    }
+
     // MARK: - BadgePresenter Tests
 
     @MainActor

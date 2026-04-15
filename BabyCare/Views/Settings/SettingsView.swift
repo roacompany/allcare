@@ -62,6 +62,12 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
+                        BadgeGalleryView()
+                    } label: {
+                        Label("내 배지", systemImage: "rosette")
+                    }
+
+                    NavigationLink {
                         PurchaseHistoryView()
                     } label: {
                         Label("구매 분석", systemImage: "chart.bar.xaxis")
