@@ -1,6 +1,12 @@
 import SwiftUI
 
 extension DashboardView {
+    // MARK: - Insight Cards
+
+    var insightCardsSection: some View {
+        DashboardInsightCards(insights: insightService.insights)
+    }
+
     // MARK: - Quick Actions
 
     var quickActionsSection: some View {

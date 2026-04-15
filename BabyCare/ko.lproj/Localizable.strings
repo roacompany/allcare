@@ -34,3 +34,32 @@
 
 /* Badge Snackbar */
 "badge.snackbar.congrats" = "축하합니다!";
+
+/* Dashboard Insight Cards */
+"insight.section.title" = "오늘의 인사이트";
+
+/* Feeding Insight */
+"insight.feeding.normal" = "오늘 수유 %d회";
+"insight.feeding.normal.sub" = "평소와 비슷해요";
+"insight.feeding.more" = "오늘 수유 %d회";
+"insight.feeding.more.sub" = "평소보다 %d회 많아요";
+"insight.feeding.less" = "오늘 수유 %d회";
+"insight.feeding.less.sub" = "평소보다 %d회 적어요";
+
+/* Sleep Insight */
+"insight.sleep.now" = "낮잠 시간이에요";
+"insight.sleep.now.sub" = "지금 재워보세요";
+"insight.sleep.soon" = "낮잠 시간이 다가오고 있어요 (약 %d분 후)";
+"insight.sleep.later" = "낮잠 예상 시간 (%d시간 %d분 후)";
+"insight.sleep.sub" = "패턴 기반 예측";
+
+/* Health Insight */
+"insight.health.fever.today" = "체온 %@도 — 오늘 발열이 감지됐어요";
+"insight.health.fever.today.sub" = "아기 상태를 주의 깊게 살펴보세요";
+"insight.health.fever.consecutive" = "체온 38도 이상이 %d일 연속입니다";
+"insight.health.fever.consecutive.sub" = "소아과 방문을 고려해보세요";
+
+/* Milestone Insight */
+"insight.milestone.next" = "다음 마일스톤: %@";
+"insight.milestone.range" = "평균 %d-%d개월";
+"insight.milestone.month" = "평균 %d개월";

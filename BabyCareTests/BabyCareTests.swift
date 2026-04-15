@@ -1229,4 +1229,161 @@ final class BabyCareTests: XCTestCase {
         let date = Date(timeIntervalSince1970: 1_700_000_000)  // 2023-11-14 22:13:20 UTC
         XCTAssertEqual(BadgeEvaluator.utcDateString(date), "2023-11-14")
     }
+
+    // MARK: - InsightService Tests
+
+    @MainActor
+    func testInsightService_feedingInsight_noTodayFeedings_returnsNil() {
+        let svc = InsightService()
+        let result = svc.makeFeedingInsight(todayActivities: [], recentActivities: [])
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testInsightService_feedingInsight_moreThanAverage() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let now = Date()
+        // 오늘 수유 3회
+        let todayFeedings = (0..<3).map { _ in
+            Activity(babyId: baby.id, type: .feedingBreast, startTime: now)
+        }
+        // 최근 7일 평균 1회/일 (7일 x 1회)
+        let calendar = Calendar.current
+        let recentFeedings = (1...7).map { day -> Activity in
+            let date = calendar.date(byAdding: .day, value: -day, to: now) ?? now
+            return Activity(babyId: baby.id, type: .feedingBreast, startTime: date)
+        }
+        let insight = svc.makeFeedingInsight(todayActivities: todayFeedings, recentActivities: recentFeedings)
+        XCTAssertNotNil(insight)
+        XCTAssertEqual(insight?.kind, .feeding)
+        // 오늘 3회 > 평균 1회 → more 케이스
+        XCTAssertNotNil(insight?.secondaryText)
+    }
+
+    @MainActor
+    func testInsightService_feedingInsight_lessThanAverage() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let now = Date()
+        // 오늘 수유 1회
+        let todayFeedings = [Activity(babyId: baby.id, type: .feedingBreast, startTime: now)]
+        // 최근 7일 평균 5회/일
+        let calendar = Calendar.current
+        let recentFeedings: [Activity] = (1...7).flatMap { day -> [Activity] in
+            (0..<5).map { _ in
+                let date = calendar.date(byAdding: .day, value: -day, to: now) ?? now
+                return Activity(babyId: baby.id, type: .feedingBreast, startTime: date)
+            }
+        }
+        let insight = svc.makeFeedingInsight(todayActivities: todayFeedings, recentActivities: recentFeedings)
+        XCTAssertNotNil(insight)
+        XCTAssertEqual(insight?.kind, .feeding)
+    }
+
+    @MainActor
+    func testInsightService_healthInsight_noHighTemp_returnsNil() {
+        let svc = InsightService()
+        let result = svc.makeHealthInsight(recentTemperatureActivities: [])
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testInsightService_healthInsight_singleHighTemp() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let activity = Activity(babyId: baby.id, type: .temperature, startTime: Date(), temperature: 38.5)
+        let insight = svc.makeHealthInsight(recentTemperatureActivities: [activity])
+        XCTAssertNotNil(insight)
+        XCTAssertEqual(insight?.kind, .health)
+        XCTAssertEqual(insight?.icon, "thermometer.medium")
+    }
+
+    @MainActor
+    func testInsightService_healthInsight_consecutiveDaysFever() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let calendar = Calendar.current
+        let activities = (0..<2).map { day -> Activity in
+            let date = calendar.date(byAdding: .day, value: -day, to: Date()) ?? Date()
+            return Activity(babyId: baby.id, type: .temperature, startTime: date, temperature: 38.5)
+        }
+        let insight = svc.makeHealthInsight(recentTemperatureActivities: activities)
+        XCTAssertNotNil(insight)
+        // 2일 연속 발열 → consecutive 메시지
+        XCTAssertTrue(insight?.primaryText.contains("2") ?? false)
+    }
+
+    @MainActor
+    func testInsightService_healthInsight_normalTemp_returnsNil() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let activity = Activity(babyId: baby.id, type: .temperature, startTime: Date(), temperature: 36.5)
+        let result = svc.makeHealthInsight(recentTemperatureActivities: [activity])
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testInsightService_milestoneInsight_noBaby_returnsNil() {
+        let svc = InsightService()
+        let result = svc.makeMilestoneInsight(baby: nil, pendingMilestones: [])
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testInsightService_milestoneInsight_noPendingMilestones_returnsNil() {
+        let svc = InsightService()
+        let baby = Baby(id: "b1", name: "Test", birthDate: Date(), gender: .female)
+        let result = svc.makeMilestoneInsight(baby: baby, pendingMilestones: [])
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testInsightService_milestoneInsight_returnsUpcomingMilestone() {
+        let svc = InsightService()
+        // 4개월 아기
+        let birthDate = Calendar.current.date(byAdding: .month, value: -4, to: Date()) ?? Date()
+        let baby = Baby(id: "b1", name: "Test", birthDate: birthDate, gender: .female)
+        let milestones = Milestone.generateChecklist(babyId: baby.id)
+        let pending = milestones.filter { !$0.isAchieved }
+        let insight = svc.makeMilestoneInsight(baby: baby, pendingMilestones: pending)
+        XCTAssertNotNil(insight)
+        XCTAssertEqual(insight?.kind, .milestone)
+        XCTAssertEqual(insight?.icon, "star.fill")
+    }
+
+    @MainActor
+    func testInsightService_napIntervalHours() {
+        let svc = InsightService()
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 1), 1.0)
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 4), 1.5)
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 7), 2.0)
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 10), 2.5)
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 14), 3.0)
+        XCTAssertEqual(svc.napIntervalHours(ageMonths: 24), 4.0)
+    }
+
+    @MainActor
+    func testInsightService_refresh_withNoData_hasNoInsights() {
+        let svc = InsightService()
+        svc.refresh(
+            todayActivities: [],
+            recentActivities: [],
+            recentTemperatureActivities: [],
+            baby: nil,
+            pendingMilestones: []
+        )
+        XCTAssertTrue(svc.insights.isEmpty)
+    }
+
+    @MainActor
+    func testInsightService_sleepInsight_noSleep_returnsNil() {
+        let svc = InsightService()
+        let result = svc.makeSleepInsight(
+            todayActivities: [],
+            recentActivities: [],
+            baby: nil
+        )
+        XCTAssertNil(result)
+    }
 }

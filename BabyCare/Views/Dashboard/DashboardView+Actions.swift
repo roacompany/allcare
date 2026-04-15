@@ -34,6 +34,15 @@ extension DashboardView {
 
         // 위젯 데이터 동기화
         activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
+
+        // 인사이트 카드 갱신
+        insightService.refresh(
+            todayActivities: activityVM.todayActivities,
+            recentActivities: activityVM.recentFeedingActivities,
+            recentTemperatureActivities: activityVM.recentTemperatureActivities,
+            baby: babyVM.selectedBaby,
+            pendingMilestones: healthVM.pendingMilestones
+        )
     }
 
     func quickSave(type: Activity.ActivityType) async {

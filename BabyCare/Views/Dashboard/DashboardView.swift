@@ -8,6 +8,7 @@ struct DashboardView: View {
     @Environment(ProductViewModel.self) var productVM
     @Environment(HealthViewModel.self) var healthVM
     @Environment(AnnouncementViewModel.self) var announcementVM
+    @Environment(InsightService.self) var insightService
 
     @State var showBabySelector = false
     @State var showTimerWarningOnSwitch = false
@@ -41,6 +42,7 @@ struct DashboardView: View {
                             .frame(height: AdBannerView.currentBannerHeight())
                             .padding(.horizontal, -16) // VStack horizontal padding 상쇄해서 full-width
                     }
+                    insightCardsSection
                     summaryCardsSection
                     reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {
