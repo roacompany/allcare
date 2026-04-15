@@ -4,7 +4,13 @@ import SwiftUI
 
 struct SolidFoodSection: View {
     @Environment(ActivityViewModel.self) var activityVM
+    @Environment(BabyViewModel.self) private var babyVM
+    @Environment(AuthViewModel.self) private var authVM
+    @Environment(HealthViewModel.self) private var healthVM
     let accentColor: Color
+
+    @State private var showAutoSuggest = false
+    @State private var suggestedAllergyRecord: AllergyRecord?
 
     let ingredientChips = ["쌀미음", "감자", "고구마", "당근", "브로콜리", "소고기", "닭고기", "바나나", "사과", "두부"]
     let amountChips = ["1숟가락", "3숟가락", "5숟가락", "30g", "50g", "80g", "100g"]
@@ -117,18 +123,31 @@ struct SolidFoodSection: View {
                     }
                 }
 
-                // 알레르기 경고 배너
-                if activityVM.foodReaction == .allergy {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.white)
-                        Text("알레르기 반응이 의심됩니다. 소아과 상담을 권장합니다.")
-                            .font(.caption.bold())
-                            .foregroundStyle(.white)
+                // 알레르기/거부 반응 시 자동 연동 제안 배너
+                if activityVM.foodReaction == .allergy || activityVM.foodReaction == .refused {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.white)
+                            Text(NSLocalizedString("solid.allergy.banner.title", comment: ""))
+                                .font(.caption.bold())
+                                .foregroundStyle(.white)
+                        }
+                        Button {
+                            prepareSuggestSheet()
+                        } label: {
+                            Text(NSLocalizedString("solid.allergy.banner.action", comment: ""))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.25))
+                                .clipShape(Capsule())
+                        }
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.red)
+                    .background(activityVM.foodReaction == .allergy ? Color.red : Color.orange)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -138,5 +157,32 @@ struct SolidFoodSection: View {
         .background(accentColor.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .animation(.spring(duration: 0.3), value: activityVM.foodReaction)
+        .sheet(isPresented: $showAutoSuggest) {
+            if let record = suggestedAllergyRecord {
+                AllergyAutoSuggestSheet(suggestedRecord: record) { confirmedRecord in
+                    guard let currentUserId = authVM.currentUserId,
+                          let baby = babyVM.selectedBaby else { return }
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    try? await healthVM.saveAllergyRecord(confirmedRecord, userId: dataUserId, babyId: baby.id)
+                }
+            }
+        }
+    }
+
+    // MARK: - Helper
+
+    private func prepareSuggestSheet() {
+        guard let baby = babyVM.selectedBaby else { return }
+        let tempActivity = Activity(
+            babyId: baby.id,
+            type: .feedingSolid,
+            startTime: Date(),
+            foodName: activityVM.foodName.isEmpty ? nil : activityVM.foodName,
+            foodReaction: activityVM.foodReaction
+        )
+        suggestedAllergyRecord = healthVM.suggestAllergyRecord(from: tempActivity, babyId: baby.id)
+        if suggestedAllergyRecord != nil {
+            showAutoSuggest = true
+        }
     }
 }

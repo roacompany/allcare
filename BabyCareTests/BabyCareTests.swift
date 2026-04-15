@@ -1826,4 +1826,148 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(dist.ratio(for: "calm"), 1.0 / 3.0, accuracy: 0.001)
         XCTAssertEqual(dist.dominantMood, "happy")
     }
+
+    // MARK: - FoodSafetyService Tests
+
+    private func makeSolidActivity(
+        babyId: String = "b1",
+        foodName: String,
+        reaction: Activity.FoodReaction? = nil,
+        date: Date = Date()
+    ) -> Activity {
+        Activity(
+            babyId: babyId,
+            type: .feedingSolid,
+            startTime: date,
+            foodName: foodName,
+            foodReaction: reaction
+        )
+    }
+
+    private func makeAllergyRecord(babyId: String = "b1", allergenName: String) -> AllergyRecord {
+        AllergyRecord(babyId: babyId, allergenName: allergenName)
+    }
+
+    // Test 1: 알레르기 기록 있으면 forbidden 분류
+    func testFoodSafety_classify_allergyRecord_returnsForbidden() {
+        let activities: [Activity] = []
+        let allergyRecords = [makeAllergyRecord(allergenName: "계란")]
+        let status = FoodSafetyService.classify(
+            foodName: "계란",
+            activities: activities,
+            allergyRecords: allergyRecords
+        )
+        XCTAssertEqual(status, .forbidden)
+    }
+
+    // Test 2: allergy reaction 활동 있으면 forbidden 분류
+    func testFoodSafety_classify_allergyReactionActivity_returnsForbidden() {
+        let activities = [makeSolidActivity(foodName: "두부", reaction: .allergy)]
+        let status = FoodSafetyService.classify(
+            foodName: "두부",
+            activities: activities,
+            allergyRecords: []
+        )
+        XCTAssertEqual(status, .forbidden)
+    }
+
+    // Test 3: 3회 이상 good/normal 시도 시 safe 분류
+    func testFoodSafety_classify_threeGoodTrials_returnsSafe() {
+        let activities = [
+            makeSolidActivity(foodName: "당근", reaction: .good),
+            makeSolidActivity(foodName: "당근", reaction: .normal),
+            makeSolidActivity(foodName: "당근", reaction: .good)
+        ]
+        let status = FoodSafetyService.classify(
+            foodName: "당근",
+            activities: activities,
+            allergyRecords: []
+        )
+        XCTAssertEqual(status, .safe)
+    }
+
+    // Test 4: refused 반응 포함 시 caution 분류
+    func testFoodSafety_classify_refusedReaction_returnsCaution() {
+        let activities = [
+            makeSolidActivity(foodName: "시금치", reaction: .refused),
+            makeSolidActivity(foodName: "시금치", reaction: .good)
+        ]
+        let status = FoodSafetyService.classify(
+            foodName: "시금치",
+            activities: activities,
+            allergyRecords: []
+        )
+        XCTAssertEqual(status, .caution)
+    }
+
+    // Test 5: 히스토리 빌드 — allergy 반응 시 .reaction 이벤트 생성
+    func testFoodSafety_buildHistory_allergyReaction_returnsReactionEvent() {
+        let activities = [makeSolidActivity(foodName: "땅콩", reaction: .allergy)]
+        let events = FoodSafetyService.buildHistory(
+            foodName: "땅콩",
+            activities: activities,
+            allergyRecords: []
+        )
+        XCTAssertFalse(events.isEmpty)
+        XCTAssertTrue(events.contains { $0.kind == .reaction })
+    }
+
+    // Test 6: 히스토리 빌드 — 3회 good 연속 시 .safe 이벤트 생성
+    func testFoodSafety_buildHistory_threeConsecutiveGood_returnsSafeEvent() {
+        let base = Date()
+        let activities = [
+            makeSolidActivity(foodName: "고구마", reaction: .good, date: base),
+            makeSolidActivity(foodName: "고구마", reaction: .good, date: base.addingTimeInterval(86400)),
+            makeSolidActivity(foodName: "고구마", reaction: .good, date: base.addingTimeInterval(172800))
+        ]
+        let events = FoodSafetyService.buildHistory(
+            foodName: "고구마",
+            activities: activities,
+            allergyRecords: []
+        )
+        XCTAssertTrue(events.contains { $0.kind == .safe }, "3회 연속 good 시 safe 이벤트가 있어야 합니다")
+    }
+
+    // Test 7: 자동 제안 트리거 — allergy reaction 시 true
+    func testFoodSafety_shouldSuggest_allergyReaction_returnsTrue() {
+        let activity = makeSolidActivity(foodName: "우유", reaction: .allergy)
+        XCTAssertTrue(FoodSafetyService.shouldSuggestAllergyRecord(for: activity))
+    }
+
+    // Test 8: 자동 제안 트리거 — refused reaction 시 true
+    func testFoodSafety_shouldSuggest_refusedReaction_returnsTrue() {
+        let activity = makeSolidActivity(foodName: "새우", reaction: .refused)
+        XCTAssertTrue(FoodSafetyService.shouldSuggestAllergyRecord(for: activity))
+    }
+
+    // Test 9: 자동 제안 트리거 — good reaction 시 false
+    func testFoodSafety_shouldSuggest_goodReaction_returnsFalse() {
+        let activity = makeSolidActivity(foodName: "바나나", reaction: .good)
+        XCTAssertFalse(FoodSafetyService.shouldSuggestAllergyRecord(for: activity))
+    }
+
+    // Test 10: allFoodNames — 콤마 구분 식품 분리 처리
+    func testFoodSafety_allFoodNames_commaSeparated_splitCorrectly() {
+        let activity = makeSolidActivity(foodName: "쌀, 당근, 감자")
+        let names = FoodSafetyService.allFoodNames(activities: [activity], allergyRecords: [])
+        XCTAssertTrue(names.contains("쌀"))
+        XCTAssertTrue(names.contains("당근"))
+        XCTAssertTrue(names.contains("감자"))
+    }
+
+    // Test 11: buildEntries — 데이터 없으면 빈 배열
+    func testFoodSafety_buildEntries_noData_returnsEmpty() {
+        let entries = FoodSafetyService.buildEntries(activities: [], allergyRecords: [])
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    // Test 12: FoodSafetyStatus 기본값 caution (데이터 없는 음식)
+    func testFoodSafety_classify_noData_returnsCaution() {
+        let status = FoodSafetyService.classify(
+            foodName: "처음보는음식",
+            activities: [],
+            allergyRecords: []
+        )
+        XCTAssertEqual(status, .caution)
+    }
 }

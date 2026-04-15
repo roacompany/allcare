@@ -288,6 +288,48 @@ final class HealthViewModel {
 
     var allergyRecords: [AllergyRecord] = []
 
+    // MARK: - Solid Food Activities (주입용 — ActivityViewModel에서 전달)
+
+    var solidFoodActivities: [Activity] = []
+
+    // MARK: - Food Safety Computed
+
+    /// 이유식 활동 + 알레르기 기록을 결합한 식품 안전 분류 목록
+    var foodSafetyEntries: [FoodSafetyEntry] {
+        FoodSafetyService.buildEntries(activities: solidFoodActivities, allergyRecords: allergyRecords)
+    }
+
+    /// 특정 식품의 시도 히스토리 타임라인
+    func foodHistory(for foodName: String) -> [FoodHistoryEvent] {
+        FoodSafetyService.buildHistory(
+            foodName: foodName,
+            activities: solidFoodActivities,
+            allergyRecords: allergyRecords
+        )
+    }
+
+    // MARK: - Auto-Suggest Helper
+
+    /// 이유식 저장 후 알레르기 자동 생성 제안이 필요한지 판단
+    func shouldSuggestAllergyFromSolidFood(_ activity: Activity) -> Bool {
+        FoodSafetyService.shouldSuggestAllergyRecord(for: activity)
+    }
+
+    /// 제안 알레르기 레코드 템플릿 생성 (사용자가 내용을 확인 후 저장)
+    func suggestAllergyRecord(from activity: Activity, babyId: String) -> AllergyRecord? {
+        guard let foodName = activity.foodName, !foodName.isEmpty else { return nil }
+        let severity: AllergySeverity = activity.foodReaction == .allergy ? .mild : .mild
+        return AllergyRecord(
+            babyId: babyId,
+            allergenName: foodName,
+            reactionType: .other,
+            severity: severity,
+            date: activity.startTime,
+            symptoms: [],
+            note: activity.note
+        )
+    }
+
     func loadAllergyRecords(userId: String, babyId: String) async {
         isLoading = true
         defer { isLoading = false }

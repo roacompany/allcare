@@ -182,3 +182,55 @@
 "diary.gallery.empty" = "사진이 있는 일기가 없습니다";
 "diary.gallery.detail.title" = "일기";
 "diary.gallery.detail.close" = "닫기";
+
+/* Food Safety — Status */
+"food.safety.status.safe" = "안전";
+"food.safety.status.caution" = "주의";
+"food.safety.status.forbidden" = "금지";
+
+/* Food History — Event Kind */
+"food.history.kind.tried" = "시도";
+"food.history.kind.reaction" = "반응 발생";
+"food.history.kind.safe" = "안전 확인";
+
+/* Food Safety Dashboard */
+"food.safety.dashboard.title" = "식품 안전 분류";
+"food.safety.section.safe" = "안전 식품";
+"food.safety.section.caution" = "주의 식품";
+"food.safety.section.forbidden" = "금지 식품";
+"food.safety.disclaimer" = "기록 기반 분류 · 참고용 — 의학적 판단이 아닙니다.";
+"food.safety.empty.title" = "기록된 식품 없음";
+"food.safety.empty.message" = "이유식을 기록하면 식품별 반응이 분류됩니다.";
+"food.safety.tile.trialCount" = "%d회 시도";
+
+/* Food History Sheet */
+"food.history.sheet.close" = "닫기";
+"food.history.sheet.trialSummary" = "총 %d회 시도 · 반응 %d회";
+"food.history.sheet.firstTried" = "첫 시도: %@";
+"food.history.sheet.empty" = "기록된 시도 내역이 없습니다.";
+"food.history.sheet.timeline.title" = "시도 타임라인";
+
+/* Allergy Auto-Suggest Sheet */
+"food.autosuggest.nav.title" = "알레르기 기록 생성";
+"food.autosuggest.sheet.title" = "알레르기 기록을 생성하시겠어요?";
+"food.autosuggest.sheet.subtitle" = "이유식 반응을 기반으로 알레르기 기록을 미리 채웠습니다.";
+"food.autosuggest.section.allergen" = "알레르겐";
+"food.autosuggest.allergen.placeholder" = "식품명 입력";
+"food.autosuggest.section.reactionType" = "반응 유형";
+"food.autosuggest.reactionType.label" = "반응 유형";
+"food.autosuggest.section.severity" = "심각도";
+"food.autosuggest.severity.label" = "심각도";
+"food.autosuggest.section.note" = "메모";
+"food.autosuggest.note.placeholder" = "추가 사항 (선택)";
+"food.autosuggest.disclaimer" = "기록 보관용 · 참고용이며 의학적 진단이 아닙니다. 심각한 증상은 소아과 전문의와 상담하세요.";
+"food.autosuggest.action.skip" = "건너뛰기";
+"food.autosuggest.action.save" = "저장";
+
+/* Allergy List — Segmented Tabs */
+"allergy.list.nav.title" = "알레르기 기록";
+"allergy.list.tab.records" = "알레르기 목록";
+"allergy.list.tab.foodSafety" = "식품 안전";
+
+/* SolidFood — Allergy Auto-Suggest Banner */
+"solid.allergy.banner.title" = "부정적 반응이 기록됩니다. 알레르기로 기록하시겠어요?";
+"solid.allergy.banner.action" = "알레르기 기록하기";

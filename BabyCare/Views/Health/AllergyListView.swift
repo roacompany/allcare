@@ -12,32 +12,43 @@ struct AllergyListView: View {
     @State private var editingRecord: AllergyRecord?
     @State private var savedMessage: String?
 
+    // Segmented view toggle: 0 = 알레르기 목록, 1 = 식품 안전
+    @State private var selectedTab = 0
+
+    private let tabs = [
+        NSLocalizedString("allergy.list.tab.records", comment: ""),
+        NSLocalizedString("allergy.list.tab.foodSafety", comment: "")
+    ]
+
     var body: some View {
-        Group {
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if records.isEmpty {
-                EmptyStateView(
-                    icon: "leaf.circle.fill",
-                    title: "알레르기 기록 없음",
-                    message: "알레르기 반응이 있었다면 기록해보세요",
-                    actionTitle: "기록 추가"
-                ) {
-                    showAddSheet = true
+        VStack(spacing: 0) {
+            // Segmented Control
+            Picker("", selection: $selectedTab) {
+                ForEach(tabs.indices, id: \.self) { index in
+                    Text(tabs[index]).tag(index)
                 }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            if selectedTab == 0 {
+                allergyRecordsTab
             } else {
-                allergyList
+                FoodSafetyDashboard()
+                    .environment(healthVM)
             }
         }
-        .navigationTitle("알레르기 기록")
+        .navigationTitle(NSLocalizedString("allergy.list.nav.title", comment: ""))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showAddSheet = true
-                } label: {
-                    Image(systemName: "plus")
+                if selectedTab == 0 {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
         }
@@ -82,6 +93,28 @@ struct AllergyListView: View {
         }
         .task {
             await loadRecords()
+        }
+    }
+
+    // MARK: - Allergy Records Tab
+
+    private var allergyRecordsTab: some View {
+        Group {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if records.isEmpty {
+                EmptyStateView(
+                    icon: "leaf.circle.fill",
+                    title: "알레르기 기록 없음",
+                    message: "알레르기 반응이 있었다면 기록해보세요",
+                    actionTitle: "기록 추가"
+                ) {
+                    showAddSheet = true
+                }
+            } else {
+                allergyList
+            }
         }
     }
 
