@@ -1971,3 +1971,147 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(status, .caution)
     }
 }
+
+// MARK: - HospitalChecklistService Tests (#10)
+
+final class HospitalChecklistServiceTests: XCTestCase {
+
+    // Helper: 아기 생성
+    private func makeBaby(birthDate: Date = Calendar.current.date(byAdding: .month, value: -6, to: Date())!) -> Baby {
+        Baby(name: "테스트", birthDate: birthDate, gender: .male)
+    }
+
+    // Helper: 예방접종 생성 (미완료, 예정)
+    private func makeVaccination(daysFromNow: Int, completed: Bool = false) -> Vaccination {
+        let schedDate = Calendar.current.date(byAdding: .day, value: daysFromNow, to: Date())!
+        var vax = Vaccination(
+            babyId: "b1",
+            vaccine: .dtap,
+            doseNumber: 1,
+            scheduledDate: schedDate
+        )
+        vax.isCompleted = completed
+        return vax
+    }
+
+    // Helper: 성장기록 생성
+    private func makeGrowthRecord(weight: Double, height: Double, monthsOld: Int) -> GrowthRecord {
+        let date = Calendar.current.date(byAdding: .month, value: -monthsOld, to: Date())!
+        return GrowthRecord(babyId: "b1", date: date, height: height, weight: weight)
+    }
+
+    // Helper: 활동 생성 (체온 포함)
+    private func makeTemperatureActivity(temp: Double, daysAgo: Int = 1) -> Activity {
+        let time = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+        var act = Activity(babyId: "b1", type: .temperature, startTime: time)
+        act.temperature = temp
+        return act
+    }
+
+    // Helper: 노트 포함 활동 생성
+    private func makeNoteActivity(note: String, daysAgo: Int = 1) -> Activity {
+        let time = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+        var act = Activity(babyId: "b1", type: .sleep, startTime: time)
+        act.note = note
+        return act
+    }
+
+    // Test 1: 다음 접종 D-day 체크리스트 생성 — 미래 접종 존재 시 .vaccination 항목 생성
+    func testChecklist_upcomingVaccination_createsItem() {
+        let vax = makeVaccination(daysFromNow: 5)
+        let items = HospitalChecklistService.vaccinationItems(from: [vax])
+        XCTAssertFalse(items.isEmpty, "미래 예약 접종 있을 때 체크리스트 항목이 생성되어야 한다")
+        XCTAssertTrue(items.allSatisfy { $0.type == .vaccination })
+    }
+
+    // Test 2: 지연된 접종 — overdue 접종은 severity .high
+    func testChecklist_overdueVaccination_severityHigh() {
+        let vax = makeVaccination(daysFromNow: -3) // 3일 전 예정
+        let items = HospitalChecklistService.vaccinationItems(from: [vax])
+        let overdueItem = items.first { $0.severity == .high }
+        XCTAssertNotNil(overdueItem, "지연된 접종은 severity .high 항목이 있어야 한다")
+    }
+
+    // Test 3: 완료된 접종만 있을 때 체크리스트 비어있음
+    func testChecklist_completedVaccinations_noItems() {
+        let vax = makeVaccination(daysFromNow: -10, completed: true)
+        let items = HospitalChecklistService.vaccinationItems(from: [vax])
+        XCTAssertTrue(items.isEmpty, "완료된 접종만 있을 때 체크리스트 항목이 없어야 한다")
+    }
+
+    // Test 4: 성장 이상 감지 — 체중 3백분위 미만 시 .growthAnomaly 항목 생성
+    func testChecklist_growthAnomaly_lowWeight_createsItem() {
+        // 6개월 남아 체중 정상범위 하한선보다 훨씬 낮은 값 (0.5kg — 3백분위 미만)
+        let baby = makeBaby()
+        let record = makeGrowthRecord(weight: 0.5, height: 65.0, monthsOld: 0)
+        let items = HospitalChecklistService.growthAnomalyItems(from: [record], baby: baby)
+        XCTAssertFalse(items.isEmpty, "3백분위 미만 체중은 성장 이상 항목이 생성되어야 한다")
+        XCTAssertTrue(items.contains { $0.type == .growthAnomaly && $0.severity == .high })
+    }
+
+    // Test 5: 성장 정상범위 — 이상 없음 시 항목 없음
+    func testChecklist_growthNormal_noItems() {
+        // 6개월 남아 체중 정상값 (7.5kg)
+        let baby = makeBaby()
+        let record = makeGrowthRecord(weight: 7.5, height: 67.0, monthsOld: 0)
+        let items = HospitalChecklistService.growthAnomalyItems(from: [record], baby: baby)
+        XCTAssertTrue(items.isEmpty, "정상 범위 성장 기록은 이상 항목이 없어야 한다")
+    }
+
+    // Test 6: 증상 키워드 — 발열 체온(38도 이상)으로 증상 감지
+    func testChecklist_symptom_feverActivity_detected() {
+        let activity = makeTemperatureActivity(temp: 38.5, daysAgo: 2)
+        let items = HospitalChecklistService.symptomItems(from: [activity])
+        XCTAssertFalse(items.isEmpty, "38도 이상 체온 기록 시 증상 키워드 항목이 생성되어야 한다")
+        XCTAssertTrue(items.allSatisfy { $0.type == .symptomKeyword })
+    }
+
+    // Test 7: 증상 키워드 — note에 '기침' 포함 시 감지
+    func testChecklist_symptom_coughKeyword_detected() {
+        let activity = makeNoteActivity(note: "기침을 많이 해요", daysAgo: 3)
+        let items = HospitalChecklistService.symptomItems(from: [activity])
+        XCTAssertFalse(items.isEmpty, "note에 '기침' 포함 시 증상 항목이 생성되어야 한다")
+    }
+
+    // Test 8: 증상 키워드 — 7일 이후 오래된 활동은 무시
+    func testChecklist_symptom_oldActivity_ignored() {
+        let activity = makeTemperatureActivity(temp: 39.0, daysAgo: 10)
+        let items = HospitalChecklistService.symptomItems(from: [activity])
+        XCTAssertTrue(items.isEmpty, "7일 초과 활동은 증상 키워드 감지에서 제외되어야 한다")
+    }
+
+    // Test 9: 전체 generate — 빈 입력 시 빈 배열 반환
+    func testChecklist_generate_emptyInputs_returnsEmpty() {
+        let baby = makeBaby()
+        let items = HospitalChecklistService.generate(
+            vaccinations: [],
+            growthRecords: [],
+            activities: [],
+            baby: baby
+        )
+        XCTAssertTrue(items.isEmpty)
+    }
+
+    // Test 10: 전체 generate — 복합 입력 시 중요도순 정렬 (high >= medium >= low)
+    func testChecklist_generate_sortedBySeverity() {
+        let baby = makeBaby()
+        let vax = makeVaccination(daysFromNow: 5) // low severity
+        let overdueVax = makeVaccination(daysFromNow: -2) // high severity
+        let feverActivity = makeTemperatureActivity(temp: 39.0, daysAgo: 1) // medium
+
+        let items = HospitalChecklistService.generate(
+            vaccinations: [vax, overdueVax],
+            growthRecords: [],
+            activities: [feverActivity],
+            baby: baby
+        )
+
+        guard items.count >= 2 else { return }
+        for i in 0..<(items.count - 1) {
+            XCTAssertGreaterThanOrEqual(
+                items[i].severity, items[i + 1].severity,
+                "체크리스트는 중요도 내림차순으로 정렬되어야 한다"
+            )
+        }
+    }
+}

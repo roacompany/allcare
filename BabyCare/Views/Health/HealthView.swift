@@ -4,6 +4,7 @@ struct HealthView: View {
     @Environment(HealthViewModel.self) private var healthVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(ActivityViewModel.self) private var activityVM
 
     @State private var overdueVaccinationDismissed = false
     @State private var upcomingVaccinationDismissed = false
@@ -200,6 +201,8 @@ struct HealthView: View {
             .navigationTitle("건강")
             .onAppear {
                 AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
+                // #9 이슈 해결: solidFoodActivities 주입 (FoodSafetyDashboard 데이터 공급)
+                healthVM.solidFoodActivities = activityVM.todayActivities.filter { $0.type == .feedingSolid }
             }
             .toolbar {
                 if babyVM.babies.count > 1 {

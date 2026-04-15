@@ -34,7 +34,9 @@ struct HospitalReportSheet: View {
             case .done(let report):
                 HospitalReportView(
                     report: report,
-                    visitName: visit.hospitalName
+                    visitName: visit.hospitalName,
+                    reportVM: reportVM,
+                    baby: baby
                 )
 
             case .failed(let message):

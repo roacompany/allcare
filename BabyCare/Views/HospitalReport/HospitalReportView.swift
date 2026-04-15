@@ -6,10 +6,16 @@ struct HospitalReportView: View {
     let report: AIReport
     let visitName: String
 
+    // 체크리스트 및 PDF 공유를 위한 ViewModel (optional — 없으면 기존 공유 방식)
+    var reportVM: HospitalReportViewModel?
+    var baby: Baby?
+
     @Environment(\.dismiss) private var dismiss
     @State private var checkedItems: Set<String> = []
     @State private var showShareSheet = false
     @State private var shareText = ""
+    @State private var pdfURL: URL?
+    @State private var showPDFShareSheet = false
 
     var body: some View {
         NavigationStack {
@@ -26,7 +32,12 @@ struct HospitalReportView: View {
                         keyChangesCard
                     }
 
-                    // 체크리스트
+                    // 소아과 체크리스트 미리보기 (신규)
+                    if let vm = reportVM, !vm.checklistItems.isEmpty {
+                        checklistPreviewCard(items: vm.checklistItems)
+                    }
+
+                    // AI 체크리스트
                     if !report.checklistItems.isEmpty {
                         checklistCard
                     }
@@ -44,16 +55,39 @@ struct HospitalReportView: View {
                     Button("닫기") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        prepareShare()
-                        showShareSheet = true
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
+                    HStack(spacing: 12) {
+                        // PDF 공유 버튼 (신규)
+                        if let vm = reportVM, let currentBaby = baby {
+                            Button {
+                                pdfURL = vm.generatePDF(baby: currentBaby)
+                                if pdfURL != nil {
+                                    showPDFShareSheet = true
+                                }
+                            } label: {
+                                Label(
+                                    NSLocalizedString("hospital.report.share.button", comment: ""),
+                                    systemImage: "doc.fill"
+                                )
+                                .labelStyle(.iconOnly)
+                            }
+                        }
+                        // 텍스트 공유 버튼 (기존)
+                        Button {
+                            prepareShare()
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(text: shareText)
+            }
+            .sheet(isPresented: $showPDFShareSheet) {
+                if let url = pdfURL {
+                    PDFShareSheet(url: url)
+                }
             }
         }
     }
@@ -133,6 +167,62 @@ struct HospitalReportView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
+    // MARK: - 소아과 체크리스트 미리보기 (신규)
+
+    @ViewBuilder
+    private func checklistPreviewCard(items: [HospitalChecklistItem]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(
+                NSLocalizedString("hospital.report.checklist.preview.title", comment: ""),
+                systemImage: "checklist.unchecked"
+            )
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+
+            VStack(spacing: 8) {
+                ForEach(items) { item in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: severityIcon(item.severity))
+                            .font(.caption)
+                            .foregroundStyle(severityColor(item.severity))
+                            .frame(width: 16)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.subheadline)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let detail = item.detail {
+                                Text(detail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func severityIcon(_ severity: HospitalChecklistItem.Severity) -> String {
+        switch severity {
+        case .high:   return "exclamationmark.circle.fill"
+        case .medium: return "exclamationmark.triangle.fill"
+        case .low:    return "info.circle.fill"
+        }
+    }
+
+    private func severityColor(_ severity: HospitalChecklistItem.Severity) -> Color {
+        switch severity {
+        case .high:   return .red
+        case .medium: return .orange
+        case .low:    return .blue
+        }
+    }
+
     private var checklistCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -189,29 +279,49 @@ struct HospitalReportView: View {
 
     private func prepareShare() {
         var lines: [String] = []
-        lines.append("🏥 병원 방문 AI 리포트 — \(visitName)")
+        lines.append("병원 방문 AI 리포트 — \(visitName)")
         lines.append("")
-        lines.append("📋 종합 요약")
+        lines.append("종합 요약")
         lines.append(report.summary)
 
         if !report.keyChanges.isEmpty {
             lines.append("")
-            lines.append("📊 주요 변화")
+            lines.append("주요 변화")
             report.keyChanges.enumerated().forEach { i, c in
                 lines.append("\(i + 1). \(c)")
             }
         }
 
+        if let vm = reportVM, !vm.checklistItems.isEmpty {
+            lines.append("")
+            lines.append(NSLocalizedString("hospital.report.checklist.preview.title", comment: ""))
+            vm.checklistItems.forEach { item in
+                lines.append("• \(item.title)")
+            }
+        }
+
         if !report.checklistItems.isEmpty {
             lines.append("")
-            lines.append("✅ 의사에게 물어볼 것")
+            lines.append("의사에게 물어볼 것")
             report.checklistItems.forEach { item in
                 lines.append("• \(item.question)")
             }
         }
 
         lines.append("")
-        lines.append("⚠️ 이 리포트는 AI 참고 자료이며 의사의 진단을 대체하지 않습니다.")
+        lines.append(NSLocalizedString("hospital.report.pdf.disclaimer", comment: ""))
         shareText = lines.joined(separator: "\n")
     }
+}
+
+// MARK: - PDF Share Sheet
+
+struct PDFShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uvc: UIActivityViewController, context: Context) {}
 }

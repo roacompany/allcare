@@ -170,6 +170,8 @@ struct HospitalVisitListView: View {
     private func startReport(for visit: HospitalVisit) {
         guard !reportVM.state.isLoading else { return }
         reportVM.reset()
+        // 체크리스트·PDF 생성에 필요한 데이터 주입 (vaccinations은 healthVM에서 전달)
+        reportVM.vaccinations = healthVM.vaccinations
         reportVisit = visit
     }
 

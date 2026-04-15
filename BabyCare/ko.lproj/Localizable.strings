@@ -234,3 +234,34 @@
 /* SolidFood — Allergy Auto-Suggest Banner */
 "solid.allergy.banner.title" = "부정적 반응이 기록됩니다. 알레르기로 기록하시겠어요?";
 "solid.allergy.banner.action" = "알레르기 기록하기";
+
+/* Hospital Report — Checklist Severity */
+"hospital.checklist.severity.low" = "낮음";
+"hospital.checklist.severity.medium" = "중간";
+"hospital.checklist.severity.high" = "높음";
+
+/* Hospital Report — Vaccination Checklist */
+"hospital.checklist.vaccination.overdue" = "%@ %d차 접종 지연 — 의사와 상담 필요";
+"hospital.checklist.vaccination.overdue.detail" = "예정일로부터 %d일 경과";
+"hospital.checklist.vaccination.upcoming" = "다음 접종: %@ %d차 (D-%d)";
+
+/* Hospital Report — Growth Anomaly Checklist */
+"hospital.checklist.growth.weight.anomaly" = "체중 백분위 이탈 (%d백분위) — 의사 확인 권장";
+"hospital.checklist.growth.height.anomaly" = "키 백분위 이탈 (%d백분위) — 의사 확인 권장";
+
+/* Hospital Report — Symptom Checklist */
+"hospital.checklist.symptom.detected" = "최근 7일 증상 키워드 감지: %@";
+"hospital.checklist.symptom.detail" = "최근 기록을 기반으로 의사와 상담하세요";
+
+/* Hospital Report — PDF & Sharing */
+"hospital.report.pdf.title" = "소아과 방문 리포트";
+"hospital.report.pdf.checklist.section" = "소아과 체크리스트";
+"hospital.report.pdf.growth.section" = "성장 백분위 요약";
+"hospital.report.pdf.activity.section" = "최근 2주 활동 요약";
+"hospital.report.pdf.disclaimer" = "이 리포트는 의학적 진단이 아닌 참고용입니다. 반드시 소아과 전문의와 상담하세요.";
+"hospital.report.pdf.feeding.avg" = "수유 일평균";
+"hospital.report.pdf.sleep.avg" = "수면 일평균";
+"hospital.report.pdf.temp.trend" = "체온 추이";
+"hospital.report.share.button" = "PDF 공유";
+"hospital.report.checklist.preview.title" = "소아과 체크리스트";
+"hospital.report.checklist.preview.empty" = "체크리스트 항목이 없습니다";

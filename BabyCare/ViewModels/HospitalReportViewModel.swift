@@ -24,6 +24,26 @@ final class HospitalReportViewModel {
     var state: ReportState = .idle
     var cachedReport: AIReport?
 
+    /// 소아과 체크리스트 (generate 시 채워짐)
+    var checklistItems: [HospitalChecklistItem] = []
+
+    /// 성장 기록 (PDF 생성에 사용)
+    var growthRecords: [GrowthRecord] = []
+
+    /// 예방접종 목록 (체크리스트 생성에 사용)
+    var vaccinations: [Vaccination] = []
+
+    /// 활동 기록 (체크리스트·활동 요약 생성에 사용)
+    private var recentActivities: [Activity] = []
+
+    /// 마지막 분석 대상 아기 정보
+    private var lastBaby: Baby?
+
+    // MARK: - PDF URL
+
+    /// 생성된 PDF URL (ShareLink에 활용)
+    var pdfURL: URL?
+
     // MARK: - 리포트 생성 진입점
 
     func generate(
@@ -33,6 +53,8 @@ final class HospitalReportViewModel {
         userId: String
     ) async {
         guard !state.isLoading else { return }
+
+        lastBaby = baby
 
         // 캐시 확인
         if let cached = await loadCached(babyId: baby.id, visitId: visit.id, userId: userId) {
@@ -61,6 +83,23 @@ final class HospitalReportViewModel {
             state = .failed("활동 데이터를 불러오지 못했습니다: \(error.localizedDescription)")
             return
         }
+
+        recentActivities = activities
+
+        // 성장 기록 로드 (체크리스트·PDF 백분위 섹션용)
+        if growthRecords.isEmpty {
+            if let records = try? await FirestoreService.shared.fetchGrowthRecords(userId: userId, babyId: baby.id) {
+                growthRecords = records
+            }
+        }
+
+        // 체크리스트 생성 (HospitalChecklistService)
+        checklistItems = HospitalChecklistService.generate(
+            vaccinations: vaccinations,
+            growthRecords: growthRecords,
+            activities: activities,
+            baby: baby
+        )
 
         // 분석 실행
         let result = await AnalysisEngine.shared.run(
@@ -94,6 +133,25 @@ final class HospitalReportViewModel {
     func reset() {
         state = .idle
         cachedReport = nil
+        checklistItems = []
+        pdfURL = nil
+    }
+
+    // MARK: - PDF 생성
+
+    /// 통합 데이터(체크리스트·백분위·활동 요약) 포함 PDF 생성
+    @discardableResult
+    func generatePDF(baby: Baby) -> URL? {
+        let url = PDFReportService.generateReport(
+            baby: baby,
+            activities: recentActivities,
+            growthRecords: growthRecords,
+            periodDays: 14,
+            checklistItems: checklistItems,
+            vaccinations: vaccinations
+        )
+        pdfURL = url
+        return url
     }
 
     // MARK: - 캐시 로드
@@ -106,6 +164,7 @@ final class HospitalReportViewModel {
         ) else { return nil }
 
         // AnalysisResult에서 AIReport가 저장되지 않으므로 nil 반환 (매번 재생성)
+        _ = result
         return nil
     }
 

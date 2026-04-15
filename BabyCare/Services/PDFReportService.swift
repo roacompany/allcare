@@ -1,6 +1,7 @@
 import UIKit
 import PDFKit
 
+// swiftlint:disable type_body_length
 /// 소아과 진료용 PDF 리포트 생성 서비스
 /// 수유량 추이, 수면 패턴, 체온 이력, 성장 곡선 요약을 포함
 enum PDFReportService {
@@ -12,7 +13,9 @@ enum PDFReportService {
         baby: Baby,
         activities: [Activity],
         growthRecords: [GrowthRecord],
-        periodDays: Int
+        periodDays: Int,
+        checklistItems: [HospitalChecklistItem] = [],
+        vaccinations: [Vaccination] = []
     ) -> URL? {
         let pageWidth: CGFloat = 595.0   // A4
         let pageHeight: CGFloat = 842.0
@@ -36,63 +39,14 @@ enum PDFReportService {
         let startDate = calendar.date(byAdding: .day, value: -periodDays, to: endDate) ?? endDate
         let filtered = activities.filter { $0.startTime >= startDate.startOfDay && $0.startTime <= endDate.endOfDay }
 
+        let renderCtx = RenderContext(
+            baby: baby, dateStr: dateStr, periodLabel: periodLabel,
+            filtered: filtered, startDate: startDate, periodDays: periodDays,
+            growthRecords: growthRecords, checklistItems: checklistItems,
+            margin: margin, contentWidth: contentWidth, pageHeight: pageHeight
+        )
         let data = renderer.pdfData { context in
-            var currentY: CGFloat = 0.0
-            context.beginPage()
-            currentY = margin
-
-            currentY = drawCoverSection(
-                baby: baby, dateStr: dateStr, periodLabel: periodLabel,
-                startDate: startDate, endDate: endDate,
-                margin: margin, contentWidth: contentWidth, currentY: currentY
-            )
-
-            let feedings = filtered.filter { $0.type.category == .feeding }
-            let sleeps = filtered.filter { $0.type == .sleep }
-            let diapers = filtered.filter { $0.type.category == .diaper }
-            let temperatures = filtered.filter { $0.temperature != nil }
-            let totalDays = max(1, periodDays)
-
-            currentY = drawSummarySection(
-                feedings: feedings, sleeps: sleeps, diapers: diapers,
-                temperatures: temperatures, totalDays: totalDays,
-                margin: margin, contentWidth: contentWidth, currentY: currentY
-            )
-
-            currentY = drawFeedingSection(
-                context: context, feedings: feedings, startDate: startDate,
-                periodDays: periodDays, margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
-
-            currentY = drawSleepSection(
-                context: context, sleeps: sleeps, startDate: startDate,
-                periodDays: periodDays, margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
-
-            currentY = drawTemperatureSection(
-                context: context, temperatures: temperatures,
-                margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
-
-            currentY = drawGrowthSection(
-                context: context, growthRecords: growthRecords,
-                startDate: startDate, margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
-
-            currentY = drawDiaperSection(
-                context: context, diapers: diapers, totalDays: totalDays,
-                margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
-
-            drawFooter(
-                context: context, margin: margin, contentWidth: contentWidth,
-                pageHeight: pageHeight, currentY: currentY
-            )
+            renderPages(context: context, ctx: renderCtx)
         }
 
         do {
@@ -101,6 +55,94 @@ enum PDFReportService {
         } catch {
             return nil
         }
+    }
+
+    // MARK: - Page Rendering Context
+
+    private struct RenderContext {
+        let baby: Baby
+        let dateStr: String
+        let periodLabel: String
+        let filtered: [Activity]
+        let startDate: Date
+        let periodDays: Int
+        let growthRecords: [GrowthRecord]
+        let checklistItems: [HospitalChecklistItem]
+        let margin: CGFloat
+        let contentWidth: CGFloat
+        let pageHeight: CGFloat
+    }
+
+    private static func renderPages(
+        context: UIGraphicsPDFRendererContext,
+        ctx: RenderContext
+    ) {
+        var currentY: CGFloat = ctx.margin
+        context.beginPage()
+
+        currentY = drawCoverSection(
+            baby: ctx.baby, dateStr: ctx.dateStr, periodLabel: ctx.periodLabel,
+            startDate: ctx.startDate, endDate: Date(),
+            margin: ctx.margin, contentWidth: ctx.contentWidth, currentY: currentY
+        )
+
+        let feedings = ctx.filtered.filter { $0.type.category == .feeding }
+        let sleeps = ctx.filtered.filter { $0.type == .sleep }
+        let diapers = ctx.filtered.filter { $0.type.category == .diaper }
+        let temperatures = ctx.filtered.filter { $0.temperature != nil }
+        let totalDays = max(1, ctx.periodDays)
+
+        currentY = drawSummarySection(
+            feedings: feedings, sleeps: sleeps, diapers: diapers,
+            temperatures: temperatures, totalDays: totalDays,
+            margin: ctx.margin, contentWidth: ctx.contentWidth, currentY: currentY
+        )
+        currentY = drawFeedingSection(
+            context: context, feedings: feedings, startDate: ctx.startDate,
+            periodDays: ctx.periodDays, margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawSleepSection(
+            context: context, sleeps: sleeps, startDate: ctx.startDate,
+            periodDays: ctx.periodDays, margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawTemperatureSection(
+            context: context, temperatures: temperatures,
+            margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawGrowthSection(
+            context: context, growthRecords: ctx.growthRecords,
+            startDate: ctx.startDate, margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawDiaperSection(
+            context: context, diapers: diapers, totalDays: totalDays,
+            margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawPercentileSummarySection(
+            context: context, growthRecords: ctx.growthRecords, baby: ctx.baby,
+            margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        currentY = drawRecentActivitySummarySection(
+            context: context, activities: ctx.filtered, totalDays: totalDays,
+            margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
+        if !ctx.checklistItems.isEmpty {
+            currentY = drawChecklistSection(
+                context: context, checklistItems: ctx.checklistItems,
+                margin: ctx.margin, contentWidth: ctx.contentWidth,
+                pageHeight: ctx.pageHeight, currentY: currentY
+            )
+        }
+        drawFooter(
+            context: context, margin: ctx.margin, contentWidth: ctx.contentWidth,
+            pageHeight: ctx.pageHeight, currentY: currentY
+        )
     }
 
     // MARK: - Section Renderers
@@ -349,6 +391,191 @@ enum PDFReportService {
         return y
     }
 
+    // MARK: - 성장 백분위 요약 섹션 (신규)
+
+    @discardableResult
+    private static func drawPercentileSummarySection(
+        context: UIGraphicsPDFRendererContext,
+        growthRecords: [GrowthRecord],
+        baby: Baby,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        guard !growthRecords.isEmpty else { return currentY }
+        guard let latest = growthRecords.sorted(by: { $0.date < $1.date }).last else { return currentY }
+
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 160, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle(
+            NSLocalizedString("hospital.report.pdf.growth.section", comment: ""),
+            at: CGPoint(x: margin, y: y), width: contentWidth
+        ); y += 8
+
+        let ageMonths = Calendar.current.dateComponents([.month], from: baby.birthDate, to: latest.date).month ?? 0
+        let clampedAge = max(0, min(24, ageMonths))
+
+        if let weight = latest.weight,
+           let pct = PercentileCalculator.percentile(value: weight, ageMonths: clampedAge, gender: baby.gender, metric: .weight) {
+            y = drawKeyValue(
+                label: "체중 (최근)",
+                value: String(format: "%.2fkg — 또래 상위 %d%%", weight, 100 - Int(pct)),
+                at: CGPoint(x: margin, y: y), width: contentWidth
+            )
+        }
+
+        if let height = latest.height,
+           let pct = PercentileCalculator.percentile(value: height, ageMonths: clampedAge, gender: baby.gender, metric: .height) {
+            y = drawKeyValue(
+                label: "키 (최근)",
+                value: String(format: "%.1fcm — 또래 상위 %d%%", height, 100 - Int(pct)),
+                at: CGPoint(x: margin, y: y), width: contentWidth
+            )
+        }
+
+        if let head = latest.headCircumference,
+           let pct = PercentileCalculator.percentile(value: head, ageMonths: clampedAge, gender: baby.gender, metric: .headCircumference) {
+            y = drawKeyValue(
+                label: "머리둘레 (최근)",
+                value: String(format: "%.1fcm — 또래 상위 %d%%", head, 100 - Int(pct)),
+                at: CGPoint(x: margin, y: y), width: contentWidth
+            )
+        }
+
+        y += 4
+        y = drawText(
+            NSLocalizedString("hospital.report.pdf.disclaimer", comment: ""),
+            at: CGPoint(x: margin, y: y), width: contentWidth,
+            font: .systemFont(ofSize: 9), color: .lightGray
+        )
+        y += 12
+        return y
+    }
+
+    // MARK: - 최근 2주 활동 요약 섹션 (신규)
+
+    @discardableResult
+    private static func drawRecentActivitySummarySection(
+        context: UIGraphicsPDFRendererContext,
+        activities: [Activity],
+        totalDays: Int,
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 160, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle(
+            NSLocalizedString("hospital.report.pdf.activity.section", comment: ""),
+            at: CGPoint(x: margin, y: y), width: contentWidth
+        ); y += 8
+
+        let feedings = activities.filter { $0.type.category == .feeding }
+        let sleeps = activities.filter { $0.type == .sleep }
+        let temperatures = activities.compactMap { $0.temperature }
+        let days = max(1, totalDays)
+
+        // 수유 일평균
+        let feedingAvg = Double(feedings.count) / Double(days)
+        y = drawKeyValue(
+            label: NSLocalizedString("hospital.report.pdf.feeding.avg", comment: ""),
+            value: String(format: "%.1f회/일", feedingAvg),
+            at: CGPoint(x: margin, y: y), width: contentWidth
+        )
+
+        // 수면 일평균
+        let sleepTotalHours = sleeps.compactMap(\.duration).reduce(0, +) / 3600
+        let sleepAvg = sleepTotalHours / Double(days)
+        y = drawKeyValue(
+            label: NSLocalizedString("hospital.report.pdf.sleep.avg", comment: ""),
+            value: String(format: "%.1f시간/일", sleepAvg),
+            at: CGPoint(x: margin, y: y), width: contentWidth
+        )
+
+        // 체온 추이
+        if !temperatures.isEmpty {
+            let avgTemp = temperatures.reduce(0, +) / Double(temperatures.count)
+            let maxTemp = temperatures.max() ?? 0
+            let feverCount = temperatures.filter { $0 >= 38.0 }.count
+            let tempSummary: String
+            if feverCount > 0 {
+                tempSummary = String(format: "평균 %.1f°C · 최고 %.1f°C · 발열 %d회", avgTemp, maxTemp, feverCount)
+            } else {
+                tempSummary = String(format: "평균 %.1f°C · 최고 %.1f°C", avgTemp, maxTemp)
+            }
+            y = drawKeyValue(
+                label: NSLocalizedString("hospital.report.pdf.temp.trend", comment: ""),
+                value: tempSummary,
+                at: CGPoint(x: margin, y: y), width: contentWidth
+            )
+        }
+
+        y += 12
+        return y
+    }
+
+    // MARK: - 소아과 체크리스트 섹션 (신규)
+
+    @discardableResult
+    private static func drawChecklistSection(
+        context: UIGraphicsPDFRendererContext,
+        checklistItems: [HospitalChecklistItem],
+        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+    ) -> CGFloat {
+        var y = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
+        y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
+        y = drawSectionTitle(
+            NSLocalizedString("hospital.report.pdf.checklist.section", comment: ""),
+            at: CGPoint(x: margin, y: y), width: contentWidth
+        ); y += 8
+
+        for item in checklistItems {
+            y = checkPageBreak(context: context, currentY: y, needed: 40, pageHeight: pageHeight, margin: margin)
+
+            // 심각도 색상
+            let color: UIColor
+            switch item.severity {
+            case .high:   color = UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1)
+            case .medium: color = UIColor(red: 0.85, green: 0.5, blue: 0.1, alpha: 1)
+            case .low:    color = UIColor(red: 0.3, green: 0.6, blue: 0.3, alpha: 1)
+            }
+
+            // 체크박스 사각형
+            let boxRect = CGRect(x: margin, y: y + 2, width: 12, height: 12)
+            UIColor(white: 0.85, alpha: 1).setStroke()
+            let boxPath = UIBezierPath(rect: boxRect)
+            boxPath.lineWidth = 0.5
+            boxPath.stroke()
+
+            let itemX = margin + 18
+            let itemWidth = contentWidth - 18
+
+            y = drawText(
+                item.title,
+                at: CGPoint(x: itemX, y: y),
+                width: itemWidth,
+                font: .systemFont(ofSize: 10, weight: .medium),
+                color: color
+            )
+
+            if let detail = item.detail {
+                y = drawText(
+                    detail,
+                    at: CGPoint(x: itemX, y: y),
+                    width: itemWidth,
+                    font: .systemFont(ofSize: 9),
+                    color: .gray
+                )
+            }
+            y += 4
+        }
+
+        y += 4
+        y = drawText(
+            NSLocalizedString("hospital.report.pdf.disclaimer", comment: ""),
+            at: CGPoint(x: margin, y: y), width: contentWidth,
+            font: .systemFont(ofSize: 9), color: .lightGray
+        )
+        y += 12
+        return y
+    }
+
     private static func drawFooter(
         context: UIGraphicsPDFRendererContext,
         margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
@@ -526,3 +753,4 @@ enum PDFReportService {
         return result
     }
 }
+// swiftlint:enable type_body_length
