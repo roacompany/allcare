@@ -43,11 +43,11 @@ none — iOS 네이티브 앱, sandbox infra 없음
 
 ## TODO List
 
-### TODO 1 — Badge Presenter (신규 획득 전파 레이어)
-- [ ] `BadgePresenter.swift` (신규, @MainActor @Observable) — `pendingBadges: [Badge]` 큐 + `current: Badge?` + `dismiss()` / `enqueue(_:)` API
-- [ ] `AppState`에 `badgePresenter: BadgePresenter` 추가 (singleton 패턴 기존 23 VM 규칙 따름)
-- [ ] BadgeEvaluator 호출 3지점 (ActivityViewModel+Save의 evaluateBadgesIfNeeded, GrowthViewModel.saveRecord, RoutineViewModel.checkAndAutoResetIfNeeded)에서 반환값 `newlyEarned`을 `AppState.shared.badgePresenter.enqueue(contentsOf:)`로 연결
-- [ ] **검증**: 단위 테스트 3개 — 1) enqueue 1건 시 current 세팅, 2) dismiss 호출 시 다음 배지로 pop, 3) 빈 큐에서 dismiss no-op
+### TODO 1 — Badge Presenter (신규 획득 전파 레이어) ✅ 2026-04-15
+- [x] `BadgePresenter.swift` (신규, @MainActor @Observable) — `pending: [Badge]` 큐 + `current: Badge?` + `dismiss()` / `enqueue(_:)` API
+- [x] `AppState`에 `badgePresenter: BadgePresenter` 추가
+- [x] BadgeEvaluator 호출 3지점에서 반환값 `newlyEarned`을 `AppState.shared.badgePresenter.enqueue(_:)`로 연결
+- [x] **검증**: 단위 테스트 4개 — enqueue 1건, FIFO drain, 빈 큐 dismiss no-op, 빈 enqueue no-op (테스트 94→102, +8 sleep-method 포함)
 
 ### TODO 2 — BadgeSnackbarView
 - [ ] `Views/Badges/BadgeSnackbarView.swift` — `.overlay` modifier로 `RootTabView`에 부착. 아이콘(`iconSFSymbol`) + 타이틀(LocalizedStringKey) + "축하합니다!" 부제
