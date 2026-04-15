@@ -1,12 +1,12 @@
 import SwiftUI
 
 extension CalendarView {
-    // MARK: - Month Header
+    // MARK: - Week Header
 
-    var monthHeader: some View {
+    var weekHeader: some View {
         HStack(spacing: 12) {
             Button {
-                calendarVM.previousMonth()
+                withAnimation(.easeInOut(duration: 0.2)) { calendarVM.previousWeek() }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title3)
@@ -14,22 +14,21 @@ extension CalendarView {
 
             Spacer()
 
-            Text(calendarVM.monthTitle)
-                .font(.title3.weight(.semibold))
+            Text(calendarVM.weekTitle)
+                .font(.subheadline.weight(.semibold))
 
             if calendarVM.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
             }
 
-            // "오늘" 버튼 (현재 달이 아닐 때만)
-            if !calendarVM.isCurrentMonth {
+            if !calendarVM.isCurrentWeek {
                 Button {
                     withAnimation(.spring(duration: 0.3)) {
                         calendarVM.goToToday()
                     }
                 } label: {
-                    Text("오늘")
+                    Text("이번 주")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 10)
@@ -41,7 +40,7 @@ extension CalendarView {
             Spacer()
 
             Button {
-                calendarVM.nextMonth()
+                withAnimation(.easeInOut(duration: 0.2)) { calendarVM.nextWeek() }
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title3)
@@ -51,9 +50,9 @@ extension CalendarView {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Calendar Grid
+    // MARK: - Week Grid (1행 7일)
 
-    var calendarGrid: some View {
+    var weekGrid: some View {
         VStack(spacing: 4) {
             HStack {
                 ForEach(weekdays, id: \.self) { day in
@@ -64,19 +63,22 @@ extension CalendarView {
                 }
             }
 
-            let days = calendarVM.daysInMonth
-            let firstWeekday = calendarVM.firstWeekdayOfMonth
-
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 4) {
-                ForEach(0..<firstWeekday, id: \.self) { _ in
-                    Text("")
-                        .frame(height: 44)
-                }
-
-                ForEach(days, id: \.self) { date in
+                ForEach(calendarVM.daysInWeek, id: \.self) { date in
                     dayCell(date: date)
                 }
             }
+            .gesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        if dx < -50 {
+                            withAnimation(.easeInOut(duration: 0.2)) { calendarVM.nextWeek() }
+                        } else if dx > 50 {
+                            withAnimation(.easeInOut(duration: 0.2)) { calendarVM.previousWeek() }
+                        }
+                    }
+            )
         }
     }
 

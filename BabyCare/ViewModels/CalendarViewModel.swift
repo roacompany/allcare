@@ -78,7 +78,49 @@ final class CalendarViewModel {
         Calendar.current.isDate(currentMonth, equalTo: Date(), toGranularity: .month)
     }
 
-    // MARK: - Navigation
+    // MARK: - Week Computed (주 단위 표시용)
+
+    /// currentMonth 기준 주의 시작일 (월요일)
+    var currentWeekStart: Date {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: currentMonth) // 1=일, 2=월
+        let daysFromMonday = (weekday + 5) % 7 // 월=0, 일=6
+        return calendar.date(byAdding: .day, value: -daysFromMonday, to: calendar.startOfDay(for: currentMonth)) ?? currentMonth
+    }
+
+    /// 현재 주 7일 (월~일)
+    var daysInWeek: [Date] {
+        let calendar = Calendar.current
+        let start = currentWeekStart
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    /// 주 타이틀 e.g. "4월 14일 ~ 4월 20일" (연 변경 시 연도 포함)
+    var weekTitle: String {
+        guard let last = daysInWeek.last else { return "" }
+        let start = currentWeekStart
+        let calendar = Calendar.current
+        let sameYear = calendar.isDate(start, equalTo: Date(), toGranularity: .year)
+            && calendar.isDate(last, equalTo: Date(), toGranularity: .year)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = sameYear ? "M월 d일" : "yyyy년 M월 d일"
+        return "\(formatter.string(from: start)) ~ \(formatter.string(from: last))"
+    }
+
+    var isCurrentWeek: Bool {
+        Calendar.current.isDate(currentWeekStart, equalTo: Date(), toGranularity: .weekOfYear)
+    }
+
+    func previousWeek() {
+        currentMonth = Calendar.current.date(byAdding: .day, value: -7, to: currentMonth) ?? currentMonth
+    }
+
+    func nextWeek() {
+        currentMonth = Calendar.current.date(byAdding: .day, value: 7, to: currentMonth) ?? currentMonth
+    }
+
+    // MARK: - Navigation (Month — 레거시 유지)
 
     func previousMonth() {
         currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
@@ -91,6 +133,55 @@ final class CalendarViewModel {
     func goToToday() {
         currentMonth = Date()
         selectedDate = Date()
+    }
+
+    // MARK: - Week Data Loading
+
+    func loadWeekActivities(userId: String, babyId: String) async {
+        let calendar = Calendar.current
+        let start = currentWeekStart
+        guard let end = calendar.date(byAdding: .day, value: 6, to: start) else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            async let fetchActs = firestoreService.fetchActivities(
+                userId: userId, babyId: babyId,
+                from: start.startOfDay, to: end.endOfDay
+            )
+            async let fetchVisits = firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
+            async let fetchVax = firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
+            async let fetchTodos = firestoreService.fetchTodos(userId: userId)
+
+            let (activities, visits, vaccinations, todos) = try await (fetchActs, fetchVisits, fetchVax, fetchTodos)
+
+            allMonthHospitalVisits = visits
+            allMonthVaccinations = vaccinations
+            allTodos = todos
+
+            var dots: [Date: Set<CalendarEventType>] = [:]
+
+            for activity in activities {
+                let day = activity.startTime.startOfDay
+                dots[day, default: []].insert(.activity(activity.type.category))
+            }
+            for visit in visits where visit.visitDate >= start.startOfDay && visit.visitDate <= end.endOfDay {
+                dots[visit.visitDate.startOfDay, default: []].insert(.hospitalVisit)
+            }
+            for vax in vaccinations where vax.scheduledDate >= start.startOfDay && vax.scheduledDate <= end.endOfDay {
+                dots[vax.scheduledDate.startOfDay, default: []].insert(.vaccination)
+            }
+            for todo in todos {
+                if let due = todo.dueDate, due >= start.startOfDay && due <= end.endOfDay {
+                    dots[due.startOfDay, default: []].insert(.todo)
+                }
+            }
+
+            eventDots = dots
+        } catch {
+            errorMessage = "주간 데이터 로드 실패: \(error.localizedDescription)"
+        }
     }
 
     func selectDate(_ date: Date) {

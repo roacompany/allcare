@@ -20,20 +20,14 @@ struct CalendarView: View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
-                    monthHeader
-                    calendarGrid
+                    weekHeader
+                    weekGrid
                         .padding(.horizontal)
 
                     Divider()
                         .padding(.vertical, 6)
 
                     dateHeader
-
-                    if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 1) {
-                        AdBannerView()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: AdBannerView.currentBannerHeight())
-                    }
 
                     eventsList
                 }
