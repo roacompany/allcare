@@ -62,6 +62,16 @@ service cloud.firestore {
       match /fcmTokens/{tokenId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // 배지 — 본인만 읽기/쓰기 (FirestoreService+Badge: 중복 방지 get→set 단일 경로)
+      match /badges/{badgeId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 누적 통계 — 본인만 읽기/쓰기 (FieldValue.increment + merge:true)
+      match /stats/{statsId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // --- 초대 ---
