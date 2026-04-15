@@ -157,6 +157,14 @@ final class RoutineViewModel {
 
             do {
                 try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
+                if newStreak >= 3 {
+                    let event = BadgeEvaluator.Event(
+                        kind: .routineStreakUpdated(newStreak: newStreak),
+                        babyId: nil,
+                        at: today
+                    )
+                    _ = await BadgeEvaluator().evaluate(event: event, userId: userId)
+                }
             } catch {
                 routines[rIdx] = backup
             }

@@ -47,6 +47,7 @@ extension ActivityViewModel {
             if type == .temperature && isFeverTrendDetected {
                 NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
             }
+            await evaluateBadgesIfNeeded(type: type, babyId: babyId, userId: userId, at: activity.startTime)
             resetForm()
         } catch {
             enqueueOfflineActivity(activity, userId: userId, babyId: babyId)
@@ -170,6 +171,7 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
+            await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, userId: userId, at: activity.startTime)
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
@@ -190,10 +192,20 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
+            await evaluateBadgesIfNeeded(type: type, babyId: babyId, userId: userId, at: activity.startTime)
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
         }
+    }
+
+    // MARK: - Badge Hook
+
+    /// 저장 성공 후 BadgeEvaluator 호출 (배지 대상 아닌 타입은 no-op)
+    private func evaluateBadgesIfNeeded(type: Activity.ActivityType, babyId: String, userId: String, at date: Date) async {
+        guard let kind = BadgeEvaluator.eventKind(for: type) else { return }
+        let event = BadgeEvaluator.Event(kind: kind, babyId: babyId, at: date)
+        _ = await BadgeEvaluator().evaluate(event: event, userId: userId)
     }
 
     func updateActivity(_ activity: Activity, userId: String) async {
