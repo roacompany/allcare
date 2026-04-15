@@ -28,7 +28,7 @@ make screenshots     # 주요 화면 스크린샷 캡처
 
 ```bash
 make build       # xcodegen + xcodebuild
-make test        # 단위 테스트 63개
+make test        # 단위 테스트 94개
 make lint        # SwiftLint 검사
 make arch-test   # 아키텍처 경계 검사
 make verify      # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
@@ -44,7 +44,8 @@ make status      # 버전/커밋/테스트 상태
 - **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
-- **Firestore**: 200MB persistent cache, 21개 컬렉션 상수 (FirestoreCollections), 페이지네이션 (일기 커서/구매 limit/할일 필터)
+- **Firestore**: 200MB persistent cache, 23개 컬렉션 상수 (FirestoreCollections), 페이지네이션 (일기 커서/구매 limit/할일 필터)
+- **배지 시스템 (Phase 1)**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 (Phase 2 UI는 `badges-ui` 스펙 예정)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
@@ -69,15 +70,15 @@ make status      # 버전/커밋/테스트 상태
 
 ## Harness
 
-harness-score: 96% (Grade A) — 2026-04-14
+harness-score: 96% (Grade A) — 2026-04-15
 
-## Recent Session (2026-04-14)
+## Recent Session (2026-04-15)
 
-- 코드 품질: arch-test 17→0, SwiftLint 21→0, 5 new VMs (FamilySharing/Growth/SoundPlayer/AdminDashboard/NotificationSettings), 5 함수 분할
-- feat(prediction): 수유 예측 개인화 (day/night 시간대 인식, cross-midnight fallback, 오버듀 알림 opt-in)
-- feat(insight): 주간 인사이트 리포트 (WeeklyInsightService + 대시보드 카드 + 월요일 푸시)
-- feat(growth): 성장 차트 v2 (WHO AreaMark 밴드 + 백분위 추이 트렌드 + "또래 상위 XX%")
-- 테스트: 50→63개 (+13), VM: 18→23개 (+5)
+- feat(sleep-location): SleepMethodType enum에 bed/bouncer/inArms 3 case 추가 + `@AppStorage` 아기별 기본값 + "잠든 곳" 레이블 통일 (기록/통계/편집 3 화면), 테스트 +17
+- feat(badges Phase 1): Badge + BadgeCatalog 8개 (firstRecord/feeding100/sleep50/diaper200/routineStreak3·7·30/growth10), UserStats + FirestoreService+Stats (FieldValue.increment), FirestoreService+Badge 단일경로+중복방지, BadgeEvaluator 단일 진입점, 테스트 +14
+- Code review 2회 (sleep-location + badges) NEEDS_FIXES → SHIP: optional 필드 패턴, saveBadge Bool 반환, DateFormatter static, UserDefaults 조건 gate
+- 테스트: 63→94개 (+31), Firestore 컬렉션: 21→23개 (+badges, +stats)
+- 스펙 아카이브 정리: 5개 → done/
 
 ## Current Status
 
@@ -85,8 +86,8 @@ harness-score: 96% (Grade A) — 2026-04-14
 - **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
 - **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
-- **테스트**: 63개 PASS, 경고 0건
-- **규모**: 220+ Swift 파일, 23개 VM
+- **테스트**: 94개 PASS, 경고 0건
+- **규모**: 225+ Swift 파일, 23개 VM, 23개 Firestore 컬렉션
 - **QA**: 3-Agent ALL PASS (2026-04-04)
 
 ## Recent Changes (v2.6.2)
@@ -144,6 +145,6 @@ make dead-code   # 미사용 코드 탐지
 ### 로드맵
 - P0: 임신 모드
 - P2: 사진 AI OCR, AI 실시간 제안
-- P4~P6: 수면장소, 커스텀활동, Apple Health, 배지, 커뮤니티
+- P4~P6: ~~수면장소~~ ✅ (sleep-location), ~~배지 Phase 1~~ ✅ (badges), badges-ui (Phase 2), 커스텀활동, Apple Health, 커뮤니티
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 - 웹: Google Search Console, Naver 등록
