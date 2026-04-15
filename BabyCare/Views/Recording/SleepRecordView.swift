@@ -82,7 +82,7 @@ struct SleepRecordView: View {
                         .foregroundStyle(.secondary)
 
                     FlowLayout(spacing: 8) {
-                        ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
+                        ForEach(Activity.SleepMethodType.selectableCases, id: \.self) { method in
                             Button {
                                 let newValue: Activity.SleepMethodType? = activityVM.sleepMethod == method ? nil : method
                                 activityVM.sleepMethod = newValue
@@ -132,7 +132,17 @@ struct SleepRecordView: View {
                activityVM.sleepMethod == nil,
                let raw = UserDefaults.standard.string(forKey: lastMethodKey(babyId: babyId)),
                let method = Activity.SleepMethodType(rawValue: raw) {
-                activityVM.sleepMethod = method
+                // deprecated 기본값(holding/nursing) 마이그레이션
+                let migrated: Activity.SleepMethodType
+                switch method {
+                case .holding: migrated = .inArms
+                case .nursing: migrated = .bed
+                default: migrated = method
+                }
+                activityVM.sleepMethod = migrated
+                if migrated != method {
+                    UserDefaults.standard.set(migrated.rawValue, forKey: lastMethodKey(babyId: babyId))
+                }
             }
         }
     }

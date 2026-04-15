@@ -82,14 +82,23 @@ extension Activity {
     // MARK: - 잠드는 방법
 
     enum SleepMethodType: String, Codable, CaseIterable {
+        // 기존 레코드 decode 호환을 위해 전체 case 유지.
+        // UI 픽커에서는 `selectableCases`만 노출 — holding/nursing은 deprecated.
         case bed, selfSettled, holding, inArms, bouncer, nursing, stroller, carSeat
+
+        /// 신규 기록 입력 시 사용자에게 노출되는 case만. 중복/카테고리 불일치 제외.
+        /// - holding: inArms와 의미 중복 (안아서 == 품에 안겨서) → inArms로 통합
+        /// - nursing: 상황(행위)이지 장소가 아님 → 수유 Activity로 별도 기록
+        static let selectableCases: [SleepMethodType] = [
+            .bed, .selfSettled, .inArms, .bouncer, .stroller, .carSeat
+        ]
 
         var displayName: String {
             switch self {
             case .bed: "침대"
             case .selfSettled: "스스로"
-            case .holding: "안아서"
-            case .inArms: "품안"
+            case .holding: "품에 안겨서"
+            case .inArms: "품에 안겨서"
             case .bouncer: "바운서"
             case .nursing: "수유 중"
             case .stroller: "유모차"
@@ -101,7 +110,7 @@ extension Activity {
             switch self {
             case .bed: "bed.double.fill"
             case .selfSettled: "moon.zzz.fill"
-            case .holding: "hands.and.sparkles.fill"
+            case .holding: "figure.arms.open"
             case .inArms: "figure.arms.open"
             case .bouncer: "chair.lounge.fill"
             case .nursing: "figure.and.child.holdinghands"

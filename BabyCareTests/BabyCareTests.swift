@@ -984,6 +984,32 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(dist[.inArms], 2)
     }
 
+    // MARK: - SleepMethodType Consolidation
+
+    func testSleepMethodType_selectableCases_excludesDuplicatesAndSituations() {
+        let selectable = Activity.SleepMethodType.selectableCases
+        XCTAssertFalse(selectable.contains(.holding), "holding은 inArms와 중복, 픽커에서 제외")
+        XCTAssertFalse(selectable.contains(.nursing), "nursing은 장소가 아닌 상황, 픽커에서 제외")
+        XCTAssertEqual(selectable.count, 6)
+        XCTAssertEqual(Set(selectable), Set([.bed, .selfSettled, .inArms, .bouncer, .stroller, .carSeat]))
+    }
+
+    func testSleepMethodType_holdingDisplayName_mergedWithInArms() {
+        XCTAssertEqual(Activity.SleepMethodType.holding.displayName, Activity.SleepMethodType.inArms.displayName)
+        XCTAssertEqual(Activity.SleepMethodType.inArms.displayName, "품에 안겨서")
+    }
+
+    func testSleepMethodType_deprecatedCases_stillDecodable() {
+        // 기존 프로덕션 데이터 회귀 방지 — raw value decode 성공해야 함
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "holding"))
+        XCTAssertNotNil(Activity.SleepMethodType(rawValue: "nursing"))
+    }
+
+    func testSleepMethodType_allCases_unchanged() {
+        // allCases는 backward compat용 — 8개 유지
+        XCTAssertEqual(Activity.SleepMethodType.allCases.count, 8)
+    }
+
     // MARK: - Badge Phase 1 Tests
 
     func testBadge_codableRoundTrip() throws {

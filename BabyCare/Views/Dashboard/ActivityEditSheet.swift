@@ -145,7 +145,13 @@ struct ActivityEditSheet: View {
                         }
                         Picker("잠든 곳", selection: $editedSleepMethod) {
                             Text("선택 안 함").tag(Optional<Activity.SleepMethodType>.none)
-                            ForEach(Activity.SleepMethodType.allCases, id: \.self) { method in
+                            // 기존 레코드의 deprecated 값(holding/nursing)은 현재 선택 상태로 표시되되
+                            // 픽커 목록에서는 감춤. 변경 시 신규 허용값으로 전환.
+                            if let current = editedSleepMethod, !Activity.SleepMethodType.selectableCases.contains(current) {
+                                Label(current.displayName, systemImage: current.icon)
+                                    .tag(Optional(current))
+                            }
+                            ForEach(Activity.SleepMethodType.selectableCases, id: \.self) { method in
                                 Label(method.displayName, systemImage: method.icon)
                                     .tag(Optional(method))
                             }
