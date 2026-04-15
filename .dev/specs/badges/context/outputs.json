@@ -1,0 +1,24 @@
+{
+  "todo-1": { "streak_regression_ok": true },
+  "todo-2": { "badge_model_path": "BabyCare/Models/Badge.swift", "catalog_count": 8 },
+  "todo-3": { "firestore_badge_service": "BabyCare/Services/FirestoreService+Badge.swift" },
+  "todo-4": { "stats_service": "BabyCare/Services/FirestoreService+Stats.swift" },
+  "todo-5": { "evaluator": "BabyCare/Services/BadgeEvaluator.swift" },
+  "todo-6": { "tests_added": [
+    "testBadge_codableRoundTrip",
+    "testBadgeCategory_allCases",
+    "testBadgeCatalog_hasEight",
+    "testBadgeCatalog_allIdsUnique",
+    "testBadgeCatalog_iconNonEmpty",
+    "testBadgeCatalog_definitionLookup",
+    "testBadgeCatalog_thresholds",
+    "testBadgeCatalog_statsFieldCoverage",
+    "testFirestoreCollections_badgesAndStats",
+    "testUserStats_emptyFactory",
+    "testBadgeEvaluator_shouldCheckFirstRecord",
+    "testBadgeEvaluator_aggregateMapping",
+    "testBadgeEvaluator_statsValue",
+    "testBadgeEvaluator_utcDateString_format"
+  ] },
+  "todo-final": { "verify_passed": true, "test_count": 94 }
+}
