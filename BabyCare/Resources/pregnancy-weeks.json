@@ -1,0 +1,72 @@
+[
+  {
+    "week": 4,
+    "fruitSize": "양귀비 씨",
+    "milestone": "착상이 완료되고 세포가 빠르게 분열합니다.",
+    "tip": "엽산을 포함한 산전 비타민을 규칙적으로 챙겨주세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 8,
+    "fruitSize": "산딸기",
+    "milestone": "주요 기관이 형성되기 시작합니다.",
+    "tip": "첫 산전 진찰을 예약해두면 좋습니다.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 12,
+    "fruitSize": "자두",
+    "milestone": "손가락과 발가락이 뚜렷해집니다.",
+    "tip": "1차 기형아 검사 시기입니다. 담당 의료진과 상의하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 16,
+    "fruitSize": "아보카도",
+    "milestone": "움직임이 활발해지고 청각이 발달합니다.",
+    "tip": "편안한 임부복과 임산부용 쿠션을 준비해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 20,
+    "fruitSize": "바나나",
+    "milestone": "정밀 초음파로 성장 상태를 확인할 수 있습니다.",
+    "tip": "임신 중간 점검과 정밀 초음파 일정을 체크하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 24,
+    "fruitSize": "옥수수",
+    "milestone": "청각이 많이 발달해 엄마의 목소리를 듣습니다.",
+    "tip": "태담과 음악 감상 시간을 만들어보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 28,
+    "fruitSize": "가지",
+    "milestone": "태동이 규칙적으로 느껴집니다.",
+    "tip": "매일 같은 시간대에 태동을 기록해보세요 (ACOG 권장).",
+    "disclaimerKey": "pregnancy.disclaimer.kick"
+  },
+  {
+    "week": 32,
+    "fruitSize": "호박",
+    "milestone": "피부 주름이 펴지고 체중이 빠르게 늘어납니다.",
+    "tip": "출산 가방 리스트를 미리 점검해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 36,
+    "fruitSize": "파파야",
+    "milestone": "출산 준비가 거의 완료되는 시기입니다.",
+    "tip": "조산 징후(규칙적 진통/이슬/양수)를 숙지해두세요.",
+    "disclaimerKey": "pregnancy.disclaimer.labor"
+  },
+  {
+    "week": 40,
+    "fruitSize": "수박",
+    "milestone": "출산 예정일입니다. 언제든 만날 준비가 되어 있어요.",
+    "tip": "진통 간격을 기록하고 담당 의료진의 안내를 따르세요.",
+    "disclaimerKey": "pregnancy.disclaimer.labor"
+  }
+]
