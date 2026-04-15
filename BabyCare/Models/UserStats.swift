@@ -1,13 +1,13 @@
 import Foundation
 
 struct UserStats: Identifiable, Codable, Hashable {
-    var id: String            // "lifetime" 고정
-    var feedingCount: Int
-    var sleepCount: Int
-    var diaperCount: Int
-    var growthRecordCount: Int
+    var id: String?             // optional — Firestore decode 실패 방지
+    var feedingCount: Int?
+    var sleepCount: Int?
+    var diaperCount: Int?
+    var growthRecordCount: Int?
     var firstRecordAt: Date?
-    var updatedAt: Date
+    var updatedAt: Date?
 
     static let lifetimeId = "lifetime"
 

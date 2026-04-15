@@ -94,19 +94,23 @@ final class BadgeEvaluator {
 
     static func statsValue(stats: UserStats, field: String) -> Int {
         switch field {
-        case "feedingCount":      return stats.feedingCount
-        case "sleepCount":        return stats.sleepCount
-        case "diaperCount":       return stats.diaperCount
-        case "growthRecordCount": return stats.growthRecordCount
+        case "feedingCount":      return stats.feedingCount ?? 0
+        case "sleepCount":        return stats.sleepCount ?? 0
+        case "diaperCount":       return stats.diaperCount ?? 0
+        case "growthRecordCount": return stats.growthRecordCount ?? 0
         default: return 0
         }
     }
 
+    private static let utcFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
+
     static func utcDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter.string(from: date)
+        Self.utcFormatter.string(from: date)
     }
 
     // MARK: - Private
@@ -125,7 +129,7 @@ final class BadgeEvaluator {
             earnedAtDateUTC: Self.utcDateString(now),
             conditionVersion: def.conditionVersion
         )
-        try? await firestoreService.saveBadge(badge, userId: userId)
-        return badge
+        let saved = (try? await firestoreService.saveBadge(badge, userId: userId)) ?? false
+        return saved ? badge : nil
     }
 }

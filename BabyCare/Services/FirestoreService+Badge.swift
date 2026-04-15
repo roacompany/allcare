@@ -3,17 +3,19 @@ import FirebaseFirestore
 
 extension FirestoreService {
     /// 단일 경로: users/{userId}/badges/{badgeId}
-    /// 중복 방지: 기존 문서 있으면 덮어쓰지 않음 (no-op)
-    func saveBadge(_ badge: Badge, userId: String) async throws {
+    /// 신규 저장 시 true, 이미 존재 시 false 반환
+    @discardableResult
+    func saveBadge(_ badge: Badge, userId: String) async throws -> Bool {
         let ref = db.collection(FirestoreCollections.users)
             .document(userId)
             .collection(FirestoreCollections.badges)
             .document(badge.id)
 
         let snapshot = try await ref.getDocument()
-        guard !snapshot.exists else { return }
+        guard !snapshot.exists else { return false }
 
         try ref.setData(from: badge)
+        return true
     }
 
     func fetchBadges(userId: String) async throws -> [Badge] {
