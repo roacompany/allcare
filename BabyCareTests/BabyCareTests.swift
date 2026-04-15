@@ -1386,4 +1386,233 @@ final class BabyCareTests: XCTestCase {
         )
         XCTAssertNil(result)
     }
+
+    // MARK: - SleepAnalysisService Tests
+
+    func testSleepAnalysis_detectRegression_noData_returnsNil() {
+        let result = SleepAnalysisService.detectRegression(sleepActivities: [])
+        XCTAssertNil(result)
+    }
+
+    func testSleepAnalysis_detectRegression_sufficientDecline_returnsWarning() {
+        let calendar = Calendar.current
+        let now = Date()
+
+        // baseline: 직전 14~28일 — 하루 평균 12시간
+        var baselineActivities: [Activity] = []
+        for dayOffset in 8...28 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 12 * 3600  // 12시간
+            baselineActivities.append(act)
+        }
+
+        // recent: 최근 7일 — 하루 평균 8시간 (33% 감소 → 퇴행)
+        var recentActivities: [Activity] = []
+        for dayOffset in 0...6 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 8 * 3600  // 8시간
+            recentActivities.append(act)
+        }
+
+        let all = baselineActivities + recentActivities
+        let warning = SleepAnalysisService.detectRegression(sleepActivities: all)
+        XCTAssertNotNil(warning, "30% 이상 감소 시 경고 반환 필요")
+        XCTAssertLessThanOrEqual(warning?.declineRate ?? 0, -0.20)
+    }
+
+    func testSleepAnalysis_detectRegression_insufficientDecline_returnsNil() {
+        let calendar = Calendar.current
+        let now = Date()
+
+        // baseline: 10시간/일
+        var baselineActivities: [Activity] = []
+        for dayOffset in 8...28 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 10 * 3600
+            baselineActivities.append(act)
+        }
+
+        // recent: 9시간/일 (10% 감소 → 임계치 미달)
+        var recentActivities: [Activity] = []
+        for dayOffset in 0...6 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 9 * 3600
+            recentActivities.append(act)
+        }
+
+        let all = baselineActivities + recentActivities
+        let warning = SleepAnalysisService.detectRegression(sleepActivities: all)
+        XCTAssertNil(warning, "10% 감소는 퇴행 임계치 미달")
+    }
+
+    func testSleepAnalysis_computeOptimalBedtime_noNightSleeps_returnsNil() {
+        // 낮잠만 있는 경우
+        let calendar = Calendar.current
+        let now = Date()
+        var activities: [Activity] = []
+        for dayOffset in 0...6 {
+            guard let base = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            // 10시 (낮) 시작
+            guard let date = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: base) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 3600
+            activities.append(act)
+        }
+        let result = SleepAnalysisService.computeOptimalBedtime(sleepActivities: activities)
+        XCTAssertNil(result, "낮잠만 있는 경우 취침 시간 추천 없음")
+    }
+
+    func testSleepAnalysis_computeOptimalBedtime_withNightSleeps_returnsResult() {
+        let calendar = Calendar.current
+        let now = Date()
+        var activities: [Activity] = []
+        for dayOffset in 0...6 {
+            guard let base = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+            // 21시 (밤) 시작
+            guard let date = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: base) else { continue }
+            var act = Activity(babyId: "b1", type: .sleep)
+            act.startTime = date
+            act.duration = 9 * 3600
+            activities.append(act)
+        }
+        let result = SleepAnalysisService.computeOptimalBedtime(sleepActivities: activities)
+        XCTAssertNotNil(result, "밤잠 데이터 있을 때 취침 시간 추천 반환")
+        XCTAssertNotNil(result?.bedtimeStart)
+        XCTAssertNotNil(result?.bedtimeEnd)
+        if let start = result?.bedtimeStart, let end = result?.bedtimeEnd {
+            XCTAssertLessThan(start, end)
+        }
+    }
+
+    func testSleepAnalysis_computeNapNightRatios_correctRatio() {
+        let calendar = Calendar.current
+        let now = Date()
+        var activities: [Activity] = []
+
+        guard let base = calendar.date(byAdding: .day, value: -1, to: now) else { return }
+
+        // 낮잠 2시간 (10시)
+        if let napTime = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: base) {
+            var nap = Activity(babyId: "b1", type: .sleep)
+            nap.startTime = napTime
+            nap.duration = 2 * 3600
+            activities.append(nap)
+        }
+
+        // 밤잠 8시간 (21시)
+        if let nightTime = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: base) {
+            var night = Activity(babyId: "b1", type: .sleep)
+            night.startTime = nightTime
+            night.duration = 8 * 3600
+            activities.append(night)
+        }
+
+        let ratios = SleepAnalysisService.computeNapNightRatios(sleepActivities: activities)
+        XCTAssertFalse(ratios.isEmpty)
+        if let ratio = ratios.first {
+            XCTAssertEqual(ratio.napHours ?? 0, 2.0, accuracy: 0.01)
+            XCTAssertEqual(ratio.nightHours ?? 0, 8.0, accuracy: 0.01)
+            XCTAssertEqual(ratio.napRatio ?? 0, 0.2, accuracy: 0.01)
+        }
+    }
+
+    func testSleepAnalysis_computeQualityScore_noData_returnsNil() {
+        let result = SleepAnalysisService.computeQualityScore(sleepActivities: [])
+        XCTAssertNil(result)
+    }
+
+    func testSleepAnalysis_computeQualityScore_goodSleep_highScore() {
+        let calendar = Calendar.current
+        let now = Date()
+        var activities: [Activity] = []
+
+        // 7일간 하루 14시간 수면 (2회: 낮잠 2h + 밤잠 12h)
+        for dayOffset in 0...6 {
+            guard let base = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+
+            // 낮잠 2시간
+            if let napTime = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: base) {
+                var nap = Activity(babyId: "b1", type: .sleep)
+                nap.startTime = napTime
+                nap.duration = 2 * 3600
+                activities.append(nap)
+            }
+
+            // 밤잠 12시간
+            if let nightTime = calendar.date(bySettingHour: 20, minute: 0, second: 0, of: base) {
+                var night = Activity(babyId: "b1", type: .sleep)
+                night.startTime = nightTime
+                night.duration = 12 * 3600
+                activities.append(night)
+            }
+        }
+
+        let score = SleepAnalysisService.computeQualityScore(sleepActivities: activities)
+        XCTAssertNotNil(score)
+        XCTAssertNotNil(score?.score)
+        XCTAssertGreaterThanOrEqual(score?.score ?? 0, 60, "충분한 수면 시 점수 60 이상")
+        XCTAssertNotNil(score?.durationScore)
+        XCTAssertNotNil(score?.wakeScore)
+        XCTAssertNotNil(score?.napScore)
+    }
+
+    func testSleepAnalysis_formatBedtimeSeconds_midnight() {
+        // 자정 = 0초
+        let result = SleepAnalysisService.formatBedtimeSeconds(0)
+        XCTAssertEqual(result, "00:00")
+    }
+
+    func testSleepAnalysis_formatBedtimeSeconds_21hours() {
+        // 21시 = 75600초
+        let result = SleepAnalysisService.formatBedtimeSeconds(75600)
+        XCTAssertEqual(result, "21:00")
+    }
+
+    func testSleepAnalysis_formatBedtimeSeconds_nextDay_wraps() {
+        // 25시 (다음날 1시 보정값) → 01:00
+        let result = SleepAnalysisService.formatBedtimeSeconds(25 * 3600)
+        XCTAssertEqual(result, "01:00")
+    }
+
+    @MainActor
+    func testInsightService_sleepRegressionInsight_noData_returnsNil() {
+        let svc = InsightService()
+        let result = svc.makeSleepRegressionInsight(allSleepActivities: [], baby: nil)
+        XCTAssertNil(result)
+    }
+
+    func testSleepModels_codable_roundtrip() throws {
+        let warning = SleepRegressionWarning(
+            regressionAgeMonth: 4,
+            recentAvgHours: 8.5,
+            baselineAvgHours: 12.0,
+            declineRate: -0.29
+        )
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(warning)
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(SleepRegressionWarning.self, from: data)
+        XCTAssertEqual(decoded.regressionAgeMonth, 4)
+        XCTAssertEqual(decoded.recentAvgHours ?? 0, 8.5, accuracy: 0.001)
+        XCTAssertEqual(decoded.declineRate ?? 0, -0.29, accuracy: 0.001)
+    }
+
+    func testSleepQualityScore_codable_roundtrip() throws {
+        let score = SleepQualityScore(score: 78, durationScore: 40, wakeScore: 24, napScore: 14)
+        let data = try JSONEncoder().encode(score)
+        let decoded = try JSONDecoder().decode(SleepQualityScore.self, from: data)
+        XCTAssertEqual(decoded.score, 78)
+        XCTAssertEqual(decoded.durationScore, 40)
+        XCTAssertEqual(decoded.wakeScore, 24)
+        XCTAssertEqual(decoded.napScore, 14)
+    }
 }

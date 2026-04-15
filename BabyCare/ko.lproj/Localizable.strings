@@ -63,3 +63,41 @@
 "insight.milestone.next" = "다음 마일스톤: %@";
 "insight.milestone.range" = "평균 %d-%d개월";
 "insight.milestone.month" = "평균 %d개월";
+
+/* Sleep Analysis — Section */
+"sleep.section.title" = "수면 패턴";
+"sleep.stat.dailyAvg" = "일평균";
+"sleep.stat.sessionAvg" = "1회 평균";
+"sleep.stat.trend" = "추세";
+"sleep.unit.hours" = "시간";
+"sleep.chart.daily" = "일별 추이";
+"sleep.quality.title" = "수면 질";
+"sleep.method.title" = "잠든 곳";
+"sleep.comparison.unit" = "시간/일";
+"sleep.comparison.label" = "일 평균";
+
+/* Sleep Regression Warning */
+"sleep.regression.card.title" = "수면 퇴행 가능성";
+"sleep.regression.recent7" = "최근 7일 평균";
+"sleep.regression.baseline" = "직전 3주 평균";
+"sleep.regression.decline" = "약 %d%% 감소가 감지됐어요";
+"sleep.regression.disclaimer" = "정보 제공용입니다. 지속되면 소아과 전문의와 상담하세요.";
+"sleep.regression.primary" = "수면 퇴행 가능성 — 약 %d%% 감소";
+"sleep.regression.secondary" = "정보 제공용 · 의학적 진단이 아닙니다";
+
+/* Optimal Bedtime */
+"sleep.bedtime.card.title" = "최적 취침 시간 추천";
+"sleep.bedtime.window" = "%@ ~ %@";
+"sleep.bedtime.sampleCount" = "최근 7일 %d회 밤잠 기반";
+
+/* Nap vs Night Ratio */
+"sleep.napnight.title" = "낮잠 vs 밤잠 비율";
+"sleep.napnight.nap" = "낮잠";
+"sleep.napnight.night" = "밤잠";
+
+/* Sleep Quality Score */
+"sleep.score.title" = "수면 품질 점수";
+"sleep.score.duration" = "총 수면 시간";
+"sleep.score.wake" = "깨는 횟수";
+"sleep.score.nap" = "낮잠 적정성";
+"sleep.score.disclaimer" = "정보 제공용입니다. 아기마다 개인차가 있습니다.";

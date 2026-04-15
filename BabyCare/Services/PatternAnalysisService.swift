@@ -77,7 +77,11 @@ enum PatternAnalysisService {
             methodDistribution: currentReport.sleep.methodDistribution,
             peakSleepHours: currentReport.sleep.peakSleepHours,
             dailyHours: currentReport.sleep.dailyHours,
-            previousDailyAverageHours: prevSleepDailyAverageHours
+            previousDailyAverageHours: prevSleepDailyAverageHours,
+            regressionWarning: currentReport.sleep.regressionWarning,
+            optimalBedtime: currentReport.sleep.optimalBedtime,
+            napNightRatios: currentReport.sleep.napNightRatios,
+            qualityScore: currentReport.sleep.qualityScore
         )
 
         let updatedDiaper = DiaperPattern(
@@ -202,6 +206,8 @@ enum PatternAnalysisService {
             (date: date, hours: acts.compactMap(\.duration).reduce(0, +) / 3600)
         }.sorted { $0.date < $1.date }
 
+        let analysis = SleepAnalysisService.analyze(sleepActivities: sleepActivities)
+
         return SleepPattern(
             totalHours: totalHours,
             dailyAverageHours: dailyAverageHours,
@@ -211,7 +217,11 @@ enum PatternAnalysisService {
             methodDistribution: methodDist,
             peakSleepHours: peakSleepHours,
             dailyHours: dailyHours,
-            previousDailyAverageHours: nil
+            previousDailyAverageHours: nil,
+            regressionWarning: analysis.regressionWarning,
+            optimalBedtime: analysis.optimalBedtime,
+            napNightRatios: analysis.napNightRatios,
+            qualityScore: analysis.qualityScore
         )
     }
 }

@@ -341,6 +341,50 @@ final class InsightService {
         )
     }
 
+    // MARK: - Sleep Regression Insight
+
+    /// 수면 퇴행 감지 시 대시보드 인사이트 카드를 생성합니다.
+    /// - 이 카드는 정보 제공 목적이며 의학적 진단이 아닙니다.
+    func makeSleepRegressionInsight(
+        allSleepActivities: [Activity],
+        baby: Baby?
+    ) -> DashboardInsight? {
+        let babyAgeMonths: Int
+        if let baby {
+            babyAgeMonths = Calendar.current.dateComponents(
+                [.month], from: baby.birthDate, to: Date()
+            ).month ?? 0
+        } else {
+            babyAgeMonths = 0
+        }
+
+        let warning: SleepRegressionWarning?
+        if babyAgeMonths > 0 {
+            warning = SleepAnalysisService.detectRegression(
+                sleepActivities: allSleepActivities,
+                babyAgeMonths: babyAgeMonths
+            )
+        } else {
+            warning = SleepAnalysisService.detectRegression(sleepActivities: allSleepActivities)
+        }
+        guard let warning else { return nil }
+
+        let declinePct = Int(abs((warning.declineRate ?? 0) * 100))
+        let primaryText = String(
+            format: NSLocalizedString("sleep.regression.primary", comment: ""),
+            declinePct
+        )
+        let secondaryText = NSLocalizedString("sleep.regression.secondary", comment: "")
+
+        return DashboardInsight(
+            kind: .sleep,
+            icon: "exclamationmark.triangle.fill",
+            colorName: "sleepColor",
+            primaryText: primaryText,
+            secondaryText: secondaryText
+        )
+    }
+
     // MARK: - Helpers
 
     /// 월령별 낮잠 간격 (시간) 기준값
