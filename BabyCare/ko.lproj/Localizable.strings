@@ -154,3 +154,31 @@
 /* Vaccination — Error */
 "vaccination.error.title" = "오류";
 "vaccination.error.confirm" = "확인";
+
+/* Diary — Navigation & Empty State */
+"diary.nav.title" = "일기";
+"diary.empty.title" = "일기 없음";
+"diary.empty.message" = "아기의 하루를 기록해보세요";
+"diary.empty.action" = "일기 쓰기";
+"diary.action.delete" = "삭제";
+
+/* Diary — Monthly Summary Card */
+"diary.summary.writtenDays" = "%d일 기록";
+"diary.summary.empty" = "이달 일기가 없습니다";
+"diary.summary.entries" = "편";
+"diary.summary.avgLength" = "평균 글자";
+
+/* Diary — Throwback Card */
+"diary.throwback.section" = "N개월 전 오늘";
+"diary.throwback.title" = "%d개월 전 오늘";
+"diary.throwback.photoCount" = "사진 %d장";
+
+/* Diary — Mood Trend Chart */
+"diary.trend.title" = "기분 트렌드";
+"diary.trend.empty" = "트렌드 데이터가 부족합니다";
+
+/* Diary — Gallery */
+"diary.gallery.title" = "사진 갤러리";
+"diary.gallery.empty" = "사진이 있는 일기가 없습니다";
+"diary.gallery.detail.title" = "일기";
+"diary.gallery.detail.close" = "닫기";

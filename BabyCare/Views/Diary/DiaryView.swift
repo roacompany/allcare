@@ -12,62 +12,113 @@ struct DiaryView: View {
                 if diaryVM.entries.isEmpty && !diaryVM.isLoading {
                     EmptyStateView(
                         icon: "book.fill",
-                        title: "일기 없음",
-                        message: "아기의 하루를 기록해보세요",
-                        actionTitle: "일기 쓰기"
+                        title: NSLocalizedString("diary.empty.title", comment: ""),
+                        message: NSLocalizedString("diary.empty.message", comment: ""),
+                        actionTitle: NSLocalizedString("diary.empty.action", comment: "")
                     ) {
                         diaryVM.showAddEntry = true
                     }
                 } else {
                     List {
-                        ForEach(diaryVM.entries) { entry in
-                            DiaryRowView(entry: entry)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    diaryVM.startEditing(entry)
-                                    diaryVM.showAddEntry = true
+                        // Throwback cards (N개월 전 오늘 회고)
+                        let throwbacks = diaryVM.throwbackEntries
+                        if !throwbacks.isEmpty {
+                            Section {
+                                ForEach(throwbacks) { throwback in
+                                    DiaryThrowbackCard(throwback: throwback)
+                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.clear)
                                 }
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        Task {
-                                            guard let userId = babyVM.resolvedUserId(auth: authVM),
-                                                  let babyId = babyVM.selectedBaby?.id else { return }
-                                            await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
-                                        }
-                                    } label: {
-                                        Label("삭제", systemImage: "trash")
-                                    }
-                                }
-                                .onAppear {
-                                    if entry.id == diaryVM.entries.last?.id {
-                                        Task {
-                                            guard let userId = babyVM.resolvedUserId(auth: authVM),
-                                                  let babyId = babyVM.selectedBaby?.id else { return }
-                                            await diaryVM.loadMoreEntries(userId: userId, babyId: babyId)
-                                        }
-                                    }
-                                }
+                            } header: {
+                                Text(NSLocalizedString("diary.throwback.section", comment: ""))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
 
-                        if diaryVM.isLoadingMore {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .padding(.vertical, 12)
-                                Spacer()
+                        // Monthly summary card
+                        let summary = diaryVM.currentMonthSummary
+                        if summary.totalEntries > 0 {
+                            Section {
+                                DiaryMonthlySummaryCard(summary: summary)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
                             }
-                            .listRowSeparator(.hidden)
+                        }
+
+                        // Mood trend chart
+                        let trends = diaryVM.moodTrends
+                        if !trends.isEmpty {
+                            Section {
+                                DiaryMoodTrendChart(trends: trends)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                            }
+                        }
+
+                        // Diary entries
+                        Section {
+                            ForEach(diaryVM.entries) { entry in
+                                DiaryRowView(entry: entry)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        diaryVM.startEditing(entry)
+                                        diaryVM.showAddEntry = true
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            Task {
+                                                guard let userId = babyVM.resolvedUserId(auth: authVM),
+                                                      let babyId = babyVM.selectedBaby?.id else { return }
+                                                await diaryVM.deleteEntry(entry, userId: userId, babyId: babyId)
+                                            }
+                                        } label: {
+                                            Label(NSLocalizedString("diary.action.delete", comment: ""), systemImage: "trash")
+                                        }
+                                    }
+                                    .onAppear {
+                                        if entry.id == diaryVM.entries.last?.id {
+                                            Task {
+                                                guard let userId = babyVM.resolvedUserId(auth: authVM),
+                                                      let babyId = babyVM.selectedBaby?.id else { return }
+                                                await diaryVM.loadMoreEntries(userId: userId, babyId: babyId)
+                                            }
+                                        }
+                                    }
+                            }
+
+                            if diaryVM.isLoadingMore {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                        .padding(.vertical, 12)
+                                    Spacer()
+                                }
+                                .listRowSeparator(.hidden)
+                            }
                         }
                     }
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle("일기")
+            .navigationTitle(NSLocalizedString("diary.nav.title", comment: ""))
             .toolbar {
-                Button {
-                    diaryVM.showAddEntry = true
-                } label: {
-                    Image(systemName: "plus")
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    // Gallery toggle
+                    NavigationLink {
+                        DiaryGalleryView()
+                    } label: {
+                        Image(systemName: "photo.stack")
+                    }
+
+                    Button {
+                        diaryVM.showAddEntry = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: Bindable(diaryVM).showAddEntry) {

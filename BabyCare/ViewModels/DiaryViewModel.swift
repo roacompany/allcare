@@ -11,6 +11,9 @@ final class DiaryViewModel {
     var errorMessage: String?
     var showAddEntry = false
 
+    // Gallery / analysis UI state
+    var showGallery = false
+
     nonisolated(unsafe) private var lastDocument: DocumentSnapshot?
 
     // Form
@@ -28,6 +31,33 @@ final class DiaryViewModel {
 
     var isFormValid: Bool {
         !content.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // MARK: - Analysis Computed Properties
+
+    /// 이번 달 월간 기분 분포
+    var currentMonthSummary: MonthlyMoodDistribution {
+        let comps = Calendar.current.dateComponents([.year, .month], from: Date())
+        return DiaryAnalysisService.monthlyDistribution(
+            entries: entries,
+            year: comps.year ?? 2024,
+            month: comps.month ?? 1
+        )
+    }
+
+    /// N개월 전 오늘 회고 카드 목록
+    var throwbackEntries: [ThrowbackEntry] {
+        DiaryAnalysisService.throwbackEntries(entries: entries)
+    }
+
+    /// 최근 6개월 기분 트렌드
+    var moodTrends: [MoodTrend] {
+        DiaryAnalysisService.moodTrends(entries: entries)
+    }
+
+    /// 사진 갤러리용 (entry, url) 쌍
+    var photoItems: [(entry: DiaryEntry, url: String)] {
+        DiaryAnalysisService.allPhotoItems(from: entries)
     }
 
     // MARK: - CRUD

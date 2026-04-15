@@ -1701,4 +1701,129 @@ final class BabyCareTests: XCTestCase {
             XCTAssertFalse(severity.displayName.isEmpty, "\(severity.rawValue) displayName is empty")
         }
     }
+
+    // MARK: - DiaryAnalysisService Tests
+
+    func testDiaryAnalysis_monthlyDistribution_correctCounts() {
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 15))!
+        let entry1 = DiaryEntry(babyId: "b1", date: date, content: "행복한 날", mood: .happy)
+        let entry2 = DiaryEntry(babyId: "b1", date: date, content: "피곤한 날", mood: .tired)
+
+        let dist = DiaryAnalysisService.monthlyDistribution(entries: [entry1, entry2], year: 2026, month: 3)
+        XCTAssertEqual(dist.totalEntries, 2)
+        XCTAssertEqual(dist.moodCounts["happy"], 1)
+        XCTAssertEqual(dist.moodCounts["tired"], 1)
+    }
+
+    func testDiaryAnalysis_monthlyDistribution_writtenDays_deduplicates() {
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let day1 = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let day2 = cal.date(from: DateComponents(year: 2026, month: 3, day: 11))!
+        let entries = [
+            DiaryEntry(babyId: "b1", date: day1, content: "첫 번째"),
+            DiaryEntry(babyId: "b1", date: day1, content: "같은 날"),
+            DiaryEntry(babyId: "b1", date: day2, content: "다음 날")
+        ]
+
+        let dist = DiaryAnalysisService.monthlyDistribution(entries: entries, year: 2026, month: 3)
+        XCTAssertEqual(dist.writtenDays, 2, "중복 날짜는 1일로 카운트해야 함")
+    }
+
+    func testDiaryAnalysis_monthlyDistribution_averageLength() {
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let date = cal.date(from: DateComponents(year: 2026, month: 4, day: 1))!
+        let entries = [
+            DiaryEntry(babyId: "b1", date: date, content: "12345"),      // 5자
+            DiaryEntry(babyId: "b1", date: date, content: "1234567890")  // 10자
+        ]
+
+        let dist = DiaryAnalysisService.monthlyDistribution(entries: entries, year: 2026, month: 4)
+        XCTAssertEqual(dist.averageContentLength, 7.5, accuracy: 0.01)
+    }
+
+    func testDiaryAnalysis_throwbackEntries_returnsMatchingOffset() {
+        let calendar = Calendar.current
+        let today = Date()
+        guard let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: today) else {
+            XCTFail("날짜 계산 실패"); return
+        }
+        let entry = DiaryEntry(babyId: "b1", date: oneMonthAgo, content: "한달 전")
+        let throwbacks = DiaryAnalysisService.throwbackEntries(
+            entries: [entry],
+            monthOffsets: [1, 3],
+            referenceDate: today
+        )
+        XCTAssertEqual(throwbacks.count, 1)
+        XCTAssertEqual(throwbacks.first?.monthsAgo, 1)
+    }
+
+    func testDiaryAnalysis_throwbackEntries_emptyWhenNoMatch() {
+        let today = Date()
+        let entry = DiaryEntry(babyId: "b1", date: today, content: "오늘")
+        let throwbacks = DiaryAnalysisService.throwbackEntries(
+            entries: [entry],
+            monthOffsets: [1, 3, 6],
+            referenceDate: today
+        )
+        XCTAssertTrue(throwbacks.isEmpty, "오늘 날짜는 회고 카드에 포함되지 않아야 함")
+    }
+
+    func testDiaryAnalysis_moodTrends_aggregatesCorrectly() {
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let ref = cal.date(from: DateComponents(year: 2026, month: 4, day: 15))!
+        let march15 = cal.date(from: DateComponents(year: 2026, month: 3, day: 15))!
+
+        let entries = [
+            DiaryEntry(babyId: "b1", date: march15, content: "3월행복", mood: .happy),
+            DiaryEntry(babyId: "b1", date: march15, content: "3월피곤", mood: .tired)
+        ]
+
+        let trends = DiaryAnalysisService.moodTrends(entries: entries, monthCount: 6, referenceDate: ref)
+        let marchTrends = trends.filter { $0.year == 2026 && $0.month == 3 }
+        XCTAssertFalse(marchTrends.isEmpty, "3월 트렌드가 있어야 함")
+
+        let happyTrend = marchTrends.first { $0.mood == "happy" }
+        XCTAssertNotNil(happyTrend)
+        XCTAssertEqual(happyTrend?.ratio ?? 0, 0.5, accuracy: 0.01)
+    }
+
+    func testDiaryAnalysis_allPhotoItems_returnsAllURLs() {
+        let entry1 = DiaryEntry(babyId: "b1", date: Date(), content: "1", photoURLs: ["urlA", "urlB"])
+        let entry2 = DiaryEntry(babyId: "b1", date: Date(), content: "2", photoURLs: ["urlC"])
+        let entry3 = DiaryEntry(babyId: "b1", date: Date(), content: "3", photoURLs: [])
+
+        let items = DiaryAnalysisService.allPhotoItems(from: [entry1, entry2, entry3])
+        XCTAssertEqual(items.count, 3)
+        XCTAssertTrue(items.map(\.url).contains("urlA"))
+        XCTAssertTrue(items.map(\.url).contains("urlC"))
+    }
+
+    func testDiaryAnalysis_monthlyDistribution_empty_returnsZeros() {
+        let dist = DiaryAnalysisService.monthlyDistribution(entries: [], year: 2026, month: 4)
+        XCTAssertEqual(dist.totalEntries, 0)
+        XCTAssertEqual(dist.writtenDays, 0)
+        XCTAssertEqual(dist.averageContentLength, 0)
+        XCTAssertNil(dist.dominantMood)
+    }
+
+    func testDiaryAnalysis_monthlyDistribution_ratio_correctPercentage() {
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let date = cal.date(from: DateComponents(year: 2026, month: 2, day: 1))!
+        let entries = [
+            DiaryEntry(babyId: "b1", date: date, content: "a", mood: .happy),
+            DiaryEntry(babyId: "b1", date: date, content: "b", mood: .happy),
+            DiaryEntry(babyId: "b1", date: date, content: "c", mood: .calm)
+        ]
+
+        let dist = DiaryAnalysisService.monthlyDistribution(entries: entries, year: 2026, month: 2)
+        XCTAssertEqual(dist.ratio(for: "happy"), 2.0 / 3.0, accuracy: 0.001)
+        XCTAssertEqual(dist.ratio(for: "calm"), 1.0 / 3.0, accuracy: 0.001)
+        XCTAssertEqual(dist.dominantMood, "happy")
+    }
 }
