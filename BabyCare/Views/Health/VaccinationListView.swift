@@ -8,6 +8,7 @@ struct VaccinationListView: View {
     @State private var selectedVaccination: Vaccination?
     @State private var showCompleteSheet = false
     @State private var showUndoConfirmation = false
+    @State private var showSideEffectSheet = false
     @State private var savedMessage: String?
 
     var body: some View {
@@ -23,6 +24,19 @@ struct VaccinationListView: View {
 
     private var vaccinationList: some View {
         List {
+            // 완료율 프로그레스
+            if !healthVM.vaccinations.isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(healthVM.vaccinationCompletionText)
+                            .font(.subheadline.weight(.medium))
+                        ProgressView(value: healthVM.vaccinationCompletionRate)
+                            .tint(AppColors.healthColor)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             // 접종 지연
             let overdue = healthVM.overdueVaccinations
             if !overdue.isEmpty {
@@ -36,7 +50,7 @@ struct VaccinationListView: View {
                             }
                     }
                 } header: {
-                    SectionHeader(title: "접종 지연", color: .red)
+                    SectionHeader(title: NSLocalizedString("vaccination.section.overdue", comment: ""), color: .red)
                 }
             }
 
@@ -53,7 +67,7 @@ struct VaccinationListView: View {
                             }
                     }
                 } header: {
-                    SectionHeader(title: "접종 예정 (14일 이내)", color: .orange)
+                    SectionHeader(title: NSLocalizedString("vaccination.section.dueSoon", comment: ""), color: .orange)
                 }
             }
 
@@ -72,7 +86,7 @@ struct VaccinationListView: View {
                             }
                     }
                 } header: {
-                    SectionHeader(title: "예정", color: .secondary)
+                    SectionHeader(title: NSLocalizedString("vaccination.section.scheduled", comment: ""), color: .secondary)
                 }
             }
 
@@ -87,14 +101,26 @@ struct VaccinationListView: View {
                                 selectedVaccination = vax
                                 showUndoConfirmation = true
                             }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    selectedVaccination = vax
+                                    showSideEffectSheet = true
+                                } label: {
+                                    Label(
+                                        NSLocalizedString("vaccination.sideEffect.action", comment: ""),
+                                        systemImage: "exclamationmark.triangle.fill"
+                                    )
+                                }
+                                .tint(AppColors.warmOrangeColor)
+                            }
                     }
                 } header: {
-                    SectionHeader(title: "완료", color: AppColors.successColor)
+                    SectionHeader(title: NSLocalizedString("vaccination.section.completed", comment: ""), color: AppColors.successColor)
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("예방접종")
+        .navigationTitle(NSLocalizedString("vaccination.nav.title", comment: ""))
         .navigationBarTitleDisplayMode(.large)
         .overlay(alignment: .bottom) {
             if let msg = savedMessage {
@@ -154,11 +180,35 @@ struct VaccinationListView: View {
                 selectedVaccination = nil
             }
         }
-        .alert("오류", isPresented: Binding(
+        .sheet(isPresented: $showSideEffectSheet) {
+            if let vax = selectedVaccination {
+                VaccineSideEffectSheet(vaccination: vax) { effects in
+                    guard let currentUserId = authVM.currentUserId else { return }
+                    let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    var updated = vax
+                    var existing = updated.sideEffectRecords ?? []
+                    existing.append(contentsOf: effects)
+                    updated.sideEffectRecords = existing
+                    Task {
+                        await healthVM.markVaccinationComplete(
+                            updated,
+                            administeredDate: vax.administeredDate ?? Date(),
+                            userId: dataUserId
+                        )
+                        if healthVM.errorMessage == nil {
+                            withAnimation {
+                                savedMessage = NSLocalizedString("vaccination.sideEffect.saved", comment: "")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .alert(NSLocalizedString("vaccination.error.title", comment: ""), isPresented: Binding(
             get: { healthVM.errorMessage != nil },
             set: { if !$0 { healthVM.errorMessage = nil } }
         )) {
-            Button("확인") { healthVM.errorMessage = nil }
+            Button(NSLocalizedString("vaccination.error.confirm", comment: "")) { healthVM.errorMessage = nil }
         } message: {
             Text(healthVM.errorMessage ?? "")
         }

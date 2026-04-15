@@ -41,7 +41,8 @@ extension DashboardView {
             recentActivities: activityVM.recentFeedingActivities,
             recentTemperatureActivities: activityVM.recentTemperatureActivities,
             baby: babyVM.selectedBaby,
-            pendingMilestones: healthVM.pendingMilestones
+            pendingMilestones: healthVM.pendingMilestones,
+            upcomingVaccinations: healthVM.upcomingVaccinations
         )
     }
 

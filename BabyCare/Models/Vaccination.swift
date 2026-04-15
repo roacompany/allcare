@@ -12,6 +12,7 @@ struct Vaccination: Identifiable, Codable, Hashable {
     var doctor: String?
     var batchNumber: String?
     var sideEffects: String?
+    var sideEffectRecords: [VaccineSideEffect]?
     var note: String?
     var createdAt: Date
 
@@ -36,6 +37,13 @@ struct Vaccination: Identifiable, Codable, Hashable {
         var icon: String {
             "syringe.fill"
         }
+    }
+
+    /// 오늘로부터 예정일까지 남은 일수. 완료됐거나 이미 지났으면 nil.
+    var daysUntilScheduled: Int? {
+        guard !isCompleted else { return nil }
+        let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: scheduledDate)).day ?? 0
+        return days >= 0 ? days : nil
     }
 
     var isOverdue: Bool {
@@ -67,6 +75,7 @@ struct Vaccination: Identifiable, Codable, Hashable {
         doctor: String? = nil,
         batchNumber: String? = nil,
         sideEffects: String? = nil,
+        sideEffectRecords: [VaccineSideEffect]? = nil,
         note: String? = nil,
         createdAt: Date = Date()
     ) {
@@ -81,6 +90,7 @@ struct Vaccination: Identifiable, Codable, Hashable {
         self.doctor = doctor
         self.batchNumber = batchNumber
         self.sideEffects = sideEffects
+        self.sideEffectRecords = sideEffectRecords
         self.note = note
         self.createdAt = createdAt
     }

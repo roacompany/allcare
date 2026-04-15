@@ -101,3 +101,56 @@
 "sleep.score.wake" = "깨는 횟수";
 "sleep.score.nap" = "낮잠 적정성";
 "sleep.score.disclaimer" = "정보 제공용입니다. 아기마다 개인차가 있습니다.";
+
+/* Vaccination — Navigation & Sections */
+"vaccination.nav.title" = "예방접종";
+"vaccination.section.overdue" = "접종 지연";
+"vaccination.section.dueSoon" = "접종 예정 (14일 이내)";
+"vaccination.section.scheduled" = "예정";
+"vaccination.section.completed" = "완료";
+
+/* Vaccination — Progress */
+"vaccination.progress.text" = "%d/%d 완료 (%d%%)";
+
+/* Vaccination — D-day Insight Card */
+"vaccination.insight.today" = "오늘 접종: %@ %d차";
+"vaccination.insight.dday" = "다음 접종: %@ %d차 (D-%d)";
+"vaccination.insight.sub" = "다음 접종 일정 · 기록 보관용";
+
+/* Vaccination — Stepped Reminders */
+"vaccination.reminder.title" = "예방접종 일정 알림";
+"vaccination.reminder.body.d14" = "%@의 %@ %d차 접종이 14일 후입니다.";
+"vaccination.reminder.body.d7" = "%@의 %@ %d차 접종이 7일 후입니다.";
+"vaccination.reminder.body.d1" = "%@의 %@ %d차 접종이 내일입니다.";
+
+/* Vaccination — Side Effect Sheet */
+"vaccination.sideEffect.sheet.title" = "이상반응 기록";
+"vaccination.sideEffect.sheet.cancel" = "취소";
+"vaccination.sideEffect.sheet.save" = "저장";
+"vaccination.sideEffect.info.header" = "접종 정보";
+"vaccination.sideEffect.recordedAt" = "기록 시간";
+"vaccination.sideEffect.type.header" = "이상반응 종류";
+"vaccination.sideEffect.severity.header" = "정도";
+"vaccination.sideEffect.severity.label" = "심각도";
+"vaccination.sideEffect.note.header" = "메모";
+"vaccination.sideEffect.note.placeholder" = "추가 사항 (선택)";
+"vaccination.sideEffect.disclaimer" = "기록 보관용 정보이며 의학적 진단이 아닙니다. 심각한 증상이 지속되면 소아과 전문의와 상담하세요.";
+"vaccination.sideEffect.saved" = "이상반응 기록이 저장되었습니다";
+"vaccination.sideEffect.action" = "이상반응 기록";
+
+/* Vaccination — Side Effect Types */
+"vaccination.sideEffect.type.fever" = "발열";
+"vaccination.sideEffect.type.swelling" = "부종";
+"vaccination.sideEffect.type.redness" = "발적";
+"vaccination.sideEffect.type.fussiness" = "보챔";
+"vaccination.sideEffect.type.lossOfAppetite" = "식욕 감소";
+"vaccination.sideEffect.type.other" = "기타";
+
+/* Vaccination — Side Effect Severity */
+"vaccination.sideEffect.severity.mild" = "경미";
+"vaccination.sideEffect.severity.moderate" = "중등도";
+"vaccination.sideEffect.severity.severe" = "심각";
+
+/* Vaccination — Error */
+"vaccination.error.title" = "오류";
+"vaccination.error.confirm" = "확인";

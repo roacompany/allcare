@@ -1615,4 +1615,90 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(decoded.wakeScore, 24)
         XCTAssertEqual(decoded.napScore, 14)
     }
+
+    // MARK: - #6 예방접종 알림 강화 Tests
+
+    func testVaccination_daysUntilScheduled_futureDate() {
+        let future = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+        let vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: future)
+        XCTAssertEqual(vax.daysUntilScheduled, 7)
+    }
+
+    func testVaccination_daysUntilScheduled_pastDate_returnsNil() {
+        let past = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+        let vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: past)
+        XCTAssertNil(vax.daysUntilScheduled)
+    }
+
+    func testVaccination_daysUntilScheduled_completed_returnsNil() {
+        let future = Calendar.current.date(byAdding: .day, value: 5, to: Date())!
+        var vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: future)
+        vax.isCompleted = true
+        XCTAssertNil(vax.daysUntilScheduled)
+    }
+
+    func testVaccination_sideEffectRecords_codableRoundtrip() throws {
+        let effect = VaccineSideEffect(type: .fever, severity: .mild, recordedAt: Date(timeIntervalSince1970: 1_700_000_000), note: "미열")
+        var vax = Vaccination(babyId: "b1", vaccine: .dtap, doseNumber: 1, scheduledDate: Date())
+        vax.sideEffectRecords = [effect]
+        let data = try JSONEncoder().encode(vax)
+        let decoded = try JSONDecoder().decode(Vaccination.self, from: data)
+        XCTAssertEqual(decoded.sideEffectRecords?.count, 1)
+        XCTAssertEqual(decoded.sideEffectRecords?.first?.type, .fever)
+        XCTAssertEqual(decoded.sideEffectRecords?.first?.severity, .mild)
+        XCTAssertEqual(decoded.sideEffectRecords?.first?.note, "미열")
+    }
+
+    func testVaccination_sideEffectRecords_nilByDefault() {
+        let vax = Vaccination(babyId: "b1", vaccine: .hepB, doseNumber: 1, scheduledDate: Date())
+        XCTAssertNil(vax.sideEffectRecords)
+    }
+
+    @MainActor
+    func testInsightService_vaccinationInsight_within7Days_returnsCard() {
+        let svc = InsightService()
+        let future = Calendar.current.date(byAdding: .day, value: 5, to: Date())!
+        let vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: future)
+        let insight = svc.makeVaccinationInsight(upcomingVaccinations: [vax])
+        XCTAssertNotNil(insight)
+        XCTAssertEqual(insight?.kind, .vaccination)
+    }
+
+    @MainActor
+    func testInsightService_vaccinationInsight_beyond7Days_returnsNil() {
+        let svc = InsightService()
+        let future = Calendar.current.date(byAdding: .day, value: 10, to: Date())!
+        let vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: future)
+        let insight = svc.makeVaccinationInsight(upcomingVaccinations: [vax])
+        XCTAssertNil(insight)
+    }
+
+    @MainActor
+    func testInsightService_vaccinationInsight_completed_returnsNil() {
+        let svc = InsightService()
+        let future = Calendar.current.date(byAdding: .day, value: 3, to: Date())!
+        var vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: future)
+        vax.isCompleted = true
+        let insight = svc.makeVaccinationInsight(upcomingVaccinations: [vax])
+        XCTAssertNil(insight)
+    }
+
+    @MainActor
+    func testInsightService_vaccinationInsight_empty_returnsNil() {
+        let svc = InsightService()
+        let insight = svc.makeVaccinationInsight(upcomingVaccinations: [])
+        XCTAssertNil(insight)
+    }
+
+    func testVaccineSideEffect_allTypes_haveDisplayNames() {
+        for type in VaccineSideEffect.SideEffectType.allCases {
+            XCTAssertFalse(type.displayName.isEmpty, "\(type.rawValue) displayName is empty")
+        }
+    }
+
+    func testVaccineSideEffect_allSeverities_haveDisplayNames() {
+        for severity in VaccineSideEffect.Severity.allCases {
+            XCTAssertFalse(severity.displayName.isEmpty, "\(severity.rawValue) displayName is empty")
+        }
+    }
 }

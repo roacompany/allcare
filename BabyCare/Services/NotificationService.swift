@@ -106,6 +106,67 @@ final class NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
+    // MARK: - Stepped Vaccination Reminders (D-14, D-7, D-1)
+
+    /// D-14, D-7, D-1 단계별 예방접종 푸시 알림을 예약합니다.
+    /// 기존 권한을 재사용하며 새 권한 요청을 하지 않습니다.
+    func scheduleSteppedVaccinationReminders(vaccinations: [Vaccination], babyName: String) {
+        guard NotificationSettings.vaccinationReminderEnabled else { return }
+
+        let steppedDays = [14, 7, 1]
+        let center = UNUserNotificationCenter.current()
+
+        // 먼저 기존 stepped 알림 취소
+        cancelSteppedVaccinationReminders(vaccinations: vaccinations)
+
+        for vaccination in vaccinations where !vaccination.isCompleted {
+            let scheduledDate = vaccination.scheduledDate
+
+            for days in steppedDays {
+                guard let alertDate = Calendar.current.date(byAdding: .day, value: -days, to: scheduledDate),
+                      alertDate > Date() else { continue }
+
+                let content = UNMutableNotificationContent()
+                content.title = NSLocalizedString("vaccination.reminder.title", comment: "")
+
+                let bodyKey: String
+                switch days {
+                case 14: bodyKey = "vaccination.reminder.body.d14"
+                case 7:  bodyKey = "vaccination.reminder.body.d7"
+                default: bodyKey = "vaccination.reminder.body.d1"
+                }
+                content.body = String(
+                    format: NSLocalizedString(bodyKey, comment: ""),
+                    babyName,
+                    vaccination.vaccine.displayName,
+                    vaccination.doseNumber
+                )
+                content.sound = .default
+                content.categoryIdentifier = "VACCINATION_STEPPED_REMINDER"
+
+                var components = Calendar.current.dateComponents([.year, .month, .day], from: alertDate)
+                components.hour = 9
+                components.minute = 0
+
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                let request = UNNotificationRequest(
+                    identifier: "vacc-stepped-d\(days)-\(vaccination.id)",
+                    content: content,
+                    trigger: trigger
+                )
+                center.add(request)
+            }
+        }
+    }
+
+    func cancelSteppedVaccinationReminders(vaccinations: [Vaccination]) {
+        let steppedDays = [14, 7, 1]
+        let ids = vaccinations.flatMap { vacc in
+            steppedDays.map { "vacc-stepped-d\($0)-\(vacc.id)" }
+        }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
     // MARK: - Todo Reminder
 
     func scheduleTodoReminder(todo: TodoItem) {

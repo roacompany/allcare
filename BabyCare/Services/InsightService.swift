@@ -15,6 +15,7 @@ struct DashboardInsight: Identifiable {
         case sleep
         case health
         case milestone
+        case vaccination
     }
 }
 
@@ -38,12 +39,14 @@ final class InsightService {
     ///   - recentTemperatureActivities: 최근 48시간 체온 활동 기록
     ///   - baby: 선택된 아기 정보
     ///   - pendingMilestones: 아직 달성하지 못한 마일스톤 목록
+    ///   - upcomingVaccinations: 미완료 접종 목록 (D-day 카드용)
     func refresh(
         todayActivities: [Activity],
         recentActivities: [Activity],
         recentTemperatureActivities: [Activity],
         baby: Baby?,
-        pendingMilestones: [Milestone]
+        pendingMilestones: [Milestone],
+        upcomingVaccinations: [Vaccination] = []
     ) {
         var result: [DashboardInsight] = []
 
@@ -73,6 +76,10 @@ final class InsightService {
             pendingMilestones: pendingMilestones
         ) {
             result.append(milestone)
+        }
+
+        if let vaccination = makeVaccinationInsight(upcomingVaccinations: upcomingVaccinations) {
+            result.append(vaccination)
         }
 
         insights = result
@@ -336,6 +343,46 @@ final class InsightService {
             kind: .milestone,
             icon: "star.fill",
             colorName: "solidColor",
+            primaryText: primaryText,
+            secondaryText: secondaryText
+        )
+    }
+
+    // MARK: - Vaccination Insight
+
+    /// D-7 이내인 다음 접종 일정을 대시보드 카드로 반환합니다.
+    /// D-7 초과이면 카드를 표시하지 않습니다 (과도한 알림 방지).
+    func makeVaccinationInsight(upcomingVaccinations: [Vaccination]) -> DashboardInsight? {
+        // 완료되지 않은 접종 중 예정일이 가장 가까운 것
+        let next = upcomingVaccinations
+            .filter { !$0.isCompleted && $0.scheduledDate >= Calendar.current.startOfDay(for: Date()) }
+            .sorted { $0.scheduledDate < $1.scheduledDate }
+            .first
+        guard let vaccination = next,
+              let days = vaccination.daysUntilScheduled,
+              days <= 7 else { return nil }
+
+        let primaryText: String
+        if days == 0 {
+            primaryText = String(
+                format: NSLocalizedString("vaccination.insight.today", comment: ""),
+                vaccination.vaccine.displayName,
+                vaccination.doseNumber
+            )
+        } else {
+            primaryText = String(
+                format: NSLocalizedString("vaccination.insight.dday", comment: ""),
+                vaccination.vaccine.displayName,
+                vaccination.doseNumber,
+                days
+            )
+        }
+        let secondaryText = NSLocalizedString("vaccination.insight.sub", comment: "")
+
+        return DashboardInsight(
+            kind: .vaccination,
+            icon: "syringe.fill",
+            colorName: "healthColor",
             primaryText: primaryText,
             secondaryText: secondaryText
         )

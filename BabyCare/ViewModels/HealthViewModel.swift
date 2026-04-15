@@ -30,6 +30,31 @@ final class HealthViewModel {
         vaccinations.filter { $0.isCompleted }
     }
 
+    /// 다음 미완료 접종 (예정일 기준 가장 가까운 것)
+    var nextVaccination: Vaccination? {
+        vaccinations
+            .filter { !$0.isCompleted && $0.scheduledDate >= Calendar.current.startOfDay(for: Date()) }
+            .sorted { $0.scheduledDate < $1.scheduledDate }
+            .first
+    }
+
+    /// 완료율 (0.0 ~ 1.0)
+    var vaccinationCompletionRate: Double {
+        guard !vaccinations.isEmpty else { return 0 }
+        return Double(completedVaccinations.count) / Double(vaccinations.count)
+    }
+
+    /// 완료 카운트 텍스트 e.g. "8/14 완료 (57%)"
+    var vaccinationCompletionText: String {
+        let total = vaccinations.count
+        let done = completedVaccinations.count
+        let pct = total > 0 ? Int((Double(done) / Double(total)) * 100) : 0
+        return String(
+            format: NSLocalizedString("vaccination.progress.text", comment: ""),
+            done, total, pct
+        )
+    }
+
     // MARK: - Computed: Milestones
 
     var achievedMilestones: [Milestone] {
@@ -256,6 +281,7 @@ final class HealthViewModel {
     private func scheduleVaccinationReminders(babyName: String) {
         let upcoming = vaccinations.filter { !$0.isCompleted && $0.scheduledDate > Date() }
         NotificationService.shared.scheduleVaccinationReminders(vaccinations: upcoming, babyName: babyName)
+        NotificationService.shared.scheduleSteppedVaccinationReminders(vaccinations: upcoming, babyName: babyName)
     }
 
     // MARK: - Allergy Records
