@@ -1,7 +1,31 @@
 # BabyCare 기능 강화 분석 보고서
 
 > 25개 기존 기능 분석 + 경쟁앱 벤치마크 기반 강화 방안
-> 2026-04-14
+> 2026-04-14 (작성) / 2026-04-15 (전체 12개 항목 완료)
+
+## 진행 상태 (2026-04-15 기준)
+
+| # | Tier | 기능 | 상태 | 커밋/근거 |
+|---|------|------|------|-----------|
+| 1 | T1 | 수유 예측 고도화 | ✅ 완료 | FeedingPredictionService v2 (day/night) |
+| 2 | T1 | 주간 인사이트 리포트 | ✅ 완료 | WeeklyInsightService |
+| 3 | T1 | 성장 차트 강화 | ✅ 완료 | feat(growth) WHO AreaMark v2 |
+| 4 | T1 | 대시보드 인사이트 카드 | ✅ 완료 | `96b7490` InsightService 4종 |
+| 5 | T2 | 수면 분석 + 퇴행 감지 | ✅ 완료 | `e8c3f1d` SleepAnalysisService |
+| 6 | T3 | 예방접종 알림 강화 | ✅ 완료 | `478bf8d` D-day + 단계별 푸시 |
+| 7 | T2 | 할일/루틴 자동화 | ✅ 완료 | done/todo-routine-automation |
+| 8 | T2 | 일기 자동 요약 | ✅ 완료 | `7da1756` DiaryAnalysisService |
+| 9 | T3 | 알레르기 추적 강화 | ✅ 완료 | `2bb765e` + `5a4fa40` (90일 fetch) |
+| 10 | T2 | 병원 리포트 강화 | ✅ 완료 | `0497880` HospitalChecklistService |
+| 11 | T3 | 제품 추천 | ✅ 완료 | `706d59d` ProductRecommendationService |
+| 12 | T3 | 위젯 강화 | ✅ 완료 | `f08f078` + `5a4fa40` (baby sync) |
+
+**누적**: 테스트 107→195 (+88), arch-test 0 violations 유지, harness-score 96% Grade A 유지.
+
+---
+
+## (이하 원본 보고서)
+
 
 ---
 

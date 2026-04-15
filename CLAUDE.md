@@ -99,13 +99,26 @@ harness-score: 96% (Grade A) — 2026-04-15
 
 ## Current Status
 
-- **Version**: v2.6.2 (빌드 52)
+- **Version**: v2.6.2 (빌드 52) → v2.7 준비 중 (feature enhancement rollout 완료, bump 대기)
 - **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
 - **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
-- **테스트**: 107개 PASS, 경고 0건
-- **규모**: 225+ Swift 파일, 23개 VM, 23개 Firestore 컬렉션
-- **QA**: 3-Agent ALL PASS (2026-04-04)
+- **테스트**: 195개 PASS (107→195, +88), 경고 0건
+- **규모**: 240+ Swift 파일, 24개 VM, 23개 Firestore 컬렉션
+- **QA**: 3-Agent ALL PASS (2026-04-04) — feature rollout 후 재QA 대기
+
+## Recent Changes (v2.7 — 미배포, 2026-04-15)
+
+Feature Enhancement Rollout 9개 (master spec: `.dev/specs/done/feature-enhancement-rollout/`):
+
+- **feat(dashboard)**: 인사이트 카드 4종 — 수유 컨텍스트 / 수면 예측 / 발열 연속일 / 마일스톤 (InsightService @MainActor @Observable)
+- **feat(sleep)**: 수면 퇴행 자동 감지 (4/8/12개월 ±2주 윈도우, -20% 임계) + 최적 취침 추천 + 낮밤 비율 + 품질 점수
+- **feat(vaccination)**: D-day 카드 + D-14/7/1 단계별 푸시 + 부작용 기록 (VaccineSideEffect) + 완료율 ProgressView
+- **feat(diary)**: 월간 기분 분포 + N개월 전 오늘 회고 + Apple Charts 기분 트렌드 + 사진 갤러리 LazyVGrid
+- **feat(food-safety)**: 이유식↔알레르기 자동 연동 (90일 fetch) + safe/caution/forbidden 분류 + 식품별 시도 타임라인
+- **feat(hospital-report)**: PDF에 체크리스트/백분위/활동 요약 + UIActivityViewController 공유
+- **feat(products)**: 월령 추천 (정적 카탈로그 30개) + 재구매 InsightService 카드 + 쿠팡 딥링크 + 인기 용품
+- **feat(widgets)**: NextFeeding/NextNap/TodaySummary/GrowthPercentile + Lock Screen 3종 (accessoryCircular/Rectangular/Inline)
 
 ## Recent Changes (v2.6.2)
 
@@ -162,6 +175,15 @@ make dead-code   # 미사용 코드 탐지
 ### 로드맵
 - P0: 임신 모드
 - P2: 사진 AI OCR, AI 실시간 제안
-- P4~P6: ~~수면장소~~ ✅ (sleep-location), ~~배지 Phase 1~~ ✅ (badges), ~~badges-ui Phase 2~~ ✅ (구현 완료, 3-Agent QA + code-reviewer SHIP 대기), 커스텀활동, Apple Health, 커뮤니티
+- P4~P6:
+  - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
+  - ⏳ 커스텀활동, Apple Health, 커뮤니티
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 - 웹: Google Search Console, Naver 등록
+
+### v2.7 배포 전 액션
+- [ ] 실기기 QA (배지 Phase 2 + 신규 9개 기능)
+- [ ] 3-Agent QA 재실행
+- [ ] `make bump` (빌드 52 → 53) + version 2.6.2 → 2.7.0
+- [ ] CHANGELOG/release notes 작성
+- [ ] TestFlight 제출
