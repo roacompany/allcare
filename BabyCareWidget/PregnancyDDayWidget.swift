@@ -70,12 +70,15 @@ struct PregnancyDDayProvider: TimelineProvider {
         guard PregnancyWidgetDataStore.isActive else {
             return .inactive
         }
+        // 원본 날짜에서 동적 계산 — 앱을 안 열어도 매 타임라인 갱신 시 최신 주차/D-day 표시.
+        let weekDay = PregnancyWidgetDataStore.currentWeekAndDay
+        let dDay = PregnancyWidgetDataStore.dDay
         return PregnancyDDayEntry(
             date: Date(),
             babyNickname: PregnancyWidgetDataStore.babyNickname,
-            currentWeek: PregnancyWidgetDataStore.currentWeek,
-            currentDay: PregnancyWidgetDataStore.currentDay,
-            dDay: PregnancyWidgetDataStore.dDay,
+            currentWeek: weekDay?.weeks ?? 0,
+            currentDay: weekDay?.days ?? 0,
+            dDay: dDay ?? 0,
             isActive: true
         )
     }

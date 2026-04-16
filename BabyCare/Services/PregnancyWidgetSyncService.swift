@@ -12,40 +12,33 @@ enum PregnancyWidgetSyncService {
         UserDefaults(suiteName: suiteName) ?? .standard
     }
 
-    // 키는 위젯 타겟의 PregnancyWidgetDataStore.Keys와 동일해야 함.
+    // 키는 ���젯 타겟의 PregnancyWidgetDataStore.Keys와 동일해야 함.
     private enum Keys {
         static let dueDate = "pregnancy_dueDate"
-        static let currentWeek = "pregnancy_currentWeek"
-        static let currentDay = "pregnancy_currentDay"
+        static let lmpDate = "pregnancy_lmpDate"
         static let babyNickname = "pregnancy_babyNickname"
-        static let dDay = "pregnancy_dDay"
         static let isActive = "pregnancy_isActive"
     }
 
     // MARK: - Write (from main app)
 
+    /// 임신 데이터를 위젯에 동기화.
+    /// lmpDate/dueDate 원본을 저��하여 위젯 Provider가 주차/D-day를 동적으로 계산.
     static func update(pregnancy: Pregnancy?) {
         guard let p = pregnancy else {
             clear()
             return
         }
         defaults.set(p.dueDate, forKey: Keys.dueDate)
-        if let week = p.currentWeekAndDay {
-            defaults.set(week.weeks, forKey: Keys.currentWeek)
-            defaults.set(week.days, forKey: Keys.currentDay)
-        }
+        defaults.set(p.lmpDate, forKey: Keys.lmpDate)
         defaults.set(p.babyNickname ?? "우리 아기", forKey: Keys.babyNickname)
-        if let dDay = p.dDay {
-            defaults.set(dDay, forKey: Keys.dDay)
-        }
         defaults.set(true, forKey: Keys.isActive)
 
         WidgetCenter.shared.reloadTimelines(ofKind: "PregnancyDDayWidget")
     }
 
     static func clear() {
-        for key in [Keys.dueDate, Keys.currentWeek, Keys.currentDay,
-                    Keys.babyNickname, Keys.dDay, Keys.isActive] {
+        for key in [Keys.dueDate, Keys.lmpDate, Keys.babyNickname, Keys.isActive] {
             defaults.removeObject(forKey: key)
         }
         WidgetCenter.shared.reloadTimelines(ofKind: "PregnancyDDayWidget")
@@ -54,10 +47,8 @@ enum PregnancyWidgetSyncService {
     /// 테스트 전용: 키 prefix 검증에 사용.
     enum TestableKeys {
         static let dueDate = Keys.dueDate
-        static let currentWeek = Keys.currentWeek
-        static let currentDay = Keys.currentDay
+        static let lmpDate = Keys.lmpDate
         static let babyNickname = Keys.babyNickname
-        static let dDay = Keys.dDay
         static let isActive = Keys.isActive
     }
 }

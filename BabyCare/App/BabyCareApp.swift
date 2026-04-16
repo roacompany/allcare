@@ -48,6 +48,7 @@ struct BabyCareApp: App {
                 .environment(appState.purchase)
                 .environment(appState.hospitalReport)
                 .environment(appState.insight)
+                .environment(appState.pregnancy)
                 .onOpenURL { url in
                     deepLinkDestination = DeepLinkRouter.destination(from: url)
                 }

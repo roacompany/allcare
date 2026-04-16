@@ -2685,10 +2685,8 @@ final class WidgetDataStoreTests: XCTestCase {
     func testPregnancyWidgetKeys_allPrefixed() {
         let keys = [
             PregnancyWidgetSyncService.TestableKeys.dueDate,
-            PregnancyWidgetSyncService.TestableKeys.currentWeek,
-            PregnancyWidgetSyncService.TestableKeys.currentDay,
+            PregnancyWidgetSyncService.TestableKeys.lmpDate,
             PregnancyWidgetSyncService.TestableKeys.babyNickname,
-            PregnancyWidgetSyncService.TestableKeys.dDay,
             PregnancyWidgetSyncService.TestableKeys.isActive
         ]
         for key in keys {

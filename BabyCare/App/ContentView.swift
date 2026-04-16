@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(ProductViewModel.self) private var productVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -74,6 +75,10 @@ struct ContentView: View {
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
+                // 임신 모드 데이터 로드 (FeatureFlag와 무관하게 로드, 위젯 동기화 포함)
+                if FeatureFlags.pregnancyModeEnabled {
+                    await pregnancyVM.loadActivePregnancy(userId: userId)
+                }
                 // Analytics: User Properties 초기 설정
                 AnalyticsService.shared.updateUserProperties(
                     babyCount: babyVM.babies.count,
@@ -87,6 +92,9 @@ struct ContentView: View {
                 Task {
                     await authVM.migrateFamilySharingIfNeeded(userId: userId)
                     await babyVM.loadBabies(userId: userId)
+                    if FeatureFlags.pregnancyModeEnabled {
+                        await pregnancyVM.loadActivePregnancy(userId: userId)
+                    }
                 }
             }
         }

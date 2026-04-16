@@ -94,6 +94,7 @@ final class PregnancyViewModel {
         do {
             try await firestoreService.savePregnancy(p, userId: userId)
             self.activePregnancy = p
+            PregnancyWidgetSyncService.update(pregnancy: p)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -282,8 +283,9 @@ final class PregnancyViewModel {
             newBaby: newBaby,
             userId: userId
         )
-        // 로컬 상태 업데이트
+        // 로컬 상태 업데이트 + 위젯 clear
         activePregnancy = nil
+        PregnancyWidgetSyncService.clear()
         return newBaby
     }
 
