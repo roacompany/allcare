@@ -14,6 +14,9 @@ struct BabyCareWidgetBundle: WidgetBundle {
         NextNapWidget()
         TodaySummaryWidget()
         GrowthPercentileWidget()
+
+        // 임신 모드
+        PregnancyDDayWidget()
     }
 }
 

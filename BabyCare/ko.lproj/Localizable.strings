@@ -424,3 +424,26 @@
 "widget.pregnancy.dday" = "D-%d";
 "widget.pregnancy.week" = "%d주";
 "widget.pregnancy.placeholder" = "임신 모드 비활성";
+"pregnancy.widget.dday.title" = "임신 D-day";
+"pregnancy.widget.dday.description" = "출산 예정일 카운트다운과 주차 정보";
+"pregnancy.widget.label" = "임신";
+"pregnancy.widget.inactive" = "임신 모드 비활성";
+"pregnancy.widget.progress" = "진행도";
+"pregnancy.widget.weeksLeft" = "%d주 남음";
+
+/* Pregnancy Mode — Partner Share */
+"pregnancy.share.title" = "파트너 공유";
+"pregnancy.share.current" = "공유 중";
+"pregnancy.share.noPartner" = "아직 공유된 파트너가 없습니다.";
+"pregnancy.share.readOnly" = "파트너는 임신 기록을 조회만 할 수 있습니다.";
+"pregnancy.share.add" = "파트너 추가";
+"pregnancy.share.emailPlaceholder" = "파트너 이메일";
+"pregnancy.share.invite" = "초대 보내기";
+"pregnancy.share.noPregnancy" = "활성 임신 기록이 없습니다.";
+"pregnancy.share.success" = "파트너가 추가되었습니다.";
+"pregnancy.share.failed" = "공유 실패";
+"pregnancy.share.removeTitle" = "공유 해제";
+"pregnancy.share.removeConfirm" = "해제";
+"pregnancy.share.cancel" = "취소";
+"pregnancy.share.removeMessage" = "이 파트너의 임신 기록 접근 권한을 해제하시겠어요?";
+"pregnancy.share.removeFailed" = "해제 실패";

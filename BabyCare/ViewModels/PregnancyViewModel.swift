@@ -36,6 +36,7 @@ final class PregnancyViewModel {
             var p = try await firestoreService.fetchActivePregnancy(userId: userId)
             p?.ownerUserId = userId
             self.activePregnancy = p
+            PregnancyWidgetSyncService.update(pregnancy: p)
             if let pid = p?.id {
                 async let kicks = firestoreService.fetchKickSessions(userId: userId, pregnancyId: pid)
                 async let visits = firestoreService.fetchPrenatalVisits(userId: userId, pregnancyId: pid)
@@ -284,6 +285,24 @@ final class PregnancyViewModel {
         // 로컬 상태 업데이트
         activePregnancy = nil
         return newBaby
+    }
+
+    // MARK: - Partner Sharing
+
+    func addPartner(email: String, userId: String) async throws {
+        guard let pid = activePregnancy?.id else {
+            throw PregnancyError.noActivePregnancy
+        }
+        try await firestoreService.addPregnancyPartner(email: email, userId: userId, pregnancyId: pid)
+        await loadActivePregnancy(userId: userId)
+    }
+
+    func removePartner(uid: String, userId: String) async throws {
+        guard let pid = activePregnancy?.id else {
+            throw PregnancyError.noActivePregnancy
+        }
+        try await firestoreService.removePregnancyPartner(partnerUid: uid, userId: userId, pregnancyId: pid)
+        await loadActivePregnancy(userId: userId)
     }
 
     // MARK: - Helpers

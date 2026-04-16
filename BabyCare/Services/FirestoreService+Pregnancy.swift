@@ -170,6 +170,32 @@ extension FirestoreService {
         let ref = pregnancyRef(userId: userId).document(pregnancyId)
         try await ref.setData(["transitionState": "pending", "updatedAt": Date()], merge: true)
     }
+
+    // MARK: - Partner Sharing
+
+    /// 이메일로 사용자 UID 조회 후 sharedWith에 추가 (읽기 전용 공유).
+    func addPregnancyPartner(email: String, userId: String, pregnancyId: String) async throws {
+        // 이메일로 UID 조회 (users 컬렉션에서 email 필드 검색).
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .whereField("email", isEqualTo: email)
+            .limit(to: 1)
+            .getDocuments()
+        guard let partnerDoc = snapshot.documents.first else {
+            throw NSError(domain: "PregnancyShare", code: 404,
+                          userInfo: [NSLocalizedDescriptionKey: "해당 이메일의 사용자를 찾을 수 없습니다."])
+        }
+        let partnerUid = partnerDoc.documentID
+        let ref = pregnancyRef(userId: userId).document(pregnancyId)
+        try await ref.updateData(["sharedWith": FieldValue.arrayUnion([partnerUid]),
+                                  "updatedAt": Date()])
+    }
+
+    /// sharedWith에서 파트너 UID 제거.
+    func removePregnancyPartner(partnerUid: String, userId: String, pregnancyId: String) async throws {
+        let ref = pregnancyRef(userId: userId).document(pregnancyId)
+        try await ref.updateData(["sharedWith": FieldValue.arrayRemove([partnerUid]),
+                                  "updatedAt": Date()])
+    }
 }
 
 // WriteBatch Codable 지원을 위한 헬퍼 (Firestore SDK가 기본 제공하지 않음).

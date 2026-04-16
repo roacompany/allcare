@@ -2679,4 +2679,123 @@ final class WidgetDataStoreTests: XCTestCase {
         XCTAssertNil(vm.currentWeekAndDay)
         XCTAssertNil(vm.dDay)
     }
+
+    // MARK: - Pregnancy Widget DataStore Key Prefix
+
+    func testPregnancyWidgetKeys_allPrefixed() {
+        let keys = [
+            PregnancyWidgetSyncService.TestableKeys.dueDate,
+            PregnancyWidgetSyncService.TestableKeys.currentWeek,
+            PregnancyWidgetSyncService.TestableKeys.currentDay,
+            PregnancyWidgetSyncService.TestableKeys.babyNickname,
+            PregnancyWidgetSyncService.TestableKeys.dDay,
+            PregnancyWidgetSyncService.TestableKeys.isActive
+        ]
+        for key in keys {
+            XCTAssertTrue(key.hasPrefix("pregnancy_"), "Key '\(key)' must start with 'pregnancy_'")
+        }
+    }
+
+    // MARK: - Pregnancy EDD History Append
+
+    func testPregnancy_eddHistory_appendOnly() {
+        var p = Pregnancy()
+        p.dueDate = Date(timeIntervalSince1970: 1800000000)
+        p.eddHistory = [Date(timeIntervalSince1970: 1800000000)]
+        let oldHistory = p.eddHistory ?? []
+        let newDue = Date(timeIntervalSince1970: 1800100000)
+        var history = oldHistory
+        if let existing = p.dueDate, !history.contains(existing) {
+            history.append(existing)
+        }
+        p.dueDate = newDue
+        p.eddHistory = history
+        XCTAssertEqual(p.eddHistory?.count, 1) // 기존 값 중복 안 추가
+        XCTAssertEqual(p.dueDate, newDue)
+    }
+
+    // MARK: - Pregnancy sharedWith Field
+
+    func testPregnancy_sharedWith_defaultNil() {
+        let p = Pregnancy()
+        XCTAssertNil(p.sharedWith)
+    }
+
+    func testPregnancy_sharedWith_appendUid() {
+        var p = Pregnancy()
+        p.sharedWith = ["uid1"]
+        XCTAssertEqual(p.sharedWith?.count, 1)
+        p.sharedWith?.append("uid2")
+        XCTAssertEqual(p.sharedWith?.count, 2)
+    }
+
+    // MARK: - Pregnancy outcomeType Raw Value Stability
+
+    func testPregnancyOutcome_allCasesRawValues() {
+        // Raw values are permanent contract — must never change.
+        let expected: [(PregnancyOutcome, String)] = [
+            (.ongoing, "ongoing"),
+            (.born, "born"),
+            (.miscarriage, "miscarriage"),
+            (.stillbirth, "stillbirth"),
+            (.terminated, "terminated")
+        ]
+        for (outcome, raw) in expected {
+            XCTAssertEqual(outcome.rawValue, raw, "\(outcome) raw value must be '\(raw)'")
+        }
+    }
+
+    // MARK: - Pregnancy D-day Past Due
+
+    func testPregnancy_dDay_pastDue() {
+        var p = Pregnancy()
+        p.dueDate = Calendar.current.date(byAdding: .day, value: -5, to: Date())
+        let dDay = p.dDay
+        XCTAssertNotNil(dDay)
+        XCTAssertTrue(dDay! < 0, "Past due date should result in negative D-day")
+    }
+
+    // MARK: - KickSession Duration
+
+    func testKickSession_duration() {
+        var session = KickSession(pregnancyId: "p1")
+        session.endedAt = session.startedAt.addingTimeInterval(3600)
+        let duration = session.endedAt!.timeIntervalSince(session.startedAt)
+        XCTAssertEqual(duration, 3600, accuracy: 1)
+    }
+
+    // MARK: - PregnancyChecklistItem Source Enum
+
+    func testPregnancyChecklistItem_sourceValues() {
+        let bundleItem = PregnancyChecklistItem(pregnancyId: "p1", title: "Test", category: "trimester1", source: "bundle")
+        let userItem = PregnancyChecklistItem(pregnancyId: "p1", title: "Custom", category: "custom", source: "user")
+        XCTAssertEqual(bundleItem.source, "bundle")
+        XCTAssertEqual(userItem.source, "user")
+    }
+
+    // MARK: - PregnancyWeightEntry Unit
+
+    func testPregnancyWeightEntry_unitPersistence() throws {
+        let entry = PregnancyWeightEntry(pregnancyId: "p1", weight: 65.5, unit: "kg")
+        let data = try JSONEncoder().encode(entry)
+        let decoded = try JSONDecoder().decode(PregnancyWeightEntry.self, from: data)
+        XCTAssertEqual(decoded.unit, "kg")
+        XCTAssertEqual(decoded.weight, 65.5, accuracy: 0.01)
+    }
+
+    // MARK: - Localizable Keys Existence
+
+    func testLocalizable_pregnancyWidgetKeysExist() {
+        let keys = [
+            "pregnancy.widget.dday.title",
+            "pregnancy.widget.label",
+            "pregnancy.widget.inactive",
+            "pregnancy.widget.progress",
+            "pregnancy.share.title"
+        ]
+        for key in keys {
+            let localized = NSLocalizedString(key, comment: "")
+            XCTAssertNotEqual(localized, key, "Missing localization for '\(key)'")
+        }
+    }
 }

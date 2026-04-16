@@ -41,6 +41,23 @@ struct SettingsView: View {
                     }
                 }
 
+                // 임신 관리
+                if FeatureFlags.pregnancyModeEnabled {
+                    Section("임신 관리") {
+                        NavigationLink {
+                            PregnancyArchiveView()
+                        } label: {
+                            Label("이전 임신", systemImage: "clock.arrow.circlepath")
+                        }
+
+                        NavigationLink {
+                            PregnancyShareView()
+                        } label: {
+                            Label("파트너 공유", systemImage: "person.2.fill")
+                        }
+                    }
+                }
+
                 // 용품 관리 (별도 탭 없이 여기서 접근)
                 Section(header: Text("바로가기"), footer: Text("대시보드에서도 접근할 수 있습니다")) {
                     NavigationLink {
