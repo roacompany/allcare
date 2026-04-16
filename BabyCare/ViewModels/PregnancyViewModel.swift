@@ -167,6 +167,99 @@ final class PregnancyViewModel {
         }
     }
 
+    /// 사용자 추가 체크리스트 항목 (source=user).
+    func addChecklistItem(title: String, category: String = "custom", userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        let newItem = PregnancyChecklistItem(
+            pregnancyId: pid,
+            title: title,
+            category: category,
+            source: "user",
+            order: checklistItems.count
+        )
+        do {
+            try await firestoreService.saveChecklistItem(newItem, userId: userId, pregnancyId: pid)
+            checklistItems.append(newItem)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// 번들 템플릿 로드 후 Firestore에 저장 (최초 1회).
+    func loadBundleChecklistIfNeeded(userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        // 이미 bundle 항목이 있으면 스킵.
+        let hasBundleItems = checklistItems.contains { $0.source == "bundle" }
+        guard !hasBundleItems else { return }
+
+        guard let url = Bundle.main.url(forResource: "prenatal-checklist", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return }
+
+        struct BundleItem: Codable {
+            let id: String
+            let title: String
+            let category: String
+            let targetWeek: Int?
+            let source: String
+            let order: Int?
+        }
+
+        guard let bundleItems = try? JSONDecoder().decode([BundleItem].self, from: data) else { return }
+        for b in bundleItems {
+            let item = PregnancyChecklistItem(
+                id: b.id,
+                pregnancyId: pid,
+                title: b.title,
+                category: b.category,
+                targetWeek: b.targetWeek,
+                source: b.source,
+                order: b.order
+            )
+            do {
+                try await firestoreService.saveChecklistItem(item, userId: userId, pregnancyId: pid)
+                checklistItems.append(item)
+            } catch {
+                // 부분 실패 허용 — 다음 항목 계속 진행
+            }
+        }
+    }
+
+    // MARK: - Prenatal Visit
+
+    func savePrenatalVisit(_ visit: PrenatalVisit, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        do {
+            try await firestoreService.savePrenatalVisit(visit, userId: userId, pregnancyId: pid)
+            if let idx = prenatalVisits.firstIndex(where: { $0.id == visit.id }) {
+                prenatalVisits[idx] = visit
+            } else {
+                prenatalVisits.append(visit)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func togglePrenatalVisit(_ visit: PrenatalVisit, userId: String) async {
+        var updated = visit
+        updated.isCompleted.toggle()
+        updated.visitedAt = updated.isCompleted ? Date() : nil
+        updated.updatedAt = Date()
+        await savePrenatalVisit(updated, userId: userId)
+    }
+
+    // MARK: - Weight Entry
+
+    func addWeightEntry(_ entry: PregnancyWeightEntry, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        do {
+            try await firestoreService.saveWeightEntry(entry, userId: userId, pregnancyId: pid)
+            weightEntries.append(entry)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Transition
 
     /// Pregnancy → Baby 전환. WriteBatch 원자성 보장.

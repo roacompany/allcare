@@ -9,6 +9,7 @@ struct DashboardView: View {
     @Environment(HealthViewModel.self) var healthVM
     @Environment(AnnouncementViewModel.self) var announcementVM
     @Environment(InsightService.self) var insightService
+    @Environment(PregnancyViewModel.self) var pregnancyVM
 
     @State var showBabySelector = false
     @State var showTimerWarningOnSwitch = false
@@ -27,6 +28,14 @@ struct DashboardView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
     var body: some View {
+        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+            DashboardPregnancyView()
+        } else {
+            babyDashboard
+        }
+    }
+
+    private var babyDashboard: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {

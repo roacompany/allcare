@@ -9,6 +9,7 @@ struct RecordingView: View {
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
 
     /// sheet dismiss — NavigationStack 밖에서 바인딩 주입
     @Binding var isPresented: Bool
@@ -25,6 +26,12 @@ struct RecordingView: View {
     @State private var showCloseConfirm = false
     @State private var showUnsavedDataConfirm = false
     @State private var savedMessage: String?
+
+    // 임신 모드 sheet 상태
+    @State private var showKickRecording = false
+    @State private var showPrenatalVisit = false
+    @State private var showWeightEntry = false
+    @State private var showSymptomMemo = false
 
     // MARK: - Unsaved data check
 
@@ -59,6 +66,104 @@ struct RecordingView: View {
     }
 
     var body: some View {
+        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+            pregnancyRecordingContent
+        } else {
+            babyRecordingContent
+        }
+    }
+
+    // MARK: - Pregnancy Recording Content
+
+    private var pregnancyRecordingContent: some View {
+        NavigationStack {
+            List {
+                Section {
+                    pregnancyMenuButton(
+                        title: "태동 기록",
+                        subtitle: "태동 세션 시작/기록",
+                        icon: "waveform.path.ecg.rectangle",
+                        color: AppColors.primaryAccent
+                    ) { showKickRecording = true }
+
+                    pregnancyMenuButton(
+                        title: "산전 방문 추가",
+                        subtitle: "병원 방문 일정 기록",
+                        icon: "stethoscope",
+                        color: AppColors.indigoColor
+                    ) { showPrenatalVisit = true }
+
+                    pregnancyMenuButton(
+                        title: "체중 기록",
+                        subtitle: "임신 중 체중 변화 추적",
+                        icon: "scalemass",
+                        color: AppColors.sageColor
+                    ) { showWeightEntry = true }
+
+                    pregnancyMenuButton(
+                        title: "증상 메모",
+                        subtitle: "입덧, 부종 등 증상 기록",
+                        icon: "note.text",
+                        color: AppColors.warmOrangeColor
+                    ) { showSymptomMemo = true }
+                }
+            }
+            .navigationTitle("임신 기록")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("닫기") { isPresented = false }
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .sheet(isPresented: $showKickRecording) { KickRecordingSheet() }
+            .sheet(isPresented: $showPrenatalVisit) { PrenatalVisitFormSheet() }
+            .sheet(isPresented: $showWeightEntry) { PregnancyWeightEntrySheet() }
+            .sheet(isPresented: $showSymptomMemo) { PregnancySymptomMemoSheet() }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(28)
+    }
+
+    @ViewBuilder
+    private func pregnancyMenuButton(
+        title: String,
+        subtitle: String,
+        icon: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(color.opacity(0.18))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(color)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Baby Recording Content (기존 육아 모드)
+
+    private var babyRecordingContent: some View {
         NavigationStack {
             VStack(spacing: 0) {
 

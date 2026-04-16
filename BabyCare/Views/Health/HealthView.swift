@@ -5,12 +5,21 @@ struct HealthView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(ActivityViewModel.self) private var activityVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
 
     @State private var overdueVaccinationDismissed = false
     @State private var upcomingVaccinationDismissed = false
     @State private var showBabySelector = false
 
     var body: some View {
+        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+            HealthPregnancyView()
+        } else {
+            babyHealthView
+        }
+    }
+
+    private var babyHealthView: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
