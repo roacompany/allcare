@@ -2,6 +2,62 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.7.1] - 2026-04-17
+
+### Added — 임신 모드 (P0)
+
+**임신 데이터 모델**
+- Pregnancy, KickSession, PrenatalVisit, PregnancyChecklistItem, PregnancyWeightEntry 6모델
+- PregnancyOutcome enum (ongoing/born/miscarriage/stillbirth/terminated)
+- FirestoreCollections 5개 추가 (pregnancies, kickSessions, prenatalVisits, pregnancyChecklists, pregnancyWeights)
+- WriteBatch 기반 Pregnancy→Baby 원자적 전환 (transitionState 복구 지원)
+
+**임신 모드 UI**
+- 온보딩: AddBabyView "아직 태어나지 않았나요?" 서브링크 → PregnancyRegistrationView (LMP/EDD 상호 계산)
+- 홈 탭: DashboardPregnancyView (D-day 카드, 주차별 정보, 체크리스트 프리뷰, 다음 산전 방문)
+- 건강 탭: HealthPregnancyView (태동 세션, 산전 방문 목록, 체중 차트)
+- + 버튼: 임신 모드 항목 세트 (태동/방문/체중/증상)
+- 산전 체크리스트: 카테고리별 (1/2/3분기 + 출산 준비), 번들 템플릿 + 사용자 추가
+- 출산 전환: 2단계 확인, WriteBatch 원자적 전환, 축하 화면 → 육아 모드
+- 이전 임신 이력: PregnancyArchiveView (설정 탭)
+
+**임신 D-day 위젯**
+- PregnancyDDayWidget (systemSmall/systemMedium/accessoryCircular)
+- lmpDate/dueDate 원본 저장 + Provider 동적 계산 (앱 미실행 시에도 주차/D-day 갱신)
+- 일 단위 타임라인, WidgetColors 다크모드 대응
+
+**파트너 공유**
+- Pregnancy.sharedWith 배열 기반 read-only 공유
+- PregnancyShareView (이메일 초대 → sharedWith 추가/제거)
+- firestore.rules: 파트너 읽기 허용, 쓰기 차단
+
+**HealthKit 연동**
+- HealthKitPregnancyService (opt-in, .pregnancy 타입)
+- 설정 탭 토글, 권한 거부 시 graceful fallback
+
+**기타**
+- FeatureFlags.pregnancyModeEnabled 게이팅 (6곳)
+- Localizable.strings 임신 키 91개
+- 위젯 타겟 ko.lproj/Localizable.strings 추가
+- PregnancyWidgetSyncService (VM 변경 시 자동 위젯 동기화)
+
+### Fixed
+- PregnancyViewModel environment 주입 누락 (BabyCareApp)
+- loadActivePregnancy 앱 시작 시 미호출 (ContentView.task)
+- 위젯 주차/D-day 정적 스냅샷 → lmpDate/dueDate 동적 계산
+- updateEDD 시 위젯 sync 누락
+- transitionToBaby 시 위젯 clear 누락
+
+### Internal
+- 테스트 195 → 229 (+34, 임신 모델/VM/위젯/공유/Localizable)
+- privacy.html 임신 데이터 수집 항목 + HealthKit 고지 추가
+- terms.html 제5조의2 임신 모드 면책 조항 추가
+- `make verify` ALL CHECKS PASSED
+- arch-test 0 violations 유지
+- harness-score 96% Grade A 유지
+
+---
+
 ## [2.7.0] - 2026-04-15
 
 ### Added — Feature Enhancement Rollout (9 Items)
