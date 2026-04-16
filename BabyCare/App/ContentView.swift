@@ -75,7 +75,7 @@ struct ContentView: View {
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
-                // 임신 모드 데이터 로드 (FeatureFlag와 무관하게 로드, 위젯 동기화 포함)
+                // 임신 모드 데이터 로드 + 위젯 동기화
                 if FeatureFlags.pregnancyModeEnabled {
                     await pregnancyVM.loadActivePregnancy(userId: userId)
                 }
