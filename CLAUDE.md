@@ -39,14 +39,15 @@ make status      # 버전/커밋/테스트 상태
 
 ## Architecture
 
-- **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (23 VM)
+- **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (25 VM)
 - **서비스 분리**: ActivityTimerManager, FeedingPredictionService v2 (day/night 개인화), WeeklyInsightService, PercentileCalculator, MedicationSafetyService
 - **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
-- **Firestore**: 200MB persistent cache, 23개 컬렉션 상수 (FirestoreCollections), 페이지네이션 (일기 커서/구매 limit/할일 필터)
+- **Firestore**: 200MB persistent cache, 28개 컬렉션 상수 (FirestoreCollections, +5 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터)
 - **배지 시스템**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 + Activity/Growth/Routine save path 연동. Phase 2 UI: BadgePresenter + BadgeViewModel (@Observable, arch-test baseline 0) + BadgeSnackbarView + BadgeGalleryView (3-section grid + BadgeTileView + BadgeDetailSheet) + BadgeHomeStrip (Dashboard top) + SettingsView "내 배지" row + Localizable.strings 25 keys — `.dev/specs/badges-ui/PLAN.md` (14 A-items 완료, 5 H-items QA 대기)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
+- **임신 모드**: `FeatureFlags.pregnancyModeEnabled` 게이팅. Pregnancy 모델 독립 컬렉션 (Baby와 분리). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`), WriteBatch 전환 트랜잭션 (Pregnancy→Baby atomic). EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지.
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
 ## Conventions
@@ -103,8 +104,8 @@ harness-score: 96% (Grade A) — 2026-04-15
 - **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
 - **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
-- **테스트**: 195개 PASS (107→195, +88), 경고 0건
-- **규모**: 240+ Swift 파일, 24개 VM, 23개 Firestore 컬렉션
+- **테스트**: 219개 PASS (195→219, +24 pregnancy), 경고 0건
+- **규모**: 250+ Swift 파일, 25개 VM, 28개 Firestore 컬렉션
 - **QA**: 3-Agent ALL PASS (2026-04-04) — feature rollout 후 재QA 대기
 
 ## Recent Changes (v2.7 — 미배포, 2026-04-15)
@@ -173,7 +174,7 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- P0: 임신 모드
+- ✅ P0: 임신 모드 — `feat/pregnancy-mode` 브랜치 (2026-04-15), PR merge 대기
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
