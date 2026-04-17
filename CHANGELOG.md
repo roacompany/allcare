@@ -2,6 +2,58 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.7.1] - 2026-04-17
+
+### Added — 임신 모드 (P0)
+
+**임신 데이터 모델**
+- 임신·태동·산전방문·산전체크리스트·임산부체중 5개 Firestore 컬렉션 추가
+- WriteBatch 기반 임신→육아 원자적 전환 (복구 지원)
+- 임신 결과 분류 (진행/출산/유산/사산/중단)
+
+**임신 모드 UI**
+- 온보딩: "아직 태어나지 않았나요?" → 임신 등록 (LMP/EDD 상호 계산)
+- 홈 탭: D-day 카드, 주차별 정보, 체크리스트 프리뷰, 다음 산전 방문
+- 건강 탭: 태동 세션, 산전 방문 목록, 몸무게 차트
+- 기록: 태동/방문/체중/증상 임신 모드 전용 항목
+- 산전 체크리스트: 1/2/3분기 + 출산 준비 (템플릿 + 사용자 추가)
+- 출산 전환: 2단계 확인 → 축하 화면 → 육아 모드 원터치
+- 이전 임신 이력: 설정 탭 아카이브
+
+**임신 D-day 위젯**
+- 홈 위젯 (small/medium) + 잠금화면 circular
+- lmpDate/dueDate 동적 계산 (앱 미실행 시에도 주차/D-day 갱신)
+- 다크모드 대응
+
+**파트너 공유**
+- 임신 데이터 배우자 read-only 공유
+- 이메일 초대로 sharedWith 추가/제거
+- firestore.rules: 파트너 읽기 허용, 쓰기 차단
+
+**HealthKit 연동**
+- Apple HealthKit opt-in (.pregnancy 타입)
+- 권한 거부 시 graceful fallback
+
+**기타**
+- Localizable.strings 임신 키 91개
+- PregnancyWidgetSyncService (VM 변경 시 자동 위젯 동기화)
+
+### Changed
+- privacy.html 임신 데이터 수집 항목 + HealthKit 고지 추가
+- terms.html 제5조의2 임신 모드 면책 조항 추가
+
+### Fixed
+- 위젯 주차/D-day 정적 스냅샷 → 동적 계산
+- updateEDD/transitionToBaby 시 위젯 sync 누락
+
+### Internal
+- 단위 테스트 195 → 229 (+34)
+- `make verify` ALL CHECKS PASSED
+- arch-test 0 violations 유지
+- harness-score 96% Grade A 유지
+
+---
+
 ## [2.7.0] - 2026-04-15
 
 ### Added — Feature Enhancement Rollout (9 Items)
