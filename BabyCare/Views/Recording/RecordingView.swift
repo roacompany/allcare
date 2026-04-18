@@ -66,7 +66,8 @@ struct RecordingView: View {
     }
 
     var body: some View {
-        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: 아기 등록됐으면 무조건 아기 기록 UI.
+        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
             pregnancyRecordingContent
         } else {
             babyRecordingContent

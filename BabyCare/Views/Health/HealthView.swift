@@ -12,7 +12,8 @@ struct HealthView: View {
     @State private var showBabySelector = false
 
     var body: some View {
-        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: 등록된 아기가 있으면 무조건 육아 health view.
+        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
             HealthPregnancyView()
         } else {
             babyHealthView

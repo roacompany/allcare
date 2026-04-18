@@ -28,7 +28,9 @@ struct DashboardView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
     var body: some View {
-        if pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: 등록된 아기가 있으면 무조건 육아 대시보드.
+        // pregnancy UI는 "아기 아직 없음 + 임신 등록됨" 상태에서만 노출.
+        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
             DashboardPregnancyView()
         } else {
             babyDashboard

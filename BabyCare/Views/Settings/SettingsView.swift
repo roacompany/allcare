@@ -5,10 +5,12 @@ struct SettingsView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
+    @State private var showDeletePregnancyAlert = false
     @AppStorage("analytics_opt_out") private var analyticsOptOut = false
 
     var body: some View {
@@ -55,6 +57,15 @@ struct SettingsView: View {
                             PregnancyShareView()
                         } label: {
                             Label("파트너 공유", systemImage: "person.2.fill")
+                        }
+
+                        if pregnancyVM.activePregnancy != nil {
+                            Button(role: .destructive) {
+                                showDeletePregnancyAlert = true
+                            } label: {
+                                Label("활성 임신 삭제", systemImage: "trash")
+                            }
+                            .accessibilityIdentifier("deleteActivePregnancyButton")
                         }
                     }
                 }
@@ -259,6 +270,15 @@ struct SettingsView: View {
                 Button("확인") { authVM.errorMessage = nil }
             } message: {
                 Text(authVM.errorMessage ?? "")
+            }
+            .alert("활성 임신 삭제", isPresented: $showDeletePregnancyAlert) {
+                Button("취소", role: .cancel) {}
+                Button("삭제", role: .destructive) {
+                    guard let userId = authVM.currentUserId else { return }
+                    Task { await pregnancyVM.deleteActivePregnancy(userId: userId) }
+                }
+            } message: {
+                Text("진행 중인 임신 기록과 관련 데이터(태동, 산전 방문, 체크리스트, 체중)가 모두 영구 삭제됩니다. 실수로 생성된 임신을 제거하거나 처음부터 다시 시작할 때 사용하세요.\n\n복구 불가. 계속하시겠습니까?")
             }
         }
     }

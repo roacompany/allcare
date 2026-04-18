@@ -183,4 +183,31 @@ final class PregnancyFlowTests: XCTestCase {
         let save = app.navigationBars["임신 등록"].buttons["저장"]
         XCTAssertTrue(save.exists, "저장 버튼 노출되어야 함")
     }
+
+    // MARK: - Priority: baby > pregnancy (회귀 방지)
+
+    /// 아기 등록돼 있을 때 활성 임신 존재해도 baby dashboard가 보여야 함.
+    /// (빌드 59 회귀: pregnancy가 dashboard 점령 → 사용자 baby 데이터 숨겨짐)
+    @MainActor
+    func test_babyAndPregnancy_showsBabyDashboard() throws {
+        let app = XCUIApplication()
+        // UI_TESTING = mock baby 있음. UI_TESTING_WITH_PREGNANCY = 활성 임신도 주입
+        app.launchArguments = ["UI_TESTING", "UI_TESTING_WITH_PREGNANCY", "UI_TESTING_TAB=0"]
+        app.launch()
+
+        // 홈 탭 존재 확인 (mainTabView 진입)
+        let homeTab = app.tabBars.buttons["홈"]
+        XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
+
+        // 핵심 어설션: baby dashboard 요소(빠른 기록/아기 이름 등) 가시 /
+        // pregnancy dashboard 요소(D-day/태동 등) 보이지 않아야
+        // 간접 검증: "D-day" 같은 pregnancy 전용 문자열이 없어야 함
+        let ddayText = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] 'D-day'")
+        ).firstMatch
+        XCTAssertFalse(
+            ddayText.waitForExistence(timeout: 3),
+            "baby 등록된 상태에서는 pregnancy D-day가 dashboard에 보이면 안 됨"
+        )
+    }
 }

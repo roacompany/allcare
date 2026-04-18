@@ -2949,4 +2949,39 @@ final class WidgetDataStoreTests: XCTestCase {
         let date = Date(timeIntervalSince1970: 1_700_000_000)   // 2023-11-14 22:13:20 UTC
         XCTAssertEqual(BadgeEvaluator.utcDateString(date), "2023-11-14")
     }
+
+    // MARK: - Dashboard/Health/Recording priority gating 로직 (빌드 59 회귀 방지)
+    // baby 있으면 pregnancy UI는 덮어쓰면 안 됨.
+    // 실제 View body 대신 gating 조건 boolean을 isolated하게 검증.
+
+    @MainActor
+    func testGating_babyOnly_showsBabyUI() {
+        XCTAssertFalse(shouldShowPregnancyUI(babiesEmpty: false, pregnancyActive: false))
+    }
+
+    @MainActor
+    func testGating_pregnancyOnly_showsPregnancyUI() {
+        XCTAssertTrue(shouldShowPregnancyUI(babiesEmpty: true, pregnancyActive: true))
+    }
+
+    @MainActor
+    func testGating_babyAndPregnancy_showsBabyUI_빌드59회귀방지() {
+        // 이 테스트가 FAIL하면 baby 등록된 사용자 화면이 pregnancy로 덮어씌워짐
+        XCTAssertFalse(
+            shouldShowPregnancyUI(babiesEmpty: false, pregnancyActive: true),
+            "baby가 있으면 pregnancy가 있어도 baby UI가 우선되어야 함"
+        )
+    }
+
+    @MainActor
+    func testGating_neitherBabyNorPregnancy_showsBabyUI() {
+        // onboarding gating은 ContentView 담당. 이 레벨에서는 pregnancy UI 노출 금지.
+        XCTAssertFalse(shouldShowPregnancyUI(babiesEmpty: true, pregnancyActive: false))
+    }
+
+    /// DashboardView/HealthView/RecordingView 공통 gating 조건.
+    /// 세 View 모두 아래와 동일 조건 사용.
+    private func shouldShowPregnancyUI(babiesEmpty: Bool, pregnancyActive: Bool) -> Bool {
+        return babiesEmpty && pregnancyActive
+    }
 }

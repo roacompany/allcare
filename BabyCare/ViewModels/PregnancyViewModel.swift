@@ -30,6 +30,23 @@ final class PregnancyViewModel {
     // MARK: - Load
 
     func loadActivePregnancy(userId: String) async {
+        // UI 테스트 모드: UI_TESTING_WITH_PREGNANCY 플래그 시 mock 활성 임신 주입
+        if CommandLine.arguments.contains("UI_TESTING") {
+            if CommandLine.arguments.contains("UI_TESTING_WITH_PREGNANCY") {
+                var mock = Pregnancy(
+                    lmpDate: Calendar.current.date(byAdding: .day, value: -84, to: Date()),
+                    dueDate: Calendar.current.date(byAdding: .day, value: 196, to: Date()),
+                    fetusCount: 1,
+                    babyNickname: "테스트아기"
+                )
+                mock.ownerUserId = userId
+                self.activePregnancy = mock
+            } else {
+                self.activePregnancy = nil
+            }
+            isLoading = false
+            return
+        }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -120,6 +137,24 @@ final class PregnancyViewModel {
             return "마지막 월경일 또는 예정일 중 하나는 필수입니다."
         }
         return nil
+    }
+
+    /// 긴급 복구용 — 활성 임신 데이터 완전 삭제 (하위 컬렉션 cascade).
+    /// 실수로 생성된 pregnancy가 baby dashboard를 덮어쓰는 상황 등 escape hatch.
+    /// 사용 후 PregnancyWidget clear + activePregnancy nil 반영.
+    func deleteActivePregnancy(userId: String) async {
+        guard let p = activePregnancy else { return }
+        do {
+            try await firestoreService.deletePregnancy(p.id, userId: userId)
+            activePregnancy = nil
+            kickSessions = []
+            prenatalVisits = []
+            checklistItems = []
+            weightEntries = []
+            PregnancyWidgetSyncService.update(pregnancy: nil)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// EDD 변경 시 이력 보존 (append-only).
