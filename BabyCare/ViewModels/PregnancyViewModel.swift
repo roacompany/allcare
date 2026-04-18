@@ -64,6 +64,16 @@ final class PregnancyViewModel {
 
     func createPregnancy(lmpDate: Date?, dueDate: Date?, fetusCount: Int = 1,
                          babyNickname: String? = nil, userId: String) async {
+        // 입력 validation — UI DatePicker로 1차 차단되지만 service-level 방어.
+        if let validationError = Self.validateInputs(lmpDate: lmpDate, dueDate: dueDate, fetusCount: fetusCount) {
+            errorMessage = validationError
+            return
+        }
+        // 중복 활성 임신 방지
+        if activePregnancy != nil {
+            errorMessage = "이미 진행 중인 임신이 있습니다. 먼저 종료해주세요."
+            return
+        }
         // LMP 또는 dueDate 중 하나 필수. LMP만 있으면 dueDate = LMP + 280일.
         let computed = Self.computeEddIfNeeded(lmpDate: lmpDate, dueDate: dueDate)
         let pregnancy = Pregnancy(
@@ -73,12 +83,43 @@ final class PregnancyViewModel {
             fetusCount: fetusCount,
             babyNickname: babyNickname
         )
+        errorMessage = nil
         do {
             try await firestoreService.savePregnancy(pregnancy, userId: userId)
             await loadActivePregnancy(userId: userId)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// 입력 검증 — 비정상 케이스 차단 (음수 임신 주차, 비현실 기간 등).
+    /// 통과 시 nil, 실패 시 사용자 표시용 메시지 반환.
+    static func validateInputs(lmpDate: Date?, dueDate: Date?, fetusCount: Int) -> String? {
+        guard fetusCount >= 1 && fetusCount <= 5 else {
+            return "태아 수는 1~5명 사이여야 합니다."
+        }
+        let now = Date()
+        if let lmp = lmpDate, lmp > now {
+            return "마지막 월경일은 오늘 이전이어야 합니다."
+        }
+        if let edd = dueDate {
+            // EDD가 너무 과거 (출산 예정일이 이미 한참 지남)면 거부
+            let cal = Calendar.current
+            if let lower = cal.date(byAdding: .day, value: -90, to: now), edd < lower {
+                return "예정일이 과거입니다. 출산이 완료되었다면 출산 전환을 사용하세요."
+            }
+            // EDD가 너무 미래
+            if let upper = cal.date(byAdding: .day, value: 310, to: now), edd > upper {
+                return "예정일이 너무 미래입니다."
+            }
+        }
+        if let lmp = lmpDate, let edd = dueDate, edd <= lmp {
+            return "예정일은 마지막 월경일 이후여야 합니다."
+        }
+        if lmpDate == nil && dueDate == nil {
+            return "마지막 월경일 또는 예정일 중 하나는 필수입니다."
+        }
+        return nil
     }
 
     /// EDD 변경 시 이력 보존 (append-only).

@@ -14,6 +14,20 @@ struct PregnancyRegistrationView: View {
 
     private static let dayInterval: Int = 280
 
+    /// LMP 허용 범위: 오늘로부터 -310일(약 44주, 만삭+α) ~ 오늘
+    private var lmpRange: ClosedRange<Date> {
+        let cal = Calendar.current
+        let lower = cal.date(byAdding: .day, value: -310, to: Date()) ?? Date.distantPast
+        return lower...Date()
+    }
+
+    /// EDD 허용 범위: 오늘 ~ 오늘 + 310일 (약 44주)
+    private var eddRange: ClosedRange<Date> {
+        let cal = Calendar.current
+        let upper = cal.date(byAdding: .day, value: 310, to: Date()) ?? Date.distantFuture
+        return Date()...upper
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -41,7 +55,7 @@ struct PregnancyRegistrationView: View {
                     DatePicker(
                         "마지막 월경일 (LMP)",
                         selection: $lmpDate,
-                        in: ...Date(),
+                        in: lmpRange,
                         displayedComponents: .date
                     )
                     .environment(\.locale, Locale(identifier: "ko_KR"))
@@ -53,6 +67,7 @@ struct PregnancyRegistrationView: View {
                     DatePicker(
                         "예정일 (EDD)",
                         selection: $eddDate,
+                        in: eddRange,
                         displayedComponents: .date
                     )
                     .environment(\.locale, Locale(identifier: "ko_KR"))

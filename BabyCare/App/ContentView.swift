@@ -58,7 +58,7 @@ struct ContentView: View {
                         // 런치스크린과 동일한 빈 화면 — 사용자가 전환을 눈치채지 못함
                         Color(.systemBackground)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if babyVM.babies.isEmpty {
+                    } else if babyVM.babies.isEmpty && !(FeatureFlags.pregnancyModeEnabled && pregnancyVM.activePregnancy != nil) {
                         onboardingView
                     } else {
                         mainTabView

@@ -84,8 +84,11 @@ struct AddBabyView: View {
             .navigationTitle("아기 등록")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showPregnancyRegistration, onDismiss: {
-                // 임신 등록 성공 시 AddBabyView도 함께 닫기
-                if pregnancyVMHasActive { dismiss() }
+                // 임신 등록 성공 시 AddBabyView도 함께 닫기 + 미사용 babyVM 폼 잔재 제거
+                if pregnancyVMHasActive {
+                    babyVM.resetForm()
+                    dismiss()
+                }
             }) {
                 PregnancyRegistrationView()
             }
