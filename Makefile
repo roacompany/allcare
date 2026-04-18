@@ -54,6 +54,14 @@ arch-test:
 plan-verify:
 	@bash scripts/plan_verify.sh
 
+## UI smoke test — 시뮬레이터 부팅 + 앱 런치 + 스크린샷 + 크래시 체크
+smoke-test:
+	@bash scripts/smoke_test.sh
+
+## QA evidence 파일 확인 (deploy 전 gate)
+qa-check:
+	@bash scripts/qa_evidence_check.sh
+
 ## 전체 검증 (빌드 + 린트 + 아키텍처 + 테스트 + 디자인)
 verify: build lint arch-test test design-verify
 	@echo ""
@@ -114,12 +122,14 @@ deploy-rules:
 	@echo "▸ Firestore rules deploy..."
 	@firebase deploy --only firestore:rules
 
-## 원커맨드 배포: PLAN검증 → 검증 → rules배포 → 버전범프 → Archive → Export → TestFlight
+## 원커맨드 배포: PLAN검증 → verify → smoke → QA evidence → rules → bump → upload
 ## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다
 ## (단일 make 호출에서는 PHONY target도 한 번만 실행됨 → bump한 빌드 번호가 archive에 반영 안 됨)
 deploy:
 	$(MAKE) plan-verify
 	$(MAKE) verify
+	$(MAKE) smoke-test
+	$(MAKE) qa-check
 	$(MAKE) deploy-rules
 	$(MAKE) bump
 	$(MAKE) upload

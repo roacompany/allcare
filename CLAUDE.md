@@ -78,6 +78,20 @@ make status      # 버전/커밋/테스트 상태
 
 harness-score: 96% (Grade A) — 2026-04-17
 
+### 완성 단계 정의 (중요)
+
+"완성"은 **3단계**로 분리한다. TODO done = 완성 아님.
+
+| 단계 | 마커 | 의미 | Gate |
+|---|---|---|---|
+| **coded** | `[x]` | 코드 작성 + `make verify` PASS | 단위 테스트 + lint + arch |
+| **verified** | `[V]` | 실기기/시뮬레이터 사용자 플로우 검증 완료 | `make smoke-test` + QA evidence 파일 |
+| **shipped** | `[S]` | TestFlight 업로드 + 빌드 번호 기록 | `make deploy` 완료, 사용자 검증 |
+
+- PLAN.md 항목 체크 시 위 기호 사용
+- `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
+- CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
+
 ## Recent Session (2026-04-16~17)
 
 ### 임신 모드 P0 완성 (feat/pregnancy-mode)
