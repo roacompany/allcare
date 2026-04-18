@@ -39,6 +39,7 @@ struct SettingsView: View {
                     } label: {
                         Label("아기 추가", systemImage: "plus.circle.fill")
                     }
+                    .accessibilityIdentifier("settingsAddBabyButton")
                 }
 
                 // 임신 관리

@@ -42,6 +42,8 @@ struct AddBabyView: View {
                             }
                             .padding(.vertical, 2)
                         }
+                        .accessibilityIdentifier("pregnancyEntryButton")
+                        .accessibilityLabel("아직 태어나지 않았나요?")
                     }
                 }
 

@@ -34,6 +34,10 @@ screenshots: generate
 	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareUITests/ScreenshotTests 2>&1 || true
 	@echo "📸 스크린샷: /tmp/babycare_screenshots/"
 
+## 핵심 플로우 UI 테스트 (임신 진입점 + 런치 gating) — 빌드 56 회귀 방지
+ui-test: generate
+	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareUITests/PregnancyFlowTests -quiet
+
 ## 디자인 토큰 검증
 design-verify:
 	cd /Users/roque/roa-design-system && npx tsx cli/index.ts verify babycare
@@ -128,6 +132,7 @@ deploy-rules:
 deploy:
 	$(MAKE) plan-verify
 	$(MAKE) verify
+	$(MAKE) ui-test
 	$(MAKE) smoke-test
 	$(MAKE) qa-check
 	$(MAKE) deploy-rules
