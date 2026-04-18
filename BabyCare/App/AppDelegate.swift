@@ -17,12 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
         // MobileAds: child-directed + non-personalized (must be set BEFORE start())
         MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = true
         MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
-        MobileAds.shared.start { _ in
-            // SDK init 완료 직후 배너 프리로드 — 사용자가 광고 영역에 도달하기 전에 채워짐
-            Task { @MainActor in
-                BannerAdManager.shared.preload()
-            }
-        }
+        MobileAds.shared.start(completionHandler: nil)
 
         // Analytics 옵트아웃 상태 반영
         AnalyticsService.shared.configure()
