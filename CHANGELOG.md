@@ -13,7 +13,7 @@ All notable changes to BabyCare are documented here.
 - WriteBatch 기반 Pregnancy→Baby 원자적 전환 (transitionState 복구 지원)
 
 **임신 모드 UI**
-- 온보딩: AddBabyView "아직 태어나지 않았나요?" 서브링크 → PregnancyRegistrationView (LMP/EDD 상호 계산)
+- 온보딩 + 설정→아기 추가: AddBabyView "아직 태어나지 않았나요?" 진입점 → PregnancyRegistrationView (LMP/EDD 상호 계산)
 - 홈 탭: DashboardPregnancyView (D-day 카드, 주차별 정보, 체크리스트 프리뷰, 다음 산전 방문)
 - 건강 탭: HealthPregnancyView (태동 세션, 산전 방문 목록, 체중 차트)
 - + 버튼: 임신 모드 항목 세트 (태동/방문/체중/증상)
@@ -41,12 +41,28 @@ All notable changes to BabyCare are documented here.
 - 위젯 타겟 ko.lproj/Localizable.strings 추가
 - PregnancyWidgetSyncService (VM 변경 시 자동 위젯 동기화)
 
+### Added — 배지 시스템 백필
+
+- BadgeEvaluator.backfillIfNeeded: 시스템 도입 전 누적 활동/성장 기록을
+  count() 집계로 1회 백필 → UserStats 절대값 set + threshold 도달 배지
+  silent 부여 (firstRecord/feeding100/sleep50/diaper200/growth10/
+  routineStreak3·7·30)
+- UserStats.migratedAtV1 idempotency flag
+- FirestoreService+Activity/Growth: count() + earliest fetch API
+- FirestoreService+Stats: setStatsAbsolute (절대값 덮어쓰기)
+- ContentView 런칭 훅: 로그인 + babies 로드 후 백필 실행
+
 ### Fixed
 - PregnancyViewModel environment 주입 누락 (BabyCareApp)
 - loadActivePregnancy 앱 시작 시 미호출 (ContentView.task)
 - 위젯 주차/D-day 정적 스냅샷 → lmpDate/dueDate 동적 계산
 - updateEDD 시 위젯 sync 누락
 - transitionToBaby 시 위젯 clear 누락
+- BadgeEvaluator silent failure: try? → do/catch + OSLog (subsystem
+  com.roacompany.allcare, category Badge)
+- BadgeHomeStrip race: .task(id: uid) + presenter.current 관찰 자동 리프레시
+- 백필 robustness: fetchStats throw 시 재시도 가능 (return false), per-baby
+  partial fail 시 migratedAtV1 미마킹 → 다음 런치 재시도
 
 ### Internal
 - 테스트 195 → 229 (+34, 임신 모델/VM/위젯/공유/Localizable)

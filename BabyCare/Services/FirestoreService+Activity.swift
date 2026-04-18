@@ -42,6 +42,32 @@ extension FirestoreService {
         return decodeDocuments(snapshot.documents, as: Activity.self)
     }
 
+    /// 백필용 count 집계 — 주어진 ActivityType rawValues를 포함하는 문서 수를 서버에서 집계.
+    func countActivities(userId: String, babyId: String, typeRawValues: [String]) async throws -> Int {
+        guard !typeRawValues.isEmpty else { return 0 }
+        let query = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.activities)
+            .whereField("type", in: typeRawValues)
+        let agg = try await query.count.getAggregation(source: .server)
+        return agg.count.intValue
+    }
+
+    /// 백필용 earliest — 가장 오래된 activity의 startTime 반환.
+    func fetchEarliestActivity(userId: String, babyId: String) async throws -> Activity? {
+        let snapshot = try await db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.babies)
+            .document(babyId)
+            .collection(FirestoreCollections.activities)
+            .order(by: "startTime", descending: false)
+            .limit(to: 1)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: Activity.self).first
+    }
+
     func fetchLatestActivity(userId: String, babyId: String, type: Activity.ActivityType) async throws -> Activity? {
         let snapshot = try await db.collection(FirestoreCollections.users)
             .document(userId)

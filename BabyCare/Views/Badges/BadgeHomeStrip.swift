@@ -5,21 +5,28 @@ struct BadgeHomeStrip: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(BabyViewModel.self) private var babyVM
     @State private var vm = BadgeViewModel()
+    private let presenter = AppState.shared.badgePresenter
 
     var body: some View {
         Group {
             if !vm.isLoaded {
-                EmptyView()
+                // 로드 전에도 공간 유지: empty prompt placeholder 노출 (race 시에도 strip 사라짐 방지)
+                emptyPrompt.redacted(reason: .placeholder)
             } else if vm.earned.isEmpty {
                 emptyPrompt
             } else {
                 stripContent
             }
         }
-        .task {
+        .task(id: babyVM.resolvedUserId(auth: authVM) ?? "") {
             if let uid = babyVM.resolvedUserId(auth: authVM) {
                 await vm.load(userId: uid)
             }
+        }
+        .onChange(of: presenter.current?.id) { _, newId in
+            // 새 배지 획득 스낵바가 뜰 때 strip 자동 reload
+            guard newId != nil, let uid = babyVM.resolvedUserId(auth: authVM) else { return }
+            Task { await vm.load(userId: uid) }
         }
     }
 
