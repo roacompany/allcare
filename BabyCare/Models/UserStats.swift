@@ -8,6 +8,7 @@ struct UserStats: Identifiable, Codable, Hashable {
     var growthRecordCount: Int?
     var firstRecordAt: Date?
     var updatedAt: Date?
+    var migratedAtV1: Date?     // 백필 완료 타임스탬프 (nil이면 미실행 → backfillIfNeeded 대상)
 
     static let lifetimeId = "lifetime"
 
@@ -19,7 +20,8 @@ struct UserStats: Identifiable, Codable, Hashable {
             diaperCount: 0,
             growthRecordCount: 0,
             firstRecordAt: nil,
-            updatedAt: Date()
+            updatedAt: Date(),
+            migratedAtV1: nil
         )
     }
 }

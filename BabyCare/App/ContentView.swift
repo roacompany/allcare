@@ -80,6 +80,7 @@ struct ContentView: View {
                     familySharingEnabled: babyVM.babies.contains { $0.ownerUserId != userId },
                     theme: ThemeManager.shared.currentMode.rawValue
                 )
+                await runBadgeBackfillIfNeeded(userId: userId)
             }
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
@@ -87,6 +88,7 @@ struct ContentView: View {
                 Task {
                     await authVM.migrateFamilySharingIfNeeded(userId: userId)
                     await babyVM.loadBabies(userId: userId)
+                    await runBadgeBackfillIfNeeded(userId: userId)
                 }
             }
         }
@@ -110,6 +112,27 @@ struct ContentView: View {
                 ProductDetailView(product: product)
             }
         }
+    }
+
+    // MARK: - Badge Backfill (1회 idempotent)
+
+    private func runBadgeBackfillIfNeeded(userId: String) async {
+        // 본인 소유 아기만 백필 대상 (공유 아기는 오너 측 stats에 포함되므로 오너가 백필)
+        let ownedBabyIds = babyVM.babies
+            .filter { $0.ownerUserId == userId }
+            .map(\.id)
+        guard !ownedBabyIds.isEmpty else { return }
+
+        // 현재 루틴 최대 streak — 백필된 연속 루틴 배지 판정용
+        let routines = (try? await FirestoreService.shared.fetchRoutines(userId: userId)) ?? []
+        let maxStreak = routines.compactMap { $0.currentStreak }.max() ?? 0
+
+        let earned = await BadgeEvaluator().backfillIfNeeded(
+            userId: userId,
+            ownedBabyIds: ownedBabyIds,
+            currentRoutineMaxStreak: maxStreak
+        )
+        AppState.shared.badgePresenter.enqueue(earned)
     }
 
     // MARK: - Weekly Insight
