@@ -93,6 +93,7 @@ final class BadgeEvaluator {
         var diaper = 0
         var growth = 0
         var earliest: Date?
+        var allSucceeded = true
     }
 
     /// 기존 기록에서 배지 시스템을 1회 백필.
@@ -112,7 +113,13 @@ final class BadgeEvaluator {
 
         let counts = await aggregateCounts(userId: userId, ownedBabyIds: ownedBabyIds)
         let earliestStr = counts.earliest?.description ?? "nil"
-        Self.log.log("backfill counts — feeding=\(counts.feeding) sleep=\(counts.sleep) diaper=\(counts.diaper) growth=\(counts.growth) earliest=\(earliestStr, privacy: .public)")
+        Self.log.log("backfill counts — f=\(counts.feeding) s=\(counts.sleep) d=\(counts.diaper) g=\(counts.growth) earliest=\(earliestStr, privacy: .public) ok=\(counts.allSucceeded)")
+
+        // 일부 아기 fetch 실패 시 backfill 중단 — 다음 런치에 재시도 (migratedAtV1 마킹 안 함)
+        guard counts.allSucceeded else {
+            Self.log.error("backfill aborted — partial aggregation failure, retry next launch")
+            return []
+        }
 
         do {
             try await firestoreService.setStatsAbsolute(
@@ -141,8 +148,10 @@ final class BadgeEvaluator {
                 return true
             }
         } catch {
-            Self.log.error("backfill fetchStats failed: \(error.localizedDescription, privacy: .public)")
-            return true
+            // 네트워크 오류 등으로 판정 실패 시 재시도 가능하도록 false 반환
+            // (setStatsAbsolute는 절대값 덮어쓰기 + tryEarn은 badgeExists dedup이므로 재실행 안전)
+            Self.log.error("backfill fetchStats failed — will retry: \(error.localizedDescription, privacy: .public)")
+            return false
         }
         return false
     }
@@ -160,14 +169,17 @@ final class BadgeEvaluator {
                 counts.diaper += try await firestoreService.countActivities(userId: userId, babyId: babyId, typeRawValues: diaperRaw)
                 counts.growth += try await firestoreService.countGrowthRecords(userId: userId, babyId: babyId)
             } catch {
+                counts.allSucceeded = false
                 Self.log.error("backfill count failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
-            counts.earliest = await updateEarliest(current: counts.earliest, userId: userId, babyId: babyId)
+            let (newEarliest, ok) = await updateEarliest(current: counts.earliest, userId: userId, babyId: babyId)
+            counts.earliest = newEarliest
+            if !ok { counts.allSucceeded = false }
         }
         return counts
     }
 
-    private func updateEarliest(current: Date?, userId: String, babyId: String) async -> Date? {
+    private func updateEarliest(current: Date?, userId: String, babyId: String) async -> (Date?, Bool) {
         var earliest = current
         do {
             if let a = try await firestoreService.fetchEarliestActivity(userId: userId, babyId: babyId) {
@@ -176,10 +188,11 @@ final class BadgeEvaluator {
             if let g = try await firestoreService.fetchEarliestGrowthRecord(userId: userId, babyId: babyId) {
                 earliest = [earliest, g.date].compactMap { $0 }.min()
             }
+            return (earliest, true)
         } catch {
             Self.log.error("backfill earliest failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return (earliest, false)
         }
-        return earliest
     }
 
     private func awardBackfilledBadges(userId: String, counts: BackfillCounts, routineMaxStreak: Int) async -> [Badge] {
