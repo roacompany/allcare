@@ -2796,4 +2796,157 @@ final class WidgetDataStoreTests: XCTestCase {
             XCTAssertNotEqual(localized, key, "Missing localization for '\(key)'")
         }
     }
+
+    // MARK: - PregnancyViewModel.validateInputs
+
+    @MainActor
+    func testValidateInputs_bothNil_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: nil, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("필수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_fetusCountTooLow_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: Date(), dueDate: nil, fetusCount: 0)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("태아 수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_fetusCountTooHigh_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: Date(), dueDate: nil, fetusCount: 6)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("태아 수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_lmpInFuture_returnsError() {
+        let future = Calendar.current.date(byAdding: .day, value: 10, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: future, dueDate: nil, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("월경일") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_eddInPast_returnsError() {
+        let past = Calendar.current.date(byAdding: .day, value: -120, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: past, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("예정일") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_eddTooFar_returnsError() {
+        let farFuture = Calendar.current.date(byAdding: .day, value: 400, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: farFuture, fetusCount: 1)
+        XCTAssertNotNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_eddBeforeLmp_returnsError() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -50, to: Date())!
+        let edd = Calendar.current.date(byAdding: .day, value: -80, to: Date())!   // edd < lmp (둘 다 유효 범위 내)
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: edd, fetusCount: 1)
+        XCTAssertNotNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validLmpOnly_returnsNil() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -84, to: Date())!   // 12주차
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: nil, fetusCount: 1)
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validEddOnly_returnsNil() {
+        let edd = Calendar.current.date(byAdding: .day, value: 196, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: edd, fetusCount: 1)
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validBoth_returnsNil() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -84, to: Date())!
+        let edd = Calendar.current.date(byAdding: .day, value: 196, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: edd, fetusCount: 2)
+        XCTAssertNil(result)
+    }
+
+    // MARK: - BannerAdManager state machine
+
+    @MainActor
+    func testBannerAdManager_loadState_equality() {
+        let idle: BannerAdManager.LoadState = .idle
+        XCTAssertEqual(idle, .idle)
+        XCTAssertNotEqual(idle, .loading)
+        XCTAssertNotEqual(idle, .loaded)
+    }
+
+    @MainActor
+    func testBannerAdManager_failedState_comparesByAttempt() {
+        let attempt1: BannerAdManager.LoadState = .failed(attempt: 1)
+        let attempt2: BannerAdManager.LoadState = .failed(attempt: 2)
+        XCTAssertEqual(attempt1, .failed(attempt: 1))
+        XCTAssertNotEqual(attempt1, attempt2)
+    }
+
+    @MainActor
+    func testBannerAdManager_safeScreenWidth_returnsReasonableValue() {
+        let width = BannerAdManager.safeScreenWidth()
+        XCTAssertGreaterThanOrEqual(width, 320)
+        XCTAssertLessThanOrEqual(width, 1366)
+    }
+
+    // MARK: - BadgeEvaluator.BackfillCounts
+
+    @MainActor
+    func testBackfillCounts_defaultInit_allZeroAllSucceeded() {
+        let counts = BadgeEvaluator.BackfillCounts()
+        XCTAssertEqual(counts.feeding, 0)
+        XCTAssertEqual(counts.sleep, 0)
+        XCTAssertEqual(counts.diaper, 0)
+        XCTAssertEqual(counts.growth, 0)
+        XCTAssertNil(counts.earliest)
+        XCTAssertTrue(counts.allSucceeded)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_aggregateMapping_feedingMapsToFeedingCount() {
+        let result = BadgeEvaluator.aggregateMapping(kind: .feedingLogged)
+        XCTAssertEqual(result?.field, "feedingCount")
+        XCTAssertEqual(result?.badgeIds, ["feeding100"])
+    }
+
+    @MainActor
+    func testBadgeEvaluator_aggregateMapping_routineStreakReturnsNil() {
+        let result = BadgeEvaluator.aggregateMapping(kind: .routineStreakUpdated(newStreak: 5))
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_statsValue_withNilFields_returnsZero() {
+        let stats = UserStats.empty()
+        // empty() sets to 0, but we test the nil-safe path:
+        var emptyStats = UserStats.empty()
+        emptyStats.feedingCount = nil
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: emptyStats, field: "feedingCount"), 0)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "feedingCount"), 0)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_statsValue_withPopulatedFields() {
+        var stats = UserStats.empty()
+        stats.feedingCount = 150
+        stats.sleepCount = 75
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "feedingCount"), 150)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "sleepCount"), 75)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "unknown"), 0)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_utcDateString_isStable() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)   // 2023-11-14 22:13:20 UTC
+        XCTAssertEqual(BadgeEvaluator.utcDateString(date), "2023-11-14")
+    }
 }
