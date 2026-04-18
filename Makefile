@@ -50,6 +50,10 @@ lint:
 arch-test:
 	@bash scripts/arch_test.sh
 
+## PLAN.md ↔ 코드 1:1 검증 (활성 spec만, done/ 제외)
+plan-verify:
+	@bash scripts/plan_verify.sh
+
 ## 전체 검증 (빌드 + 린트 + 아키텍처 + 테스트 + 디자인)
 verify: build lint arch-test test design-verify
 	@echo ""
@@ -102,13 +106,21 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy
+.PHONY: deploy deploy-rules
 
-## 원커맨드 배포: 검증 → 버전범프 → Archive → Export → TestFlight 업로드
+## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
+## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
+deploy-rules:
+	@echo "▸ Firestore rules deploy..."
+	@firebase deploy --only firestore:rules
+
+## 원커맨드 배포: PLAN검증 → 검증 → rules배포 → 버전범프 → Archive → Export → TestFlight
 ## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다
 ## (단일 make 호출에서는 PHONY target도 한 번만 실행됨 → bump한 빌드 번호가 archive에 반영 안 됨)
 deploy:
+	$(MAKE) plan-verify
 	$(MAKE) verify
+	$(MAKE) deploy-rules
 	$(MAKE) bump
 	$(MAKE) upload
 	@echo "🚀 배포 완료!"
