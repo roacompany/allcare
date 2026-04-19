@@ -111,13 +111,31 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.7.1 (빌드 61) — H-4/H-8 회귀 fix + 증상 일지 + 자동 검증 layer
+- **Version**: v2.7.1 (빌드 62) — **임신 모드 FeatureFlag=false** (5빌드 회귀 누적, 재설계 대기)
 - **App Store**: v2.6.1 READY_FOR_SALE
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 제출
-- **TestFlight**: v2.7.1 (빌드 61) — Delivery UUID `d8f86bc5-22e4-4ab1-a972-85d39dd6509b` (2026-04-19)
+- **TestFlight**: v2.7.1 (빌드 62) — Delivery UUID `34d596a2-fecc-4a4d-9f2b-98c6969c79df` (2026-04-19)
+  - 빌드 61: 임신 모드 enabled (Delivery UUID `d8f86bc5-22e4-4ab1-a972-85d39dd6509b`) — 회귀 누적으로 deprecated
 - **테스트**: 281+ 단위 + 10 XCUITest PASS, 경고 0건, arch-test 0 violations
-- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy)
-- **QA**: H-items 실기기 검증 대기 (자동 layer는 H-1/H-2/H-4/H-5/H-7/H-8 PASS, `.dev/qa-evidence/v2.7.1.md`)
+- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy 코드는 유지, UI만 hidden)
+- **QA**: 임신 모드 hidden으로 #2/#15 임신 관련 H-items 무관. badges-ui H-items는 별도 검증 필요.
+
+## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
+
+5빌드에 걸친 회귀:
+- 빌드 56: AddBabyView 진입점 orphan (UI 누락)
+- 빌드 58: ContentView gating 조건 누락 (`babies.isEmpty AND !activePregnancy`)
+- 빌드 59: Firestore composite index silent failure + 광고 UIView single-parent 위반
+- 빌드 60 CRITICAL: baby/pregnancy 우선순위 (3개 View gating, escape hatch 추가)
+- 빌드 61: H-4 가족 공유 배지 격리 + H-8 a11y XXXL 진입점 미노출
+
+검증 안 된 영역 (재설계 시 spec 필수):
+- 출산 전환 실 시나리오 (단위 4개만)
+- HealthKit 실기기 동작
+- 위젯 visual (다크/라이트/잠금화면)
+- pregnancy-weeks 37주 의료 검증 (현재 agent 자동 생성)
+- 태동 햅틱·2시간+ 긴 세션 안정성
+- 출산 축하 애니메이션
 
 ## Recent Changes (v2.7.1 — TestFlight 빌드 56, 2026-04-17)
 

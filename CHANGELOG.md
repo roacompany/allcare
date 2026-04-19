@@ -2,7 +2,15 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.7.1] - 2026-04-19 (TestFlight 빌드 61)
+## [2.7.1] - 2026-04-19 (TestFlight 빌드 62)
+
+### 빌드 61 → 62: 임신 모드 임시 hide
+
+5빌드 회귀 누적 + 검증 부족 영역 다수로 인해 `FeatureFlags.pregnancyModeEnabled = false`.
+- UI 6곳(ContentView/Dashboard/Health/Recording/Settings/AddBaby) 자동 hidden
+- Firestore 데이터는 보존 (사용자 자기 임신 기록 그대로)
+- 재설계 spec(v2.8+) 완료 후 복귀 예정
+- TestFlight 빌드 62 — Delivery UUID `34d596a2-fecc-4a4d-9f2b-98c6969c79df`
 
 ### Hot fixes (빌드 60 → 61)
 
