@@ -14,7 +14,7 @@ KEYCHAIN = ~/Library/Keychains/ci_new.keychain-db
 # 3단계: 개발 (Development)
 # ═══════════════════════════════════════
 
-.PHONY: generate build test lint arch-test verify screenshots
+.PHONY: generate build test lint arch-test index-check verify screenshots
 
 ## 프로젝트 재생성
 generate:
@@ -53,6 +53,10 @@ lint:
 ## 아키텍처 경계 검사 (Views→Services 직접 참조 탐지)
 arch-test:
 	@bash scripts/arch_test.sh
+
+## Firestore composite index 누락 탐지 (silent failure 예방)
+index-check:
+	@bash scripts/index_check.sh
 
 ## PLAN.md ↔ 코드 1:1 검증 (활성 spec만, done/ 제외)
 plan-verify:
