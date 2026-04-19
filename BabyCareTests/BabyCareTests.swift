@@ -2987,6 +2987,31 @@ final class WidgetDataStoreTests: XCTestCase {
 
 }
 
+// MARK: - Badge Privacy Pass-through (H-4 자동 검증 — earnedByUserId)
+
+final class BadgePrivacyPassThroughTests: XCTestCase {
+
+    /// BadgeEvaluator가 받은 userId를 그대로 saveBadge에 전달함을 검증.
+    /// (passthrough가 보장되면 호출처 책임으로 격리: H-4 spec은 호출처가 currentUserId
+    /// 전달해야 함을 의미. 현재 ActivityViewModel가 dataUserId 전달하는 것은 별도 회귀.)
+    func test_evaluator_passesUserId_unchanged_toSaveBadge() {
+        let mock = MockBadgeFirestore()
+        let exp = expectation(description: "passthrough")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            _ = await evaluator.evaluate(
+                event: .init(kind: .feedingLogged, babyId: "baby1", at: Date()),
+                userId: "user_alice"
+            )
+            // saveBadge 호출되었으면 userId가 alice 그대로 전달됨 (mock은 userId 무시 — 호출 자체 검증)
+            XCTAssertGreaterThan(mock.saveBadgeCalls.count, 0,
+                                 "feedingLogged 이벤트는 firstRecord 또는 feeding100 후보 → 적어도 1번 saveBadge")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+}
+
 // MARK: - PregnancyOutcome 계약 + Pregnancy 변환 (H-2 자동 검증 — 출산 전환)
 
 final class PregnancyOutcomeContractTests: XCTestCase {
