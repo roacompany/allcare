@@ -7,10 +7,52 @@
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
+    "week": 5,
+    "fruitSize": "참깨",
+    "milestone": "아기의 심장이 형성되기 시작합니다.",
+    "tip": "카페인 섭취량을 점검하고, 충분히 쉬어주세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 6,
+    "fruitSize": "렌틸콩",
+    "milestone": "뇌와 척수의 기본 구조가 만들어집니다.",
+    "tip": "입덧 증상이 나타날 수 있어요. 소량씩 자주 드세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 7,
+    "fruitSize": "블루베리",
+    "milestone": "팔다리의 싹이 생기고 얼굴 윤곽이 보입니다.",
+    "tip": "수분 섭취를 충분히 유지하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
     "week": 8,
     "fruitSize": "산딸기",
     "milestone": "주요 기관이 형성되기 시작합니다.",
     "tip": "첫 산전 진찰을 예약해두면 좋습니다.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 9,
+    "fruitSize": "체리",
+    "milestone": "꼬리가 사라지고 사람의 모습을 갖추기 시작합니다.",
+    "tip": "피로감이 크면 낮잠을 짧게라도 확보해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 10,
+    "fruitSize": "딸기",
+    "milestone": "손톱과 머리카락이 자라기 시작합니다.",
+    "tip": "입덧 완화에 도움이 되는 음식을 찾아보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 11,
+    "fruitSize": "라임",
+    "milestone": "얼굴 이목구비가 뚜렷해지고 외생식기가 분화합니다.",
+    "tip": "임산부 요가나 가벼운 산책을 시작해볼 수 있어요.",
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
@@ -21,10 +63,52 @@
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
+    "week": 13,
+    "fruitSize": "복숭아",
+    "milestone": "지문이 형성되고 성대가 만들어집니다.",
+    "tip": "2기에 접어들며 입덧이 완화될 수 있어요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 14,
+    "fruitSize": "레몬",
+    "milestone": "얼굴 근육이 발달해 표정을 짓기 시작합니다.",
+    "tip": "체중 증가 속도를 담당 의료진과 점검해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 15,
+    "fruitSize": "사과",
+    "milestone": "뼈가 단단해지고 골격이 자라납니다.",
+    "tip": "칼슘이 풍부한 식사를 챙겨주세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
     "week": 16,
     "fruitSize": "아보카도",
     "milestone": "움직임이 활발해지고 청각이 발달합니다.",
     "tip": "편안한 임부복과 임산부용 쿠션을 준비해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 17,
+    "fruitSize": "배",
+    "milestone": "지방층이 생기기 시작해 체온 조절이 시작됩니다.",
+    "tip": "기형아 정밀검사(쿼드/트리플) 일정을 확인하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 18,
+    "fruitSize": "피망",
+    "milestone": "청각이 발달해 외부 소리에 반응할 수 있습니다.",
+    "tip": "부드러운 음악과 태담 시간을 만들어보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 19,
+    "fruitSize": "망고",
+    "milestone": "태지(胎脂)가 피부를 감싸 양수로부터 보호합니다.",
+    "tip": "가려움이 있다면 보습을 꼼꼼히 해주세요.",
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
@@ -35,11 +119,53 @@
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
+    "week": 21,
+    "fruitSize": "당근",
+    "milestone": "미각이 발달해 양수의 맛을 느끼기 시작합니다.",
+    "tip": "다양한 식재료를 균형 있게 섭취해주세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 22,
+    "fruitSize": "파파야",
+    "milestone": "속눈썹과 눈썹이 자라고 감각 기관이 성숙합니다.",
+    "tip": "허리 통증이 있다면 임산부 스트레칭을 시도해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 23,
+    "fruitSize": "그레이프프루트",
+    "milestone": "폐의 혈관이 형성되고 생존 가능성이 점차 높아집니다.",
+    "tip": "임신성 당뇨 선별검사(24~28주) 일정을 확인하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
     "week": 24,
     "fruitSize": "옥수수",
     "milestone": "청각이 많이 발달해 엄마의 목소리를 듣습니다.",
     "tip": "태담과 음악 감상 시간을 만들어보세요.",
     "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 25,
+    "fruitSize": "콜리플라워",
+    "milestone": "지방이 늘어나 피부가 매끈해지고 있습니다.",
+    "tip": "철분 섭취를 점검하고 빈혈 증상을 체크하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 26,
+    "fruitSize": "상추 한 포기",
+    "milestone": "눈을 뜨기 시작하고 빛에 반응합니다.",
+    "tip": "조산 징후 교육 자료를 미리 읽어두세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 27,
+    "fruitSize": "양배추",
+    "milestone": "뇌 활동이 활발해지고 수면 리듬이 생깁니다.",
+    "tip": "태동 패턴에 규칙성이 생기기 시작해요.",
+    "disclaimerKey": "pregnancy.disclaimer.kick"
   },
   {
     "week": 28,
@@ -49,6 +175,27 @@
     "disclaimerKey": "pregnancy.disclaimer.kick"
   },
   {
+    "week": 29,
+    "fruitSize": "아이스버그 레터스",
+    "milestone": "근육과 폐가 빠르게 성숙합니다.",
+    "tip": "Rh 음성인 경우 항-D 면역글로불린 일정을 확인하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 30,
+    "fruitSize": "오이",
+    "milestone": "시각과 청각이 점점 더 정교해집니다.",
+    "tip": "산후조리와 출산 교육 과정을 찾아보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 31,
+    "fruitSize": "코코넛",
+    "milestone": "아기가 머리를 아래쪽으로 돌리기 시작할 수 있습니다.",
+    "tip": "수면 자세는 좌측 측와위가 편안합니다.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
     "week": 32,
     "fruitSize": "호박",
     "milestone": "피부 주름이 펴지고 체중이 빠르게 늘어납니다.",
@@ -56,10 +203,52 @@
     "disclaimerKey": "pregnancy.disclaimer.general"
   },
   {
+    "week": 33,
+    "fruitSize": "파인애플",
+    "milestone": "면역 항체가 엄마로부터 전달되기 시작합니다.",
+    "tip": "정기 산전 진찰 간격이 짧아질 수 있어요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
+    "week": 34,
+    "fruitSize": "멜론",
+    "milestone": "중추신경계와 폐 성숙이 거의 완료됩니다.",
+    "tip": "태동 횟수가 줄면 담당 의료진과 상의하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.kick"
+  },
+  {
+    "week": 35,
+    "fruitSize": "허니듀 멜론",
+    "milestone": "대부분의 신체 기관이 출산 준비를 마칩니다.",
+    "tip": "B군 연쇄상구균(GBS) 선별 검사 일정을 확인하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.general"
+  },
+  {
     "week": 36,
     "fruitSize": "파파야",
     "milestone": "출산 준비가 거의 완료되는 시기입니다.",
     "tip": "조산 징후(규칙적 진통/이슬/양수)를 숙지해두세요.",
+    "disclaimerKey": "pregnancy.disclaimer.labor"
+  },
+  {
+    "week": 37,
+    "fruitSize": "근대",
+    "milestone": "만삭(term)에 접어들어 언제 태어나도 정상 범위입니다.",
+    "tip": "진통 간격 기록 방법을 연습해보세요.",
+    "disclaimerKey": "pregnancy.disclaimer.labor"
+  },
+  {
+    "week": 38,
+    "fruitSize": "리크",
+    "milestone": "태지가 줄고 피부가 부드러워집니다.",
+    "tip": "출산 병원 가는 동선과 연락처를 재확인하세요.",
+    "disclaimerKey": "pregnancy.disclaimer.labor"
+  },
+  {
+    "week": 39,
+    "fruitSize": "작은 수박",
+    "milestone": "폐와 뇌가 최종적으로 성숙합니다.",
+    "tip": "이슬/양수 파열 시 신속히 담당 의료진에게 연락하세요.",
     "disclaimerKey": "pregnancy.disclaimer.labor"
   },
   {
