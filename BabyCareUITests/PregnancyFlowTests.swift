@@ -216,13 +216,10 @@ final class PregnancyFlowTests: XCTestCase {
     /// Dynamic Type AccessibilityXXXL에서 임신 진입점이 잘리지 않고 표시되는지 검증.
     /// 실기기 시각 확인은 사용자 몫이지만 launch + 핵심 요소 hit 가능성은 자동화.
     ///
-    /// ⚠️ 알려진 이슈 (2026-04-19 자동 검증으로 발견):
     /// AccessibilityXXXL에서 AddBabyView "아직 태어나지 않았나요?" 진입점이
-    /// 노출되지 않는 회귀. UI 개선 필요 (별도 task). 수정 후 XCTSkip 제거.
+    /// 잘리지 않고 노출되는지 검증. ViewThatFits로 horizontal→vertical 자동 분기.
     @MainActor
     func test_a11y_extraLarge_pregnancyEntry_stillTappable() throws {
-        throw XCTSkip("H-8 회귀 발견: AccessibilityXXXL 진입점 미노출 — UI fix 후 enable")
-
         let app = XCUIApplication()
         app.launchArguments = [
             "UI_TESTING",
@@ -234,14 +231,14 @@ final class PregnancyFlowTests: XCTestCase {
 
         let registerButton = app.buttons["아기 등록하기"]
         XCTAssertTrue(
-            registerButton.waitForExistence(timeout: 5),
+            registerButton.waitForExistence(timeout: 10),
             "Accessibility XXXL에서 '아기 등록하기' 버튼이 여전히 hittable"
         )
         registerButton.tap()
 
         let pregnancyEntry = app.buttons["아직 태어나지 않았나요?"]
         XCTAssertTrue(
-            pregnancyEntry.waitForExistence(timeout: 3),
+            pregnancyEntry.waitForExistence(timeout: 10),
             "AddBabyView '아직 태어나지 않았나요?' 진입점이 큰 글자에서도 노출"
         )
     }

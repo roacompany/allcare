@@ -12,6 +12,54 @@ struct AddBabyView: View {
         pregnancyVM.activePregnancy != nil
     }
 
+    // H-8 (a11y XXXL): ViewThatFits로 horizontal/vertical 자동 분기.
+    // 일반 Dynamic Type은 horizontal, accessibility size에서는 vertical로 wrap.
+    @ViewBuilder
+    private var pregnancyEntryHorizontal: some View {
+        HStack(spacing: 12) {
+            pregnancyEntryIcon
+            pregnancyEntryText
+            Spacer(minLength: 4)
+            pregnancyEntryChevron
+        }
+    }
+
+    @ViewBuilder
+    private var pregnancyEntryVertical: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                pregnancyEntryIcon
+                pregnancyEntryChevron
+            }
+            pregnancyEntryText
+        }
+    }
+
+    private var pregnancyEntryIcon: some View {
+        Image(systemName: "figure.and.child.holdinghands")
+            .font(.title3)
+            .foregroundStyle(AppColors.primaryAccent)
+    }
+
+    private var pregnancyEntryText: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("아직 태어나지 않았나요?")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            Text("임신 모드로 D-day · 주차 · 태동 기록")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+        }
+    }
+
+    private var pregnancyEntryChevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+    }
+
     var body: some View {
         @Bindable var vm = babyVM
 
@@ -22,23 +70,9 @@ struct AddBabyView: View {
                         Button {
                             showPregnancyRegistration = true
                         } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "figure.and.child.holdinghands")
-                                    .font(.title3)
-                                    .foregroundStyle(AppColors.primaryAccent)
-                                    .frame(width: 32)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("아직 태어나지 않았나요?")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    Text("임신 모드로 D-day · 주차 · 태동 기록")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
+                            ViewThatFits(in: .horizontal) {
+                                pregnancyEntryHorizontal
+                                pregnancyEntryVertical
                             }
                             .padding(.vertical, 2)
                         }
