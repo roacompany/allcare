@@ -2,7 +2,16 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.7.1] - 2026-04-19 (TestFlight 빌드 60)
+## [2.7.1] - 2026-04-19 (TestFlight 빌드 61)
+
+### Hot fixes (빌드 60 → 61)
+
+- **fix(badges) H-4 회귀**: 가족 공유 시 owner 배지가 파트너에게 노출되던 회귀 수정.
+  `babyVM.dataUserId()` (owner uid) 전달 → `BadgeEvaluator` → owner path 저장 + 파트너 화면에 노출.
+  fix: `saveActivity/Growth/quickSave`에 `currentUserId` 별도 파라미터 추가, 배지 부여만 본인 path
+  강제. `BadgeHomeStrip/BadgeGalleryView`도 `authVM.currentUserId` 직접 사용.
+- **fix(a11y) H-8 회귀**: AccessibilityXXXL에서 AddBabyView "아직 태어나지 않았나요?"
+  진입점 미노출 회귀. `ViewThatFits(in: .horizontal)`로 horizontal/vertical 자동 분기.
 
 ### Added — 임신 모드 (P0)
 

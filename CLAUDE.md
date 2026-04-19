@@ -111,13 +111,13 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.7.1 (빌드 60) — 임신 모드 P0 + 배지 백필 + 광고 + 하네스 보강
+- **Version**: v2.7.1 (빌드 61) — H-4/H-8 회귀 fix + 증상 일지 + 자동 검증 layer
 - **App Store**: v2.6.1 READY_FOR_SALE
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 제출
-- **TestFlight**: v2.7.1 (빌드 60) — baby/pregnancy 우선순위 fix 포함
-- **테스트**: 252 단위 + 9 XCUITest PASS, 경고 0건, arch-test 0 violations
-- **규모**: 276+ Swift 파일, 23개 VM, 29개 Firestore 컬렉션 (24기본 + 5 pregnancy)
-- **QA**: H-items 실기기 검증 대기 (`.dev/qa-evidence/v2.7.1.md`)
+- **TestFlight**: v2.7.1 (빌드 61) — Delivery UUID `d8f86bc5-22e4-4ab1-a972-85d39dd6509b` (2026-04-19)
+- **테스트**: 281+ 단위 + 10 XCUITest PASS, 경고 0건, arch-test 0 violations
+- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy)
+- **QA**: H-items 실기기 검증 대기 (자동 layer는 H-1/H-2/H-4/H-5/H-7/H-8 PASS, `.dev/qa-evidence/v2.7.1.md`)
 
 ## Recent Changes (v2.7.1 — TestFlight 빌드 56, 2026-04-17)
 
