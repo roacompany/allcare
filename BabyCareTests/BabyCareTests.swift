@@ -2987,6 +2987,183 @@ final class WidgetDataStoreTests: XCTestCase {
 
 }
 
+// MARK: - PregnancyOutcome 계약 + Pregnancy 변환 (H-2 자동 검증 — 출산 전환)
+
+final class PregnancyOutcomeContractTests: XCTestCase {
+
+    /// rawValue는 Firestore persist되는 영구 계약. 변경 시 기존 사용자 데이터 손상.
+    /// (feedback_enum_raw_value_contract.md)
+    func test_rawValues_are_locked_contract() {
+        XCTAssertEqual(PregnancyOutcome.ongoing.rawValue, "ongoing")
+        XCTAssertEqual(PregnancyOutcome.born.rawValue, "born")
+        XCTAssertEqual(PregnancyOutcome.miscarriage.rawValue, "miscarriage")
+        XCTAssertEqual(PregnancyOutcome.stillbirth.rawValue, "stillbirth")
+        XCTAssertEqual(PregnancyOutcome.terminated.rawValue, "terminated")
+    }
+
+    func test_allCases_count_isFive() {
+        XCTAssertEqual(PregnancyOutcome.allCases.count, 5,
+                       "신규 case 추가 시 마이그레이션/UI 분기 검토 필요")
+    }
+
+    func test_displayName_allCases_haveKoreanLabel() {
+        for outcome in PregnancyOutcome.allCases {
+            XCTAssertFalse(outcome.displayName.isEmpty)
+        }
+    }
+
+    /// 출산 전환 시뮬: ongoing → born + archivedAt + transitionState=completed
+    /// (실제 WriteBatch 호출은 Firestore 의존이라 unit 검증 불가, 모델 변경만 검증)
+    func test_transition_ongoing_to_born_setsExpectedFields() {
+        var p = Pregnancy(id: "p1", lmpDate: Date(), dueDate: Date(),
+                          fetusCount: 1, babyNickname: "테스트")
+        p.outcome = .ongoing
+
+        // 전환 시뮬 (FirestoreService+Pregnancy.swift L173 패턴)
+        p.outcome = .born
+        p.archivedAt = Date()
+        p.transitionState = "completed"
+
+        XCTAssertEqual(p.outcome, .born)
+        XCTAssertNotNil(p.archivedAt)
+        XCTAssertEqual(p.transitionState, "completed",
+                       "WriteBatch idempotency를 위한 전환 마커 필수")
+    }
+}
+
+// MARK: - KickSession 모델 (H-1 자동 검증 — 태동 카운트/duration/2시간 임계)
+
+final class KickSessionTests: XCTestCase {
+
+    private let pid = "preg1"
+
+    func test_kickCount_emptyArray_returnsZero() {
+        let s = KickSession(pregnancyId: pid)
+        XCTAssertEqual(s.kickCount, 0)
+        XCTAssertFalse(s.reachedTarget)
+    }
+
+    func test_kickCount_tenKicks_reachesTarget() {
+        let kicks = (0..<10).map { _ in KickEvent() }
+        let s = KickSession(pregnancyId: pid, kicks: kicks)
+        XCTAssertEqual(s.kickCount, 10)
+        XCTAssertTrue(s.reachedTarget, "ACOG 표준 10회 달성")
+    }
+
+    func test_kickCount_customTarget_appliesIt() {
+        let kicks = (0..<5).map { _ in KickEvent() }
+        let s = KickSession(pregnancyId: pid, kicks: kicks, targetCount: 5)
+        XCTAssertTrue(s.reachedTarget, "커스텀 타겟 5 달성")
+    }
+
+    func test_durationSeconds_endedAt_returnsExact() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(1_800)  // 30분
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertEqual(s.durationSeconds, 1_800, accuracy: 0.1)
+    }
+
+    func test_exceededTwoHours_underThreshold_returnsFalse() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(7_199)  // 1시간 59분 59초
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertFalse(s.exceededTwoHours)
+    }
+
+    func test_exceededTwoHours_overThreshold_returnsTrue() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(7_201)  // 2시간 1초
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertTrue(s.exceededTwoHours, "ACOG 2시간 초과 알림 트리거")
+    }
+}
+
+// MARK: - PregnancyDateMath 위젯 엣지 (H-7 자동 검증)
+
+final class PregnancyDateMathTests: XCTestCase {
+
+    private func date(_ string: String) -> Date {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withFullDate]
+        return f.date(from: string)!
+    }
+
+    // MARK: weekAndDay
+
+    func test_weekAndDay_nil_lmp_returnsNil() {
+        XCTAssertNil(PregnancyDateMath.weekAndDay(from: nil, now: date("2026-04-19")))
+    }
+
+    func test_weekAndDay_future_lmp_returnsNil() {
+        // lmp가 now보다 미래 → 음수 days → nil
+        let lmp = date("2026-05-01")
+        let now = date("2026-04-19")
+        XCTAssertNil(PregnancyDateMath.weekAndDay(from: lmp, now: now))
+    }
+
+    func test_weekAndDay_exactly7days_returns1week0day() {
+        let lmp = date("2026-04-12")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 1)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    func test_weekAndDay_17days_returns2week3day() {
+        let lmp = date("2026-04-02")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 2)
+        XCTAssertEqual(result?.days, 3)
+    }
+
+    func test_weekAndDay_280days_returns40week0day() {
+        let lmp = date("2025-07-13")  // 280일 전 = 40주 정확
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 40)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    func test_weekAndDay_sameDay_returns0week0day() {
+        let lmp = date("2026-04-19")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 0)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    // MARK: dDay
+
+    func test_dDay_nil_due_returnsNil() {
+        XCTAssertNil(PregnancyDateMath.dDay(due: nil, now: date("2026-04-19")))
+    }
+
+    func test_dDay_due_today_returns0() {
+        let due = date("2026-04-19")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 0)
+    }
+
+    func test_dDay_due_tomorrow_returns1() {
+        let due = date("2026-04-20")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 1)
+    }
+
+    func test_dDay_due_yesterday_returnsMinus1_overdue() {
+        let due = date("2026-04-18")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), -1)
+    }
+
+    func test_dDay_due_oneWeekFuture_returns7() {
+        let due = date("2026-04-26")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 7)
+    }
+}
+
 // MARK: - CryAnalysisViewModel phase 전이 테스트 (v2.7 flip 전 필수)
 
 final class CryAnalysisViewModelTests: XCTestCase {

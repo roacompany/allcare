@@ -42,21 +42,13 @@ enum PregnancyWidgetDataStore {
 
     // MARK: - Dynamic Calculations
 
-    /// LMP 기준 현재 임신 주차. LMP 없으면 nil.
-    /// Calendar.current.dateComponents 사용 (DST/타임존 안전).
+    /// LMP 기준 현재 임신 주차. PregnancyDateMath helper 위임 (단위 테스트 가능).
     static var currentWeekAndDay: (weeks: Int, days: Int)? {
-        guard let lmp = lmpDate else { return nil }
-        let comps = Calendar.current.dateComponents([.day], from: lmp, to: Date())
-        guard let totalDays = comps.day, totalDays >= 0 else { return nil }
-        return (weeks: totalDays / 7, days: totalDays % 7)
+        PregnancyDateMath.weekAndDay(from: lmpDate, now: Date())
     }
 
-    /// 예정일까지 남은 일수 (음수=초과). dueDate 없으면 nil.
+    /// 예정일까지 남은 일수 (음수=초과). PregnancyDateMath helper 위임.
     static var dDay: Int? {
-        guard let due = dueDate else { return nil }
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let dueDay = cal.startOfDay(for: due)
-        return cal.dateComponents([.day], from: today, to: dueDay).day
+        PregnancyDateMath.dDay(due: dueDate, now: Date())
     }
 }

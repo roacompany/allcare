@@ -145,6 +145,7 @@ targets:
       - path: BabyCareWidget
       - path: BabyCare/Services/WidgetDataStore.swift
       - path: BabyCare/Models/FeedingTimerAttributes.swift
+      - path: BabyCare/Utils/PregnancyDateMath.swift
     dependencies:
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
