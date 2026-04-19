@@ -41,7 +41,8 @@ extension FirestoreService {
             FirestoreCollections.kickSessions,
             FirestoreCollections.prenatalVisits,
             FirestoreCollections.pregnancyChecklists,
-            FirestoreCollections.pregnancyWeights
+            FirestoreCollections.pregnancyWeights,
+            FirestoreCollections.pregnancySymptoms
         ]
         for sub in subcollections {
             let docs = try await ref.collection(sub).getDocuments()
@@ -129,6 +130,25 @@ extension FirestoreService {
             .order(by: "measuredAt", descending: false)
             .getDocuments()
         return decodeDocuments(snapshot.documents, as: PregnancyWeightEntry.self)
+    }
+
+    // MARK: - Symptoms
+
+    func saveSymptom(_ symptom: PregnancySymptom, userId: String, pregnancyId: String) async throws {
+        try pregnancyRef(userId: userId)
+            .document(pregnancyId)
+            .collection(FirestoreCollections.pregnancySymptoms)
+            .document(symptom.id)
+            .setData(from: symptom, merge: true)
+    }
+
+    func fetchSymptoms(userId: String, pregnancyId: String) async throws -> [PregnancySymptom] {
+        let snapshot = try await pregnancyRef(userId: userId)
+            .document(pregnancyId)
+            .collection(FirestoreCollections.pregnancySymptoms)
+            .order(by: "occurredAt", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: PregnancySymptom.self)
     }
 
     // MARK: - Transition (WriteBatch + transitionState idempotency)

@@ -447,3 +447,14 @@
 "pregnancy.share.cancel" = "취소";
 "pregnancy.share.removeMessage" = "이 파트너의 임신 기록 접근 권한을 해제하시겠어요?";
 "pregnancy.share.removeFailed" = "해제 실패";
+
+// Pregnancy — Symptom Memo Sheet (TODO 10)
+"pregnancy.symptom.title" = "증상 메모";
+"pregnancy.symptom.section.memo" = "증상 메모";
+"pregnancy.symptom.section.severity" = "강도 (선택)";
+"pregnancy.symptom.placeholder" = "오늘의 증상을 간단히 기록하세요";
+"pregnancy.symptom.severity.unspecified" = "미지정";
+"pregnancy.symptom.severity.mild" = "약함";
+"pregnancy.symptom.severity.moderate" = "중간";
+"pregnancy.symptom.severity.severe" = "심함";
+"pregnancy.symptom.disclaimer" = "이 정보는 일반적인 참고 자료이며 의학적 진단을 대체하지 않습니다.";

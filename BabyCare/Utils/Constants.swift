@@ -93,6 +93,7 @@ enum FirestoreCollections {
     static let prenatalVisits = "prenatalVisits"
     static let pregnancyChecklists = "pregnancyChecklists"
     static let pregnancyWeights = "pregnancyWeights"
+    static let pregnancySymptoms = "pregnancySymptoms"
 }
 
 enum CoupangConfig {

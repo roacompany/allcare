@@ -11,6 +11,7 @@ final class PregnancyViewModel {
     var prenatalVisits: [PrenatalVisit] = []
     var checklistItems: [PregnancyChecklistItem] = []
     var weightEntries: [PregnancyWeightEntry] = []
+    var symptoms: [PregnancySymptom] = []
 
     /// 진행 중인 태동 세션 (UI가 실시간 갱신).
     var currentKickSession: KickSession?
@@ -59,10 +60,12 @@ final class PregnancyViewModel {
                 async let visits = firestoreService.fetchPrenatalVisits(userId: userId, pregnancyId: pid)
                 async let items = firestoreService.fetchChecklistItems(userId: userId, pregnancyId: pid)
                 async let weights = firestoreService.fetchWeightEntries(userId: userId, pregnancyId: pid)
+                async let symptomList = firestoreService.fetchSymptoms(userId: userId, pregnancyId: pid)
                 self.kickSessions = (try? await kicks) ?? []
                 self.prenatalVisits = (try? await visits) ?? []
                 self.checklistItems = (try? await items) ?? []
                 self.weightEntries = (try? await weights) ?? []
+                self.symptoms = (try? await symptomList) ?? []
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -333,6 +336,18 @@ final class PregnancyViewModel {
         do {
             try await firestoreService.saveWeightEntry(entry, userId: userId, pregnancyId: pid)
             weightEntries.append(entry)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Symptom
+
+    func addSymptom(_ symptom: PregnancySymptom, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        do {
+            try await firestoreService.saveSymptom(symptom, userId: userId, pregnancyId: pid)
+            symptoms.insert(symptom, at: 0)
         } catch {
             errorMessage = error.localizedDescription
         }
