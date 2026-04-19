@@ -1,189 +1,109 @@
-# 다음 세션 핸드오프 (2026-04-18 세션 마무리)
+# 다음 세션 핸드오프 — 임신 모드 재설계 (2026-04-19)
 
-현재 브랜치: `feat/pregnancy-mode` (latest: `9cf0666`)
-마지막 배포: TestFlight v2.7.1 (빌드 60) — Delivery UUID `6f22b4f7-31c3-46bd-aff2-d9805d2e0090`
+## 현황
 
-## ⚠️ 첫 할 일 (블로커)
+- TestFlight v2.7.1 (빌드 62) 업로드 완료, **임신 모드 FeatureFlag=false (hidden)**
+- Delivery UUID `34d596a2-fecc-4a4d-9f2b-98c6969c79df`
+- 빌드 56-61에 걸친 5회귀 누적으로 사용자가 "쓰레기 같다" 평가 → b 옵션 선택(임시 hide + 재설계)
+- 코드는 main에 그대로 (제거 안 함). FeatureFlag만 토글하면 부활 가능
+- Firestore 데이터 보존 (모든 사용자 임신 기록 유지)
 
-### 1. 사용자의 잘못된 pregnancy 문서 정리 [P0 / 5분]
-이번 세션 중 "하윤이 데이터 있는데 임신모드 노출" 사고 발생. pregnancy Firestore 문서가 사용자 계정에 남아있을 가능성. 확인/삭제 필요.
+## 재설계 시 반드시 다룰 결함 (5빌드 회귀 + 검증 공백)
 
-**옵션 A (TestFlight 60 설치 후)**: 설정 → 임신 관리 → **활성 임신 삭제** 버튼
-**옵션 B (Firebase Console)**:
-- https://console.firebase.google.com/project/babycare-allcare/firestore
-- `users/{uid}/pregnancies` 컬렉션 → 활성 문서 삭제
+### 빌드 56-61 회귀 패턴 (재발 방지)
 
-### 2. feat/pregnancy-mode → main 머지 [P0 / 실기기 QA 완료 후]
-- main은 빌드 57까지만. feat/pregnancy-mode는 빌드 60.
-- 머지 전제: H-items 실기기 QA (아래 #3) 완료
+| 빌드 | 회귀 | 근본 원인 | 재설계 invariant |
+|---|---|---|---|
+| 56 | AddBabyView 임신 진입점 orphan | UI 진입점이 spec에 명시 안 됨 | 모든 진입점을 spec에 enumerate + XCUITest 강제 |
+| 58 | ContentView gating 조건 누락 | `babies.isEmpty AND !activePregnancy` 한쪽만 체크 | 2x2 상태 조합표를 spec에 첨부 (4 cells 모두 명시) |
+| 59 | Firestore composite index silent failure | 신규 복합 쿼리 시 indexes.json 업데이트 누락 | `make index-check` 게이트 (이미 추가, 재설계 시 CI 강제) |
+| 59 | 광고 UIView single-parent 위반 | UIViewRepresentable 인스턴스 공유 | swift-conventions.md 룰 (이미 추가) |
+| 60 CRITICAL | baby/pregnancy 우선순위 | 3 View가 `activePregnancy != nil` 단독 체크 | 단일 `shouldShowPregnancyUI(babies, pregnancy)` helper로 일원화 (현재 흩어짐) |
+| 61 | H-4 가족 공유 배지 격리 | `babyVM.dataUserId()` 전달이 배지 isolation 깸 | "데이터 path vs 부여 대상" 분리를 모델 레벨로 격리 (단순 파라미터 추가는 fragile) |
+| 61 | H-8 a11y XXXL 진입점 | 큰 글자에서 layout truncate | 모든 진입점 ViewThatFits 표준 (또는 별도 a11y XCUITest) |
 
-### 3. H-items 실기기 QA (TestFlight 60) [P0 / 1-2시간]
-`.dev/qa-evidence/v2.7.1.md`의 `[ ]` 항목 실기기 검증:
-- H-1 태동 세션 UX / H-2 출산 전환 / H-4 pregnancy-weeks 스팟체크
-- H-5 FeatureFlag=false 빌드 / H-7 D-day 위젯 엣지 / H-8 Accessibility Large
-- 완료 후 `[V]`로 업데이트
+### 검증되지 않은 영역 (현재 spec/test 부재)
 
-## 📌 이번 세션 성과 (커밋 16개)
+- **출산 전환** (Pregnancy → Baby): WriteBatch atomic 단위 4개만. 실 시나리오:
+  - transitionState=pending 중 앱 종료 → 재실행 시 복구
+  - WriteBatch 실패 시 부분 commit 방어
+  - 같은 baby로 두 번 transition 시도
+  - sharedWith 파트너가 baby 페이지 접근
+- **HealthKit**: opt-in 토글만 검증. 실기기 권한 거부 → grace fallback
+- **위젯 visual**: 다크/라이트, 홈/잠금, AccessibilityXXXL
+- **pregnancy-weeks 콘텐츠**: 37주 agent 자동 생성. 의료 전문가(산부인과 전문의) 스팟체크 필수
+- **태동 (KickSession)**: 햅틱 강도 / 2시간+ 긴 세션 / 백그라운드 → 포그라운드 복귀 / 화면 잠금 중 동작
+- **출산 전환 축하 애니메이션**: spring/timing 시각 검증
 
-```
-9cf0666 bump 59→60 (CRITICAL fix)
-920b908 fix: baby>pregnancy 우선순위 + 임신 삭제 escape
-818b5d3 bump 58→59
-8e8034b fix: Firestore index + 광고 per-instance
-12d4dee bump 57→58
-fc10961 test: 단위 +19 + XCUITest +3
-8133777 harness: XCUITest 5개 회귀 방지
-53f6338 harness: smoke-test + QA evidence + 완성 3단계
-9f84888 harness: plan-verify + rules 자동 deploy
-c1bf748 fix(pregnancy): 7개 버그 전수 점검
-c0c2142 fix(ads): 프리로드 + 재시도
-9a79414 bump 56→57
-600cfd3 merge main (배지 백필 통합)
-ef77e32 fix: AddBabyView 임신 진입점
-(main) 3848050 fix(badges): backfill robustness
-(main) fbee8bc fix(badges): 기존 기록 백필
-```
+### 데이터 isolation invariant (가족 공유)
 
-## 🔨 Quick Wins — 30분 안에 전부 [P1]
+배지/임신/활동 각각 어디에 저장되고 누가 보는지 명시 필요:
 
-다음 항목 전부 main 브랜치(또는 feat/pregnancy-mode) CLAUDE.md + rules 파일 직접 편집.
+| 데이터 | 저장 path | 본인 화면에 노출 | 파트너 화면에 노출 |
+|---|---|---|---|
+| Activity (수유/수면) | `users/{owner}/babies/{baby}/activities` | 본인이 owner면 OK | 파트너 OK (의도) |
+| Badge | `users/{본인}/badges` (currentUserId 강제) | 본인 path만 | 별도 격리 (서로 안 보임) |
+| Pregnancy | `users/{owner}/pregnancies` | 본인 OK | sharedWith read-only |
+| KickSession 등 임신 하위 | pregnancy 하위 wildcard | 본인 OK | sharedWith read-only |
 
-### A. CLAUDE.md `Build & Deploy` 블록 갱신 (5 명령어 추가)
-```bash
-make plan-verify  # PLAN ↔ 코드 1:1 검증
-make smoke-test   # 시뮬레이터 런치 + 크래시 체크
-make qa-check     # QA evidence 파일 게이트
-make ui-test      # XCUITest (PregnancyFlowTests 9개)
-make deploy-rules # Firestore rules + indexes 자동 배포
-```
+H-4 회귀는 "Badge가 owner path에 저장되어 파트너에게 노출"이 핵심. 이 isolation을 spec 표로 명시 + 단위 테스트 강제.
 
-### B. CLAUDE.md Current Status 갱신 (worktree + main 양쪽)
-- **Version**: v2.7.1 (빌드 60) — 임신 모드 P0 + 배지 백필 + 광고 + 하네스 보강
-- **TestFlight**: v2.7.1 (빌드 60) — baby/pregnancy 우선순위 fix 포함
-- **테스트**: 252 단위 + 9 XCUITest PASS
-- **규모**: 276+ Swift 파일, 29개 Firestore 컬렉션 (+5 pregnancy)
+## 권장 재설계 절차
 
-### C. CLAUDE.md Architecture 임신 모드 bullet 끝에 추가
-```
-baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 무조건 baby UI
-(DashboardView/HealthView/RecordingView 3곳 동일 패턴). `activePregnancy != nil`
-단독 체크 금지.
-```
+1. `/specify pregnancy-mode-v2 --autopilot` 또는 인터랙티브 `/specify pregnancy-mode-v2`
+2. spec에 위 회귀 패턴 + 검증 공백을 invariant로 첨부
+3. `/plan-eng-review` + `/tribunal` 통과 후 구현
+4. H-items 자동 검증 layer를 처음부터 강제 (KickSession/PregnancyDateMath 등 기존 자동 layer는 재사용)
+5. 의료 전문가 스팟체크는 user action — pregnancy-weeks.json 검증
+6. 단계적 부활: 작은 사용자 그룹 → 전체
 
-### D. `.claude/rules/safety.md`에 새 섹션 추가
-```markdown
-## 임신 모드 전용
+## 살릴 수 있는 자산 (재설계 시 재사용)
 
-- 임신 데이터를 Firebase Analytics/Crashlytics custom params에 포함 금지
-- KickEvent 별도 서브컬렉션 생성 금지 (KickSession.kicks 배열 임베딩)
-- EDD 덮어쓰기 금지 (eddHistory append 강제)
-- 출산 전환을 단일 write로 처리 금지 (WriteBatch + transitionState 필수)
-- Pregnancy 위젯 데이터를 기존 WidgetDataStore에 병합 금지
-- baby > pregnancy UI gating: babies.isEmpty가 false이면 pregnancy UI 노출 금지
-```
+코드:
+- `BabyCare/Models/Pregnancy.swift` 등 6 모델 — 데이터 모델 자체는 OK
+- `BabyCare/Utils/PregnancyDateMath.swift` — pure helper, 단위 검증 11개 PASS
+- `KickSessionTests` 6 단위 + `PregnancyOutcomeContractTests` 4 단위
+- `firestore.rules` pregnancy match 블록 + `firestore.indexes.json` 활성 indexes
+- `BabyCareUITests/PregnancyFlowTests.swift` 10 XCUITest (a11y 포함)
+- `BadgeFirestoreProviding` + `MockBadgeFirestore` (격리 검증용)
 
-### E. `.claude/rules/swift-conventions.md`에 추가
-```
-- UIView는 단일 parent만 가능 — 여러 SwiftUI 컨텍스트에서 동일 UIView 인스턴스
-  공유 금지. UIViewRepresentable은 per-instance로 만들어야 함 (BannerAdManager
-  per-instance 패턴 참조). 빌드 59 회귀 원인.
-```
+문서/스킬:
+- `.dev/specs/done/pregnancy-mode/context/learnings.md` — 회귀 교훈
+- `.dev/qa-evidence/v2.7.1.md` — H-items 검증 layer 결과
+- `.claude/skills/firestore-collection/SKILL.md` — indexes.json + deploy-rules 게이팅
+- `.claude/agents/bug-triage.md` — Layer 0→3 진단
 
-### F. learnings.md 4가지 교훈 append
-`.dev/specs/done/pregnancy-mode/context/learnings.md` 끝에:
-```markdown
-## UIView는 single-parent (2026-04-18)
-BannerAdManager shared UIView를 탭 간 공유 → reparent로 blank/refresh 사이클.
-per-instance 구조로 해결.
+자동화 layer:
+- `make index-check` (composite index 누락 silent failure 예방)
+- `scripts/pregnancy_weeks_sanity.py` (콘텐츠 schema/연속성/의학 단어 검출)
+- `scripts/feature_flag_smoke.sh` (FeatureFlag toggle 빌드 검증)
+- `scripts/pre_merge_check.sh` (5 게이트 통합)
 
-## Firestore composite index 누락은 silent failure (2026-04-18)
-fetchActivePregnancy (outcome + createdAt DESC) index 없으면 PERMISSION_DENIED/
-FAILED_PRECONDITION. 신규 복합 쿼리 → firestore.indexes.json 즉시 업데이트 +
-make deploy-rules 필수.
+## 즉시 잔여 작업 (이번 세션)
 
-## baby > pregnancy gating 우선순위 (2026-04-18)
-activePregnancy != nil 단독 체크는 baby 사용자에게 pregnancy UI를 노출시키는
-회귀. 항상 `babies.isEmpty && activePregnancy != nil` 패턴.
+- [x] FeatureFlag=false + 빌드 62 push + TestFlight 업로드
+- [x] CLAUDE.md / CHANGELOG / 본 핸드오프
+- [ ] 사용자: TestFlight 62 설치 → 임신 UI 안 보이는지 확인
+- [ ] 사용자: 임신 데이터 보존 확인 (Firebase Console에서 자기 pregnancies 문서 그대로 있는지)
 
-## Firestore index 배포의 숨겨진 side effect (2026-04-18)
-쿼리 실패로 숨어있던 문서가 index 배포 후 갑자기 surface. 배포 전 "기존
-데이터 있으면 어떻게 노출될지" 사이드이펙트 점검 필수.
-```
+## 즉시 정리 권장 (over-engineering)
 
-## 🤖 자동화 2건 [P1 / 1-2시간]
+이번 세션 만든 보조 도구 중 데이터 삭제 위험 도구는 제거 권장:
+- `scripts/cleanup_test_pregnancy.sh` — 사용자가 "왜 삭제를 해" 피드백. 제거 또는 명확한 disclaimer
+- 그 외 검증 layer는 재설계 시 재사용 가능
 
-### /firestore-add-collection command
-**위치**: `.claude/commands/firestore-add-collection.md`
-**목적**: Firestore 컬렉션 추가 시 `Constants.swift` 상수 + `FirestoreService+{Name}.swift` 스켈레톤 + `firestore.indexes.json` + rules 코멘트 자동 scaffold. deploy-rules 강제 게이팅.
-**동기**: 이번 세션 pregnancy index 누락 사고 재발 방지.
+## 사용자 피드백 (2026-04-19)
 
-### bug-triage agent
-**위치**: `.claude/agents/bug-triage.md`
-**목적**: 버그 신고 시 Layer 0(Firestore: rules/index/permission) → 1(Gating/FeatureFlags) → 2(아키텍처: arch-test/SwiftUI-UIKit 경계) → 3(로직) 순서로 체계적 진단.
-**동기**: "7개 잠재 fix" 후에도 root cause(index)를 놓친 반복 방지.
+> "임신모드 제대로 개발안된 것 같아... 지금 개 쓰레기 같아."
 
-자세한 스펙은 doc-updater / automation-scout agent 분석 결과 참고 (이번 세션 wrap 중).
+Memory feedback 저장:
+- `feedback_no_data_deletion.md` — 사용자 데이터 자동 삭제 권유 금지
+- 추가로: 임신 모드 v2 spec 작성 시 회귀 history를 must-not-do로 첨부
 
-## 📋 Medium Priority — 이번 주 [P1-P2]
+## 임신 모드 외 살아있는 작업
 
-### pregnancy-weeks.json 40주 완성 [P1]
-현재 10주치만 (4, 8, 12, 16, 20, 24, 28, 32, 36, 40).
-`BabyCare/Resources/pregnancy-weeks.json` — ACOG + 대한산부인과학회 기반 중간 주차 30개 추가. 의료 전문가 스팟체크 의뢰.
-
-### Firestore index 자동 체크 [P1]
-`scripts/arch_test.sh` 확장 또는 별도 `make index-check` —
-`FirestoreCollections` 상수 수 ↔ `firestore.indexes.json` 등록 컬렉션 수 비교, 누락 시 경고.
-
-### FirestoreService protocol + mock [P1]
-`FirestoreServiceProtocol.swift` 도입 → `BadgeEvaluator.backfillIfNeeded` 통합 테스트 가능해짐. 현재는 mock 불가로 순수 로직만 검증 중.
-
-### badges-ui H-items QA [P1]
-`.dev/specs/badges-ui/PLAN.md` H-items 5개 미완료. 임신 QA와 병행.
-
-### Privacy Policy 갱신 [P2]
-임신/HealthKit 민감 건강 데이터 수집 항목 명시. App Store 제출 전 필수.
-`/Users/roque/allcare/` repo 갱신.
-
-### 증상 일지 구현 [P2]
-`PregnancyRecordingSheets.swift` L98/L131의 `TODO 10` — `PregnancySymptom` 모델 + Firestore 연동.
-
-### CHANGELOG / 릴리즈 노트 [P2]
-CLAUDE.md Active TODO에 있으나 미착수. v2.7.1 섹션 한국어/영어 작성.
-
-### v2.6.2 심사 완료 후 firestore.rules 배포 [P2]
-CLAUDE.md 조건부 — v2.6.2 (빌드 52) WAITING_FOR_REVIEW 상태 확인 후.
-
-## 🗂 Low Priority [P3]
-
-- CryAnalysisViewModel phase 전이 단위 테스트 (v2.7 flip 전 필수)
-- 로컬라이제이션 1,631개 한국어 하드코딩 추출 (배지 UI 선행 완료, 화면 단위 점진)
-
-## 🧠 반드시 기억할 원칙 (이번 세션 학습)
-
-1. **완성의 3단계**: coded [x] / verified [V] / shipped [S] — TODO done ≠ 완성. 진입점 grep 확인 필수.
-2. **진단 순서**: Layer 0 (Firestore rules/index/permission) → 1 (Gating/FeatureFlags) → 2 (아키텍처) → 3 (로직). 코드 수정 전 Layer 0-2 먼저.
-3. **UIView는 single-parent** — SwiftUI에서 UIView 인스턴스 공유 금지. UIViewRepresentable은 per-instance.
-4. **composite index는 silent failure** — 신규 `whereField + orderBy` 조합은 `firestore.indexes.json` 즉시 업데이트 + `make deploy-rules`.
-5. **index 배포 = 숨겨진 데이터 노출 트리거** — 기존 문서 사이드이펙트 사전 점검.
-6. **두 상태 공존 방어** — 신규 상태 변수 추가 시 기존 상태와 2x2 조합표 작성, 각 조합 UI 명시.
-7. **make verify PASS ≠ 사용자 플로우 동작** — P0 기능은 XCUITest + smoke + QA evidence 필수.
-8. **불확실 시 honest 표시** — plausible explanation을 definitive answer로 포장 금지.
-
-## 🔗 파일 Quick Index
-
-| 목적 | 경로 |
-|---|---|
-| 이 문서 | `.dev/NEXT_SESSION.md` (worktree) |
-| QA evidence | `.dev/qa-evidence/v2.7.1.md` |
-| 하네스 스크립트 | `scripts/plan_verify.sh`, `smoke_test.sh`, `qa_evidence_check.sh` |
-| Firestore 구조 | `firestore.rules`, `firestore.indexes.json`, `BabyCare/Utils/Constants.swift` |
-| Gating 3곳 | `Views/Dashboard/DashboardView.swift:31`, `Views/Health/HealthView.swift:15`, `Views/Recording/RecordingView.swift:68` |
-| 광고 per-instance | `Views/Ads/AdBannerView.swift`, `Services/BannerAdManager.swift` |
-| 임신 등록 | `Views/Pregnancy/PregnancyRegistrationView.swift`, `ViewModels/PregnancyViewModel.swift` |
-| 임신 삭제 escape | `Views/Settings/SettingsView.swift` (activePregnancy 조건부 Button) |
-| XCUITest | `BabyCareUITests/PregnancyFlowTests.swift` (9 tests) |
-| 단위 테스트 | `BabyCareTests/BabyCareTests.swift` (252 tests) |
-
-## 💾 이번 세션 미완 작업 (clean state로 종료)
-
-없음 — 작업 중간 상태 파일 없이 clean. `.dev/local.json`은 untracked (무시 가능).
+배포된 v2.7.1 (빌드 62)에서 임신 모드 외 모든 기능 정상:
+- 배지 시스템 (Phase 2 UI + H-4 fix)
+- Feature Enhancement Rollout 9개 (대시보드 인사이트/수면 분석/예방접종/일기/식품 안전/병원 리포트/제품 추천/위젯)
+- 울음 분석 stub (FeatureFlag=true, 실모델 v2.7+)
+- 자동 검증 harness (make verify ALL CHECKS PASSED, 281+ 단위 + 10 XCUITest)
