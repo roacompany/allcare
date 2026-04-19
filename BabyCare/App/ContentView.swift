@@ -206,7 +206,7 @@ struct ContentView: View {
             case .diaperWet: .diaperWet
             }
             Task {
-                await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: activityType)
+                await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: activityType)
                 activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
             }
         }

@@ -160,7 +160,7 @@ struct SleepRecordView: View {
         isSaving = true
         AnalyticsService.shared.trackEvent(AnalyticsEvents.sleepRecordSave)
         Task {
-            await activityVM.saveActivity(userId: dataUserId, babyId: baby.id, type: .sleep)
+            await activityVM.saveActivity(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: .sleep)
             isSaving = false
             if activityVM.errorMessage == nil {
                 onSaved?()

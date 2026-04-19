@@ -18,13 +18,16 @@ final class GrowthViewModel {
 
     // MARK: - Save
 
-    func saveRecord(_ record: GrowthRecord, userId: String, baby: Baby? = nil) async throws {
+    /// 성장 기록 저장.
+    /// - Parameter userId: 데이터 저장 path (가족 공유 시 owner uid).
+    /// - Parameter currentUserId: 배지 부여 본인 uid (H-4 회귀 fix).
+    func saveRecord(_ record: GrowthRecord, userId: String, currentUserId: String, baby: Baby? = nil) async throws {
         try await firestoreService.saveGrowthRecord(record, userId: userId)
         AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
         records.append(record)
         records.sort { $0.date < $1.date }
         let event = BadgeEvaluator.Event(kind: .growthLogged, babyId: record.babyId, at: record.date)
-        let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        let earned = await BadgeEvaluator().evaluate(event: event, userId: currentUserId)
         AppState.shared.badgePresenter.enqueue(earned)
 
         // 위젯 성장 백분위 동기화

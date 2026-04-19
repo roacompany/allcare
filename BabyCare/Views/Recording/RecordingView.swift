@@ -259,7 +259,7 @@ struct RecordingView: View {
                             guard let currentUserId = authVM.currentUserId,
                                   let babyId = babyVM.selectedBaby?.id else { return }
                             let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-                            await activityVM.saveActivity(userId: dataUserId, babyId: babyId, type: timerType)
+                            await activityVM.saveActivity(userId: dataUserId, currentUserId: currentUserId, babyId: babyId, type: timerType)
                             activityVM.resetForm()
                             isPresented = false
                         }

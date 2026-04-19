@@ -157,6 +157,7 @@ struct HealthRecordView: View {
         Task {
             await activityVM.saveActivity(
                 userId: dataUserId,
+                currentUserId: currentUserId,
                 babyId: baby.id,
                 type: selectedHealthType.activityType
             )
