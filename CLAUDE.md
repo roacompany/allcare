@@ -97,7 +97,7 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
-## Recent Session (2026-04-16~17)
+## Recent Session (2026-04-16~19)
 
 ### 임신 모드 P0 완성 (feat/pregnancy-mode)
 - **TODO 1-12**: 모델(6종) + Firestore(5 컬렉션) + VM + JSON 리소스 + 온보딩/홈/건강/기록/체크리스트/전환 UI + FeatureFlag + Localizable 68키
@@ -106,7 +106,17 @@ harness-score: 96% (Grade A) — 2026-04-17
 - **TODO 15**: 파트너 공유 (PregnancyShareView + FirestoreService addPartner/removePartner + sharedWith read-only)
 - **TODO 16**: 이전 임신 이력 (PregnancyArchiveView)
 - **TODO 17**: 테스트 34개 추가 (195→229)
-- **위젯 수정**: environment 주입 누락 fix, loadActivePregnancy 호출 추가, 동적 계산 전환, 위젯 ko.lproj 추가, updateEDD/transition sync 추가
+- **위젯 수정**: environment 주입 누락 fix, loadActivePregnancy 호출 추가, 동적 계산 전환, 위젯 ko.lproj 추가, updateEDD/transition sync 누락 수정
+
+### 빌드 61-62 핫픽스 + 임신 disable (2026-04-19)
+- **fix(badges) H-4**: BadgeFirestoreProviding protocol + MockBadgeFirestore — 가족 공유 시 owner path → currentUserId 강제로 배지 격리. 호출처 7곳 수정
+- **fix(a11y) H-8**: AddBabyView 임신 진입점 ViewThatFits — AccessibilityXXXL truncate 방지
+- **feat(harness)**: 자동 검증 layer — 26+ 신규 단위/UI 테스트 (KickSession/PregnancyDateMath/PregnancyOutcome/CryAnalysisViewModel + a11y XCUITest), `make index-check` + `scripts/{pregnancy_weeks_sanity,feature_flag_smoke,pre_merge_check}`
+- **feat(automation)**: `bug-triage` agent + `firestore-collection` skill 보강 (indexes.json + deploy-rules 게이트)
+- **feat(pregnancy)**: 증상 일지 (PregnancySymptom 6번째 컬렉션), pregnancy-weeks 4-40 연속 37 entries
+- **feat(firestore)**: announcements + todos composite index 등록 + deploy
+- **revert(pregnancy)**: FeatureFlag=false (5빌드 회귀 56/58/59/60/61 누적 + 검증 공백 → 재설계 대기). UI hidden, 데이터 보존
+- **TestFlight**: v2.7.1 빌드 61 → 62 — 빌드 62 Delivery UUID `34d596a2-fecc-4a4d-9f2b-98c6969c79df`
 - **TestFlight**: v2.7.1 빌드 56 업로드 완료
 
 ## Current Status
@@ -210,7 +220,8 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- ✅ P0: 임신 모드 완성 + TestFlight v2.7.1 (빌드 56) — 2026-04-17
+- ⏸ P0: 임신 모드 — 빌드 62에서 FeatureFlag=false (UI hidden, 데이터 보존). 5빌드 회귀 누적으로 재설계 대기 → `/specify pregnancy-mode-v2`
+- [ ] v2.8: 임신 모드 v2 재설계 — `.dev/NEXT_SESSION.md`의 회귀 invariant + isolation 표 + 검증 공백 spec 첨부 필수
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
