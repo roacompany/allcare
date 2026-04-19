@@ -2984,4 +2984,107 @@ final class WidgetDataStoreTests: XCTestCase {
     private func shouldShowPregnancyUI(babiesEmpty: Bool, pregnancyActive: Bool) -> Bool {
         return babiesEmpty && pregnancyActive
     }
+
+}
+
+// MARK: - CryAnalysisViewModel phase 전이 테스트 (v2.7 flip 전 필수)
+
+final class CryAnalysisViewModelTests: XCTestCase {
+
+    func test_start_emptyBabyId_setsErrorPhase() {
+        let exp = expectation(description: "guard")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            let vm = CryAnalysisViewModel(service: mock)
+            await vm.start(babyId: "")
+            if case .error(let msg) = vm.phase {
+                XCTAssertTrue(msg.contains("아기"), "빈 babyId 가드 메시지 확인")
+            } else {
+                XCTFail("phase should be .error, got \(vm.phase)")
+            }
+            XCTAssertEqual(mock.configureCalled, 0, "guard에서 차단되면 세션 설정 호출 안 함")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+
+    func test_start_permissionDenied_setsPermissionDeniedPhase() {
+        let exp = expectation(description: "denied")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            mock.stubPermissionStatus = .denied
+            let vm = CryAnalysisViewModel(service: mock)
+            await vm.start(babyId: "baby1")
+            XCTAssertEqual(vm.phase, .permissionDenied)
+            XCTAssertEqual(mock.configureCalled, 0, "권한 거부면 세션 설정 진행 안 함")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+
+    func test_cancel_resetsToIdle_andRestoresSession() {
+        let exp = expectation(description: "cancel")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            let vm = CryAnalysisViewModel(service: mock)
+            vm.phase = .recording(progress: 0.5)
+            vm.cancel()
+            XCTAssertEqual(vm.phase, .idle)
+            XCTAssertEqual(mock.restoreCalled, 1, "cancel 시 세션 복원 강제 호출")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+}
+
+// MARK: - BadgeEvaluator 통합 테스트 (MockBadgeFirestore 활용)
+
+final class BadgeEvaluatorIntegrationTests: XCTestCase {
+
+    func testBadgeEvaluator_backfill_awardsFeeding100Badge() {
+        let mock = MockBadgeFirestore()
+        let babyId = "baby1"
+        // 100 feeding 기록 = feeding100 배지 조건 충족
+        mock.activityCounts["\(babyId)|feeding_breast"] = 50
+        mock.activityCounts["\(babyId)|feeding_bottle"] = 50
+        mock.earliestActivity[babyId] = Activity(
+            babyId: babyId, type: .feedingBreast,
+            startTime: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        let expectation = expectation(description: "backfill")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            let earned = await evaluator.backfillIfNeeded(userId: "user1", ownedBabyIds: [babyId])
+            XCTAssertTrue(earned.contains { $0.id == "feeding100" })
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.count, 1)
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.first?.feedingCount, 100)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    func testBadgeEvaluator_backfill_alreadyMigrated_isNoop() {
+        let mock = MockBadgeFirestore()
+        mock.statsResponse = UserStats(
+            id: UserStats.lifetimeId,
+            feedingCount: 0,
+            sleepCount: 0,
+            diaperCount: 0,
+            growthRecordCount: 0,
+            firstRecordAt: nil,
+            updatedAt: Date(),
+            migratedAtV1: Date()
+        )
+
+        let expectation = expectation(description: "noop")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            let earned = await evaluator.backfillIfNeeded(userId: "user1", ownedBabyIds: ["baby1"])
+            XCTAssertTrue(earned.isEmpty)
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.count, 0, "이미 migrated면 setStatsAbsolute 호출 안 함")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
 }
