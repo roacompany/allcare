@@ -27,14 +27,19 @@ make screenshots     # 주요 화면 스크린샷 캡처
 ## Build & Deploy (Makefile)
 
 ```bash
-make build       # xcodegen + xcodebuild
-make test        # 단위 테스트 229개
-make lint        # SwiftLint 검사
-make arch-test   # 아키텍처 경계 검사
-make verify      # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
-make deploy      # 원커맨드 배포 (verify→bump→archive→export→upload)
-make bump        # 빌드 번호 +1
-make status      # 버전/커밋/테스트 상태
+make build         # xcodegen + xcodebuild
+make test          # 단위 테스트 252개
+make lint          # SwiftLint 검사
+make arch-test     # 아키텍처 경계 검사
+make verify        # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
+make plan-verify   # PLAN ↔ 코드 1:1 검증 (활성 spec)
+make smoke-test    # 시뮬레이터 런치 + 크래시 체크
+make qa-check      # QA evidence 파일 게이트
+make ui-test       # XCUITest (PregnancyFlowTests 9개)
+make deploy-rules  # Firestore rules + indexes 자동 배포
+make deploy        # 원커맨드 배포 (verify→bump→archive→export→upload)
+make bump          # 빌드 번호 +1
+make status        # 버전/커밋/테스트 상태
 ```
 
 ## Architecture
@@ -47,7 +52,7 @@ make status      # 버전/커밋/테스트 상태
 - **Firestore**: 200MB persistent cache, 29개 컬렉션 상수 (FirestoreCollections 24개 + 5 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터)
 - **배지 시스템**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 + Activity/Growth/Routine save path 연동. Phase 2 UI: BadgePresenter + BadgeViewModel (@Observable, arch-test baseline 0) + BadgeSnackbarView + BadgeGalleryView (3-section grid + BadgeTileView + BadgeDetailSheet) + BadgeHomeStrip (Dashboard top) + SettingsView "내 배지" row + Localizable.strings 25 keys — `.dev/specs/badges-ui/PLAN.md` (14 A-items 완료, 5 H-items QA 대기)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
-- **임신 모드**: `FeatureFlags.pregnancyModeEnabled` 게이팅 (6곳: ContentView/Dashboard/Health/Recording/Settings/AddBaby). Pregnancy 모델 독립 컬렉션 (Baby와 분리). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`), WriteBatch 전환 트랜잭션 (Pregnancy→Baby atomic). EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith read-only).
+- **임신 모드**: `FeatureFlags.pregnancyModeEnabled` 게이팅 (6곳: ContentView/Dashboard/Health/Recording/Settings/AddBaby). Pregnancy 모델 독립 컬렉션 (Baby와 분리). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`), WriteBatch 전환 트랜잭션 (Pregnancy→Baby atomic). EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith read-only). baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 무조건 baby UI (DashboardView/HealthView/RecordingView 3곳 동일 패턴). `activePregnancy != nil` 단독 체크 금지.
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
 ## Conventions
@@ -106,13 +111,13 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.7.1 (빌드 56) — 임신 모드 P0 완성
+- **Version**: v2.7.1 (빌드 60) — 임신 모드 P0 + 배지 백필 + 광고 + 하네스 보강
 - **App Store**: v2.6.1 READY_FOR_SALE
 - **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 제출
-- **TestFlight**: v2.7.1 (빌드 56) — 임신 모드 + feature rollout + 위젯 수정 포함
-- **테스트**: 229개 PASS, 경고 0건, arch-test 0 violations
-- **규모**: 273 Swift 파일, 23개 VM, 29개 Firestore 컬렉션
-- **QA**: 3-Agent QA 대기 (임신 모드 + 위젯 검증 필요)
+- **TestFlight**: v2.7.1 (빌드 60) — baby/pregnancy 우선순위 fix 포함
+- **테스트**: 252 단위 + 9 XCUITest PASS, 경고 0건, arch-test 0 violations
+- **규모**: 276+ Swift 파일, 23개 VM, 29개 Firestore 컬렉션 (24기본 + 5 pregnancy)
+- **QA**: H-items 실기기 검증 대기 (`.dev/qa-evidence/v2.7.1.md`)
 
 ## Recent Changes (v2.7.1 — TestFlight 빌드 56, 2026-04-17)
 
