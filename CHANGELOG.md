@@ -2,7 +2,7 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.7.1] - 2026-04-17
+## [2.7.1] - 2026-04-19 (TestFlight 빌드 60)
 
 ### Added — 임신 모드 (P0)
 
@@ -41,6 +41,16 @@ All notable changes to BabyCare are documented here.
 - 위젯 타겟 ko.lproj/Localizable.strings 추가
 - PregnancyWidgetSyncService (VM 변경 시 자동 위젯 동기화)
 
+**증상 일지 (PregnancySymptom)**
+- PregnancySymptom 모델 + Severity enum (mild/moderate/severe, 선택)
+- pregnancies/{pid}/pregnancySymptoms 서브컬렉션 (cascade delete 포함)
+- PregnancySymptomMemoSheet 저장 연동 (RecordingView 진입점)
+- pregnancySymptoms FirestoreCollections 상수 (총 6 임신 컬렉션)
+
+**임신 주차 콘텐츠 확장**
+- pregnancy-weeks.json 10주 → 37주 연속 (4-40주, ACOG/대한산부인과학회 일반 정보 기반)
+- 의료 전문가 스팟체크 의뢰 대상
+
 ### Added — 배지 시스템 백필
 
 - BadgeEvaluator.backfillIfNeeded: 시스템 도입 전 누적 활동/성장 기록을
@@ -63,14 +73,53 @@ All notable changes to BabyCare are documented here.
 - BadgeHomeStrip race: .task(id: uid) + presenter.current 관찰 자동 리프레시
 - 백필 robustness: fetchStats throw 시 재시도 가능 (return false), per-baby
   partial fail 시 migratedAtV1 미마킹 → 다음 런치 재시도
+- **빌드 58**: ContentView gating `babies.isEmpty AND !activePregnancy → onboarding`
+  (이전: pregnancy 있어도 onboarding으로 떨어짐). AddBabyView onDismiss `babyVM.resetForm()`
+  추가. PregnancyRegistrationView LMP/EDD DatePicker range 제약 + createPregnancy
+  서비스 레벨 validation + 활성 임신 중복 방지.
+- **빌드 59**: fetchActivePregnancy composite index 누락 → firestore.indexes.json
+  (outcome + createdAt DESC) 등록 + deploy. AdBanner per-instance 복원 (UIView
+  single-parent 위반 회귀): 각 placement가 자체 BannerView + 독립 backoff retry.
+- **빌드 60 (CRITICAL)**: baby/pregnancy 공존 시 baby UI 우선
+  (DashboardView/HealthView/RecordingView 3곳 gating: `babies.isEmpty &&
+  activePregnancy != nil`). Settings "활성 임신 삭제" escape hatch 추가
+  (cascade subcollection delete). XCUITest 1개 + 단위 테스트 4개 회귀 방지.
 
 ### Internal
-- 테스트 195 → 229 (+34, 임신 모델/VM/위젯/공유/Localizable)
+- 테스트 195 → 252 단위 + 9 XCUITest (PregnancyFlowTests, 빌드 56 회귀 방지 3건 포함)
 - privacy.html 임신 데이터 수집 항목 + HealthKit 고지 추가
 - terms.html 제5조의2 임신 모드 면책 조항 추가
+- 하네스 보강 (5 신규 make 타겟): `plan-verify` (PLAN ↔ 코드 1:1 검증),
+  `smoke-test` (시뮬레이터 런치 + 크래시 체크), `qa-check` (QA evidence 게이트),
+  `ui-test` (XCUITest 9개), `deploy-rules` (Firestore rules + indexes 자동 배포)
+- `make index-check` 신규: Firestore composite index 누락 조기 탐지 (silent
+  failure 예방). 기존 코드의 announcements/purchases/todos 3개 gap 식별
+- `BadgeFirestoreProviding` protocol + `MockBadgeFirestore` 도입 (BadgeEvaluator
+  통합 테스트 가능, ISP 패턴)
+- `bug-triage` agent 추가 (Layer 0/Firestore → 1/Gating → 2/아키텍처 → 3/로직
+  진단 순서로 root cause 파악)
+- `firestore-collection` skill 보강 (indexes.json + rules + deploy-rules 게이트)
+- `.claude/rules/safety.md`: 임신 모드 6개 금지 규칙 (Analytics/EDD 덮어쓰기/
+  WriteBatch 출산전환/위젯 데이터 분리/baby > pregnancy gating 등)
+- `.claude/rules/swift-conventions.md`: UIView single-parent 룰 (빌드 59 회귀
+  교훈)
 - `make verify` ALL CHECKS PASSED
 - arch-test 0 violations 유지
 - harness-score 96% Grade A 유지
+
+### Release Notes (TestFlight / App Store, 한국어)
+
+> 임신 모드를 새롭게 출시했습니다. LMP/EDD 기반 주차 계산, D-day 위젯, 태동
+> 기록, 산전 진찰·체중·증상 일지, 출산 준비 체크리스트, 파트너 공유, Apple
+> Health 연동까지 출산 전 모든 여정을 도와드립니다. 출산 후에는 한 번의 탭으로
+> 육아 기록으로 전환됩니다. 안정성과 성능도 함께 개선했습니다.
+
+### Release Notes (English, summary)
+
+> Introducing Pregnancy Mode: due-date countdown widget, kick session tracking,
+> prenatal visits, weight & symptom journal, trimester checklists, partner
+> sharing, and Apple Health integration. One-tap conversion from pregnancy to
+> baby tracking after birth. Plus stability and performance improvements.
 
 ---
 
