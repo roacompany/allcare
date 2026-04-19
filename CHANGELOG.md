@@ -2,55 +2,124 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.7.1] - 2026-04-17
+## [2.7.1] - 2026-04-19 (TestFlight 빌드 60)
 
 ### Added — 임신 모드 (P0)
 
 **임신 데이터 모델**
-- 임신·태동·산전방문·산전체크리스트·임산부체중 5개 Firestore 컬렉션 추가
-- WriteBatch 기반 임신→육아 원자적 전환 (복구 지원)
-- 임신 결과 분류 (진행/출산/유산/사산/중단)
+- Pregnancy, KickSession, PrenatalVisit, PregnancyChecklistItem, PregnancyWeightEntry 6모델
+- PregnancyOutcome enum (ongoing/born/miscarriage/stillbirth/terminated)
+- FirestoreCollections 5개 추가 (pregnancies, kickSessions, prenatalVisits, pregnancyChecklists, pregnancyWeights)
+- WriteBatch 기반 Pregnancy→Baby 원자적 전환 (transitionState 복구 지원)
 
 **임신 모드 UI**
-- 온보딩: "아직 태어나지 않았나요?" → 임신 등록 (LMP/EDD 상호 계산)
-- 홈 탭: D-day 카드, 주차별 정보, 체크리스트 프리뷰, 다음 산전 방문
-- 건강 탭: 태동 세션, 산전 방문 목록, 몸무게 차트
-- 기록: 태동/방문/체중/증상 임신 모드 전용 항목
-- 산전 체크리스트: 1/2/3분기 + 출산 준비 (템플릿 + 사용자 추가)
-- 출산 전환: 2단계 확인 → 축하 화면 → 육아 모드 원터치
-- 이전 임신 이력: 설정 탭 아카이브
+- 온보딩 + 설정→아기 추가: AddBabyView "아직 태어나지 않았나요?" 진입점 → PregnancyRegistrationView (LMP/EDD 상호 계산)
+- 홈 탭: DashboardPregnancyView (D-day 카드, 주차별 정보, 체크리스트 프리뷰, 다음 산전 방문)
+- 건강 탭: HealthPregnancyView (태동 세션, 산전 방문 목록, 체중 차트)
+- + 버튼: 임신 모드 항목 세트 (태동/방문/체중/증상)
+- 산전 체크리스트: 카테고리별 (1/2/3분기 + 출산 준비), 번들 템플릿 + 사용자 추가
+- 출산 전환: 2단계 확인, WriteBatch 원자적 전환, 축하 화면 → 육아 모드
+- 이전 임신 이력: PregnancyArchiveView (설정 탭)
 
 **임신 D-day 위젯**
-- 홈 위젯 (small/medium) + 잠금화면 circular
-- lmpDate/dueDate 동적 계산 (앱 미실행 시에도 주차/D-day 갱신)
-- 다크모드 대응
+- PregnancyDDayWidget (systemSmall/systemMedium/accessoryCircular)
+- lmpDate/dueDate 원본 저장 + Provider 동적 계산 (앱 미실행 시에도 주차/D-day 갱신)
+- 일 단위 타임라인, WidgetColors 다크모드 대응
 
 **파트너 공유**
-- 임신 데이터 배우자 read-only 공유
-- 이메일 초대로 sharedWith 추가/제거
+- Pregnancy.sharedWith 배열 기반 read-only 공유
+- PregnancyShareView (이메일 초대 → sharedWith 추가/제거)
 - firestore.rules: 파트너 읽기 허용, 쓰기 차단
 
 **HealthKit 연동**
-- Apple HealthKit opt-in (.pregnancy 타입)
-- 권한 거부 시 graceful fallback
+- HealthKitPregnancyService (opt-in, .pregnancy 타입)
+- 설정 탭 토글, 권한 거부 시 graceful fallback
 
 **기타**
+- FeatureFlags.pregnancyModeEnabled 게이팅 (6곳)
 - Localizable.strings 임신 키 91개
+- 위젯 타겟 ko.lproj/Localizable.strings 추가
 - PregnancyWidgetSyncService (VM 변경 시 자동 위젯 동기화)
 
-### Changed
-- privacy.html 임신 데이터 수집 항목 + HealthKit 고지 추가
-- terms.html 제5조의2 임신 모드 면책 조항 추가
+**증상 일지 (PregnancySymptom)**
+- PregnancySymptom 모델 + Severity enum (mild/moderate/severe, 선택)
+- pregnancies/{pid}/pregnancySymptoms 서브컬렉션 (cascade delete 포함)
+- PregnancySymptomMemoSheet 저장 연동 (RecordingView 진입점)
+- pregnancySymptoms FirestoreCollections 상수 (총 6 임신 컬렉션)
+
+**임신 주차 콘텐츠 확장**
+- pregnancy-weeks.json 10주 → 37주 연속 (4-40주, ACOG/대한산부인과학회 일반 정보 기반)
+- 의료 전문가 스팟체크 의뢰 대상
+
+### Added — 배지 시스템 백필
+
+- BadgeEvaluator.backfillIfNeeded: 시스템 도입 전 누적 활동/성장 기록을
+  count() 집계로 1회 백필 → UserStats 절대값 set + threshold 도달 배지
+  silent 부여 (firstRecord/feeding100/sleep50/diaper200/growth10/
+  routineStreak3·7·30)
+- UserStats.migratedAtV1 idempotency flag
+- FirestoreService+Activity/Growth: count() + earliest fetch API
+- FirestoreService+Stats: setStatsAbsolute (절대값 덮어쓰기)
+- ContentView 런칭 훅: 로그인 + babies 로드 후 백필 실행
 
 ### Fixed
-- 위젯 주차/D-day 정적 스냅샷 → 동적 계산
-- updateEDD/transitionToBaby 시 위젯 sync 누락
+- PregnancyViewModel environment 주입 누락 (BabyCareApp)
+- loadActivePregnancy 앱 시작 시 미호출 (ContentView.task)
+- 위젯 주차/D-day 정적 스냅샷 → lmpDate/dueDate 동적 계산
+- updateEDD 시 위젯 sync 누락
+- transitionToBaby 시 위젯 clear 누락
+- BadgeEvaluator silent failure: try? → do/catch + OSLog (subsystem
+  com.roacompany.allcare, category Badge)
+- BadgeHomeStrip race: .task(id: uid) + presenter.current 관찰 자동 리프레시
+- 백필 robustness: fetchStats throw 시 재시도 가능 (return false), per-baby
+  partial fail 시 migratedAtV1 미마킹 → 다음 런치 재시도
+- **빌드 58**: ContentView gating `babies.isEmpty AND !activePregnancy → onboarding`
+  (이전: pregnancy 있어도 onboarding으로 떨어짐). AddBabyView onDismiss `babyVM.resetForm()`
+  추가. PregnancyRegistrationView LMP/EDD DatePicker range 제약 + createPregnancy
+  서비스 레벨 validation + 활성 임신 중복 방지.
+- **빌드 59**: fetchActivePregnancy composite index 누락 → firestore.indexes.json
+  (outcome + createdAt DESC) 등록 + deploy. AdBanner per-instance 복원 (UIView
+  single-parent 위반 회귀): 각 placement가 자체 BannerView + 독립 backoff retry.
+- **빌드 60 (CRITICAL)**: baby/pregnancy 공존 시 baby UI 우선
+  (DashboardView/HealthView/RecordingView 3곳 gating: `babies.isEmpty &&
+  activePregnancy != nil`). Settings "활성 임신 삭제" escape hatch 추가
+  (cascade subcollection delete). XCUITest 1개 + 단위 테스트 4개 회귀 방지.
 
 ### Internal
-- 단위 테스트 195 → 229 (+34)
+- 테스트 195 → 252 단위 + 9 XCUITest (PregnancyFlowTests, 빌드 56 회귀 방지 3건 포함)
+- privacy.html 임신 데이터 수집 항목 + HealthKit 고지 추가
+- terms.html 제5조의2 임신 모드 면책 조항 추가
+- 하네스 보강 (5 신규 make 타겟): `plan-verify` (PLAN ↔ 코드 1:1 검증),
+  `smoke-test` (시뮬레이터 런치 + 크래시 체크), `qa-check` (QA evidence 게이트),
+  `ui-test` (XCUITest 9개), `deploy-rules` (Firestore rules + indexes 자동 배포)
+- `make index-check` 신규: Firestore composite index 누락 조기 탐지 (silent
+  failure 예방). 기존 코드의 announcements/purchases/todos 3개 gap 식별
+- `BadgeFirestoreProviding` protocol + `MockBadgeFirestore` 도입 (BadgeEvaluator
+  통합 테스트 가능, ISP 패턴)
+- `bug-triage` agent 추가 (Layer 0/Firestore → 1/Gating → 2/아키텍처 → 3/로직
+  진단 순서로 root cause 파악)
+- `firestore-collection` skill 보강 (indexes.json + rules + deploy-rules 게이트)
+- `.claude/rules/safety.md`: 임신 모드 6개 금지 규칙 (Analytics/EDD 덮어쓰기/
+  WriteBatch 출산전환/위젯 데이터 분리/baby > pregnancy gating 등)
+- `.claude/rules/swift-conventions.md`: UIView single-parent 룰 (빌드 59 회귀
+  교훈)
 - `make verify` ALL CHECKS PASSED
 - arch-test 0 violations 유지
 - harness-score 96% Grade A 유지
+
+### Release Notes (TestFlight / App Store, 한국어)
+
+> 임신 모드를 새롭게 출시했습니다. LMP/EDD 기반 주차 계산, D-day 위젯, 태동
+> 기록, 산전 진찰·체중·증상 일지, 출산 준비 체크리스트, 파트너 공유, Apple
+> Health 연동까지 출산 전 모든 여정을 도와드립니다. 출산 후에는 한 번의 탭으로
+> 육아 기록으로 전환됩니다. 안정성과 성능도 함께 개선했습니다.
+
+### Release Notes (English, summary)
+
+> Introducing Pregnancy Mode: due-date countdown widget, kick session tracking,
+> prenatal visits, weight & symptom journal, trimester checklists, partner
+> sharing, and Apple Health integration. One-tap conversion from pregnancy to
+> baby tracking after birth. Plus stability and performance improvements.
 
 ---
 

@@ -14,7 +14,7 @@ KEYCHAIN = ~/Library/Keychains/ci_new.keychain-db
 # 3단계: 개발 (Development)
 # ═══════════════════════════════════════
 
-.PHONY: generate build test lint arch-test verify screenshots
+.PHONY: generate build test lint arch-test index-check verify screenshots
 
 ## 프로젝트 재생성
 generate:
@@ -34,6 +34,10 @@ screenshots: generate
 	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareUITests/ScreenshotTests 2>&1 || true
 	@echo "📸 스크린샷: /tmp/babycare_screenshots/"
 
+## 핵심 플로우 UI 테스트 (임신 진입점 + 런치 gating) — 빌드 56 회귀 방지
+ui-test: generate
+	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareUITests/PregnancyFlowTests -quiet
+
 ## 디자인 토큰 검증
 design-verify:
 	cd /Users/roque/roa-design-system && npx tsx cli/index.ts verify babycare
@@ -49,6 +53,22 @@ lint:
 ## 아키텍처 경계 검사 (Views→Services 직접 참조 탐지)
 arch-test:
 	@bash scripts/arch_test.sh
+
+## Firestore composite index 누락 탐지 (silent failure 예방)
+index-check:
+	@bash scripts/index_check.sh
+
+## PLAN.md ↔ 코드 1:1 검증 (활성 spec만, done/ 제외)
+plan-verify:
+	@bash scripts/plan_verify.sh
+
+## UI smoke test — 시뮬레이터 부팅 + 앱 런치 + 스크린샷 + 크래시 체크
+smoke-test:
+	@bash scripts/smoke_test.sh
+
+## QA evidence 파일 확인 (deploy 전 gate)
+qa-check:
+	@bash scripts/qa_evidence_check.sh
 
 ## 전체 검증 (빌드 + 린트 + 아키텍처 + 테스트 + 디자인)
 verify: build lint arch-test test design-verify
@@ -102,13 +122,24 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy
+.PHONY: deploy deploy-rules
 
-## 원커맨드 배포: 검증 → 버전범프 → Archive → Export → TestFlight 업로드
+## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
+## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
+deploy-rules:
+	@echo "▸ Firestore rules deploy..."
+	@firebase deploy --only firestore:rules
+
+## 원커맨드 배포: PLAN검증 → verify → smoke → QA evidence → rules → bump → upload
 ## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다
 ## (단일 make 호출에서는 PHONY target도 한 번만 실행됨 → bump한 빌드 번호가 archive에 반영 안 됨)
 deploy:
+	$(MAKE) plan-verify
 	$(MAKE) verify
+	$(MAKE) ui-test
+	$(MAKE) smoke-test
+	$(MAKE) qa-check
+	$(MAKE) deploy-rules
 	$(MAKE) bump
 	$(MAKE) upload
 	@echo "🚀 배포 완료!"

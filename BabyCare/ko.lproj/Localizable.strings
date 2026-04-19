@@ -331,3 +331,130 @@
 
 /* Lock Screen Widget (공용) */
 "widget.noRecord" = "기록 없음";
+
+/* Pregnancy Mode — Core */
+"pregnancy.title" = "임신 모드";
+"pregnancy.subtitle" = "아직 태어나지 않은 아기를 위한 기록";
+"pregnancy.onboarding.sublink" = "아직 태어나지 않았나요?";
+"pregnancy.onboarding.cta" = "임신 기록 시작하기";
+"pregnancy.register.title" = "임신 등록";
+"pregnancy.register.lmp" = "마지막 생리 시작일 (LMP)";
+"pregnancy.register.dueDate" = "출산 예정일";
+"pregnancy.register.fetusCount" = "태아 수";
+"pregnancy.register.babyNickname" = "태명 (선택)";
+"pregnancy.register.ultrasoundGender" = "초음파 성별 (선택)";
+"pregnancy.register.save" = "저장";
+"pregnancy.register.multifetus.disclaimer" = "단태아 기준 정보입니다. 다태임신은 담당 의료진과 상의하세요.";
+
+/* Pregnancy Mode — D-day & Weeks */
+"pregnancy.dday.title" = "출산 예정일까지";
+"pregnancy.dday.unit" = "일";
+"pregnancy.dday.overdue" = "예정일 경과";
+"pregnancy.week.format" = "%d주 %d일";
+"pregnancy.week.progress" = "40주 중 %d주차";
+"pregnancy.week.fruitSize" = "이번 주 크기";
+"pregnancy.week.milestone" = "이번 주 발달";
+"pregnancy.week.tip" = "오늘의 팁";
+
+/* Pregnancy Mode — Kick Counter */
+"pregnancy.kick.title" = "태동 기록";
+"pregnancy.kick.start" = "세션 시작";
+"pregnancy.kick.tap" = "탭하여 기록";
+"pregnancy.kick.end" = "종료";
+"pregnancy.kick.count" = "%d회 / 목표 %d회";
+"pregnancy.kick.elapsed" = "경과 %@";
+"pregnancy.kick.reached" = "목표 달성!";
+"pregnancy.kick.autoEnd" = "2시간 경과로 자동 종료되었습니다.";
+
+/* Pregnancy Mode — Prenatal Visit */
+"pregnancy.visit.title" = "산전 방문";
+"pregnancy.visit.add" = "방문 추가";
+"pregnancy.visit.upcoming" = "다음 방문";
+"pregnancy.visit.daysRemaining" = "D-%d";
+"pregnancy.visit.overdue" = "예정일 경과";
+"pregnancy.visit.markComplete" = "방문 완료 처리";
+
+/* Pregnancy Mode — Weight */
+"pregnancy.weight.title" = "체중 기록";
+"pregnancy.weight.add" = "체중 추가";
+"pregnancy.weight.prePregnancy" = "임신 전 체중";
+"pregnancy.weight.unit" = "단위";
+"pregnancy.weight.trend" = "체중 추이";
+
+/* Pregnancy Mode — Checklist */
+"pregnancy.checklist.title" = "산전 체크리스트";
+"pregnancy.checklist.addCustom" = "항목 추가";
+"pregnancy.checklist.trimester1" = "1분기 (1-13주)";
+"pregnancy.checklist.trimester2" = "2분기 (14-27주)";
+"pregnancy.checklist.trimester3" = "3분기 (28-40주)";
+"pregnancy.checklist.postpartum_prep" = "출산 준비";
+"pregnancy.checklist.custom" = "나의 항목";
+"pregnancy.checklist.completion" = "%d / %d 완료";
+
+/* Pregnancy Mode — Transition */
+"pregnancy.transition.banner" = "출산했어요";
+"pregnancy.transition.title" = "출산 완료";
+"pregnancy.transition.warning" = "임신 기록을 종료하고 아기 정보를 등록합니다.";
+"pregnancy.transition.warning.detail" = "전환 후에는 설정 > 이전 임신에서만 열람할 수 있습니다.";
+"pregnancy.transition.babyName" = "아기 이름";
+"pregnancy.transition.birthDate" = "실제 출생일";
+"pregnancy.transition.confirm" = "전환 진행";
+"pregnancy.transition.cancel" = "취소";
+"pregnancy.transition.success" = "아기 등록이 완료되었어요!";
+"pregnancy.transition.retry" = "전환에 실패했습니다. 다시 시도하시겠어요?";
+
+/* Pregnancy Mode — Archive (이전 임신) */
+"pregnancy.archive.title" = "이전 임신 이력";
+"pregnancy.archive.empty" = "아직 기록된 이력이 없습니다.";
+"pregnancy.archive.outcome.born" = "출산";
+"pregnancy.archive.outcome.miscarriage" = "유산";
+"pregnancy.archive.outcome.stillbirth" = "사산";
+"pregnancy.archive.outcome.terminated" = "임신 중지";
+
+/* Pregnancy Mode — Disclaimer */
+"pregnancy.disclaimer.general" = "이 정보는 일반적인 참고 자료이며 의학적 진단을 대체하지 않습니다.";
+"pregnancy.disclaimer.kick" = "태동 기록은 참고용이며, 태동 감소 시 즉시 의료진과 상의하세요.";
+"pregnancy.disclaimer.labor" = "조산 징후(규칙적 진통, 이슬, 양수)가 있으면 즉시 의료진에게 연락하세요.";
+
+/* Pregnancy Mode — HealthKit */
+"pregnancy.healthkit.toggle" = "Apple 건강 앱 연동";
+"pregnancy.healthkit.description" = "임신 정보를 Apple 건강 앱과 동기화합니다.";
+
+/* Pregnancy Mode — Widget */
+"widget.pregnancy.dday" = "D-%d";
+"widget.pregnancy.week" = "%d주";
+"widget.pregnancy.placeholder" = "임신 모드 비활성";
+"pregnancy.widget.dday.title" = "임신 D-day";
+"pregnancy.widget.dday.description" = "출산 예정일 카운트다운과 주차 정보";
+"pregnancy.widget.label" = "임신";
+"pregnancy.widget.inactive" = "임신 모드 비활성";
+"pregnancy.widget.progress" = "진행도";
+"pregnancy.widget.weeksLeft" = "%d주 남음";
+
+/* Pregnancy Mode — Partner Share */
+"pregnancy.share.title" = "파트너 공유";
+"pregnancy.share.current" = "공유 중";
+"pregnancy.share.noPartner" = "아직 공유된 파트너가 없습니다.";
+"pregnancy.share.readOnly" = "파트너는 임신 기록을 조회만 할 수 있습니다.";
+"pregnancy.share.add" = "파트너 추가";
+"pregnancy.share.emailPlaceholder" = "파트너 이메일";
+"pregnancy.share.invite" = "초대 보내기";
+"pregnancy.share.noPregnancy" = "활성 임신 기록이 없습니다.";
+"pregnancy.share.success" = "파트너가 추가되었습니다.";
+"pregnancy.share.failed" = "공유 실패";
+"pregnancy.share.removeTitle" = "공유 해제";
+"pregnancy.share.removeConfirm" = "해제";
+"pregnancy.share.cancel" = "취소";
+"pregnancy.share.removeMessage" = "이 파트너의 임신 기록 접근 권한을 해제하시겠어요?";
+"pregnancy.share.removeFailed" = "해제 실패";
+
+// Pregnancy — Symptom Memo Sheet (TODO 10)
+"pregnancy.symptom.title" = "증상 메모";
+"pregnancy.symptom.section.memo" = "증상 메모";
+"pregnancy.symptom.section.severity" = "강도 (선택)";
+"pregnancy.symptom.placeholder" = "오늘의 증상을 간단히 기록하세요";
+"pregnancy.symptom.severity.unspecified" = "미지정";
+"pregnancy.symptom.severity.mild" = "약함";
+"pregnancy.symptom.severity.moderate" = "중간";
+"pregnancy.symptom.severity.severe" = "심함";
+"pregnancy.symptom.disclaimer" = "이 정보는 일반적인 참고 자료이며 의학적 진단을 대체하지 않습니다.";

@@ -221,7 +221,9 @@ struct GrowthView: View {
         )
 
         do {
-            try await growthVM.saveRecord(record, userId: userId, baby: babyVM.selectedBaby)
+            // H-4 fix: 배지는 항상 본인(currentUserId) path에 저장
+            let badgeUserId = authVM.currentUserId ?? userId
+            try await growthVM.saveRecord(record, userId: userId, currentUserId: badgeUserId, baby: babyVM.selectedBaby)
             showAddRecord = false
 
             // 성장 속도 알림 체크

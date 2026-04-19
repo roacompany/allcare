@@ -87,6 +87,13 @@ enum FirestoreCollections {
     static let familySharing = "familySharing"
     static let badges = "badges"
     static let stats = "stats"
+    // MARK: - Pregnancy Mode
+    static let pregnancies = "pregnancies"
+    static let kickSessions = "kickSessions"
+    static let prenatalVisits = "prenatalVisits"
+    static let pregnancyChecklists = "pregnancyChecklists"
+    static let pregnancyWeights = "pregnancyWeights"
+    static let pregnancySymptoms = "pregnancySymptoms"
 }
 
 enum CoupangConfig {

@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(ProductViewModel.self) private var productVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -57,7 +58,7 @@ struct ContentView: View {
                         // 런치스크린과 동일한 빈 화면 — 사용자가 전환을 눈치채지 못함
                         Color(.systemBackground)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if babyVM.babies.isEmpty {
+                    } else if babyVM.babies.isEmpty && !(FeatureFlags.pregnancyModeEnabled && pregnancyVM.activePregnancy != nil) {
                         onboardingView
                     } else {
                         mainTabView
@@ -74,6 +75,10 @@ struct ContentView: View {
             if let userId = authVM.currentUserId {
                 await authVM.migrateFamilySharingIfNeeded(userId: userId)
                 await babyVM.loadBabies(userId: userId)
+                // 임신 모드 데이터 로드 + 위젯 동기화
+                if FeatureFlags.pregnancyModeEnabled {
+                    await pregnancyVM.loadActivePregnancy(userId: userId)
+                }
                 // Analytics: User Properties 초기 설정
                 AnalyticsService.shared.updateUserProperties(
                     babyCount: babyVM.babies.count,
@@ -88,6 +93,9 @@ struct ContentView: View {
                 Task {
                     await authVM.migrateFamilySharingIfNeeded(userId: userId)
                     await babyVM.loadBabies(userId: userId)
+                    if FeatureFlags.pregnancyModeEnabled {
+                        await pregnancyVM.loadActivePregnancy(userId: userId)
+                    }
                     await runBadgeBackfillIfNeeded(userId: userId)
                 }
             }
@@ -198,7 +206,7 @@ struct ContentView: View {
             case .diaperWet: .diaperWet
             }
             Task {
-                await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: activityType)
+                await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: activityType)
                 activityVM.syncWidgetData(babyName: baby.name, babyAge: baby.ageText)
             }
         }

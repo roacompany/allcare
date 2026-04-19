@@ -27,14 +27,19 @@ make screenshots     # 주요 화면 스크린샷 캡처
 ## Build & Deploy (Makefile)
 
 ```bash
-make build       # xcodegen + xcodebuild
-make test        # 단위 테스트 107개
-make lint        # SwiftLint 검사
-make arch-test   # 아키텍처 경계 검사
-make verify      # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
-make deploy      # 원커맨드 배포 (verify→bump→archive→export→upload)
-make bump        # 빌드 번호 +1
-make status      # 버전/커밋/테스트 상태
+make build         # xcodegen + xcodebuild
+make test          # 단위 테스트 252개
+make lint          # SwiftLint 검사
+make arch-test     # 아키텍처 경계 검사
+make verify        # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
+make plan-verify   # PLAN ↔ 코드 1:1 검증 (활성 spec)
+make smoke-test    # 시뮬레이터 런치 + 크래시 체크
+make qa-check      # QA evidence 파일 게이트
+make ui-test       # XCUITest (PregnancyFlowTests 9개)
+make deploy-rules  # Firestore rules + indexes 자동 배포
+make deploy        # 원커맨드 배포 (verify→bump→archive→export→upload)
+make bump          # 빌드 번호 +1
+make status        # 버전/커밋/테스트 상태
 ```
 
 ## Architecture
@@ -44,9 +49,10 @@ make status      # 버전/커밋/테스트 상태
 - **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
-- **Firestore**: 200MB persistent cache, 23개 컬렉션 상수 (FirestoreCollections), 페이지네이션 (일기 커서/구매 limit/할일 필터)
+- **Firestore**: 200MB persistent cache, 29개 컬렉션 상수 (FirestoreCollections 24개 + 5 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터)
 - **배지 시스템**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 + Activity/Growth/Routine save path 연동. Phase 2 UI: BadgePresenter + BadgeViewModel (@Observable, arch-test baseline 0) + BadgeSnackbarView + BadgeGalleryView (3-section grid + BadgeTileView + BadgeDetailSheet) + BadgeHomeStrip (Dashboard top) + SettingsView "내 배지" row + Localizable.strings 25 keys — `.dev/specs/badges-ui/PLAN.md` (14 A-items 완료, 5 H-items QA 대기)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
+- **임신 모드**: `FeatureFlags.pregnancyModeEnabled` 게이팅 (6곳: ContentView/Dashboard/Health/Recording/Settings/AddBaby). Pregnancy 모델 독립 컬렉션 (Baby와 분리). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`), WriteBatch 전환 트랜잭션 (Pregnancy→Baby atomic). EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith read-only). baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 무조건 baby UI (DashboardView/HealthView/RecordingView 3곳 동일 패턴). `activePregnancy != nil` 단독 체크 금지.
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
 ## Conventions
@@ -67,58 +73,71 @@ make status      # 버전/커밋/테스트 상태
 - 백분위 의학적 판단 텍스트 금지
 - 외부 차트 라이브러리 금지 (Apple Charts만)
 - 데이터 로딩/저장 시 authVM.currentUserId 직접 사용 금지
+- 임신 데이터를 Firebase Analytics/Crashlytics custom params에 포함 금지 (민감 건강정보)
+- KickEvent 별도 서브컬렉션 생성 금지 (KickSession.kicks 배열 임베딩)
+- EDD 덮어쓰기 금지 (eddHistory append 강제)
+- 출산 전환을 단일 write로 처리 금지 (WriteBatch + transitionState 필수)
+- Pregnancy 위젯 데이터를 기존 WidgetDataStore에 병합 금지 (PregnancyWidgetDataStore 분리)
 
 ## Harness
 
-harness-score: 96% (Grade A) — 2026-04-15
+harness-score: 96% (Grade A) — 2026-04-17
 
-## Recent Session (2026-04-15)
+### 완성 단계 정의 (중요)
 
-### Phase 2 UI + Code Review
-- 배지 Phase 2 UI 완료 (Snackbar + Gallery + HomeStrip + 26 Localizable)
-- code-reviewer 다중모델 리뷰 → CR-001(공유 아기 경로) / CR-002(로컬라이즈) / CR-003(햅틱 재사용) / CR-006(@unknown default) 수정
+"완성"은 **3단계**로 분리한다. TODO done = 완성 아님.
 
-### Feature Enhancement Rollout (master spec: `.dev/specs/feature-enhancement-rollout/PLAN.md`)
-잔여 9개 항목 하네스 엔지니어링 6축 순환 (specify→execute→verify→commit→compound→context)으로 일괄 실행:
+| 단계 | 마커 | 의미 | Gate |
+|---|---|---|---|
+| **coded** | `[x]` | 코드 작성 + `make verify` PASS | 단위 테스트 + lint + arch |
+| **verified** | `[V]` | 실기기/시뮬레이터 사용자 플로우 검증 완료 | `make smoke-test` + QA evidence 파일 |
+| **shipped** | `[S]` | TestFlight 업로드 + 빌드 번호 기록 | `make deploy` 완료, 사용자 검증 |
 
-- **#4 대시보드 인사이트 카드 (T1)**: InsightService (4종 — 수유/수면/건강/마일스톤) + DashboardInsightCards
-- **#5 수면 퇴행 감지 (T2)**: SleepAnalysisService (4/8/12개월 ±2주 윈도우, 최적 취침, 낮밤 비율, 품질 점수)
-- **#6 예방접종 강화 (T3)**: D-day 카드 + D-14/7/1 단계별 푸시 + 부작용 기록 + 완료율 ProgressView
-- **#7 할일/루틴 자동화 (T2)**: 검증 완료 (.dev/specs/done/todo-routine-automation/)
-- **#8 일기 자동 요약 (T2)**: DiaryAnalysisService + 월간 분포 + N개월 회고 + 기분 트렌드 차트 + 사진 갤러리
-- **#9 알레르기 추적 강화 (T3)**: FoodSafetyService + 이유식↔알레르기 자동 연동 + safe/caution/forbidden 대시보드
-- **#10 병원 리포트 강화 (T2)**: HospitalChecklistService + PDF 통합 (체크리스트/백분위/활동 요약) + UIActivityViewController 공유
-- **#11 제품 추천 (T3)**: ProductRecommendationService (정적 카탈로그) + 재구매 InsightService 카드 + 쿠팡 딥링크 + 인기 용품
-- **#12 위젯 강화 (T3)**: NextFeeding/NextNap/TodaySummary/GrowthPercentile + Lock Screen 3종 (accessoryCircular/Rectangular/Inline)
+- PLAN.md 항목 체크 시 위 기호 사용
+- `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
+- CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
-### 누적 결과
-- 테스트: 107 → 195 (+88)
-- 커밋: 9개 (feature 8 + fix 1)
-- arch-test: 0 violations 유지
-- SwiftLint warnings: 8개 (기존 Badge.swift) 동일
+## Recent Session (2026-04-16~17)
+
+### 임신 모드 P0 완성 (feat/pregnancy-mode)
+- **TODO 1-12**: 모델(6종) + Firestore(5 컬렉션) + VM + JSON 리소스 + 온보딩/홈/건강/기록/체크리스트/전환 UI + FeatureFlag + Localizable 68키
+- **TODO 13**: D-day Widget — PregnancyDDayWidget (small/medium/accessoryCircular) + PregnancyWidgetDataStore (lmpDate/dueDate 동적 계산) + PregnancyWidgetSyncService
+- **TODO 14**: HealthKit 연동 (opt-in)
+- **TODO 15**: 파트너 공유 (PregnancyShareView + FirestoreService addPartner/removePartner + sharedWith read-only)
+- **TODO 16**: 이전 임신 이력 (PregnancyArchiveView)
+- **TODO 17**: 테스트 34개 추가 (195→229)
+- **위젯 수정**: environment 주입 누락 fix, loadActivePregnancy 호출 추가, 동적 계산 전환, 위젯 ko.lproj 추가, updateEDD/transition sync 추가
+- **TestFlight**: v2.7.1 빌드 56 업로드 완료
 
 ## Current Status
 
-- **Version**: v2.6.2 (빌드 52) → v2.7 준비 중 (feature enhancement rollout 완료, bump 대기)
-- **App Store**: v2.6.1 READY_FOR_SALE (v2.6.0도 READY_FOR_SALE)
-- **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 01:18 UTC 제출
-- **TestFlight**: v2.6.2 (빌드 52) — cry-analysis flag=true (stub), AdBanner 크래시 fix 포함
-- **테스트**: 195개 PASS (107→195, +88), 경고 0건
-- **규모**: 240+ Swift 파일, 24개 VM, 23개 Firestore 컬렉션
-- **QA**: 3-Agent ALL PASS (2026-04-04) — feature rollout 후 재QA 대기
+- **Version**: v2.7.1 (빌드 60) — 임신 모드 P0 + 배지 백필 + 광고 + 하네스 보강
+- **App Store**: v2.6.1 READY_FOR_SALE
+- **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 제출
+- **TestFlight**: v2.7.1 (빌드 60) — baby/pregnancy 우선순위 fix 포함
+- **테스트**: 252 단위 + 9 XCUITest PASS, 경고 0건, arch-test 0 violations
+- **규모**: 276+ Swift 파일, 23개 VM, 29개 Firestore 컬렉션 (24기본 + 5 pregnancy)
+- **QA**: H-items 실기기 검증 대기 (`.dev/qa-evidence/v2.7.1.md`)
 
-## Recent Changes (v2.7 — 미배포, 2026-04-15)
+## Recent Changes (v2.7.1 — TestFlight 빌드 56, 2026-04-17)
 
-Feature Enhancement Rollout 9개 (master spec: `.dev/specs/done/feature-enhancement-rollout/`):
+### 임신 모드 (P0)
+- **feat(pregnancy)**: Pregnancy/KickSession/PrenatalVisit/ChecklistItem/WeightEntry 6모델 + FirestoreService+Pregnancy (WriteBatch 전환) + PregnancyViewModel
+- **feat(pregnancy-ui)**: 온보딩 서브링크 + DashboardPregnancyView (D-day/주차/체크리스트) + HealthPregnancyView (태동/방문/체중) + RecordingView 분기 + 체크리스트 + 전환 시트 + 아카이브
+- **feat(pregnancy-widget)**: PregnancyDDayWidget (small/medium/accessoryCircular) + 동적 lmpDate/dueDate 계산 + 일 단위 타임라인 + PregnancyWidgetSyncService
+- **feat(pregnancy-share)**: 파트너 공유 (sharedWith read-only) + PregnancyShareView
+- **feat(pregnancy-healthkit)**: HealthKitPregnancyService (opt-in)
+- **fix(pregnancy-widget)**: environment 주입 누락, loadActivePregnancy 미호출, 정적 스냅샷→동적 계산, updateEDD/transition sync 누락, 위젯 ko.lproj 추가
 
-- **feat(dashboard)**: 인사이트 카드 4종 — 수유 컨텍스트 / 수면 예측 / 발열 연속일 / 마일스톤 (InsightService @MainActor @Observable)
-- **feat(sleep)**: 수면 퇴행 자동 감지 (4/8/12개월 ±2주 윈도우, -20% 임계) + 최적 취침 추천 + 낮밤 비율 + 품질 점수
-- **feat(vaccination)**: D-day 카드 + D-14/7/1 단계별 푸시 + 부작용 기록 (VaccineSideEffect) + 완료율 ProgressView
-- **feat(diary)**: 월간 기분 분포 + N개월 전 오늘 회고 + Apple Charts 기분 트렌드 + 사진 갤러리 LazyVGrid
-- **feat(food-safety)**: 이유식↔알레르기 자동 연동 (90일 fetch) + safe/caution/forbidden 분류 + 식품별 시도 타임라인
-- **feat(hospital-report)**: PDF에 체크리스트/백분위/활동 요약 + UIActivityViewController 공유
-- **feat(products)**: 월령 추천 (정적 카탈로그 30개) + 재구매 InsightService 카드 + 쿠팡 딥링크 + 인기 용품
-- **feat(widgets)**: NextFeeding/NextNap/TodaySummary/GrowthPercentile + Lock Screen 3종 (accessoryCircular/Rectangular/Inline)
+### Feature Enhancement Rollout (v2.7.0 기반)
+- **feat(dashboard)**: 인사이트 카드 4종 (InsightService)
+- **feat(sleep)**: 수면 퇴행 감지 + 최적 취침 + 품질 점수
+- **feat(vaccination)**: D-day + 부작용 기록 + 완료율
+- **feat(diary)**: 월간 요약 + 회고 + 기분 트렌드
+- **feat(food-safety)**: 이유식↔알레르기 연동
+- **feat(hospital-report)**: PDF 통합 + 공유
+- **feat(products)**: 월령 추천 + 쿠팡 딥링크
+- **feat(widgets)**: NextFeeding/NextNap/TodaySummary/GrowthPercentile + Lock Screen 3종
 
 ## Recent Changes (v2.6.2)
 
@@ -173,7 +192,7 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- P0: 임신 모드
+- ✅ P0: 임신 모드 완성 + TestFlight v2.7.1 (빌드 56) — 2026-04-17
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
@@ -181,9 +200,11 @@ make dead-code   # 미사용 코드 탐지
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 - 웹: Google Search Console, Naver 등록
 
-### v2.7 배포 전 액션
-- [ ] 실기기 QA (배지 Phase 2 + 신규 9개 기능)
+### v2.7.1 배포 전 액션
+- [ ] 실기기 QA (임신 모드 + D-day 위젯 + 출산 전환 + 태동 기록)
 - [ ] 3-Agent QA 재실행
-- [ ] `make bump` (빌드 52 → 53) + version 2.6.2 → 2.7.0
+- [ ] firestore.rules 배포 (`firebase deploy --only firestore:rules` — v2.6.2 심사 완료 후)
+- [ ] pregnancy-weeks.json 40주 콘텐츠 완성 (산부인과 전문가)
+- [ ] Privacy Policy 갱신 (건강 데이터 수집 명시)
 - [ ] CHANGELOG/release notes 작성
-- [ ] TestFlight 제출
+- [ ] App Store 제출

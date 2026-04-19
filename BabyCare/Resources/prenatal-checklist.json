@@ -1,0 +1,93 @@
+[
+  {
+    "id": "bundle-t1-01",
+    "title": "첫 산전 진찰 예약하기",
+    "category": "trimester1",
+    "targetWeek": 8,
+    "source": "bundle",
+    "order": 1
+  },
+  {
+    "id": "bundle-t1-02",
+    "title": "엽산 복용 습관 만들기",
+    "category": "trimester1",
+    "targetWeek": 6,
+    "source": "bundle",
+    "order": 2
+  },
+  {
+    "id": "bundle-t1-03",
+    "title": "1차 기형아 검사 일정 확인",
+    "category": "trimester1",
+    "targetWeek": 12,
+    "source": "bundle",
+    "order": 3
+  },
+  {
+    "id": "bundle-t2-01",
+    "title": "정밀 초음파 예약 (20주 전후)",
+    "category": "trimester2",
+    "targetWeek": 20,
+    "source": "bundle",
+    "order": 4
+  },
+  {
+    "id": "bundle-t2-02",
+    "title": "임신성 당뇨 검사 (GTT) 일정",
+    "category": "trimester2",
+    "targetWeek": 24,
+    "source": "bundle",
+    "order": 5
+  },
+  {
+    "id": "bundle-t2-03",
+    "title": "산전 영양 상담 받아보기",
+    "category": "trimester2",
+    "source": "bundle",
+    "order": 6
+  },
+  {
+    "id": "bundle-t3-01",
+    "title": "태동 기록 시작 (28주~)",
+    "category": "trimester3",
+    "targetWeek": 28,
+    "source": "bundle",
+    "order": 7
+  },
+  {
+    "id": "bundle-t3-02",
+    "title": "출산 가방 꾸리기",
+    "category": "trimester3",
+    "targetWeek": 34,
+    "source": "bundle",
+    "order": 8
+  },
+  {
+    "id": "bundle-t3-03",
+    "title": "조산 징후 숙지 및 응급 연락처 저장",
+    "category": "trimester3",
+    "source": "bundle",
+    "order": 9
+  },
+  {
+    "id": "bundle-pp-01",
+    "title": "아기 용품 구매 리스트 정리",
+    "category": "postpartum_prep",
+    "source": "bundle",
+    "order": 10
+  },
+  {
+    "id": "bundle-pp-02",
+    "title": "산후조리 계획 세우기",
+    "category": "postpartum_prep",
+    "source": "bundle",
+    "order": 11
+  },
+  {
+    "id": "bundle-pp-03",
+    "title": "육아휴직/출산휴가 신청 준비",
+    "category": "postpartum_prep",
+    "source": "bundle",
+    "order": 12
+  }
+]

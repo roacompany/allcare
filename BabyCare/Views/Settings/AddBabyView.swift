@@ -3,13 +3,84 @@ import SwiftUI
 struct AddBabyView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
     @Environment(\.dismiss) private var dismiss
+
+    @State private var showPregnancyRegistration = false
+
+    private var pregnancyVMHasActive: Bool {
+        pregnancyVM.activePregnancy != nil
+    }
+
+    // H-8 (a11y XXXL): ViewThatFits로 horizontal/vertical 자동 분기.
+    // 일반 Dynamic Type은 horizontal, accessibility size에서는 vertical로 wrap.
+    @ViewBuilder
+    private var pregnancyEntryHorizontal: some View {
+        HStack(spacing: 12) {
+            pregnancyEntryIcon
+            pregnancyEntryText
+            Spacer(minLength: 4)
+            pregnancyEntryChevron
+        }
+    }
+
+    @ViewBuilder
+    private var pregnancyEntryVertical: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                pregnancyEntryIcon
+                pregnancyEntryChevron
+            }
+            pregnancyEntryText
+        }
+    }
+
+    private var pregnancyEntryIcon: some View {
+        Image(systemName: "figure.and.child.holdinghands")
+            .font(.title3)
+            .foregroundStyle(AppColors.primaryAccent)
+    }
+
+    private var pregnancyEntryText: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("아직 태어나지 않았나요?")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            Text("임신 모드로 D-day · 주차 · 태동 기록")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+        }
+    }
+
+    private var pregnancyEntryChevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+    }
 
     var body: some View {
         @Bindable var vm = babyVM
 
         NavigationStack {
             Form {
+                if FeatureFlags.pregnancyModeEnabled {
+                    Section {
+                        Button {
+                            showPregnancyRegistration = true
+                        } label: {
+                            ViewThatFits(in: .horizontal) {
+                                pregnancyEntryHorizontal
+                                pregnancyEntryVertical
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .accessibilityIdentifier("pregnancyEntryButton")
+                        .accessibilityLabel("아직 태어나지 않았나요?")
+                    }
+                }
+
                 Section("기본 정보") {
                     TextField("아기 이름", text: $vm.babyName)
 
@@ -48,6 +119,15 @@ struct AddBabyView: View {
             }
             .navigationTitle("아기 등록")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showPregnancyRegistration, onDismiss: {
+                // 임신 등록 성공 시 AddBabyView도 함께 닫기 + 미사용 babyVM 폼 잔재 제거
+                if pregnancyVMHasActive {
+                    babyVM.resetForm()
+                    dismiss()
+                }
+            }) {
+                PregnancyRegistrationView()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") {

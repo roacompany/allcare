@@ -19,11 +19,11 @@ final class BadgeEvaluator {
         let at: Date
     }
 
-    private let firestoreService: FirestoreService
+    private let firestoreService: BadgeFirestoreProviding
     private let clock: () -> Date
 
     init(
-        firestoreService: FirestoreService = FirestoreService.shared,
+        firestoreService: BadgeFirestoreProviding = FirestoreService.shared,
         clock: @escaping () -> Date = { Date() }
     ) {
         self.firestoreService = firestoreService

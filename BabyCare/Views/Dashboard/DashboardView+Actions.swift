@@ -56,7 +56,7 @@ extension DashboardView {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-        await activityVM.quickSave(userId: dataUserId, babyId: baby.id, type: type)
+        await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
         AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.displayName])
 
         // 성공 피드백: 햅틱 + 토스트
@@ -78,8 +78,9 @@ extension DashboardView {
     }
 
     func quickSaveWithData(_ activity: Activity) async {
-        guard let userId = babyVM.resolvedUserId(auth: authVM) else { return }
-        await activityVM.savePrebuiltActivity(activity, userId: userId)
+        guard let userId = babyVM.resolvedUserId(auth: authVM),
+              let currentUserId = authVM.currentUserId else { return }
+        await activityVM.savePrebuiltActivity(activity, userId: userId, currentUserId: currentUserId)
 
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)

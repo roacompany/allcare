@@ -31,7 +31,7 @@ struct BadgeGalleryView: View {
             BadgeDetailSheet(definition: def, earned: vm.earnedBadge(for: def), stats: vm.stats)
         }
         .task {
-            if let uid = babyVM.resolvedUserId(auth: authVM) {
+            if let uid = authVM.currentUserId {
                 await vm.load(userId: uid)
             }
         }

@@ -18,14 +18,14 @@ struct BadgeHomeStrip: View {
                 stripContent
             }
         }
-        .task(id: babyVM.resolvedUserId(auth: authVM) ?? "") {
-            if let uid = babyVM.resolvedUserId(auth: authVM) {
+        .task(id: authVM.currentUserId ?? "") {
+            if let uid = authVM.currentUserId {
                 await vm.load(userId: uid)
             }
         }
         .onChange(of: presenter.current?.id) { _, newId in
             // 새 배지 획득 스낵바가 뜰 때 strip 자동 reload
-            guard newId != nil, let uid = babyVM.resolvedUserId(auth: authVM) else { return }
+            guard newId != nil, let uid = authVM.currentUserId else { return }
             Task { await vm.load(userId: uid) }
         }
     }

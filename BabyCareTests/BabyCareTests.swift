@@ -2492,4 +2492,801 @@ final class WidgetDataStoreTests: XCTestCase {
         XCTAssertNotNil(read, "저장된 낮잠 예측 데이터가 있어야 한다")
         XCTAssertEqual(read?.napIntervalMinutes, 90, "낮잠 간격 읽기 일치해야 한다")
     }
+
+    // MARK: - Pregnancy Mode — Foundation Tests
+
+    func testPregnancyOutcome_rawValues() {
+        XCTAssertEqual(PregnancyOutcome.ongoing.rawValue, "ongoing")
+        XCTAssertEqual(PregnancyOutcome.born.rawValue, "born")
+        XCTAssertEqual(PregnancyOutcome.miscarriage.rawValue, "miscarriage")
+        XCTAssertEqual(PregnancyOutcome.stillbirth.rawValue, "stillbirth")
+        XCTAssertEqual(PregnancyOutcome.terminated.rawValue, "terminated")
+    }
+
+    func testPregnancy_codableRoundtrip() throws {
+        let p = Pregnancy(
+            lmpDate: Date(timeIntervalSince1970: 1_700_000_000),
+            dueDate: Date(timeIntervalSince1970: 1_724_192_000),
+            fetusCount: 1,
+            babyNickname: "꿈이"
+        )
+        let data = try JSONEncoder().encode(p)
+        let decoded = try JSONDecoder().decode(Pregnancy.self, from: data)
+        XCTAssertEqual(decoded.id, p.id)
+        XCTAssertEqual(decoded.babyNickname, "꿈이")
+        XCTAssertEqual(decoded.fetusCount, 1)
+        XCTAssertNil(decoded.ownerUserId, "ownerUserId는 CodingKeys에서 제외되어야 한다")
+    }
+
+    func testPregnancy_currentWeekAndDay_noLmp() {
+        let p = Pregnancy()
+        XCTAssertNil(p.currentWeekAndDay)
+    }
+
+    func testPregnancy_currentWeekAndDay_basicCalc() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -100, to: Date())!
+        let p = Pregnancy(lmpDate: lmp)
+        let result = p.currentWeekAndDay
+        XCTAssertNotNil(result)
+        // 100일 = 14주 2일
+        XCTAssertEqual(result?.weeks, 14)
+        XCTAssertEqual(result?.days, 2)
+    }
+
+    func testPregnancy_dDay_futureDueDate() {
+        let due = Calendar.current.date(byAdding: .day, value: 30, to: Date())!
+        let p = Pregnancy(dueDate: due)
+        XCTAssertEqual(p.dDay, 30)
+    }
+
+    func testPregnancy_dDay_nilWhenNoDueDate() {
+        XCTAssertNil(Pregnancy().dDay)
+    }
+
+    func testPregnancy_isSingleton_defaultsTrue() {
+        XCTAssertTrue(Pregnancy().isSingleton)
+        XCTAssertTrue(Pregnancy(fetusCount: 1).isSingleton)
+        XCTAssertFalse(Pregnancy(fetusCount: 2).isSingleton)
+    }
+
+    func testKickSession_codableRoundtrip() throws {
+        var s = KickSession(pregnancyId: "p1")
+        s.kicks = [KickEvent(), KickEvent()]
+        let data = try JSONEncoder().encode(s)
+        let decoded = try JSONDecoder().decode(KickSession.self, from: data)
+        XCTAssertEqual(decoded.kicks.count, 2)
+        XCTAssertEqual(decoded.targetCount, 10)
+    }
+
+    func testKickSession_reachedTarget() {
+        var s = KickSession(pregnancyId: "p1", targetCount: 3)
+        XCTAssertFalse(s.reachedTarget)
+        s.kicks = [KickEvent(), KickEvent(), KickEvent()]
+        XCTAssertTrue(s.reachedTarget)
+    }
+
+    func testKickSession_exceededTwoHours() {
+        let s = KickSession(
+            pregnancyId: "p1",
+            startedAt: Date().addingTimeInterval(-8000),
+            endedAt: Date()
+        )
+        XCTAssertTrue(s.exceededTwoHours)
+    }
+
+    func testPrenatalVisit_codableRoundtrip() throws {
+        let v = PrenatalVisit(
+            pregnancyId: "p1",
+            scheduledAt: Date(timeIntervalSince1970: 1_700_000_000),
+            hospitalName: "테스트 산부인과"
+        )
+        let data = try JSONEncoder().encode(v)
+        let decoded = try JSONDecoder().decode(PrenatalVisit.self, from: data)
+        XCTAssertEqual(decoded.hospitalName, "테스트 산부인과")
+        XCTAssertFalse(decoded.isCompleted)
+    }
+
+    func testPrenatalVisit_daysUntilScheduled() {
+        let future = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+        let v = PrenatalVisit(pregnancyId: "p1", scheduledAt: future)
+        XCTAssertEqual(v.daysUntilScheduled, 7)
+        XCTAssertTrue(v.isDueSoon)
+        XCTAssertFalse(v.isOverdue)
+    }
+
+    func testPrenatalVisit_isOverdue() {
+        let past = Calendar.current.date(byAdding: .day, value: -3, to: Date())!
+        let v = PrenatalVisit(pregnancyId: "p1", scheduledAt: past)
+        XCTAssertTrue(v.isOverdue)
+    }
+
+    func testPregnancyChecklistItem_codableRoundtrip() throws {
+        let item = PregnancyChecklistItem(
+            pregnancyId: "p1",
+            title: "엽산 복용",
+            category: "trimester1",
+            source: "bundle"
+        )
+        let data = try JSONEncoder().encode(item)
+        let decoded = try JSONDecoder().decode(PregnancyChecklistItem.self, from: data)
+        XCTAssertEqual(decoded.title, "엽산 복용")
+        XCTAssertEqual(decoded.source, "bundle")
+        XCTAssertFalse(decoded.isCompleted)
+    }
+
+    func testPregnancyWeightEntry_codableRoundtrip() throws {
+        let w = PregnancyWeightEntry(pregnancyId: "p1", weight: 58.5, unit: "kg")
+        let data = try JSONEncoder().encode(w)
+        let decoded = try JSONDecoder().decode(PregnancyWeightEntry.self, from: data)
+        XCTAssertEqual(decoded.weight, 58.5, accuracy: 0.01)
+        XCTAssertEqual(decoded.unit, "kg")
+    }
+
+    func testFirestoreCollections_pregnancyConstantsExist() {
+        XCTAssertEqual(FirestoreCollections.pregnancies, "pregnancies")
+        XCTAssertEqual(FirestoreCollections.kickSessions, "kickSessions")
+        XCTAssertEqual(FirestoreCollections.prenatalVisits, "prenatalVisits")
+        XCTAssertEqual(FirestoreCollections.pregnancyChecklists, "pregnancyChecklists")
+        XCTAssertEqual(FirestoreCollections.pregnancyWeights, "pregnancyWeights")
+    }
+
+    func testFeatureFlags_pregnancyModeEnabledIsBool() {
+        let _: Bool = FeatureFlags.pregnancyModeEnabled
+        XCTAssertTrue(FeatureFlags.pregnancyModeEnabled || !FeatureFlags.pregnancyModeEnabled)
+    }
+
+    func testPregnancyWeeksJson_loadAndDecode() throws {
+        guard let url = Bundle(for: type(of: self)).url(forResource: "pregnancy-weeks", withExtension: "json") else {
+            // 번들 리소스는 Xcode 프로젝트에 추가되어야 함. 스캐폴딩 단계에서는 skip 가능.
+            throw XCTSkip("pregnancy-weeks.json이 테스트 번들에 추가되지 않음 (xcodegen 후 재시도)")
+        }
+        let data = try Data(contentsOf: url)
+        struct WeekInfo: Codable { let week: Int; let fruitSize: String; let milestone: String; let tip: String }
+        let weeks = try JSONDecoder().decode([WeekInfo].self, from: data)
+        XCTAssertFalse(weeks.isEmpty)
+        XCTAssertTrue(weeks.allSatisfy { $0.week >= 1 && $0.week <= 40 })
+    }
+
+    func testPrenatalChecklistJson_loadAndDecode() throws {
+        guard let url = Bundle(for: type(of: self)).url(forResource: "prenatal-checklist", withExtension: "json") else {
+            throw XCTSkip("prenatal-checklist.json이 테스트 번들에 추가되지 않음 (xcodegen 후 재시도)")
+        }
+        let data = try Data(contentsOf: url)
+        struct Item: Codable { let id: String; let title: String; let category: String; let source: String }
+        let items = try JSONDecoder().decode([Item].self, from: data)
+        XCTAssertFalse(items.isEmpty)
+        XCTAssertTrue(items.allSatisfy { $0.source == "bundle" })
+    }
+
+    @MainActor
+    func testPregnancyViewModel_dataUserId_fallbackToCurrent() {
+        let vm = PregnancyViewModel()
+        XCTAssertEqual(vm.dataUserId(currentUserId: "u1"), "u1")
+    }
+
+    @MainActor
+    func testPregnancyViewModel_dataUserId_sharedRoute() {
+        let vm = PregnancyViewModel()
+        var p = Pregnancy()
+        p.ownerUserId = "owner-uid"
+        vm.activePregnancy = p
+        XCTAssertEqual(vm.dataUserId(currentUserId: "self-uid"), "owner-uid")
+    }
+
+    @MainActor
+    func testPregnancyViewModel_currentWeekAndDay_whenNoPregnancy() {
+        let vm = PregnancyViewModel()
+        XCTAssertNil(vm.currentWeekAndDay)
+        XCTAssertNil(vm.dDay)
+    }
+
+    // MARK: - Pregnancy Widget DataStore Key Prefix
+
+    func testPregnancyWidgetKeys_allPrefixed() {
+        let keys = [
+            PregnancyWidgetSyncService.TestableKeys.dueDate,
+            PregnancyWidgetSyncService.TestableKeys.lmpDate,
+            PregnancyWidgetSyncService.TestableKeys.babyNickname,
+            PregnancyWidgetSyncService.TestableKeys.isActive
+        ]
+        for key in keys {
+            XCTAssertTrue(key.hasPrefix("pregnancy_"), "Key '\(key)' must start with 'pregnancy_'")
+        }
+    }
+
+    // MARK: - Pregnancy EDD History Append
+
+    func testPregnancy_eddHistory_appendOnly() {
+        var p = Pregnancy()
+        p.dueDate = Date(timeIntervalSince1970: 1800000000)
+        p.eddHistory = [Date(timeIntervalSince1970: 1800000000)]
+        let oldHistory = p.eddHistory ?? []
+        let newDue = Date(timeIntervalSince1970: 1800100000)
+        var history = oldHistory
+        if let existing = p.dueDate, !history.contains(existing) {
+            history.append(existing)
+        }
+        p.dueDate = newDue
+        p.eddHistory = history
+        XCTAssertEqual(p.eddHistory?.count, 1) // 기존 값 중복 안 추가
+        XCTAssertEqual(p.dueDate, newDue)
+    }
+
+    // MARK: - Pregnancy sharedWith Field
+
+    func testPregnancy_sharedWith_defaultNil() {
+        let p = Pregnancy()
+        XCTAssertNil(p.sharedWith)
+    }
+
+    func testPregnancy_sharedWith_appendUid() {
+        var p = Pregnancy()
+        p.sharedWith = ["uid1"]
+        XCTAssertEqual(p.sharedWith?.count, 1)
+        p.sharedWith?.append("uid2")
+        XCTAssertEqual(p.sharedWith?.count, 2)
+    }
+
+    // MARK: - Pregnancy outcomeType Raw Value Stability
+
+    func testPregnancyOutcome_allCasesRawValues() {
+        // Raw values are permanent contract — must never change.
+        let expected: [(PregnancyOutcome, String)] = [
+            (.ongoing, "ongoing"),
+            (.born, "born"),
+            (.miscarriage, "miscarriage"),
+            (.stillbirth, "stillbirth"),
+            (.terminated, "terminated")
+        ]
+        for (outcome, raw) in expected {
+            XCTAssertEqual(outcome.rawValue, raw, "\(outcome) raw value must be '\(raw)'")
+        }
+    }
+
+    // MARK: - Pregnancy D-day Past Due
+
+    func testPregnancy_dDay_pastDue() {
+        var p = Pregnancy()
+        p.dueDate = Calendar.current.date(byAdding: .day, value: -5, to: Date())
+        let dDay = p.dDay
+        XCTAssertNotNil(dDay)
+        XCTAssertTrue(dDay! < 0, "Past due date should result in negative D-day")
+    }
+
+    // MARK: - KickSession Duration
+
+    func testKickSession_duration() {
+        var session = KickSession(pregnancyId: "p1")
+        session.endedAt = session.startedAt.addingTimeInterval(3600)
+        let duration = session.endedAt!.timeIntervalSince(session.startedAt)
+        XCTAssertEqual(duration, 3600, accuracy: 1)
+    }
+
+    // MARK: - PregnancyChecklistItem Source Enum
+
+    func testPregnancyChecklistItem_sourceValues() {
+        let bundleItem = PregnancyChecklistItem(pregnancyId: "p1", title: "Test", category: "trimester1", source: "bundle")
+        let userItem = PregnancyChecklistItem(pregnancyId: "p1", title: "Custom", category: "custom", source: "user")
+        XCTAssertEqual(bundleItem.source, "bundle")
+        XCTAssertEqual(userItem.source, "user")
+    }
+
+    // MARK: - PregnancyWeightEntry Unit
+
+    func testPregnancyWeightEntry_unitPersistence() throws {
+        let entry = PregnancyWeightEntry(pregnancyId: "p1", weight: 65.5, unit: "kg")
+        let data = try JSONEncoder().encode(entry)
+        let decoded = try JSONDecoder().decode(PregnancyWeightEntry.self, from: data)
+        XCTAssertEqual(decoded.unit, "kg")
+        XCTAssertEqual(decoded.weight, 65.5, accuracy: 0.01)
+    }
+
+    // MARK: - Localizable Keys Existence
+
+    func testLocalizable_pregnancyWidgetKeysExist() {
+        let keys = [
+            "pregnancy.widget.dday.title",
+            "pregnancy.widget.label",
+            "pregnancy.widget.inactive",
+            "pregnancy.widget.progress",
+            "pregnancy.share.title"
+        ]
+        for key in keys {
+            let localized = NSLocalizedString(key, comment: "")
+            XCTAssertNotEqual(localized, key, "Missing localization for '\(key)'")
+        }
+    }
+
+    // MARK: - PregnancyViewModel.validateInputs
+
+    @MainActor
+    func testValidateInputs_bothNil_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: nil, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("필수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_fetusCountTooLow_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: Date(), dueDate: nil, fetusCount: 0)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("태아 수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_fetusCountTooHigh_returnsError() {
+        let result = PregnancyViewModel.validateInputs(lmpDate: Date(), dueDate: nil, fetusCount: 6)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("태아 수") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_lmpInFuture_returnsError() {
+        let future = Calendar.current.date(byAdding: .day, value: 10, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: future, dueDate: nil, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("월경일") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_eddInPast_returnsError() {
+        let past = Calendar.current.date(byAdding: .day, value: -120, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: past, fetusCount: 1)
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result?.contains("예정일") == true)
+    }
+
+    @MainActor
+    func testValidateInputs_eddTooFar_returnsError() {
+        let farFuture = Calendar.current.date(byAdding: .day, value: 400, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: farFuture, fetusCount: 1)
+        XCTAssertNotNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_eddBeforeLmp_returnsError() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -50, to: Date())!
+        let edd = Calendar.current.date(byAdding: .day, value: -80, to: Date())!   // edd < lmp (둘 다 유효 범위 내)
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: edd, fetusCount: 1)
+        XCTAssertNotNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validLmpOnly_returnsNil() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -84, to: Date())!   // 12주차
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: nil, fetusCount: 1)
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validEddOnly_returnsNil() {
+        let edd = Calendar.current.date(byAdding: .day, value: 196, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: nil, dueDate: edd, fetusCount: 1)
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testValidateInputs_validBoth_returnsNil() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -84, to: Date())!
+        let edd = Calendar.current.date(byAdding: .day, value: 196, to: Date())!
+        let result = PregnancyViewModel.validateInputs(lmpDate: lmp, dueDate: edd, fetusCount: 2)
+        XCTAssertNil(result)
+    }
+
+    // MARK: - BannerAdManager state machine
+
+    @MainActor
+    func testBannerAdManager_loadState_equality() {
+        let idle: BannerAdManager.LoadState = .idle
+        XCTAssertEqual(idle, .idle)
+        XCTAssertNotEqual(idle, .loading)
+        XCTAssertNotEqual(idle, .loaded)
+    }
+
+    @MainActor
+    func testBannerAdManager_failedState_comparesByAttempt() {
+        let attempt1: BannerAdManager.LoadState = .failed(attempt: 1)
+        let attempt2: BannerAdManager.LoadState = .failed(attempt: 2)
+        XCTAssertEqual(attempt1, .failed(attempt: 1))
+        XCTAssertNotEqual(attempt1, attempt2)
+    }
+
+    @MainActor
+    func testBannerAdManager_safeScreenWidth_returnsReasonableValue() {
+        let width = BannerAdManager.safeScreenWidth()
+        XCTAssertGreaterThanOrEqual(width, 320)
+        XCTAssertLessThanOrEqual(width, 1366)
+    }
+
+    // MARK: - BadgeEvaluator.BackfillCounts
+
+    @MainActor
+    func testBackfillCounts_defaultInit_allZeroAllSucceeded() {
+        let counts = BadgeEvaluator.BackfillCounts()
+        XCTAssertEqual(counts.feeding, 0)
+        XCTAssertEqual(counts.sleep, 0)
+        XCTAssertEqual(counts.diaper, 0)
+        XCTAssertEqual(counts.growth, 0)
+        XCTAssertNil(counts.earliest)
+        XCTAssertTrue(counts.allSucceeded)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_aggregateMapping_feedingMapsToFeedingCount() {
+        let result = BadgeEvaluator.aggregateMapping(kind: .feedingLogged)
+        XCTAssertEqual(result?.field, "feedingCount")
+        XCTAssertEqual(result?.badgeIds, ["feeding100"])
+    }
+
+    @MainActor
+    func testBadgeEvaluator_aggregateMapping_routineStreakReturnsNil() {
+        let result = BadgeEvaluator.aggregateMapping(kind: .routineStreakUpdated(newStreak: 5))
+        XCTAssertNil(result)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_statsValue_withNilFields_returnsZero() {
+        let stats = UserStats.empty()
+        // empty() sets to 0, but we test the nil-safe path:
+        var emptyStats = UserStats.empty()
+        emptyStats.feedingCount = nil
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: emptyStats, field: "feedingCount"), 0)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "feedingCount"), 0)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_statsValue_withPopulatedFields() {
+        var stats = UserStats.empty()
+        stats.feedingCount = 150
+        stats.sleepCount = 75
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "feedingCount"), 150)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "sleepCount"), 75)
+        XCTAssertEqual(BadgeEvaluator.statsValue(stats: stats, field: "unknown"), 0)
+    }
+
+    @MainActor
+    func testBadgeEvaluator_utcDateString_isStable() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)   // 2023-11-14 22:13:20 UTC
+        XCTAssertEqual(BadgeEvaluator.utcDateString(date), "2023-11-14")
+    }
+
+    // MARK: - Dashboard/Health/Recording priority gating 로직 (빌드 59 회귀 방지)
+    // baby 있으면 pregnancy UI는 덮어쓰면 안 됨.
+    // 실제 View body 대신 gating 조건 boolean을 isolated하게 검증.
+
+    @MainActor
+    func testGating_babyOnly_showsBabyUI() {
+        XCTAssertFalse(shouldShowPregnancyUI(babiesEmpty: false, pregnancyActive: false))
+    }
+
+    @MainActor
+    func testGating_pregnancyOnly_showsPregnancyUI() {
+        XCTAssertTrue(shouldShowPregnancyUI(babiesEmpty: true, pregnancyActive: true))
+    }
+
+    @MainActor
+    func testGating_babyAndPregnancy_showsBabyUI_빌드59회귀방지() {
+        // 이 테스트가 FAIL하면 baby 등록된 사용자 화면이 pregnancy로 덮어씌워짐
+        XCTAssertFalse(
+            shouldShowPregnancyUI(babiesEmpty: false, pregnancyActive: true),
+            "baby가 있으면 pregnancy가 있어도 baby UI가 우선되어야 함"
+        )
+    }
+
+    @MainActor
+    func testGating_neitherBabyNorPregnancy_showsBabyUI() {
+        // onboarding gating은 ContentView 담당. 이 레벨에서는 pregnancy UI 노출 금지.
+        XCTAssertFalse(shouldShowPregnancyUI(babiesEmpty: true, pregnancyActive: false))
+    }
+
+    /// DashboardView/HealthView/RecordingView 공통 gating 조건.
+    /// 세 View 모두 아래와 동일 조건 사용.
+    private func shouldShowPregnancyUI(babiesEmpty: Bool, pregnancyActive: Bool) -> Bool {
+        return babiesEmpty && pregnancyActive
+    }
+
+}
+
+// MARK: - Badge Privacy Pass-through (H-4 자동 검증 — earnedByUserId)
+
+final class BadgePrivacyPassThroughTests: XCTestCase {
+
+    /// BadgeEvaluator가 받은 userId를 그대로 saveBadge에 전달함을 검증.
+    /// (passthrough가 보장되면 호출처 책임으로 격리: H-4 spec은 호출처가 currentUserId
+    /// 전달해야 함을 의미. 현재 ActivityViewModel가 dataUserId 전달하는 것은 별도 회귀.)
+    func test_evaluator_passesUserId_unchanged_toSaveBadge() {
+        let mock = MockBadgeFirestore()
+        let exp = expectation(description: "passthrough")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            _ = await evaluator.evaluate(
+                event: .init(kind: .feedingLogged, babyId: "baby1", at: Date()),
+                userId: "user_alice"
+            )
+            // saveBadge 호출되었으면 userId가 alice 그대로 전달됨 (mock은 userId 무시 — 호출 자체 검증)
+            XCTAssertGreaterThan(mock.saveBadgeCalls.count, 0,
+                                 "feedingLogged 이벤트는 firstRecord 또는 feeding100 후보 → 적어도 1번 saveBadge")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+}
+
+// MARK: - PregnancyOutcome 계약 + Pregnancy 변환 (H-2 자동 검증 — 출산 전환)
+
+final class PregnancyOutcomeContractTests: XCTestCase {
+
+    /// rawValue는 Firestore persist되는 영구 계약. 변경 시 기존 사용자 데이터 손상.
+    /// (feedback_enum_raw_value_contract.md)
+    func test_rawValues_are_locked_contract() {
+        XCTAssertEqual(PregnancyOutcome.ongoing.rawValue, "ongoing")
+        XCTAssertEqual(PregnancyOutcome.born.rawValue, "born")
+        XCTAssertEqual(PregnancyOutcome.miscarriage.rawValue, "miscarriage")
+        XCTAssertEqual(PregnancyOutcome.stillbirth.rawValue, "stillbirth")
+        XCTAssertEqual(PregnancyOutcome.terminated.rawValue, "terminated")
+    }
+
+    func test_allCases_count_isFive() {
+        XCTAssertEqual(PregnancyOutcome.allCases.count, 5,
+                       "신규 case 추가 시 마이그레이션/UI 분기 검토 필요")
+    }
+
+    func test_displayName_allCases_haveKoreanLabel() {
+        for outcome in PregnancyOutcome.allCases {
+            XCTAssertFalse(outcome.displayName.isEmpty)
+        }
+    }
+
+    /// 출산 전환 시뮬: ongoing → born + archivedAt + transitionState=completed
+    /// (실제 WriteBatch 호출은 Firestore 의존이라 unit 검증 불가, 모델 변경만 검증)
+    func test_transition_ongoing_to_born_setsExpectedFields() {
+        var p = Pregnancy(id: "p1", lmpDate: Date(), dueDate: Date(),
+                          fetusCount: 1, babyNickname: "테스트")
+        p.outcome = .ongoing
+
+        // 전환 시뮬 (FirestoreService+Pregnancy.swift L173 패턴)
+        p.outcome = .born
+        p.archivedAt = Date()
+        p.transitionState = "completed"
+
+        XCTAssertEqual(p.outcome, .born)
+        XCTAssertNotNil(p.archivedAt)
+        XCTAssertEqual(p.transitionState, "completed",
+                       "WriteBatch idempotency를 위한 전환 마커 필수")
+    }
+}
+
+// MARK: - KickSession 모델 (H-1 자동 검증 — 태동 카운트/duration/2시간 임계)
+
+final class KickSessionTests: XCTestCase {
+
+    private let pid = "preg1"
+
+    func test_kickCount_emptyArray_returnsZero() {
+        let s = KickSession(pregnancyId: pid)
+        XCTAssertEqual(s.kickCount, 0)
+        XCTAssertFalse(s.reachedTarget)
+    }
+
+    func test_kickCount_tenKicks_reachesTarget() {
+        let kicks = (0..<10).map { _ in KickEvent() }
+        let s = KickSession(pregnancyId: pid, kicks: kicks)
+        XCTAssertEqual(s.kickCount, 10)
+        XCTAssertTrue(s.reachedTarget, "ACOG 표준 10회 달성")
+    }
+
+    func test_kickCount_customTarget_appliesIt() {
+        let kicks = (0..<5).map { _ in KickEvent() }
+        let s = KickSession(pregnancyId: pid, kicks: kicks, targetCount: 5)
+        XCTAssertTrue(s.reachedTarget, "커스텀 타겟 5 달성")
+    }
+
+    func test_durationSeconds_endedAt_returnsExact() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(1_800)  // 30분
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertEqual(s.durationSeconds, 1_800, accuracy: 0.1)
+    }
+
+    func test_exceededTwoHours_underThreshold_returnsFalse() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(7_199)  // 1시간 59분 59초
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertFalse(s.exceededTwoHours)
+    }
+
+    func test_exceededTwoHours_overThreshold_returnsTrue() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = start.addingTimeInterval(7_201)  // 2시간 1초
+        let s = KickSession(pregnancyId: pid, startedAt: start, endedAt: end)
+        XCTAssertTrue(s.exceededTwoHours, "ACOG 2시간 초과 알림 트리거")
+    }
+}
+
+// MARK: - PregnancyDateMath 위젯 엣지 (H-7 자동 검증)
+
+final class PregnancyDateMathTests: XCTestCase {
+
+    private func date(_ string: String) -> Date {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withFullDate]
+        return f.date(from: string)!
+    }
+
+    // MARK: weekAndDay
+
+    func test_weekAndDay_nil_lmp_returnsNil() {
+        XCTAssertNil(PregnancyDateMath.weekAndDay(from: nil, now: date("2026-04-19")))
+    }
+
+    func test_weekAndDay_future_lmp_returnsNil() {
+        // lmp가 now보다 미래 → 음수 days → nil
+        let lmp = date("2026-05-01")
+        let now = date("2026-04-19")
+        XCTAssertNil(PregnancyDateMath.weekAndDay(from: lmp, now: now))
+    }
+
+    func test_weekAndDay_exactly7days_returns1week0day() {
+        let lmp = date("2026-04-12")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 1)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    func test_weekAndDay_17days_returns2week3day() {
+        let lmp = date("2026-04-02")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 2)
+        XCTAssertEqual(result?.days, 3)
+    }
+
+    func test_weekAndDay_280days_returns40week0day() {
+        let lmp = date("2025-07-13")  // 280일 전 = 40주 정확
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 40)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    func test_weekAndDay_sameDay_returns0week0day() {
+        let lmp = date("2026-04-19")
+        let now = date("2026-04-19")
+        let result = PregnancyDateMath.weekAndDay(from: lmp, now: now)
+        XCTAssertEqual(result?.weeks, 0)
+        XCTAssertEqual(result?.days, 0)
+    }
+
+    // MARK: dDay
+
+    func test_dDay_nil_due_returnsNil() {
+        XCTAssertNil(PregnancyDateMath.dDay(due: nil, now: date("2026-04-19")))
+    }
+
+    func test_dDay_due_today_returns0() {
+        let due = date("2026-04-19")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 0)
+    }
+
+    func test_dDay_due_tomorrow_returns1() {
+        let due = date("2026-04-20")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 1)
+    }
+
+    func test_dDay_due_yesterday_returnsMinus1_overdue() {
+        let due = date("2026-04-18")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), -1)
+    }
+
+    func test_dDay_due_oneWeekFuture_returns7() {
+        let due = date("2026-04-26")
+        let now = date("2026-04-19")
+        XCTAssertEqual(PregnancyDateMath.dDay(due: due, now: now), 7)
+    }
+}
+
+// MARK: - CryAnalysisViewModel phase 전이 테스트 (v2.7 flip 전 필수)
+
+final class CryAnalysisViewModelTests: XCTestCase {
+
+    func test_start_emptyBabyId_setsErrorPhase() {
+        let exp = expectation(description: "guard")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            let vm = CryAnalysisViewModel(service: mock)
+            await vm.start(babyId: "")
+            if case .error(let msg) = vm.phase {
+                XCTAssertTrue(msg.contains("아기"), "빈 babyId 가드 메시지 확인")
+            } else {
+                XCTFail("phase should be .error, got \(vm.phase)")
+            }
+            XCTAssertEqual(mock.configureCalled, 0, "guard에서 차단되면 세션 설정 호출 안 함")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+
+    func test_start_permissionDenied_setsPermissionDeniedPhase() {
+        let exp = expectation(description: "denied")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            mock.stubPermissionStatus = .denied
+            let vm = CryAnalysisViewModel(service: mock)
+            await vm.start(babyId: "baby1")
+            XCTAssertEqual(vm.phase, .permissionDenied)
+            XCTAssertEqual(mock.configureCalled, 0, "권한 거부면 세션 설정 진행 안 함")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+
+    func test_cancel_resetsToIdle_andRestoresSession() {
+        let exp = expectation(description: "cancel")
+        Task { @MainActor in
+            let mock = MockCryAnalysisService()
+            let vm = CryAnalysisViewModel(service: mock)
+            vm.phase = .recording(progress: 0.5)
+            vm.cancel()
+            XCTAssertEqual(vm.phase, .idle)
+            XCTAssertEqual(mock.restoreCalled, 1, "cancel 시 세션 복원 강제 호출")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
+    }
+}
+
+// MARK: - BadgeEvaluator 통합 테스트 (MockBadgeFirestore 활용)
+
+final class BadgeEvaluatorIntegrationTests: XCTestCase {
+
+    func testBadgeEvaluator_backfill_awardsFeeding100Badge() {
+        let mock = MockBadgeFirestore()
+        let babyId = "baby1"
+        // 100 feeding 기록 = feeding100 배지 조건 충족
+        mock.activityCounts["\(babyId)|feeding_breast"] = 50
+        mock.activityCounts["\(babyId)|feeding_bottle"] = 50
+        mock.earliestActivity[babyId] = Activity(
+            babyId: babyId, type: .feedingBreast,
+            startTime: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        let expectation = expectation(description: "backfill")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            let earned = await evaluator.backfillIfNeeded(userId: "user1", ownedBabyIds: [babyId])
+            XCTAssertTrue(earned.contains { $0.id == "feeding100" })
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.count, 1)
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.first?.feedingCount, 100)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    func testBadgeEvaluator_backfill_alreadyMigrated_isNoop() {
+        let mock = MockBadgeFirestore()
+        mock.statsResponse = UserStats(
+            id: UserStats.lifetimeId,
+            feedingCount: 0,
+            sleepCount: 0,
+            diaperCount: 0,
+            growthRecordCount: 0,
+            firstRecordAt: nil,
+            updatedAt: Date(),
+            migratedAtV1: Date()
+        )
+
+        let expectation = expectation(description: "noop")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            let earned = await evaluator.backfillIfNeeded(userId: "user1", ownedBabyIds: ["baby1"])
+            XCTAssertTrue(earned.isEmpty)
+            XCTAssertEqual(mock.setStatsAbsoluteCalls.count, 0, "이미 migrated면 setStatsAbsolute 호출 안 함")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
 }

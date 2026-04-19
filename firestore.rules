@@ -72,6 +72,32 @@ service cloud.firestore {
       match /stats/{statsId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // --- 임신 모드 (Pregnancy Mode) ---
+      // 임신 루트 문서: 본인 또는 파트너(sharedWith 포함) 읽기, 쓰기는 본인만
+      match /pregnancies/{pregnancyId} {
+        allow read: if request.auth != null
+          && (
+            request.auth.uid == userId
+            || (resource != null && resource.data.sharedWith is list
+                && request.auth.uid in resource.data.sharedWith)
+          );
+        allow write: if request.auth != null && request.auth.uid == userId;
+
+        // 임신 하위 서브컬렉션 (kickSessions, prenatalVisits, pregnancyChecklists, pregnancyWeights)
+        match /{subcollection}/{docId} {
+          allow read: if request.auth != null
+            && (
+              request.auth.uid == userId
+              || (
+                exists(/databases/$(database)/documents/users/$(userId)/pregnancies/$(pregnancyId))
+                && get(/databases/$(database)/documents/users/$(userId)/pregnancies/$(pregnancyId)).data.sharedWith is list
+                && request.auth.uid in get(/databases/$(database)/documents/users/$(userId)/pregnancies/$(pregnancyId)).data.sharedWith
+              )
+            );
+          allow write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
     }
 
     // --- 초대 ---

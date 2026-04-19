@@ -42,9 +42,9 @@ final class CryAnalysisViewModel {
 
     // MARK: - Dependencies
 
-    private let service: CryAnalysisService
+    private let service: CryAnalysisServiceProviding
 
-    init(service: CryAnalysisService = CryAnalysisService()) {
+    init(service: CryAnalysisServiceProviding = CryAnalysisService()) {
         self.service = service
     }
 

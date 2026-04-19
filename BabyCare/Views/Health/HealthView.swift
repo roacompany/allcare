@@ -5,12 +5,22 @@ struct HealthView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(ActivityViewModel.self) private var activityVM
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
 
     @State private var overdueVaccinationDismissed = false
     @State private var upcomingVaccinationDismissed = false
     @State private var showBabySelector = false
 
     var body: some View {
+        // 우선순위: 등록된 아기가 있으면 무조건 육아 health view.
+        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+            HealthPregnancyView()
+        } else {
+            babyHealthView
+        }
+    }
+
+    private var babyHealthView: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {

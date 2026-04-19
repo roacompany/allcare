@@ -5,24 +5,28 @@ import SwiftUI
 extension ActivityViewModel {
     // MARK: - Save Activity (낙관적 업데이트 + 롤백)
 
-    func saveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
+    /// 활동 저장.
+    /// - Parameter userId: 데이터 저장 path (가족 공유 시 owner uid). babyVM.dataUserId() 사용.
+    /// - Parameter currentUserId: 배지 부여 대상 본인 uid. 호출자(authVM.currentUserId).
+    ///   (H-4 회귀 fix: 배지는 항상 본인 path에 저장 — 가족 공유 시 owner 배지 격리)
+    func saveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         // 시작시간 결정 (타이머 or 수동)
         let startTime = isTimeAdjusted ? manualStartTime : Date()
 
         // 중복 체크
         if hasDuplicateRecord(type: type, startTime: startTime) {
             pendingDuplicateSave = { [weak self] in
-                await self?.performSaveActivity(userId: userId, babyId: babyId, type: type)
+                await self?.performSaveActivity(userId: userId, currentUserId: currentUserId, babyId: babyId, type: type)
             }
             showDuplicateWarning = true
             return
         }
 
         // 실제 저장
-        await performSaveActivity(userId: userId, babyId: babyId, type: type)
+        await performSaveActivity(userId: userId, currentUserId: currentUserId, babyId: babyId, type: type)
     }
 
-    func performSaveActivity(userId: String, babyId: String, type: Activity.ActivityType) async {
+    func performSaveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         var activity = Activity(babyId: babyId, type: type)
 
         let timerBelongsToMe = isTimerRunning && activeTimerType == type
@@ -47,7 +51,7 @@ extension ActivityViewModel {
             if type == .temperature && isFeverTrendDetected {
                 NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
             }
-            await evaluateBadgesIfNeeded(type: type, babyId: babyId, userId: userId, at: activity.startTime)
+            await evaluateBadgesIfNeeded(type: type, babyId: babyId, currentUserId: currentUserId, at: activity.startTime)
             resetForm()
         } catch {
             enqueueOfflineActivity(activity, userId: userId, babyId: babyId)
@@ -164,21 +168,21 @@ extension ActivityViewModel {
     }
 
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
-    func savePrebuiltActivity(_ activity: Activity, userId: String) async {
+    func savePrebuiltActivity(_ activity: Activity, userId: String, currentUserId: String) async {
         todayActivities.insert(activity, at: 0)
 
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
-            await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, userId: userId, at: activity.startTime)
+            await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, currentUserId: currentUserId, at: activity.startTime)
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
         }
     }
 
-    func quickSave(userId: String, babyId: String, type: Activity.ActivityType) async {
+    func quickSave(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         var activity = Activity(babyId: babyId, type: type)
 
         // 빠른 기록에서도 최소한의 기본값 설정
@@ -192,7 +196,7 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
-            await evaluateBadgesIfNeeded(type: type, babyId: babyId, userId: userId, at: activity.startTime)
+            await evaluateBadgesIfNeeded(type: type, babyId: babyId, currentUserId: currentUserId, at: activity.startTime)
         } catch {
             todayActivities.removeAll { $0.id == activity.id }
             errorMessage = "기록 저장에 실패했습니다."
@@ -201,11 +205,12 @@ extension ActivityViewModel {
 
     // MARK: - Badge Hook
 
-    /// 저장 성공 후 BadgeEvaluator 호출 (배지 대상 아닌 타입은 no-op)
-    private func evaluateBadgesIfNeeded(type: Activity.ActivityType, babyId: String, userId: String, at date: Date) async {
+    /// 저장 성공 후 BadgeEvaluator 호출 (배지 대상 아닌 타입은 no-op).
+    /// 배지는 항상 본인(currentUserId) path에 저장 — 가족 공유 시 owner 배지 격리.
+    private func evaluateBadgesIfNeeded(type: Activity.ActivityType, babyId: String, currentUserId: String, at date: Date) async {
         guard let kind = BadgeEvaluator.eventKind(for: type) else { return }
         let event = BadgeEvaluator.Event(kind: kind, babyId: babyId, at: date)
-        let earned = await BadgeEvaluator().evaluate(event: event, userId: userId)
+        let earned = await BadgeEvaluator().evaluate(event: event, userId: currentUserId)
         AppState.shared.badgePresenter.enqueue(earned)
     }
 

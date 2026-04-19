@@ -1,0 +1,57 @@
+/* Widget Extension Localization (ko) */
+
+/* Next Feeding Widget */
+"widget.nextFeeding.title" = "다음 수유";
+"widget.nextFeeding.description" = "다음 수유 예상 시각을 한눈에";
+"widget.nextFeeding.label" = "다음 수유";
+"widget.nextFeeding.overdue" = "수유 시간이에요!";
+"widget.nextFeeding.noData" = "수유 기록 없음";
+"widget.nextFeeding.in" = "다음 수유 %@";
+"widget.feeding.count.today" = "오늘 수유";
+"widget.feeding.ml.today" = "오늘 섭취량";
+"widget.feeding.last" = "마지막 수유";
+"widget.count.times" = "%d회";
+
+/* Next Nap Widget */
+"widget.nextNap.title" = "다음 낮잠";
+"widget.nextNap.description" = "다음 낮잠 예상 시각을 표시합니다";
+"widget.nextNap.label" = "다음 낮잠";
+"widget.nextNap.time" = "낮잠 시간이에요";
+"widget.nextNap.noData" = "낮잠 기록 없음";
+"widget.sleep.today" = "오늘 수면";
+"widget.sleep.last" = "마지막 수면";
+"widget.sleep.duration" = "수면 시간";
+
+/* Today Summary Widget */
+"widget.todaySummary.title" = "오늘 활동 요약";
+"widget.todaySummary.description" = "오늘 수유·수면·기저귀 요약을 확인합니다";
+"widget.todaySummary.label" = "오늘";
+"widget.summary.feeding" = "수유";
+"widget.summary.sleep" = "수면";
+"widget.summary.diaper" = "기저귀";
+
+/* Growth Percentile Widget */
+"widget.growthPercentile.title" = "성장 백분위";
+"widget.growthPercentile.description" = "최근 측정 체중·키와 WHO 백분위 정보";
+"widget.growthPercentile.label" = "성장";
+"widget.growth.weight" = "체중";
+"widget.growth.height" = "키";
+"widget.growth.percentile.format" = "상위 %d%%";
+"widget.growth.measured" = "%@ 측정";
+"widget.growth.noData" = "성장 기록 없음";
+"widget.growth.noData.hint" = "건강 탭에서 성장 기록을 추가하세요";
+"widget.growth.disclaimer" = "WHO 기준 참고 정보. 의학적 판단이 아닙니다.";
+
+/* Lock Screen */
+"widget.noRecord" = "기록 없음";
+
+/* Pregnancy D-day Widget */
+"widget.pregnancy.dday" = "D-%d";
+"widget.pregnancy.week" = "%d주";
+"widget.pregnancy.placeholder" = "임신 모드 비활성";
+"pregnancy.widget.dday.title" = "임신 D-day";
+"pregnancy.widget.dday.description" = "출산 예정일 카운트다운과 주차 정보";
+"pregnancy.widget.label" = "임신";
+"pregnancy.widget.inactive" = "임신 모드 비활성";
+"pregnancy.widget.progress" = "진행도";
+"pregnancy.widget.weeksLeft" = "%d주 남음";

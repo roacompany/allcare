@@ -104,17 +104,49 @@ func save{Name}(_ item: {Name}, userId: String) async throws -> Bool {
 }
 ```
 
-### 5. XcodeGen 자동 인식 확인
+### 5. firestore.indexes.json 업데이트 (⚠️ silent failure 방지)
+
+새 컬렉션에 `whereField + orderBy` 복합 쿼리가 있으면 반드시 `firestore.indexes.json`에 composite index 추가. **index 누락은 조용히 실패함** (PERMISSION_DENIED / FAILED_PRECONDITION) — 2026-04-18 pregnancy index 누락 사고 교훈.
+
+체크:
+- 쿼리에 `whereField(...).order(by:)` 조합 있음? → index 필요
+- 단순 `whereField` 또는 `order(by:)` 단독? → 불필요
+
+예시 (pregnancies 컬렉션, outcome + createdAt DESC):
+```json
+{
+  "collectionGroup": "{camelCase복수형}",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "outcome", "order": "ASCENDING" },
+    { "fieldPath": "createdAt", "order": "DESCENDING" }
+  ]
+}
+```
+
+### 6. firestore.rules 규칙 추가
+
+`firestore.rules`에 컬렉션 경로별 `match` 블록 추가:
+
+```
+match /users/{uid}/{camelCase복수형}/{doc} {
+    allow read, write: if request.auth.uid == uid;
+}
+```
+
+공유 아기 데이터(subcollection=babies)의 경우 `sharedWith` 확인 포함.
+
+### 7. XcodeGen 자동 인식 확인
 
 `project.yml`은 `BabyCare/` 하위 `.swift` 파일 glob — 별도 등록 불필요. `make build` 통과 확인.
 
-### 6. 테스트 append (선택)
+### 8. 테스트 append (선택)
 
 `BabyCareTests/BabyCareTests.swift` 끝에 `// MARK: - {Name} Tests`:
 - Codable round-trip
 - FirestoreCollections 상수 문자열 검증
 
-### 7. 규칙 준수 체크리스트
+### 9. 규칙 준수 체크리스트
 
 - ✅ `FirestoreCollections.*` 상수 사용 (하드코딩 금지)
 - ✅ `babyVM.dataUserId()` 권장 (공유 아기 시) — `authVM.currentUserId` 직접 사용 금지
@@ -122,19 +154,20 @@ func save{Name}(_ item: {Name}, userId: String) async throws -> Bool {
 - ✅ 증분 카운터 `Int?` + `?? 0` (CR-001 교훈)
 - ✅ `Identifiable, Codable, Hashable` 3 프로토콜 동시 채택
 - ✅ `Milestone` 모델 혼동 금지 (별개 도메인)
+- ✅ `firestore.indexes.json` 업데이트 (복합 쿼리 있을 시) — silent failure 방지
+- ✅ `firestore.rules` 규칙 추가
 - ✅ Firestore 스키마 변경 시 `/review` 필수 (`.claude/rules/review.md`)
-- ✅ Firestore 보안 규칙 업데이트 필요 안내 (사용자 수동 작업)
 
-### 8. Post-work 안내
+### 10. Post-work 게이팅 (⚠️ 필수)
 
-- 🔴 **Firestore 보안 규칙** 업데이트 필수 (Firebase 콘솔 또는 `firestore.rules`):
-  ```
-  match /users/{uid}/.../{camelCase복수형}/{doc} {
-      allow read, write: if request.auth.uid == uid;
-  }
-  ```
+🔴 **`make deploy-rules` 실행 강제** — rules + indexes 배포 완료해야 쿼리 동작:
+```bash
+make deploy-rules   # firebase deploy --only firestore:rules,firestore:indexes
+```
+
 - `make verify` 통과 확인
 - 기존 Firestore 문서 backward compat 확인 (optional 필드만 추가 시 자동 OK)
+- **index 배포의 side-effect**: 쿼리 실패로 숨어있던 문서가 index 배포 후 surface 될 수 있음. "기존 데이터가 있으면 어떻게 노출될지" 사전 점검 필수.
 
 ## 예시
 
