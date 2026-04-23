@@ -5,6 +5,11 @@
 - 빌드 60 CRITICAL은 빌드 58 ContentView 부분 fix 후 하위 3-View 불일치가 드러난 전형적 single-source-of-truth 부재 패턴 → v2 AppContext 단일 분기로 구조적 제거.
 - git log + CLAUDE.md "회귀 이력" + learnings.md 3중 교차 확인으로 빌드별 유발 커밋 특정 가능.
 
+## P0-2
+- v2.6.2 (빌드 52) **APPROVED** (READY_FOR_SALE) 확인 — ASC API `/v1/apps/6759935352/appStoreVersions` 2026-04-23 조회. releaseType=AFTER_APPROVAL 자동 출시.
+- v2.7.0도 READY_FOR_SALE → v2.7.1/v2.7.2 bump 시 심사 영향 없음.
+- project.yml Firebase 버전은 11.0.0 (v1 worktree 기준, v2도 동일 소스) — P0-2b에서 11.8+ 업그레이드.
+
 ## P0-3
 - gap-analyzer의 `markTransitionPending 0건 호출` 분석은 오류. 실제 호출은 `PregnancyViewModel.swift:365`에 존재. Scenario (c) 채택 → `pending_is_valid=valid`, P2-2 Resume UI 유효.
 - v1은 이미 2단계 commit 패턴(markTransitionPending → WriteBatch)을 올바르게 구현. v2에서도 동일 패턴 보존 권장.

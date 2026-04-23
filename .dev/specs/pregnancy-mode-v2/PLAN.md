@@ -448,7 +448,7 @@ risk: LOW
 
 ---
 
-### [ ] P0-2: v2.6.2 심사 상태 확인 + Firebase 11.8.0 hotfix 계획
+### [x] P0-2: v2.6.2 심사 상태 확인 + Firebase 11.8.0 hotfix 계획
 
 **Type**: work
 
