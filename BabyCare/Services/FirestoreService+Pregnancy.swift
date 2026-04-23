@@ -216,6 +216,21 @@ extension FirestoreService {
         try await ref.updateData(["sharedWith": FieldValue.arrayRemove([partnerUid]),
                                   "updatedAt": Date()])
     }
+
+    // MARK: - Partner Shared Pregnancy (collectionGroup)
+
+    /// 파트너가 나를 sharedWith에 포함시킨 진행 중 임신 조회.
+    /// collectionGroup("pregnancies")로 모든 사용자 하위 pregnancies 서브컬렉션을 검색.
+    /// PregnancyViewModel.loadActivePregnancy에서 자신의 임신이 없을 때 fallback으로 호출.
+    func fetchSharedPregnancy(currentUserId: String) async throws -> Pregnancy? {
+        let snapshot = try await db
+            .collectionGroup(FirestoreCollections.pregnancies)
+            .whereField("sharedWith", arrayContains: currentUserId)
+            .whereField("outcome", isEqualTo: PregnancyOutcome.ongoing.rawValue)
+            .limit(to: 1)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: Pregnancy.self).first
+    }
 }
 
 // WriteBatch Codable 지원을 위한 헬퍼 (Firestore SDK가 기본 제공하지 않음).

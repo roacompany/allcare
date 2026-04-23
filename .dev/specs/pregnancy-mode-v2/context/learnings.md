@@ -16,6 +16,13 @@
 - 하위 컬렉션(kickSessions/prenatalVisits/etc.)은 Partner 접근 시 부모 pregnancy의 sharedWith를 nested `get()`으로 확인 — 현재 구현 안전, 향후 collectionGroup 쿼리 추가 시 규칙 확장 필요.
 - `sharedWith is list` 타입 가드 + `uid in resource.data.sharedWith` 조합이 Swift `arrayContains` 쿼리와 정확히 매칭.
 
+## P2-3
+- Swift 6 strict concurrency: 동일 optional inout 프로퍼티를 한 줄에서 read+write 시 exclusive access 위반 — `if p?.x == nil { p?.x = y }` 분리 필수.
+- Protocol은 기본 파라미터 불가 — protocol extension의 편의 오버로드로 우회 (default 값으로 required method 호출).
+- `FirestoreService+Pregnancy.swift`에서 `collectionGroup` 쿼리는 `private pregnancyRef` 헬퍼 우회하고 `db.collectionGroup` 직접 호출 필요.
+- `index_check.py`는 `.whereField + .order` 조합만 스캔 — `arrayContains + whereField` (no order) 패턴은 수동 COLLECTION_GROUP 인덱스 추가가 정답.
+- BadgeFirestoreProviding 패턴(narrow + Mock) 재사용성 확인 — 다른 도메인으로 확장 가능.
+
 ## P0-3
 - gap-analyzer의 `markTransitionPending 0건 호출` 분석은 오류. 실제 호출은 `PregnancyViewModel.swift:365`에 존재. Scenario (c) 채택 → `pending_is_valid=valid`, P2-2 Resume UI 유효.
 - v1은 이미 2단계 commit 패턴(markTransitionPending → WriteBatch)을 올바르게 구현. v2에서도 동일 패턴 보존 권장.

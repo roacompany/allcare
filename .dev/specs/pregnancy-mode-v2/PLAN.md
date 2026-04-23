@@ -1265,7 +1265,7 @@ rollback: "PregnancyRecoveryModal 삭제 시 ViewModel 속성도 제거. FieldVa
 
 ---
 
-### [ ] P2-3: PregnancyFirestoreProviding narrow protocol + MockPregnancyFirestore
+### [x] P2-3: PregnancyFirestoreProviding narrow protocol + MockPregnancyFirestore
 
 **Type**: work
 

@@ -19,7 +19,11 @@ final class PregnancyViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let firestoreService = FirestoreService.shared
+    private let firestoreService: PregnancyFirestoreProviding
+
+    init(firestoreService: PregnancyFirestoreProviding = FirestoreService.shared) {
+        self.firestoreService = firestoreService
+    }
 
     // MARK: - Data User Resolution
 
@@ -52,15 +56,19 @@ final class PregnancyViewModel {
         defer { isLoading = false }
         do {
             var p = try await firestoreService.fetchActivePregnancy(userId: userId)
-            p?.ownerUserId = userId
+            if p == nil {
+                // 자신의 진행 중 임신이 없으면 파트너가 공유한 임신을 fallback으로 확인.
+                p = try await firestoreService.fetchSharedPregnancy(currentUserId: userId)
+            }
+            if p?.ownerUserId == nil { p?.ownerUserId = userId }
             self.activePregnancy = p
             PregnancyWidgetSyncService.update(pregnancy: p)
-            if let pid = p?.id {
-                async let kicks = firestoreService.fetchKickSessions(userId: userId, pregnancyId: pid)
-                async let visits = firestoreService.fetchPrenatalVisits(userId: userId, pregnancyId: pid)
-                async let items = firestoreService.fetchChecklistItems(userId: userId, pregnancyId: pid)
-                async let weights = firestoreService.fetchWeightEntries(userId: userId, pregnancyId: pid)
-                async let symptomList = firestoreService.fetchSymptoms(userId: userId, pregnancyId: pid)
+            if let pid = p?.id, let dataOwner = p?.ownerUserId {
+                async let kicks = firestoreService.fetchKickSessions(userId: dataOwner, pregnancyId: pid)
+                async let visits = firestoreService.fetchPrenatalVisits(userId: dataOwner, pregnancyId: pid)
+                async let items = firestoreService.fetchChecklistItems(userId: dataOwner, pregnancyId: pid)
+                async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
+                async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
                 self.kickSessions = (try? await kicks) ?? []
                 self.prenatalVisits = (try? await visits) ?? []
                 self.checklistItems = (try? await items) ?? []

@@ -3290,3 +3290,147 @@ final class BadgeEvaluatorIntegrationTests: XCTestCase {
         wait(for: [expectation], timeout: 5)
     }
 }
+
+// MARK: - PregnancyViewModel 통합 테스트 (MockPregnancyFirestore 활용)
+
+final class PregnancyViewModelIntegrationTests: XCTestCase {
+
+    // 1. loadActivePregnancy — Mock 응답이 VM 상태로 반영되는지 검증
+    func test_loadActivePregnancy_mockResponse_setsState() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(
+            lmpDate: Calendar.current.date(byAdding: .day, value: -84, to: Date()),
+            dueDate: Calendar.current.date(byAdding: .day, value: 196, to: Date()),
+            fetusCount: 1,
+            babyNickname: "테스트아기"
+        )
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "loadActive")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy)
+            XCTAssertEqual(vm.activePregnancy?.babyNickname, "테스트아기")
+            XCTAssertEqual(mock.fetchActivePregnancyCalls.count, 1)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 2. loadActivePregnancy — transitionState=pending 시 VM이 errorMessage 없이 pregnancy를 노출하는지 검증
+    func test_fetchActivePregnancy_transitionPending_exposesRecoveryState() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1)
+        pregnancy.transitionState = "pending"
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "transitionPending")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy, "pending 상태 pregnancy는 VM에 노출되어야 함")
+            XCTAssertEqual(vm.activePregnancy?.transitionState, "pending")
+            XCTAssertNil(vm.errorMessage)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 3. savePregnancy 실패 시 errorMessage가 설정되는지 검증
+    func test_writeBatch_failure_errorHandled() {
+        let mock = MockPregnancyFirestore()
+        mock.errorOnSavePregnancy = NSError(domain: "Firestore", code: -1,
+                                            userInfo: [NSLocalizedDescriptionKey: "write failed"])
+
+        let expectation = expectation(description: "error")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.createPregnancy(
+                lmpDate: Calendar.current.date(byAdding: .day, value: -84, to: Date()),
+                dueDate: Calendar.current.date(byAdding: .day, value: 196, to: Date()),
+                fetusCount: 1,
+                userId: "user1"
+            )
+            XCTAssertNotNil(vm.errorMessage)
+            XCTAssertTrue(vm.errorMessage?.contains("write failed") == true)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 4. 자신의 임신 없을 때 sharedPregnancy fallback으로 파트너 임신 반환 검증
+    func test_loadActivePregnancy_noOwn_fallbackToSharedPregnancy_resolvesCorrectly() {
+        let mock = MockPregnancyFirestore()
+        mock.activePregnancyResponse = nil
+        var shared = Pregnancy(fetusCount: 1, babyNickname: "공유아기")
+        shared.ownerUserId = "partner-uid"
+        shared.sharedWith = ["self-uid"]
+        mock.sharedPregnancyResponse = shared
+
+        let expectation = expectation(description: "sharedFallback")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "self-uid")
+            XCTAssertNotNil(vm.activePregnancy, "파트너 공유 임신이 fallback으로 설정되어야 함")
+            XCTAssertEqual(vm.activePregnancy?.babyNickname, "공유아기")
+            XCTAssertEqual(mock.fetchSharedPregnancyCalls.count, 1)
+            XCTAssertEqual(mock.fetchSharedPregnancyCalls.first, "self-uid")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 5. fetchSharedPregnancy — sharedWith에 파트너 포함 시 반환 검증
+    func test_fetchSharedPregnancy_partnerInSharedWith_returnsPregnancy() {
+        let mock = MockPregnancyFirestore()
+        var shared = Pregnancy(fetusCount: 1, babyNickname: "파트너아기")
+        shared.sharedWith = ["partner-uid"]
+        mock.sharedPregnancyResponse = shared
+
+        let expectation = expectation(description: "sharedReturn")
+        Task {
+            let result = try? await mock.fetchSharedPregnancy(currentUserId: "partner-uid")
+            XCTAssertNotNil(result)
+            XCTAssertEqual(result?.babyNickname, "파트너아기")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 6. fetchSharedPregnancy — 매칭 없을 때 nil 반환 검증
+    func test_fetchSharedPregnancy_noMatch_returnsNil() {
+        let mock = MockPregnancyFirestore()
+        mock.sharedPregnancyResponse = nil
+
+        let expectation = expectation(description: "sharedNil")
+        Task {
+            let result = try? await mock.fetchSharedPregnancy(currentUserId: "unknown-uid")
+            XCTAssertNil(result)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 7. outcome=nil 문서 (outcome 필드 누락) — VM이 crash 없이 처리하는지 검증
+    func test_outcomeNil_document_handledGracefully() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1)
+        pregnancy.outcome = nil // outcome 필드 누락 시뮬레이션
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "outcomeNil")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy)
+            XCTAssertNil(vm.activePregnancy?.outcome)
+            XCTAssertNil(vm.errorMessage)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+}
