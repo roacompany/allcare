@@ -1766,7 +1766,7 @@ rollback: "Firebase Console에서 pregnancy_mode_enabled = false 즉시. Firesto
 
 ---
 
-### [ ] TODO Final: Verification
+### [x] TODO Final: Verification
 
 **Type**: verification
 
