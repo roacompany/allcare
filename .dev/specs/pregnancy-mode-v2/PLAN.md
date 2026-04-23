@@ -1525,7 +1525,7 @@ risk: LOW
 
 ---
 
-### [ ] P3-2: pregnancy-weeks.json 의료 검증 (H-4)
+### [x] P3-2: pregnancy-weeks.json 의료 검증 (H-4)
 
 **Type**: work
 
@@ -1586,7 +1586,7 @@ rollback: "git revert JSON 변경. 의료 검증 실패 시 v2.8 출시 중단 (
 
 ---
 
-### [ ] P3-3: 실기기 QA evidence v2.8.0.md (H-items 10개 전부)
+### [x] P3-3: 실기기 QA evidence v2.8.0.md (H-items 10개 전부)
 
 **Type**: work
 

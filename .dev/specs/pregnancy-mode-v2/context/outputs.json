@@ -59,6 +59,14 @@
     "xcuitest_count": "18",
     "unit_test_added": "26"
   },
+  "todo-P3-2": {
+    "pregnancy_weeks_verified_path": "BabyCare/Resources/pregnancy-weeks.json",
+    "h4_evidence": ".dev/qa-evidence/v2.8.0.md",
+    "signoff_status": "pending_human_review"
+  },
+  "todo-P3-3": {
+    "qa_evidence_v280_path": ".dev/qa-evidence/v2.8.0.md"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

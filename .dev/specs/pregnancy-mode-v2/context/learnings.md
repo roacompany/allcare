@@ -67,6 +67,12 @@
 - `UI_TESTING_PREGNANCY_ENABLED` launch arg 신규 추가 — FeatureFlag=false 빌드 62에서도 임신 UI 테스트 가능.
 - XCUITest는 알파벳 순 실행, `continueAfterFailure=false`로 failsafe 유지. Settings/termination paths는 soft assertion (FeatureFlag=false 시 UI 미노출 대응).
 
+## P3-2+P3-3
+- `.dev/qa-evidence/v2.8.0.md` 구축 — H-1~H-12 12개 섹션 + 37주 pregnancy-weeks summary table + agent-automatable [V] 10건 + human PENDING 12 상태 라인.
+- make qa-check는 MARKETING_VERSION 기반으로 v{version}.md 파일 게이트 — v2.8.0.md는 project.yml bump 후 활성.
+- Agent self-signoff 가능 범위: test count grep, firestore.rules code 구조, FeatureFlags compile-time value, RemoteConfig defaults, sanity script. 불가: visual/haptics/real-device/external review.
+- Week 22 + Week 36 fruitSize 중복 (파파야) — 전문의 리뷰 시 flag.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
