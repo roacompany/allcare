@@ -37,6 +37,10 @@
     "dashboard_card_path": "BabyCare/Views/Dashboard/DashboardPregnancyHomeCard.swift",
     "dashboard_view_path": "BabyCare/Views/Dashboard/DashboardView.swift"
   },
+  "todo-P1-4": {
+    "health_view_path": "BabyCare/Views/Health/HealthView.swift",
+    "recording_view_path": "BabyCare/Views/Recording/RecordingView.swift"
+  },
   "todo-P1-5": {
     "dashboard_pregnancy_path": "BabyCare/Views/Dashboard/DashboardPregnancyView.swift"
   },

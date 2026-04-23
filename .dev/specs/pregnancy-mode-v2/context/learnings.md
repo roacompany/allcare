@@ -34,6 +34,12 @@
 - git stash + pop은 pre-existing 변경과 conflict 발생 시 실패 — 선호: `git checkout -- <file>` + 수동 재적용.
 - xcodebuild "BUILD FAILED / database is locked" 은 DerivedData 동시 접근 경합 — 병렬 make verify 회피 필요.
 
+## P1-4
+- HealthView/RecordingView `switch AppContext.resolve` 4-case 분기 + additive `pregnancyHealthSectionIfNeeded` / `pregnancyRecordingSectionIfNeeded` @ViewBuilder 패턴 — P1-3 DashboardView와 동일한 구조적 합의.
+- RecordingView `.both` 임신 기록 entry는 VStack section (5번째 CategoryTabBar 탭 추가 대신) — 발견성(discoverability) QA 필요 (H-items 관련).
+- kickSessionSubtitle/prenatalVisitSubtitle/dueSoonBadge helper는 HealthView + HealthPregnancyView에 중복 — drift 리스크, 추후 공유 extension 고려.
+- 검증자가 P1-5 commit 이전 시점 snapshot에 기반해 거짓 violation 보고한 경우가 있었음 — 오케스트레이터는 `git log`로 실제 commit 상태 재확인 필요.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.

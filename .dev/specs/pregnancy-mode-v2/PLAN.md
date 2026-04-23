@@ -982,7 +982,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P1-4: HealthView / RecordingView AppContext 정합 + .both 임신 진입점
+### [x] P1-4: HealthView / RecordingView AppContext 정합 + .both 임신 진입점
 
 **Type**: work
 
