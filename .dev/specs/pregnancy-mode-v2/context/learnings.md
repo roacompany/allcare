@@ -52,6 +52,15 @@
 - 2+ orphan Settings 배너는 DP-4로 deferred — v2.8 범위 외.
 - `nonisolated static let pendingStaleThreshold` — @MainActor @Observable 클래스 상수에 test context 접근 허용.
 
+## P2-4
+- `FeatureFlagService` (@Observable @MainActor singleton) + `StableHash` (DJB2) 신규. 3-layer fallback: RemoteConfig → cache → compile-time. Fetch 실패 시 fallback=false 강제 (A-18).
+- Firebase SDK 11.0도 async/await `fetchAndActivate()` 지원 — P0-2b (11.8+) merge 대기 없이 P2-4 진행 가능.
+- `try? fetchAndActivate()` 패턴: do/catch 없이 fallback=false 보장.
+- Bootstrap은 `BabyCareApp.task` (NOT ContentView.task) — 첫 렌더 race 방지 (빌드 60 회귀 패턴 유사).
+- DJB2 'abc' = 193485963 — regression guard 테스트 추가.
+- 이전 Compile-time `FeatureFlags.pregnancyModeEnabled = true`로 변경 (Codex Rec-3: AND-combine 금지, Layer 1 guard() 조기 종료). 현재 FeatureFlags는 여전히 hardcoded — 런타임 게이팅은 FeatureFlagService.shared.isPregnancyModeEnabled로 수행.
+- ContentView/SettingsView/AddBabyView은 여전히 `FeatureFlags.pregnancyModeEnabled` 직접 참조 (P1 scope 존중) — v2.8 post-ship에서 proxy 전환 고려.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.

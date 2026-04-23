@@ -51,6 +51,10 @@
   "todo-P2-2": {
     "recovery_modal_path": "BabyCare/Views/Pregnancy/PregnancyRecoveryModal.swift"
   },
+  "todo-P2-4": {
+    "featureflag_service_path": "BabyCare/Services/FeatureFlagService.swift",
+    "stable_hash_path": "BabyCare/Utils/StableHash.swift"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

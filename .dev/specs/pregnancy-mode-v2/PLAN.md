@@ -1334,7 +1334,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P2-4: FeatureFlagService Hybrid (compile-time + RemoteConfig pct + stable hash)
+### [x] P2-4: FeatureFlagService Hybrid (compile-time + RemoteConfig pct + stable hash)
 
 **Type**: work
 

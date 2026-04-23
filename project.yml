@@ -44,6 +44,8 @@ targets:
         product: FirebaseMessaging
       - package: Firebase
         product: FirebaseAnalytics
+      - package: Firebase
+        product: FirebaseRemoteConfig
       - package: GoogleMobileAds
         product: GoogleMobileAds
       - sdk: WidgetKit.framework

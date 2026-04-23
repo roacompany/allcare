@@ -23,6 +23,11 @@
 - [ ] iOS 26.2 시뮬레이터 크래시 패턴 — Makefile DEST `name=iPhone 17 Pro`가 26.2 선택 시 signal kill. 해결책: ID 지정 (`id=E8CF2728-092B-485D-BEF7-E959ED6B9435` iOS 26.4). Makefile DX 개선 항목으로 등록.
 - [ ] 2+ pending orphan Settings 인라인 배너 (DP-4) — v2.8 deferred, 재설계 spec 추가 필요.
 
+## P2-4
+- [ ] **P0-2b main merge 대기**: Firebase 11.8+ main merge 후 pregnancy-mode-v2에서 `git merge main` 필요 — 현재 worktree 11.0.0 → prod 11.8+ 동기화.
+- [ ] ContentView/SettingsView/AddBabyView 가 `FeatureFlags.pregnancyModeEnabled` 직접 참조 — v2.8 post-ship에서 FeatureFlagService proxy로 전환 고려 (P1 scope 존중해 현재 유지).
+- [ ] FeatureFlagService.shared singleton — testability 개선 여지 (DI 기반 inject 가능성).
+
 ## P1-5
 - [ ] birthCTABanner가 dueDate 설정된 모든 임신 주차에서 노출됨 (P1-5 literal spec 준수, UX 부작용 가능). H-2 (Product+QA) 수동 검토 후 `dDay <= 28` 또는 `<= 0` 게이트 추가 여부 결정.
 
