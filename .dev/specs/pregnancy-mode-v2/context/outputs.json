@@ -1,0 +1,9 @@
+{
+  "todo-P0-3": {
+    "pending_spec_path": ".dev/specs/pregnancy-mode-v2/context/pending-spec.md",
+    "pending_is_valid": "valid"
+  },
+  "todo-P0-4": {
+    "h_items_evaluators_path": ".dev/specs/pregnancy-mode-v2/context/h-items-evaluators.md"
+  }
+}
