@@ -696,7 +696,7 @@ risk: LOW
 
 ---
 
-### [ ] P0-5: firestore.rules collectionGroup Partner read 규칙 배포
+### [x] P0-5: firestore.rules collectionGroup Partner read 규칙 배포
 
 **Type**: work
 

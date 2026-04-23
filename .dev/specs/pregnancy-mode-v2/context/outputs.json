@@ -13,5 +13,9 @@
   },
   "todo-P0-4": {
     "h_items_evaluators_path": ".dev/specs/pregnancy-mode-v2/context/h-items-evaluators.md"
+  },
+  "todo-P0-5": {
+    "rules_deployed_at": "2026-04-23T11:08:17Z",
+    "collectionGroup_rule_active": "true"
   }
 }

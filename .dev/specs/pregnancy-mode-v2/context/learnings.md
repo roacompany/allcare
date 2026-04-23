@@ -10,6 +10,12 @@
 - v2.7.0도 READY_FOR_SALE → v2.7.1/v2.7.2 bump 시 심사 영향 없음.
 - project.yml Firebase 버전은 11.0.0 (v1 worktree 기준, v2도 동일 소스) — P0-2b에서 11.8+ 업그레이드.
 
+## P0-5
+- collectionGroup 규칙은 `match /databases/{database}/documents` 최상위 scope 필수 — `match /users/{userId}` 중첩 내부 배치 금지 (silent fail).
+- Makefile `deploy-rules` 타겟은 `firebase deploy --only firestore:rules`만 실행 (indexes 별도) → indexes 변경 시 별도 `make deploy-indexes` 또는 `make deploy-rules` 스크립트 확장 필요.
+- 하위 컬렉션(kickSessions/prenatalVisits/etc.)은 Partner 접근 시 부모 pregnancy의 sharedWith를 nested `get()`으로 확인 — 현재 구현 안전, 향후 collectionGroup 쿼리 추가 시 규칙 확장 필요.
+- `sharedWith is list` 타입 가드 + `uid in resource.data.sharedWith` 조합이 Swift `arrayContains` 쿼리와 정확히 매칭.
+
 ## P0-3
 - gap-analyzer의 `markTransitionPending 0건 호출` 분석은 오류. 실제 호출은 `PregnancyViewModel.swift:365`에 존재. Scenario (c) 채택 → `pending_is_valid=valid`, P2-2 Resume UI 유효.
 - v1은 이미 2단계 commit 패턴(markTransitionPending → WriteBatch)을 올바르게 구현. v2에서도 동일 패턴 보존 권장.
