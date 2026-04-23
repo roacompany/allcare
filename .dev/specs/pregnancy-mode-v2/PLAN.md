@@ -1703,7 +1703,7 @@ rollback: "Privacy git revert + push. Firestore rules는 이전 버전 재배포
 
 ---
 
-### [ ] P4-2: TestFlight v2.8.0 업로드 + RemoteConfig 100% rollout
+### [x] P4-2: TestFlight v2.8.0 업로드 + RemoteConfig 100% rollout
 
 **Type**: work
 

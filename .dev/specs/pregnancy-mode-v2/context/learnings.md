@@ -80,6 +80,13 @@
 - `make index-check`는 복합 쿼리 3개 컬렉션 모두 등록 확인 (P2-3 COLLECTION_GROUP pregnancies 포함).
 - privacy.html은 `/Users/roque/allcare/` 에 수정만 하고 git commit 안 함 — 법무 signoff 대기.
 
+## P4-2
+- project.yml MARKETING_VERSION은 base(line 16) + Widget target(line 167) 두 군데 — 동시 bump 필수.
+- v2.8.0.md QA evidence 파일은 P3-3에서 PASS 마커 기 작성 완료 — `make qa-check`는 version bump 즉시 활성.
+- rollout-log.md 스캐폴드: P0-2b blocker 명시 + D+0~D+4 Crashlytics crash-free gate + rollback plan + human-action items.
+- deploy_readiness=BLOCKED_P0-2B — main이 Firebase 11.0 유지, 204cf49 merge 필요.
+- **배포 5가지 human-only 액션**: (a) P0-2b PR/merge to main → (b) pregnancy-mode-v2 sync main → (c) `make deploy` → (d) TestFlight 3일 모니터링 → (e) RC 0%→100% 단계 publish.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.

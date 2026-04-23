@@ -73,6 +73,12 @@
     "index_check_status": "PASS",
     "legal_signoff_status": "pending_human_review"
   },
+  "todo-P4-2": {
+    "testflight_build_number": "DEFERRED",
+    "rollout_log_path": ".dev/specs/pregnancy-mode-v2/context/rollout-log.md",
+    "version_bumped": "2.8.0",
+    "deploy_readiness": "BLOCKED_P0-2B"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

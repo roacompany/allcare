@@ -13,7 +13,7 @@ settings:
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: "R24J6R4S7X"
     TARGETED_DEVICE_FAMILY: "1,2"
-    MARKETING_VERSION: "2.7.1"
+    MARKETING_VERSION: "2.8.0"
     CURRENT_PROJECT_VERSION: "62"
     INFOPLIST_KEY_CFBundleDisplayName: "베이비케어"
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.healthcare-fitness"
@@ -164,7 +164,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_CFBundleDisplayName: "올케어 위젯"
         GENERATE_INFOPLIST_FILE: true
-        MARKETING_VERSION: "2.7.1"
+        MARKETING_VERSION: "2.8.0"
         CURRENT_PROJECT_VERSION: "62"
         INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
     info:

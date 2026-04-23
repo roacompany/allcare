@@ -39,6 +39,17 @@
 ## P4-1
 - [ ] **H-10 법무 검토 대기** (외부 의존 1주): `/Users/roque/allcare/privacy.html` section 3 임신 데이터 고지 → 법무 검토 → signoff 후 git commit + GitHub Pages push (allcare 저장소). 완료 전 배포 금지.
 
+## P4-2
+- [ ] **배포 블로커 chain** (사용자 필수 액션):
+  1. P0-2b branch `feat/firebase-11.8.0-compat` (204cf49) PR → main merge
+  2. pregnancy-mode-v2 worktree `git merge main` (Firebase 11.0 → 11.9 동기화)
+  3. `make deploy` 실행 → TestFlight v2.8.0 업로드 (build# 자동 bump)
+  4. TestFlight 내부 테스터 3일 무회귀 모니터링 (Crashlytics >= 99% crash-free)
+  5. Firebase Console RemoteConfig `pregnancy_mode_enabled` 0% → 25% → 50% → 100% 단계 publish
+- [ ] H-11 Firebase Console Rules Simulator 3 시나리오 수동 테스트 (P0-5 연계).
+- [ ] H-10 법무 검토 완료 후 `/Users/roque/allcare/` 커밋 + GitHub Pages push (P4-1 연계).
+- [ ] H-4 산부인과 전문의 signoff 완료 후 P3-2 evidence 업데이트.
+
 ## P1-5
 - [ ] birthCTABanner가 dueDate 설정된 모든 임신 주차에서 노출됨 (P1-5 literal spec 준수, UX 부작용 가능). H-2 (Product+QA) 수동 검토 후 `dDay <= 28` 또는 `<= 0` 게이트 추가 여부 결정.
 
