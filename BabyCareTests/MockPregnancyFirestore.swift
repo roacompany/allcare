@@ -24,6 +24,10 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     var errorOnTransition: Error?
     var errorOnFetchSharedPregnancy: Error?
 
+    // MARK: - 에러 주입 (rollback)
+
+    var errorOnRollbackTransitionPending: Error?
+
     // MARK: - 호출 기록
 
     private(set) var savePregnancyCalls: [Pregnancy] = []
@@ -31,7 +35,9 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var fetchSharedPregnancyCalls: [String] = []
     private(set) var deletePregnancyCalls: [String] = []
     private(set) var transitionCalls: [(pregnancyId: String, babyName: String)] = []
+    private(set) var terminateCalls: [(pregnancyId: String, outcome: PregnancyOutcome)] = []
     private(set) var markTransitionPendingCalls: [String] = []
+    private(set) var rollbackTransitionPendingCalls: [String] = []
     private(set) var saveKickSessionCalls: [KickSession] = []
     private(set) var savePrenatalVisitCalls: [PrenatalVisit] = []
     private(set) var saveChecklistItemCalls: [PregnancyChecklistItem] = []
@@ -62,6 +68,11 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     func transitionPregnancyToBaby(pregnancy: Pregnancy, newBaby: Baby, userId: String) async throws {
         if let err = errorOnTransition { throw err }
         transitionCalls.append((pregnancy.id, newBaby.name))
+    }
+
+    func terminatePregnancy(pregnancy: Pregnancy, outcome: PregnancyOutcome, userId: String) async throws {
+        if let err = errorOnTransition { throw err }
+        terminateCalls.append((pregnancy.id, outcome))
     }
 
     func markTransitionPending(_ pregnancyId: String, userId: String) async throws {
@@ -111,6 +122,11 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     func addPregnancyPartner(email: String, userId: String, pregnancyId: String) async throws {}
 
     func removePregnancyPartner(partnerUid: String, userId: String, pregnancyId: String) async throws {}
+
+    func rollbackTransitionPending(_ pregnancyId: String, userId: String) async throws {
+        if let err = errorOnRollbackTransitionPending { throw err }
+        rollbackTransitionPendingCalls.append(pregnancyId)
+    }
 
     func fetchSharedPregnancy(currentUserId: String) async throws -> Pregnancy? {
         fetchSharedPregnancyCalls.append(currentUserId)

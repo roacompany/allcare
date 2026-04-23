@@ -44,6 +44,13 @@
   "todo-P1-5": {
     "dashboard_pregnancy_path": "BabyCare/Views/Dashboard/DashboardPregnancyView.swift"
   },
+  "todo-P2-1": {
+    "transition_sheet_path": "BabyCare/Views/Pregnancy/PregnancyTransitionSheet.swift",
+    "termination_view_path": "BabyCare/Views/Settings/PregnancyTerminationView.swift"
+  },
+  "todo-P2-2": {
+    "recovery_modal_path": "BabyCare/Views/Pregnancy/PregnancyRecoveryModal.swift"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

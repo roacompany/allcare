@@ -25,6 +25,7 @@ struct ContentView: View {
     private let offlineQueue = OfflineQueue.shared
 
     @State private var showPregnancyOnboarding = false
+    @State private var showPendingRecoveryModal = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -101,6 +102,16 @@ struct ContentView: View {
                 await runBadgeBackfillIfNeeded(userId: userId)
             }
         }
+        .onChange(of: pregnancyVM.pendingOrphan) { _, orphan in
+            // DP-4: pending 1개 orphan 감지 시 모달 표시.
+            // babyVM.hasInitialLoad guard: 로딩 경쟁 방지.
+            if orphan != nil && babyVM.hasInitialLoad {
+                showPendingRecoveryModal = true
+            }
+        }
+        .sheet(isPresented: $showPendingRecoveryModal) {
+            PregnancyRecoveryModal()
+        }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
             if isAuth, let userId = authVM.currentUserId {
                 Task {
@@ -116,6 +127,10 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 scheduleWeeklyInsightIfNeeded()
+                // 백그라운드에서 돌아올 때 pending orphan 재체크 (PLAN P2-2)
+                if babyVM.hasInitialLoad {
+                    pregnancyVM.detectPendingOrphan()
+                }
             }
         }
         .onChange(of: deepLinkDestination) { _, destination in

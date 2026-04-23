@@ -1101,7 +1101,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P2-1: PregnancyTransitionSheet 재작성 (출산/종료 CTA 분리)
+### [x] P2-1: PregnancyTransitionSheet 재작성 (출산/종료 CTA 분리)
 
 **Type**: work
 
@@ -1173,7 +1173,7 @@ rollback: "git revert PR 단위. WriteBatch 구조 건드리지 않으면 데이
 
 ---
 
-### [ ] P2-2: PregnancyRecoveryModal (pending orphan Resume UI) — 조건부
+### [x] P2-2: PregnancyRecoveryModal (pending orphan Resume UI) — 조건부
 
 **Type**: work
 

@@ -40,6 +40,18 @@
 - kickSessionSubtitle/prenatalVisitSubtitle/dueSoonBadge helper는 HealthView + HealthPregnancyView에 중복 — drift 리스크, 추후 공유 extension 고려.
 - 검증자가 P1-5 commit 이전 시점 snapshot에 기반해 거짓 violation 보고한 경우가 있었음 — 오케스트레이터는 `git log`로 실제 commit 상태 재확인 필요.
 
+## P2-1
+- 출산 CTA (PregnancyTransitionSheet "출산했어요") / 종료 CTA (Settings > PregnancyTerminationView deep path) 완전 분리. Q1+DP-4 준수.
+- `terminatePregnancy()` P0-3 two-step 패턴: markTransitionPending → WriteBatch (outcome + archivedAt + transitionState=completed). `.born` precondition guard.
+- Settings에 "임신 종료" NavigationLink (.secondary 색상) — 감정적으로 민감한 액션 de-emphasize.
+
+## P2-2
+- `pendingOrphan: Pregnancy?` + `detectPendingOrphan()` + `resumePendingTransition()` + `rollbackPendingTransition()` 4가지 메서드. loadActivePregnancy 말미 호출 + scenePhase .active 재탐지.
+- `rollbackPendingTransition`은 `FieldValue.delete()`로 `transitionState` 필드만 제거 — 문서 보존 100%, 데이터 삭제 금지 룰 준수.
+- `interactiveDismissDisabled(true)` — 명시적 선택 강제 (스와이프 dismiss 차단).
+- 2+ orphan Settings 배너는 DP-4로 deferred — v2.8 범위 외.
+- `nonisolated static let pendingStaleThreshold` — @MainActor @Observable 클래스 상수에 test context 접근 허용.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.

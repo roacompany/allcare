@@ -3435,6 +3435,204 @@ final class PregnancyViewModelIntegrationTests: XCTestCase {
     }
 }
 
+// MARK: - PregnancyRecovery Tests (P2-2)
+
+final class PregnancyRecoveryTests: XCTestCase {
+
+    // 1. stale pending pregnancy 로드 시 pendingOrphan이 노출되는지 검증
+    func test_recovery_fromPendingState_onLoad_showsAlert() {
+        let mock = MockPregnancyFirestore()
+        // updatedAt을 31초 전으로 설정하여 stale 임계값 초과
+        var pregnancy = Pregnancy(fetusCount: 1)
+        pregnancy.transitionState = "pending"
+        pregnancy.ownerUserId = "user1"
+        pregnancy.updatedAt = Date().addingTimeInterval(-(PregnancyViewModel.pendingStaleThreshold + 1))
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "pendingOrphan")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.pendingOrphan, "stale pending 상태에서 pendingOrphan이 노출되어야 함")
+            XCTAssertEqual(vm.pendingOrphan?.transitionState, "pending")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 2. pending 30초 이내 — 정상 전환 중으로 간주, pendingOrphan nil 확인
+    func test_recovery_freshPending_withinThreshold_hidesModal() {
+        let mock = MockPregnancyFirestore()
+        // updatedAt을 10초 전으로 설정 (30초 미만 → 정상 전환 중)
+        var pregnancy = Pregnancy(fetusCount: 1)
+        pregnancy.transitionState = "pending"
+        pregnancy.ownerUserId = "user1"
+        pregnancy.updatedAt = Date().addingTimeInterval(-10) // 10초 전
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "freshPending")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNil(vm.pendingOrphan, "30초 이내 pending은 모달을 숨겨야 함 (정상 전환 중)")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 3. rollback: rollbackPendingTransition 호출 시 Firestore에 rollback 요청 + pendingOrphan nil
+    func test_recovery_rollback_restoresOngoingState() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1)
+        pregnancy.transitionState = "pending"
+        pregnancy.ownerUserId = "user1"
+        pregnancy.updatedAt = Date().addingTimeInterval(-(PregnancyViewModel.pendingStaleThreshold + 1))
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "rollback")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.pendingOrphan)
+
+            await vm.rollbackPendingTransition(userId: "user1")
+
+            XCTAssertNil(vm.pendingOrphan, "rollback 후 pendingOrphan은 nil이어야 함")
+            XCTAssertNil(vm.activePregnancy?.transitionState, "rollback 후 transitionState는 nil이어야 함")
+            XCTAssertEqual(mock.rollbackTransitionPendingCalls.count, 1,
+                           "rollbackTransitionPending이 1회 호출되어야 함")
+            XCTAssertEqual(mock.deletePregnancyCalls.count, 0,
+                           "rollback 시 pregnancy 문서 삭제 금지 (데이터 보존)")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 4. resume: resumePendingTransition 호출 시 transitionToBaby WriteBatch 재실행
+    func test_recovery_retry_completesTransition() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(
+            lmpDate: Calendar.current.date(byAdding: .day, value: -280, to: Date()),
+            dueDate: Calendar.current.date(byAdding: .day, value: 0, to: Date()),
+            fetusCount: 1,
+            babyNickname: "테스트아기"
+        )
+        pregnancy.transitionState = "pending"
+        pregnancy.ownerUserId = "user1"
+        pregnancy.updatedAt = Date().addingTimeInterval(-(PregnancyViewModel.pendingStaleThreshold + 1))
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "resume")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.pendingOrphan)
+
+            _ = try? await vm.resumePendingTransition(
+                babyName: "출산아기",
+                gender: .male,
+                birthDate: Date(),
+                userId: "user1"
+            )
+
+            XCTAssertNil(vm.pendingOrphan, "resume 후 pendingOrphan은 nil이어야 함")
+            XCTAssertEqual(mock.markTransitionPendingCalls.count, 1,
+                           "resume 시 markTransitionPending 재호출 확인")
+            XCTAssertEqual(mock.transitionCalls.count, 1,
+                           "resume 시 WriteBatch 전환이 실행되어야 함")
+            XCTAssertEqual(mock.deletePregnancyCalls.count, 0,
+                           "resume 시에도 pregnancy 문서 삭제 금지")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+}
+
+// MARK: - PregnancyTermination Tests (P2-1)
+
+final class PregnancyTerminationTests: XCTestCase {
+
+    // 1. terminatePregnancy — markTransitionPending 호출이 WriteBatch 전에 발생하는지 검증
+    func test_transitionToOutcome_marksPendingBeforeBatch() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1, babyNickname: "테스트아기")
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "markPendingBeforeBatch")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy)
+
+            try? await vm.terminatePregnancy(outcome: .miscarriage, userId: "user1")
+
+            XCTAssertEqual(mock.markTransitionPendingCalls.count, 1,
+                           "markTransitionPending이 반드시 WriteBatch 전에 1회 호출되어야 함")
+            XCTAssertEqual(mock.terminateCalls.count, 1,
+                           "terminatePregnancy WriteBatch가 1회 호출되어야 함")
+            XCTAssertEqual(mock.terminateCalls.first?.outcome, .miscarriage)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 2. terminatePregnancy 성공 후 activePregnancy가 nil로 클리어되는지 검증
+    func test_transitionToOutcome_clearsPendingAfterSuccess() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1, babyNickname: "테스트아기")
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "clearsPendingAfterSuccess")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy)
+
+            try? await vm.terminatePregnancy(outcome: .stillbirth, userId: "user1")
+
+            XCTAssertNil(vm.activePregnancy,
+                         "성공 후 activePregnancy는 nil이어야 함 (로컬 상태 클리어)")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // 3. terminatePregnancy Firestore 오류 시 두 번째 호출도 noop(activePregnancy nil) 검증
+    func test_transitionToOutcome_duplicateCall_secondCallIsNoop() {
+        let mock = MockPregnancyFirestore()
+        var pregnancy = Pregnancy(fetusCount: 1, babyNickname: "테스트아기")
+        pregnancy.ownerUserId = "user1"
+        mock.activePregnancyResponse = pregnancy
+
+        let expectation = expectation(description: "duplicateCallNoop")
+        Task { @MainActor in
+            let vm = PregnancyViewModel(firestoreService: mock)
+            await vm.loadActivePregnancy(userId: "user1")
+            XCTAssertNotNil(vm.activePregnancy)
+
+            // 첫 번째 호출 — 성공
+            try? await vm.terminatePregnancy(outcome: .terminated, userId: "user1")
+            XCTAssertNil(vm.activePregnancy, "첫 번째 호출 후 activePregnancy nil")
+
+            // 두 번째 호출 — activePregnancy nil이므로 noActivePregnancy 에러로 no-op
+            do {
+                try await vm.terminatePregnancy(outcome: .terminated, userId: "user1")
+                XCTFail("두 번째 호출은 noActivePregnancy 에러를 던져야 함")
+            } catch PregnancyViewModel.PregnancyError.noActivePregnancy {
+                // 예상 경로 — no-op
+            } catch {
+                XCTFail("예상치 못한 에러: \(error)")
+            }
+
+            XCTAssertEqual(mock.terminateCalls.count, 1, "중복 호출 시 WriteBatch는 1회만 실행되어야 함")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+}
+
 // MARK: - AppContext Tests
 
 final class AppContextTests: XCTestCase {

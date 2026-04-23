@@ -19,6 +19,16 @@ final class PregnancyViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    // MARK: - Pending Recovery (P2-2)
+
+    /// stale pending 전환 감지 시 단일 orphan. nil = 모달 숨김.
+    /// DP-4: pending 1개만 모달, 2개+ 는 Settings 배너 (별도 구현).
+    var pendingOrphan: Pregnancy?
+
+    /// pending 감지 임계값: 30초 초과 시 stale로 판단 (PLAN T1-5).
+    /// nonisolated: 테스트 및 non-MainActor context에서도 접근 가능.
+    nonisolated static let pendingStaleThreshold: TimeInterval = 30
+
     private let firestoreService: PregnancyFirestoreProviding
 
     init(firestoreService: PregnancyFirestoreProviding = FirestoreService.shared) {
@@ -75,6 +85,8 @@ final class PregnancyViewModel {
                 self.weightEntries = (try? await weights) ?? []
                 self.symptoms = (try? await symptomList) ?? []
             }
+            // pending orphan 감지 (30초 임계값)
+            detectPendingOrphan()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -361,6 +373,58 @@ final class PregnancyViewModel {
         }
     }
 
+    // MARK: - Pending Recovery (P2-2)
+
+    /// activePregnancy가 stale pending 상태인지 검사하고 pendingOrphan을 설정.
+    /// 30초 임계값 미만이면 정상 전환 중으로 간주하여 모달 숨김.
+    /// DP-4: pending 1개(activePregnancy만)만 모달 표시.
+    func detectPendingOrphan() {
+        guard let p = activePregnancy,
+              p.transitionState == "pending" else {
+            pendingOrphan = nil
+            return
+        }
+        // 30초 이내는 정상 전환 중 — 모달 숨김
+        let staleCutoff = Date().addingTimeInterval(-Self.pendingStaleThreshold)
+        if p.updatedAt < staleCutoff {
+            pendingOrphan = p
+        } else {
+            pendingOrphan = nil
+        }
+    }
+
+    /// "이어서 완료" — 기존 transitionToBaby 재호출. 반드시 사용자 명시적 탭 후 호출.
+    /// 자동 retry 금지 (PLAN P2-2).
+    func resumePendingTransition(babyName: String, gender: Baby.Gender, birthDate: Date,
+                                 userId: String) async throws -> Baby {
+        // pendingOrphan이 없으면 안전하게 bail
+        guard pendingOrphan != nil else {
+            throw PregnancyError.noActivePregnancy
+        }
+        // dismiss 모달 먼저
+        pendingOrphan = nil
+        // transitionToBaby 재실행 (markTransitionPending은 내부에서 다시 호출됨)
+        return try await transitionToBaby(babyName: babyName, gender: gender,
+                                          birthDate: birthDate, userId: userId)
+    }
+
+    /// "취소" — transitionState 필드만 제거하여 ongoing 복원. 문서 보존 필수.
+    /// deleteActivePregnancy 사용 금지.
+    func rollbackPendingTransition(userId: String) async {
+        guard let p = pendingOrphan else { return }
+        pendingOrphan = nil
+        do {
+            try await firestoreService.rollbackTransitionPending(p.id, userId: userId)
+            // 로컬 상태 업데이트
+            var restored = p
+            restored.transitionState = nil
+            restored.updatedAt = Date()
+            activePregnancy = restored
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Transition
 
     /// Pregnancy → Baby 전환. WriteBatch 원자성 보장.
@@ -386,6 +450,25 @@ final class PregnancyViewModel {
         activePregnancy = nil
         PregnancyWidgetSyncService.clear()
         return newBaby
+    }
+
+    /// 임신 종료 (유산/사산/임신중지). P0-3 Scenario c: markTransitionPending → WriteBatch.
+    /// 단일 write 금지 — WriteBatch + transitionState 필수 (safety.md).
+    func terminatePregnancy(outcome: PregnancyOutcome, userId: String) async throws {
+        precondition(
+            outcome == .miscarriage || outcome == .stillbirth || outcome == .terminated,
+            "terminatePregnancy는 종료 outcome만 허용"
+        )
+        guard let p = activePregnancy else {
+            throw PregnancyError.noActivePregnancy
+        }
+        // (1) 전환 중 마커 (실패 복구용, WriteBatch 시작 전 단일 write)
+        try await firestoreService.markTransitionPending(p.id, userId: userId)
+        // (2) WriteBatch: outcome + archivedAt + transitionState=completed 원자적 write
+        try await firestoreService.terminatePregnancy(pregnancy: p, outcome: outcome, userId: userId)
+        // (3) 로컬 상태 업데이트 + 위젯 clear
+        activePregnancy = nil
+        PregnancyWidgetSyncService.clear()
     }
 
     // MARK: - Partner Sharing

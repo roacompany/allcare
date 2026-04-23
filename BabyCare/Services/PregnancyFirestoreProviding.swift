@@ -11,6 +11,7 @@ protocol PregnancyFirestoreProviding: Sendable {
     func fetchArchivedPregnancies(userId: String) async throws -> [Pregnancy]
     func deletePregnancy(_ pregnancyId: String, userId: String) async throws
     func transitionPregnancyToBaby(pregnancy: Pregnancy, newBaby: Baby, userId: String) async throws
+    func terminatePregnancy(pregnancy: Pregnancy, outcome: PregnancyOutcome, userId: String) async throws
     func markTransitionPending(_ pregnancyId: String, userId: String) async throws
     func saveKickSession(_ session: KickSession, userId: String, pregnancyId: String) async throws
     func fetchKickSessions(userId: String, pregnancyId: String, limit: Int) async throws -> [KickSession]
@@ -26,6 +27,8 @@ protocol PregnancyFirestoreProviding: Sendable {
     func removePregnancyPartner(partnerUid: String, userId: String, pregnancyId: String) async throws
     /// 파트너가 sharedWith에 포함된 진행 중 임신 조회 (collectionGroup 쿼리).
     func fetchSharedPregnancy(currentUserId: String) async throws -> Pregnancy?
+    /// pending 전환을 취소: transitionState 제거 + ongoing 복원. 문서 삭제 금지.
+    func rollbackTransitionPending(_ pregnancyId: String, userId: String) async throws
 }
 
 extension PregnancyFirestoreProviding {
