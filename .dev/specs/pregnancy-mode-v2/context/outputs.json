@@ -18,6 +18,11 @@
     "rules_deployed_at": "2026-04-23T11:08:17Z",
     "collectionGroup_rule_active": "true"
   },
+  "todo-P1-1": {
+    "appcontext_path": "BabyCare/Utils/AppContext.swift",
+    "appcontext_tests_count": "14",
+    "factory_signature": "AppContext.resolve(babies:pregnancy:)"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

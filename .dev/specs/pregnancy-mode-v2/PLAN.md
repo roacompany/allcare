@@ -765,7 +765,7 @@ rollback: "잘못된 배포 시 이전 rules 파일로 `firebase deploy --only f
 
 ---
 
-### [ ] P1-1: AppContext static factory + 4-state 단위 테스트
+### [x] P1-1: AppContext static factory + 4-state 단위 테스트
 
 **Type**: work
 

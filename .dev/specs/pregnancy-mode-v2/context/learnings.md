@@ -16,6 +16,12 @@
 - 하위 컬렉션(kickSessions/prenatalVisits/etc.)은 Partner 접근 시 부모 pregnancy의 sharedWith를 nested `get()`으로 확인 — 현재 구현 안전, 향후 collectionGroup 쿼리 추가 시 규칙 확장 필요.
 - `sharedWith is list` 타입 가드 + `uid in resource.data.sharedWith` 조합이 Swift `arrayContains` 쿼리와 정확히 매칭.
 
+## P1-1
+- `AppContext` 4-state enum 독립 Utils 파일 + Equatable + tuple exhaustive switch (no default:) 패턴 확정. 향후 P1-2~P2-2 gating에서 `AppContext.resolve(babies:pregnancy:)` 호출.
+- `project.yml`의 `path: BabyCare` recursive glob 덕분에 `BabyCare/Utils/` 신규 파일은 자동 포함 — xcodegen 재실행만으로 충분.
+- BabyCareTests.swift 여러 동일 closing brace 블록 주의 — Edit 경계에 unique context(전체 함수 몸체) 필수.
+- Orchestrator prompt 시 PLAN signature 그대로 인용 (`from` vs `resolve` drift 방지).
+
 ## P2-3
 - Swift 6 strict concurrency: 동일 optional inout 프로퍼티를 한 줄에서 read+write 시 exclusive access 위반 — `if p?.x == nil { p?.x = y }` 분리 필수.
 - Protocol은 기본 파라미터 불가 — protocol extension의 편의 오버로드로 우회 (default 값으로 required method 호출).

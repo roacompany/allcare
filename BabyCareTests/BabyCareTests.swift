@@ -3434,3 +3434,153 @@ final class PregnancyViewModelIntegrationTests: XCTestCase {
         wait(for: [expectation], timeout: 5)
     }
 }
+
+// MARK: - AppContext Tests
+
+final class AppContextTests: XCTestCase {
+
+    // MARK: Helper
+
+    private func makeBaby() -> Baby {
+        Baby(name: "테스트", birthDate: Date(), gender: .female)
+    }
+
+    private func makePregnancy() -> Pregnancy {
+        Pregnancy(fetusCount: 1)
+    }
+
+    // MARK: 4-State factory tests
+
+    // 1. empty arrays + nil pregnancy → .empty
+    func testAppContext_fromEmptyBabies_nilPregnancy_returnsEmpty() {
+        let context = AppContext.resolve(babies: [], pregnancy: nil)
+        XCTAssertEqual(context, .empty)
+    }
+
+    // 2. one baby + nil pregnancy → .babyOnly
+    func testAppContext_fromOneBaby_nilPregnancy_returnsBabyOnly() {
+        let context = AppContext.resolve(babies: [makeBaby()], pregnancy: nil)
+        XCTAssertEqual(context, .babyOnly)
+    }
+
+    // 3. empty babies + active pregnancy → .pregnancyOnly
+    func testAppContext_fromEmptyBabies_withPregnancy_returnsPregnancyOnly() {
+        let context = AppContext.resolve(babies: [], pregnancy: makePregnancy())
+        XCTAssertEqual(context, .pregnancyOnly)
+    }
+
+    // 4. one baby + active pregnancy → .both
+    func testAppContext_fromOneBaby_withPregnancy_returnsBoth() {
+        let context = AppContext.resolve(babies: [makeBaby()], pregnancy: makePregnancy())
+        XCTAssertEqual(context, .both)
+    }
+
+    // MARK: Edge cases — multiple babies
+
+    // 5. multiple babies + nil pregnancy → .babyOnly
+    func testAppContext_fromMultipleBabies_nilPregnancy_returnsBabyOnly() {
+        let babies = [makeBaby(), makeBaby(), makeBaby()]
+        let context = AppContext.resolve(babies: babies, pregnancy: nil)
+        XCTAssertEqual(context, .babyOnly)
+    }
+
+    // 6. multiple babies + active pregnancy → .both
+    func testAppContext_fromMultipleBabies_withPregnancy_returnsBoth() {
+        let babies = [makeBaby(), makeBaby()]
+        let context = AppContext.resolve(babies: babies, pregnancy: makePregnancy())
+        XCTAssertEqual(context, .both)
+    }
+
+    // MARK: Pregnancy with various outcomes
+
+    // 7. outcome=ongoing pregnancy → .pregnancyOnly (ongoing = active)
+    func testAppContext_ongoingPregnancy_returnsPregnancyOnly() {
+        var pregnancy = makePregnancy()
+        pregnancy.outcome = PregnancyOutcome(rawValue: "ongoing") ?? nil
+        let context = AppContext.resolve(babies: [], pregnancy: pregnancy)
+        XCTAssertEqual(context, .pregnancyOnly)
+    }
+
+    // 8. pregnancy with dueDate set → .pregnancyOnly
+    func testAppContext_pregnancyWithDueDate_returnsPregnancyOnly() {
+        var pregnancy = makePregnancy()
+        pregnancy.dueDate = Calendar.current.date(byAdding: .day, value: 200, to: Date())
+        let context = AppContext.resolve(babies: [], pregnancy: pregnancy)
+        XCTAssertEqual(context, .pregnancyOnly)
+    }
+
+    // MARK: Equatable correctness
+
+    // 9. same state == same state
+    func testAppContext_equatable_sameState_isEqual() {
+        XCTAssertEqual(AppContext.empty, AppContext.empty)
+        XCTAssertEqual(AppContext.babyOnly, AppContext.babyOnly)
+        XCTAssertEqual(AppContext.pregnancyOnly, AppContext.pregnancyOnly)
+        XCTAssertEqual(AppContext.both, AppContext.both)
+    }
+
+    // 10. different states != each other
+    func testAppContext_equatable_differentStates_areNotEqual() {
+        XCTAssertNotEqual(AppContext.empty, AppContext.babyOnly)
+        XCTAssertNotEqual(AppContext.empty, AppContext.pregnancyOnly)
+        XCTAssertNotEqual(AppContext.empty, AppContext.both)
+        XCTAssertNotEqual(AppContext.babyOnly, AppContext.pregnancyOnly)
+        XCTAssertNotEqual(AppContext.babyOnly, AppContext.both)
+        XCTAssertNotEqual(AppContext.pregnancyOnly, AppContext.both)
+    }
+
+    // MARK: Exhaustive switch — compile-time proof
+
+    // 11. All 4 cases are handled without `default:` (exhaustive switch proof)
+    func testAppContext_exhaustiveSwitch_allCasesHandled() {
+        let allCases: [AppContext] = [.empty, .babyOnly, .pregnancyOnly, .both]
+        var covered = Set<String>()
+        for context in allCases {
+            switch context {
+            case .empty:          covered.insert("empty")
+            case .babyOnly:       covered.insert("babyOnly")
+            case .pregnancyOnly:  covered.insert("pregnancyOnly")
+            case .both:           covered.insert("both")
+            // NOTE: no `default:` — if a new case is added, compiler will error here
+            }
+        }
+        XCTAssertEqual(covered.count, 4, "모든 AppContext case가 switch에서 처리되어야 함")
+        XCTAssertTrue(covered.contains("empty"))
+        XCTAssertTrue(covered.contains("babyOnly"))
+        XCTAssertTrue(covered.contains("pregnancyOnly"))
+        XCTAssertTrue(covered.contains("both"))
+    }
+
+    // 12. factory is deterministic — same input always yields same output
+    func testAppContext_factory_isDeterministic() {
+        let baby = makeBaby()
+        let pregnancy = makePregnancy()
+
+        let run1 = AppContext.resolve(babies: [baby], pregnancy: pregnancy)
+        let run2 = AppContext.resolve(babies: [baby], pregnancy: pregnancy)
+        XCTAssertEqual(run1, run2)
+
+        let run3 = AppContext.resolve(babies: [], pregnancy: nil)
+        let run4 = AppContext.resolve(babies: [], pregnancy: nil)
+        XCTAssertEqual(run3, run4)
+    }
+
+    // 13. hasBaby check is count-based not identity-based
+    func testAppContext_babyCountMatters_notIdentity() {
+        // Single baby triggers .babyOnly (not .empty)
+        let singleBaby = AppContext.resolve(babies: [makeBaby()], pregnancy: nil)
+        XCTAssertNotEqual(singleBaby, .empty)
+        XCTAssertEqual(singleBaby, .babyOnly)
+    }
+
+    // 14. nil pregnancy strictly maps to no-pregnancy states
+    func testAppContext_nilPregnancy_neverReturnsBothOrPregnancyOnly() {
+        let withBabies = AppContext.resolve(babies: [makeBaby()], pregnancy: nil)
+        let withoutBabies = AppContext.resolve(babies: [], pregnancy: nil)
+
+        XCTAssertNotEqual(withBabies, .pregnancyOnly)
+        XCTAssertNotEqual(withBabies, .both)
+        XCTAssertNotEqual(withoutBabies, .pregnancyOnly)
+        XCTAssertNotEqual(withoutBabies, .both)
+    }
+}
