@@ -37,6 +37,9 @@
     "dashboard_card_path": "BabyCare/Views/Dashboard/DashboardPregnancyHomeCard.swift",
     "dashboard_view_path": "BabyCare/Views/Dashboard/DashboardView.swift"
   },
+  "todo-P1-5": {
+    "dashboard_pregnancy_path": "BabyCare/Views/Dashboard/DashboardPregnancyView.swift"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

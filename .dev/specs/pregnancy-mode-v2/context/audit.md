@@ -1,5 +1,14 @@
 # pregnancy-mode-v2 Audit Trail
 
+## TODO P1-5 — UX Concern Logged (non-blocking)
+
+### [2026-04-23 22:35] Side-effect flagged
+- **Change**: `if let dDay = pregnancyVM.dDay, dDay <= 7` → `if pregnancyVM.dDay != nil` (birthCTABanner 표시 조건)
+- **Spec compliance**: 문자 그대로 매칭 ("D-7 제한 조건 제거")
+- **UX concern**: dDay는 dueDate 설정 시 항상 non-nil → 임신 6주 등 초기 시점에도 "출산했어요!" CTA 노출 가능. 의도와 불일치 가능.
+- **Decision**: spec 준수대로 진행. H-2 (Product+QA evaluator per h-items-evaluators.md)에서 수동 검토 대상으로 이관.
+- **Mitigation hint**: 추후 UX 검토 시 `dDay <= 28` (~last 4주) 또는 `dDay <= 0` (past due)로 완화 고려 가능.
+
 ## TODO P1-3 — Verify False Negative (override)
 
 ### [2026-04-23 22:05] Verify disagreement

@@ -11,6 +11,9 @@
 - [ ] H-11 (Partner visibility 실 배포 검증): Firebase Console Rules Simulator 3 시나리오 수동 테스트 필수 — (a) owner read ALLOW, (b) partner in sharedWith collectionGroup read ALLOW, (c) unknown uid read DENY. 자동화 불가.
 - [ ] 향후 kickSessions/prenatalVisits/pregnancyChecklists/pregnancyWeights/pregnancySymptoms 하위 컬렉션의 partner-facing collectionGroup 쿼리가 추가되면 해당 collectionGroup 규칙 확장 필요. 현재 v2.8 spec 범위 외.
 
+## P1-5
+- [ ] birthCTABanner가 dueDate 설정된 모든 임신 주차에서 노출됨 (P1-5 literal spec 준수, UX 부작용 가능). H-2 (Product+QA) 수동 검토 후 `dDay <= 28` 또는 `<= 0` 게이트 추가 여부 결정.
+
 ## P1-2
 - [ ] AddBabyView.swift의 임신 진입점을 AppContext 기반 gating으로 전환할지 P1-4/P3-1에서 결정. 현재는 XCUITest backward compat 목적으로 유지.
 - [ ] FeatureFlags.pregnancyModeEnabled gate는 P2-4 FeatureFlagService 도입 후 동일 위치에서 교체.

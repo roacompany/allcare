@@ -1043,7 +1043,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P1-5: DashboardPregnancyView 최소 수정 (D-7 제거 + Milestone nil-check)
+### [x] P1-5: DashboardPregnancyView 최소 수정 (D-7 제거 + Milestone nil-check)
 
 **Type**: work
 

@@ -28,6 +28,12 @@
 - Nested sheet 제거 완료 (빌드 56 orphan UI 회귀 근본 원인 제거).
 - AddBabyView.swift는 P1-2에서 미수정 — 기존 임신 진입점을 XCUITest backward compat용으로 보존. P1-4/P3-1에서 AppContext 정합 확인 필요.
 
+## P1-5
+- DashboardPregnancyView 최소 수정 (15줄 diff) 성공 — Codex Rec-5 "전면 재작성 금지" invariant 준수.
+- Milestone nil-check는 optional chaining (`info?.milestone`) + if-let로 이미 적용되어 있음 — P1-5는 D-7 제거만 실질 변경.
+- git stash + pop은 pre-existing 변경과 conflict 발생 시 실패 — 선호: `git checkout -- <file>` + 수동 재적용.
+- xcodebuild "BUILD FAILED / database is locked" 은 DerivedData 동시 접근 경합 — 병렬 make verify 회피 필요.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
