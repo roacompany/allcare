@@ -1,5 +1,14 @@
 # pregnancy-mode-v2 Audit Trail
 
+## TODO P1-3 — Verify False Negative (override)
+
+### [2026-04-23 22:05] Verify disagreement
+- **Verify worker verdict**: FAILED (7/12 AC fail, DashboardView.swift "not modified")
+- **Orchestrator re-check**: `git diff HEAD BabyCare/Views/Dashboard/DashboardView.swift` shows 25 insertions/4 deletions; `grep -n 'AppContext.resolve' DashboardView.swift` confirms switch block at line 35 with 4 explicit cases + pregnancyHomeCardIfNeeded at line 162
+- **Root cause**: Verify worker itself noted (missing_context HIGH severity): "Read tool cache artifact — initial Read returned new content, later Bash grep showed stale" — the verify worker's `grep` was false, not the P1-3 Worker's edit
+- **Decision**: OVERRIDE verify FAIL. P1-3 code is correctly applied. Proceed with commit.
+- **Lesson**: Verify worker must use `git diff HEAD` (not just grep) to check actual modifications; Read tool may serve stale content mid-session. Future verify prompts should instruct using `git diff` first.
+
 ## TODO P1-1 — Reconciliation
 
 ### [2026-04-23 21:07] Adapt (naming drift)

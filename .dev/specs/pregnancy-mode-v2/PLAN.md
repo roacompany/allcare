@@ -917,7 +917,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P1-3: Additive DashboardPregnancyHomeCard 신규
+### [x] P1-3: Additive DashboardPregnancyHomeCard 신규
 
 **Type**: work
 

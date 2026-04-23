@@ -7,6 +7,13 @@
     "submission_state": "APPROVED",
     "firebase_hotfix_branch": "feat/firebase-11.8.0-compat"
   },
+  "todo-P0-2b": {
+    "firebase_hotfix_branch": "feat/firebase-11.8.0-compat",
+    "firebase_version": "11.9.0",
+    "hotfix_commit_sha": "204cf49",
+    "firebase_hotfix_pr_url": "DEFERRED",
+    "testflight_v272_build": "DEFERRED"
+  },
   "todo-P0-3": {
     "pending_spec_path": ".dev/specs/pregnancy-mode-v2/context/pending-spec.md",
     "pending_is_valid": "valid"
@@ -22,6 +29,10 @@
     "appcontext_path": "BabyCare/Utils/AppContext.swift",
     "appcontext_tests_count": "14",
     "factory_signature": "AppContext.resolve(babies:pregnancy:)"
+  },
+  "todo-P1-3": {
+    "dashboard_card_path": "BabyCare/Views/Dashboard/DashboardPregnancyHomeCard.swift",
+    "dashboard_view_path": "BabyCare/Views/Dashboard/DashboardView.swift"
   },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",

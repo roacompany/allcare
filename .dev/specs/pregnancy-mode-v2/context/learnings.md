@@ -22,6 +22,11 @@
 - BabyCareTests.swift 여러 동일 closing brace 블록 주의 — Edit 경계에 unique context(전체 함수 몸체) 필수.
 - Orchestrator prompt 시 PLAN signature 그대로 인용 (`from` vs `resolve` drift 방지).
 
+## P1-3
+- DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
+- `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
+- Verify worker의 Read tool이 session 초반에 stale 내용을 반환할 수 있음 — `git diff HEAD`로 확인 필수 (Orchestrator가 override).
+
 ## P2-3
 - Swift 6 strict concurrency: 동일 optional inout 프로퍼티를 한 줄에서 read+write 시 exclusive access 위반 — `if p?.x == nil { p?.x = y }` 분리 필수.
 - Protocol은 기본 파라미터 불가 — protocol extension의 편의 오버로드로 우회 (default 값으로 required method 호출).
