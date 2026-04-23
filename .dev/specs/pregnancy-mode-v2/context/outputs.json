@@ -1,4 +1,7 @@
 {
+  "todo-P0-1": {
+    "regression_analysis_path": ".dev/specs/pregnancy-mode-v2/context/regression-rootcause.md"
+  },
   "todo-P0-3": {
     "pending_spec_path": ".dev/specs/pregnancy-mode-v2/context/pending-spec.md",
     "pending_is_valid": "valid"

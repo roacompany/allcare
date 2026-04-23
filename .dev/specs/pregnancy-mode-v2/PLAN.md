@@ -390,7 +390,7 @@ TODO Final: Verification
 
 ## TODOs
 
-### [ ] P0-1: v1 5빌드 회귀 근본 원인 재추적
+### [x] P0-1: v1 5빌드 회귀 근본 원인 재추적
 
 **Type**: work
 

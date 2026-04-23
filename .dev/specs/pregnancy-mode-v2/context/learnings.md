@@ -1,5 +1,10 @@
 # pregnancy-mode-v2 Learnings
 
+## P0-1
+- v1 빌드 56-61 회귀 원인 3카테고리: (a) 구조(gating 분산) 4건 / (b) 프로세스(테스트 부족) 2건 / (c) external(Firestore index) 1건.
+- 빌드 60 CRITICAL은 빌드 58 ContentView 부분 fix 후 하위 3-View 불일치가 드러난 전형적 single-source-of-truth 부재 패턴 → v2 AppContext 단일 분기로 구조적 제거.
+- git log + CLAUDE.md "회귀 이력" + learnings.md 3중 교차 확인으로 빌드별 유발 커밋 특정 가능.
+
 ## P0-3
 - gap-analyzer의 `markTransitionPending 0건 호출` 분석은 오류. 실제 호출은 `PregnancyViewModel.swift:365`에 존재. Scenario (c) 채택 → `pending_is_valid=valid`, P2-2 Resume UI 유효.
 - v1은 이미 2단계 commit 패턴(markTransitionPending → WriteBatch)을 올바르게 구현. v2에서도 동일 패턴 보존 권장.
