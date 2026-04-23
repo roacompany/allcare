@@ -11,6 +11,10 @@
 - [ ] H-11 (Partner visibility 실 배포 검증): Firebase Console Rules Simulator 3 시나리오 수동 테스트 필수 — (a) owner read ALLOW, (b) partner in sharedWith collectionGroup read ALLOW, (c) unknown uid read DENY. 자동화 불가.
 - [ ] 향후 kickSessions/prenatalVisits/pregnancyChecklists/pregnancyWeights/pregnancySymptoms 하위 컬렉션의 partner-facing collectionGroup 쿼리가 추가되면 해당 collectionGroup 규칙 확장 필요. 현재 v2.8 spec 범위 외.
 
+## P0-2b
+- [ ] **사용자 수동 수행 대기**: `feat/firebase-11.8.0-compat` 브랜치(commit 204cf49)의 PR 생성 + main merge + TestFlight v2.7.2 업로드. P2-4 (FeatureFlagService) 시작 전 필수.
+- [ ] Makefile `DEST`에 simulator ID 명시 권장 (동명 다중 시뮬레이터 혼동 방지) — v2.8.0 출시 후 별도 DX 개선 항목.
+
 ## P1-5
 - [ ] birthCTABanner가 dueDate 설정된 모든 임신 주차에서 노출됨 (P1-5 literal spec 준수, UX 부작용 가능). H-2 (Product+QA) 수동 검토 후 `dDay <= 28` 또는 `<= 0` 게이트 추가 여부 결정.
 

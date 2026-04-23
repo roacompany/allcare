@@ -510,7 +510,7 @@ rollback: "문서만 작성이므로 해당 파일 삭제 시 원복. 단 심사
 
 ---
 
-### [ ] P0-2b: Firebase 11.8.0 hotfix 실행 (branch → PR → main merge → TestFlight v2.7.2)
+### [x] P0-2b: Firebase 11.8.0 hotfix 실행 (branch → PR → main merge → TestFlight v2.7.2)
 
 **Type**: work
 

@@ -39,6 +39,14 @@
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
 - Verify worker의 Read tool이 session 초반에 stale 내용을 반환할 수 있음 — `git diff HEAD`로 확인 필수 (Orchestrator가 override).
 
+## P0-2b
+- Firebase 11.0 → 11.9.0 (latest 11.x stable) 업그레이드 성공 — 279 unit tests PASS, smoke-test PASS, widget build PASS. make verify clean.
+- XCUITest 6/10 실패는 main 기준 이미 존재 — FeatureFlags.pregnancyModeEnabled=false로 임신 UI 숨김이 원인. Firebase 업그레이드 회귀 아님.
+- GoogleService-Info.plist는 gitignored — 새 worktree 생성 시 main에서 수동 복사 필수.
+- Makefile `DEST`가 `name=iPhone 17 Pro`만 지정 시, 다중 시뮬레이터(26.2 + 26.4 both named iPhone 17 Pro) 환경에서 의도치 않은 선택 가능 — ID 명시 권장.
+- 별도 worktree 작업이므로 pregnancy-mode-v2와 완전 격리 — git 경합 없음.
+- **Branch commit 204cf49 main merge 및 TestFlight 업로드는 사용자 수동 수행 대기.**
+
 ## P2-3
 - Swift 6 strict concurrency: 동일 optional inout 프로퍼티를 한 줄에서 read+write 시 exclusive access 위반 — `if p?.x == nil { p?.x = y }` 분리 필수.
 - Protocol은 기본 파라미터 불가 — protocol extension의 편의 오버로드로 우회 (default 값으로 required method 호출).
