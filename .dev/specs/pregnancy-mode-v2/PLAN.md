@@ -850,7 +850,7 @@ rollback: "git revert. Utils/AppContext.swift 삭제 시 P1-2~P1-5 의존 실패
 
 ---
 
-### [ ] P1-2: ContentView 온보딩 재설계 (NOT 로직 제거, 2버튼)
+### [x] P1-2: ContentView 온보딩 재설계 (NOT 로직 제거, 2버튼)
 
 **Type**: work
 

@@ -30,6 +30,9 @@
     "appcontext_tests_count": "14",
     "factory_signature": "AppContext.resolve(babies:pregnancy:)"
   },
+  "todo-P1-2": {
+    "contentview_path": "BabyCare/App/ContentView.swift"
+  },
   "todo-P1-3": {
     "dashboard_card_path": "BabyCare/Views/Dashboard/DashboardPregnancyHomeCard.swift",
     "dashboard_view_path": "BabyCare/Views/Dashboard/DashboardView.swift"

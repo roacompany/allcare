@@ -22,6 +22,12 @@
 - BabyCareTests.swift 여러 동일 closing brace 블록 주의 — Edit 경계에 unique context(전체 함수 몸체) 필수.
 - Orchestrator prompt 시 PLAN signature 그대로 인용 (`from` vs `resolve` drift 방지).
 
+## P1-2
+- ContentView 온보딩: 2버튼 패턴 (아기 등록 / 임신 중이에요). FeatureFlags.pregnancyModeEnabled gate 유지 (P2-4에서 FeatureFlagService로 대체 예정).
+- NOT 로직 완전 제거 — `switch AppContext.resolve(...)` 4-state 분기로 대체, `default:` 없음.
+- Nested sheet 제거 완료 (빌드 56 orphan UI 회귀 근본 원인 제거).
+- AddBabyView.swift는 P1-2에서 미수정 — 기존 임신 진입점을 XCUITest backward compat용으로 보존. P1-4/P3-1에서 AppContext 정합 확인 필요.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
