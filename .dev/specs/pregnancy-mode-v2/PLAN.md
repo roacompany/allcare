@@ -1647,7 +1647,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] P4-1: Privacy Policy + Firestore rules/indexes 배포
+### [x] P4-1: Privacy Policy + Firestore rules/indexes 배포
 
 **Type**: work
 

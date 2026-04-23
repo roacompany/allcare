@@ -67,6 +67,12 @@
   "todo-P3-3": {
     "qa_evidence_v280_path": ".dev/qa-evidence/v2.8.0.md"
   },
+  "todo-P4-1": {
+    "privacy_html_path": "/Users/roque/allcare/privacy.html",
+    "rules_deploy_status": "already_deployed",
+    "index_check_status": "PASS",
+    "legal_signoff_status": "pending_human_review"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"

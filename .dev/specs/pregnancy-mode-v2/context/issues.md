@@ -36,6 +36,9 @@
 - [ ] **H-1~H-3, H-5~H-12 human signoff 대기** (외부 의존 H-4 의료 + H-10 법무 critical path 포함). evidence 파일은 준비됨, 실기기 QA + 전문의/법무/QA/디자이너 실행만 남음.
 - [ ] make qa-check는 `v{MARKETING_VERSION}.md` 파일 검색 — project.yml MARKETING_VERSION 2.7.1 → 2.8.0 bump 시점에 v2.8.0.md 게이트 활성 (P4-2 범위).
 
+## P4-1
+- [ ] **H-10 법무 검토 대기** (외부 의존 1주): `/Users/roque/allcare/privacy.html` section 3 임신 데이터 고지 → 법무 검토 → signoff 후 git commit + GitHub Pages push (allcare 저장소). 완료 전 배포 금지.
+
 ## P1-5
 - [ ] birthCTABanner가 dueDate 설정된 모든 임신 주차에서 노출됨 (P1-5 literal spec 준수, UX 부작용 가능). H-2 (Product+QA) 수동 검토 후 `dDay <= 28` 또는 `<= 0` 게이트 추가 여부 결정.
 

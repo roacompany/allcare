@@ -73,6 +73,13 @@
 - Agent self-signoff 가능 범위: test count grep, firestore.rules code 구조, FeatureFlags compile-time value, RemoteConfig defaults, sanity script. 불가: visual/haptics/real-device/external review.
 - Week 22 + Week 36 fruitSize 중복 (파파야) — 전문의 리뷰 시 flag.
 
+## P4-1
+- `/Users/roque/allcare/privacy.html` section 3 신설 (임신 모드 데이터 수집/HealthKit/Partner 공유/RemoteConfig/Analytics 제외/데이터 보존). 섹션 번호 재정렬 (3→4 through 10→11).
+- PENDING 법무 검토 banner (yellow left-border 스타일) + HTML 주석 dual visibility — 렌더+소스 양쪽에서 보이도록.
+- `make deploy-rules`는 idempotent: 이미 배포된 상태면 "already up to date" exit 0 (실패 아님).
+- `make index-check`는 복합 쿼리 3개 컬렉션 모두 등록 확인 (P2-3 COLLECTION_GROUP pregnancies 포함).
+- privacy.html은 `/Users/roque/allcare/` 에 수정만 하고 git commit 안 함 — 법무 signoff 대기.
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
