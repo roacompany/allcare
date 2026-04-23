@@ -61,6 +61,12 @@
 - 이전 Compile-time `FeatureFlags.pregnancyModeEnabled = true`로 변경 (Codex Rec-3: AND-combine 금지, Layer 1 guard() 조기 종료). 현재 FeatureFlags는 여전히 hardcoded — 런타임 게이팅은 FeatureFlagService.shared.isPregnancyModeEnabled로 수행.
 - ContentView/SettingsView/AddBabyView은 여전히 `FeatureFlags.pregnancyModeEnabled` 직접 참조 (P1 scope 존중) — v2.8 post-ship에서 proxy 전환 고려.
 
+## P3-1
+- XCUITest 18 = 10 기존 + 8 신규 (onboarding 2-button, dashboard additive, health/recording additive, settings termination, transition sheet). Build 58-61 회귀 방지 커버리지.
+- 단위 테스트 345 = 319 기존 + 26 신규 (4 클래스: AppContextLifecycleTests 8, PregnancyRecoveryModalStateTests 5, TerminationFlowEdgeCaseTests 6, FeatureFlagServiceBehaviorTests 7).
+- `UI_TESTING_PREGNANCY_ENABLED` launch arg 신규 추가 — FeatureFlag=false 빌드 62에서도 임신 UI 테스트 가능.
+- XCUITest는 알파벳 순 실행, `continueAfterFailure=false`로 failsafe 유지. Settings/termination paths는 soft assertion (FeatureFlag=false 시 UI 미노출 대응).
+
 ## P1-3
 - DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
 - `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.

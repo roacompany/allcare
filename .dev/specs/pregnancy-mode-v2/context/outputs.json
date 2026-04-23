@@ -55,6 +55,10 @@
     "featureflag_service_path": "BabyCare/Services/FeatureFlagService.swift",
     "stable_hash_path": "BabyCare/Utils/StableHash.swift"
   },
+  "todo-P3-1": {
+    "xcuitest_count": "18",
+    "unit_test_added": "26"
+  },
   "todo-P2-3": {
     "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
     "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"
