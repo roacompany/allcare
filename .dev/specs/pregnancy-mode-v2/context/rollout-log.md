@@ -7,38 +7,29 @@
 
 ---
 
-## P0-2b 의존성 상태 (BLOCKER)
+## P0-2b 의존성 상태 ✅ RESOLVED
 
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| `feat/firebase-11.8.0-compat` (commit 204cf49) main 머지 | **NO — BLOCKED** | `git log main --oneline -5`에 Firebase 관련 커밋 없음 |
-| main `project.yml` Firebase 버전 | **11.0.0** (현재) | 11.8.0 업그레이드 필요 |
-| pregnancy-mode-v2 Firebase 버전 | 11.0.0 (동기화 전) | P0-2b 머지 후 동기화 |
-
-**액션 필요**: `make deploy` 실행 전 반드시 `feat/firebase-11.8.0-compat` (commit `204cf49`)를 main에 머지해야 합니다.
+| `feat/firebase-11.8.0-compat` → main 머지 | **✅ DONE** | PR #3 squash-merged 2026-04-24T01:15:34Z → `7d80f93` on main |
+| main `project.yml` Firebase 버전 | **11.9.0** | merge commit 7d80f93 |
+| pregnancy-mode-v2 Firebase 버전 | **11.9.0** (sync됨) | merge commit `caeb7fe` (Merge main) |
+| `make verify` (merge 후) | ✅ ALL CHECKS PASSED | DerivedData clean 후 재빌드 필요했음 |
 
 ---
 
-## TestFlight 업로드 상태
+## TestFlight 업로드 상태 ✅ COMPLETE
 
 | 항목 | 상태 |
 |------|------|
-| TestFlight 업로드 | **[ ] DEFERRED — 사용자 실행 필요** |
-| 빌드 번호 (예정) | 63 (`make deploy` → `make bump` 자동 증가) |
-| Delivery UUID | _(make deploy 완료 후 기재)_ |
-| 업로드 일시 | _(make deploy 완료 후 기재)_ |
+| TestFlight 업로드 | **✅ UPLOAD SUCCEEDED** |
+| 버전 | **v2.8.0 (빌드 63)** |
+| **Delivery UUID** | **`09fa6305-8981-4593-b2a1-de1e3d150463`** |
+| 업로드 일시 | 2026-04-24 10:33 KST |
+| Transferred | 27.6 MB @ 14.0 MB/s |
+| Apple 처리 상태 | 처리 중 (~5-30분) — `gh api` 또는 ASC Console에서 확인 |
 
-**make deploy 실행 조건**:
-1. P0-2b main 머지 완료
-2. pregnancy-mode-v2 worktree → main sync (또는 PR merge)
-3. H-items 인간 QA 완료 (H-1~H-12 — 현재 전항목 PENDING)
-4. `make verify` PASS (마지막 코드 변경 후)
-
-**명령어** (사용자 직접 실행):
-```bash
-cd /Users/roque/BabyCare
-make deploy
-```
+**실행된 chain** (exit 0): plan-verify → verify → ui-test → smoke-test → qa-check → deploy-rules → bump(62→63) → archive → export → upload (`xcrun altool`)
 
 ---
 
