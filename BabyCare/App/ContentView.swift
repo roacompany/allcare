@@ -24,6 +24,9 @@ struct ContentView: View {
     private let networkMonitor = NetworkMonitor.shared
     private let offlineQueue = OfflineQueue.shared
 
+    @State private var showPregnancyOnboarding = false
+    @State private var showPendingRecoveryModal = false
+
     var body: some View {
         VStack(spacing: 0) {
             if !networkMonitor.isConnected {
@@ -58,10 +61,21 @@ struct ContentView: View {
                         // 런치스크린과 동일한 빈 화면 — 사용자가 전환을 눈치채지 못함
                         Color(.systemBackground)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if babyVM.babies.isEmpty && !(FeatureFlags.pregnancyModeEnabled && pregnancyVM.activePregnancy != nil) {
-                        onboardingView
                     } else {
-                        mainTabView
+                        let context = AppContext.resolve(
+                            babies: babyVM.babies,
+                            pregnancy: pregnancyVM.activePregnancy
+                        )
+                        switch context {
+                        case .empty:
+                            onboardingView
+                        case .babyOnly:
+                            mainTabView
+                        case .pregnancyOnly:
+                            mainTabView
+                        case .both:
+                            mainTabView
+                        }
                     }
                 } else {
                     LoginView()
@@ -88,6 +102,16 @@ struct ContentView: View {
                 await runBadgeBackfillIfNeeded(userId: userId)
             }
         }
+        .onChange(of: pregnancyVM.pendingOrphan) { _, orphan in
+            // DP-4: pending 1개 orphan 감지 시 모달 표시.
+            // babyVM.hasInitialLoad guard: 로딩 경쟁 방지.
+            if orphan != nil && babyVM.hasInitialLoad {
+                showPendingRecoveryModal = true
+            }
+        }
+        .sheet(isPresented: $showPendingRecoveryModal) {
+            PregnancyRecoveryModal()
+        }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
             if isAuth, let userId = authVM.currentUserId {
                 Task {
@@ -103,6 +127,10 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 scheduleWeeklyInsightIfNeeded()
+                // 백그라운드에서 돌아올 때 pending orphan 재체크 (PLAN P2-2)
+                if babyVM.hasInitialLoad {
+                    pregnancyVM.detectPendingOrphan()
+                }
             }
         }
         .onChange(of: deepLinkDestination) { _, destination in
@@ -244,10 +272,28 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 40)
 
+                if FeatureFlags.pregnancyModeEnabled {
+                    Button {
+                        showPregnancyOnboarding = true
+                    } label: {
+                        Text("임신 중이에요")
+                            .font(.headline)
+                            .foregroundStyle(AppColors.primaryAccent)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(AppColors.primaryAccent.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .padding(.horizontal, 40)
+                }
+
                 Spacer()
             }
             .sheet(isPresented: Bindable(babyVM).showAddBaby) {
                 AddBabyView()
+            }
+            .sheet(isPresented: $showPregnancyOnboarding) {
+                PregnancyRegistrationView()
             }
         }
     }

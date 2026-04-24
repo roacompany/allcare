@@ -5,6 +5,9 @@ import WidgetKit
 /// 기존 WidgetDataStore와 별도 키 prefix (pregnancy_) 격리.
 /// 같은 App Groups Suite (group.com.roacompany.allcare) 사용.
 /// 위젯 타겟에서는 PregnancyWidgetDataStore가 읽기 담당.
+///
+/// FeatureFlagService.pregnancyModeEnabled = false 시 stale 위젯 데이터 방지:
+/// `clearIfFlagDisabled()` 호출 → clear() 로 위젯 데이터 제거.
 enum PregnancyWidgetSyncService {
     private static let suiteName = "group.com.roacompany.allcare"
 
@@ -42,6 +45,17 @@ enum PregnancyWidgetSyncService {
             defaults.removeObject(forKey: key)
         }
         WidgetCenter.shared.reloadTimelines(ofKind: "PregnancyDDayWidget")
+    }
+
+    // MARK: - Feature Flag Integration
+
+    /// FeatureFlagService.pregnancyModeEnabled = false 변화 감지 시 호출.
+    /// flag OFF → 스테일 위젯 데이터 제거 (gap-analyzer blind spot #3 대응).
+    /// 위젯 타겟은 RemoteConfig 직접 불가 — 메인 앱 sync 경유 필수.
+    @MainActor
+    static func clearIfFlagDisabled() {
+        guard !FeatureFlagService.shared.pregnancyModeEnabled else { return }
+        clear()
     }
 
     /// 테스트 전용: 키 prefix 검증에 사용.

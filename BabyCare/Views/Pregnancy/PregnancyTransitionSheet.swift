@@ -1,9 +1,10 @@
 import SwiftUI
 
 // MARK: - PregnancyTransitionSheet
-// 출산 전환 시트.
+// 출산 전환 시트 (출산 CTA 전용).
 // 2단계 확인: 폼 입력 → Alert 확인 → 전환 실행
 // 성공 시 checkmark 아이콘 2초 표시 후 dismiss.
+// 임신 종료(유산/사산/임신중지) CTA는 설정 > 임신 관리 > 임신 종료 심층 경로에서 처리.
 
 struct PregnancyTransitionSheet: View {
     @Environment(PregnancyViewModel.self) private var pregnancyVM
@@ -139,7 +140,7 @@ struct PregnancyTransitionSheet: View {
                 } label: {
                     HStack {
                         Spacer()
-                        Text("전환 진행")
+                        Text("출산했어요")
                             .font(.headline)
                             .foregroundStyle(.white)
                         Spacer()

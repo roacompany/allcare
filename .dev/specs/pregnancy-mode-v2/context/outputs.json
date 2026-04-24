@@ -1,0 +1,88 @@
+{
+  "todo-P0-1": {
+    "regression_analysis_path": ".dev/specs/pregnancy-mode-v2/context/regression-rootcause.md"
+  },
+  "todo-P0-2": {
+    "submission_status_path": ".dev/specs/pregnancy-mode-v2/context/submission-status.md",
+    "submission_state": "APPROVED",
+    "firebase_hotfix_branch": "feat/firebase-11.8.0-compat"
+  },
+  "todo-P0-2b": {
+    "firebase_hotfix_branch": "feat/firebase-11.8.0-compat",
+    "firebase_version": "11.9.0",
+    "hotfix_commit_sha": "204cf49",
+    "firebase_hotfix_pr_url": "DEFERRED",
+    "testflight_v272_build": "DEFERRED"
+  },
+  "todo-P0-3": {
+    "pending_spec_path": ".dev/specs/pregnancy-mode-v2/context/pending-spec.md",
+    "pending_is_valid": "valid"
+  },
+  "todo-P0-4": {
+    "h_items_evaluators_path": ".dev/specs/pregnancy-mode-v2/context/h-items-evaluators.md"
+  },
+  "todo-P0-5": {
+    "rules_deployed_at": "2026-04-23T11:08:17Z",
+    "collectionGroup_rule_active": "true"
+  },
+  "todo-P1-1": {
+    "appcontext_path": "BabyCare/Utils/AppContext.swift",
+    "appcontext_tests_count": "14",
+    "factory_signature": "AppContext.resolve(babies:pregnancy:)"
+  },
+  "todo-P1-2": {
+    "contentview_path": "BabyCare/App/ContentView.swift"
+  },
+  "todo-P1-3": {
+    "dashboard_card_path": "BabyCare/Views/Dashboard/DashboardPregnancyHomeCard.swift",
+    "dashboard_view_path": "BabyCare/Views/Dashboard/DashboardView.swift"
+  },
+  "todo-P1-4": {
+    "health_view_path": "BabyCare/Views/Health/HealthView.swift",
+    "recording_view_path": "BabyCare/Views/Recording/RecordingView.swift"
+  },
+  "todo-P1-5": {
+    "dashboard_pregnancy_path": "BabyCare/Views/Dashboard/DashboardPregnancyView.swift"
+  },
+  "todo-P2-1": {
+    "transition_sheet_path": "BabyCare/Views/Pregnancy/PregnancyTransitionSheet.swift",
+    "termination_view_path": "BabyCare/Views/Settings/PregnancyTerminationView.swift"
+  },
+  "todo-P2-2": {
+    "recovery_modal_path": "BabyCare/Views/Pregnancy/PregnancyRecoveryModal.swift"
+  },
+  "todo-P2-4": {
+    "featureflag_service_path": "BabyCare/Services/FeatureFlagService.swift",
+    "stable_hash_path": "BabyCare/Utils/StableHash.swift"
+  },
+  "todo-P3-1": {
+    "xcuitest_count": "18",
+    "unit_test_added": "26"
+  },
+  "todo-P3-2": {
+    "pregnancy_weeks_verified_path": "BabyCare/Resources/pregnancy-weeks.json",
+    "h4_evidence": ".dev/qa-evidence/v2.8.0.md",
+    "signoff_status": "pending_human_review"
+  },
+  "todo-P3-3": {
+    "qa_evidence_v280_path": ".dev/qa-evidence/v2.8.0.md"
+  },
+  "todo-P4-1": {
+    "privacy_html_path": "/Users/roque/allcare/privacy.html",
+    "rules_deploy_status": "already_deployed",
+    "index_check_status": "PASS",
+    "legal_signoff_status": "pending_human_review"
+  },
+  "todo-P4-2": {
+    "testflight_build_number": "63",
+    "testflight_delivery_uuid": "09fa6305-8981-4593-b2a1-de1e3d150463",
+    "rollout_log_path": ".dev/specs/pregnancy-mode-v2/context/rollout-log.md",
+    "version": "2.8.0",
+    "uploaded_at": "2026-04-24T10:33 KST",
+    "deploy_readiness": "UPLOADED_PENDING_APPLE_PROCESSING"
+  },
+  "todo-P2-3": {
+    "pregnancy_firestore_providing_path": "BabyCare/Services/PregnancyFirestoreProviding.swift",
+    "mock_pregnancy_firestore_path": "BabyCareTests/MockPregnancyFirestore.swift"
+  }
+}

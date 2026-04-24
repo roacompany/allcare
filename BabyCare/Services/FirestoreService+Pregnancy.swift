@@ -191,6 +191,44 @@ extension FirestoreService {
         try await ref.setData(["transitionState": "pending", "updatedAt": Date()], merge: true)
     }
 
+    /// pending 전환 취소: transitionState 필드 제거, ongoing 유지. 문서 삭제 금지.
+    /// 취소 시 사용자 데이터 보존 필수 — deletePregnancy 사용 금지.
+    func rollbackTransitionPending(_ pregnancyId: String, userId: String) async throws {
+        let ref = pregnancyRef(userId: userId).document(pregnancyId)
+        try await ref.updateData([
+            "transitionState": FieldValue.delete(),
+            "updatedAt": Date()
+        ])
+    }
+
+    /// 임신 종료 (유산/사산/임신중지) WriteBatch 전환.
+    /// markTransitionPending 호출 후 이 메서드로 진입 (P0-3 Scenario c 채택).
+    /// WriteBatch로 2가지 쓰기를 원자화:
+    ///   1. Pregnancy.outcome = outcome (miscarriage/stillbirth/terminated)
+    ///   2. Pregnancy.transitionState = "completed", archivedAt = now
+    /// 단일 write 금지 — WriteBatch + transitionState 필수 (safety.md).
+    func terminatePregnancy(
+        pregnancy: Pregnancy,
+        outcome: PregnancyOutcome,
+        userId: String
+    ) async throws {
+        precondition(
+            outcome == .miscarriage || outcome == .stillbirth || outcome == .terminated,
+            "terminatePregnancy는 종료 outcome만 허용 (born은 transitionPregnancyToBaby 사용)"
+        )
+        let batch = db.batch()
+
+        var archived = pregnancy
+        archived.outcome = outcome
+        archived.archivedAt = Date()
+        archived.transitionState = "completed"
+        archived.updatedAt = Date()
+        let pRef = pregnancyRef(userId: userId).document(archived.id)
+        try batch.setData(from: archived, forDocument: pRef, merge: true)
+
+        try await batch.commit()
+    }
+
     // MARK: - Partner Sharing
 
     /// 이메일로 사용자 UID 조회 후 sharedWith에 추가 (읽기 전용 공유).
@@ -215,6 +253,21 @@ extension FirestoreService {
         let ref = pregnancyRef(userId: userId).document(pregnancyId)
         try await ref.updateData(["sharedWith": FieldValue.arrayRemove([partnerUid]),
                                   "updatedAt": Date()])
+    }
+
+    // MARK: - Partner Shared Pregnancy (collectionGroup)
+
+    /// 파트너가 나를 sharedWith에 포함시킨 진행 중 임신 조회.
+    /// collectionGroup("pregnancies")로 모든 사용자 하위 pregnancies 서브컬렉션을 검색.
+    /// PregnancyViewModel.loadActivePregnancy에서 자신의 임신이 없을 때 fallback으로 호출.
+    func fetchSharedPregnancy(currentUserId: String) async throws -> Pregnancy? {
+        let snapshot = try await db
+            .collectionGroup(FirestoreCollections.pregnancies)
+            .whereField("sharedWith", arrayContains: currentUserId)
+            .whereField("outcome", isEqualTo: PregnancyOutcome.ongoing.rawValue)
+            .limit(to: 1)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: Pregnancy.self).first
     }
 }
 

@@ -100,6 +100,15 @@ service cloud.firestore {
       }
     }
 
+    // --- 임신 모드 collectionGroup: 파트너 read (sharedWith) ---
+    // collectionGroup 쿼리 (fetchSharedPregnancy) 지원: sharedWith 포함 사용자 read 허용
+    match /{path=**}/pregnancies/{pregnancyId} {
+      allow read: if request.auth != null
+        && resource != null
+        && resource.data.sharedWith is list
+        && request.auth.uid in resource.data.sharedWith;
+    }
+
     // --- 초대 ---
     match /invites/{inviteId} {
       // 인증 사용자 읽기 (초대 코드 조회)
