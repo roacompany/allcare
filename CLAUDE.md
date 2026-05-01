@@ -97,6 +97,29 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-05-02) — App Store v2.8.0 심사 제출
+
+### AdMob 미노출 근본 원인 fix (5b6ac5f)
+- ASC API 직접 조회로 확정: `isOrEverWasMadeForKids=false`, `kidsAgeBand=null` → COPPA 의무 대상 아님
+- `tagForChildDirectedTreatment = true`가 자체 제한으로 광고 풀 ~5-20% 축소 → `false` 변경
+- 정책 충돌 0 (privacy.html / IDFA 약속 / ATT 무관)
+
+### v2.8.0 빌드 64 TestFlight + App Store 제출
+- 빌드 64 (`51a6cd4d-...`): AdMob fix + PatternReport Keychain + Admin 보안 헤더 포함
+- Privacy Policy v2.8.0 §3 GitHub Pages 라이브 (allcare `817b787`)
+- ASC API 5-step 자동화 (`reviewSubmissions` 신 API):
+  1. POST /v1/appStoreVersions (v2.8.0 생성)
+  2. build 64 link
+  3. PATCH appStoreVersionLocalizations (ko release notes 315자)
+  4. POST reviewSubmissions + reviewSubmissionItems
+  5. PATCH submitted=true → state: WAITING_FOR_REVIEW
+- 심사 결과 12-48h, AFTER_APPROVAL 자동 출시
+
+### Makefile DEST UDID 명시 (d9f8f14)
+- `DEST ?= 'platform=iOS Simulator,arch=arm64,id=E8CF2728-...'` (iOS 26.4 명시)
+- 환경변수 override 가능 (다른 머신 호환)
+- iOS 26.2 mkstemp signal kill 회피
+
 ## Recent Session (2026-05-01) — 보안 감사 + fix
 
 ### /cso security audit (4 targets, 6 findings → all fixed)
@@ -142,15 +165,16 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.0 (빌드 63) — 임신 모드 v2 재설계, RemoteConfig 게이팅 (RC 100% rollout D+3 이후)
-- **App Store**: v2.6.2 READY_FOR_SALE (APPROVED, 자동 출시) | v2.6.1 READY_FOR_SALE
-- **TestFlight**: v2.8.0 (빌드 63) — Delivery UUID `09fa6305-8981-4593-b2a1-de1e3d150463` (2026-04-23)
-  - 이전: v2.7.1 빌드 62 — `34d596a2-fecc-4a4d-9f2b-98c6969c79df` (2026-04-19)
+- **Version**: v2.8.0 (빌드 64) — 심사 제출됨 (WAITING_FOR_REVIEW, 2026-05-02 03:12 KST)
+- **App Store**: v2.6.2 READY_FOR_SALE | **v2.8.0 WAITING_FOR_REVIEW** (releaseType: AFTER_APPROVAL 자동 출시)
+- **TestFlight**: v2.8.0 빌드 64 — Delivery `51a6cd4d-e298-4b55-b2d6-c6bfdb00895f` (2026-05-01 23:31, AdMob fix 포함)
+  - 이전: 빌드 63 (`09fa6305-...`, 2026-04-23), 빌드 62 (`34d596a2-...`, 2026-04-19)
 - **Firebase**: 11.9.0 (PR #3 main merge `7d80f93`)
-- **테스트**: 345 단위 + 18 XCUITest PASS (+26 +8 vs v2.7.1), 경고 0건, arch-test 0 violations
+- **테스트**: 345 단위 + 18 XCUITest PASS, 경고 0건, arch-test 0 violations
 - **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy)
-- **RC Rollout 대기**: TestFlight 내부테스터 → 3일 무회귀(Crashlytics ≥99%) → Firebase Console RC 100% → App Store 제출
-- **Privacy Policy**: `/Users/roque/allcare/privacy.html` §3 임신 데이터 (uncommitted, 법무 검토 대기)
+- **RC Rollout 대기**: 심사 통과 → D+3 무회귀 → Firebase Console RC 100% (Crashlytics ≥99% 확인 후)
+- **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (`817b787`, 법무 검토 미수령 — 통과 후 보강 가능)
+- **Admin**: Vercel 자동 배포 (`90ded4f`+`2f6bf0e`+`ce5deaa` 보안 헤더 + npm audit fix)
 
 ## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
 
@@ -242,8 +266,9 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- ✅ P0: 임신 모드 v2 재설계 — 빌드 63 TestFlight 업로드 완료 (2026-04-23). RC rollout D+3 대기
-- [ ] v2.8 RC Rollout: Firebase Console `pregnancy_mode_enabled=true` 0→25→50→100% (사용자 직접, Crashlytics 확인 후)
+- ✅ P0: 임신 모드 v2 재설계 — 빌드 64 + App Store v2.8.0 심사 제출 완료 (2026-05-02). 결과 대기
+- [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_mode_enabled=true` 0→25→50→100% 단계 (Crashlytics 무회귀 확인)
+- [ ] H-12 게이팅 유지: 심사 중 RC=false 유지 (현재 default false라 안전)
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
