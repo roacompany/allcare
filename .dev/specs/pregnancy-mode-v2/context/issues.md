@@ -39,6 +39,10 @@
 ## P4-1
 - [ ] **H-10 법무 검토 대기** (외부 의존 1주): `/Users/roque/allcare/privacy.html` section 3 임신 데이터 고지 → 법무 검토 → signoff 후 git commit + GitHub Pages push (allcare 저장소). 완료 전 배포 금지.
 
+## XCUITest 회귀 (2026-05-02 빌드 64 deploy)
+- [ ] `test_a11y_extraLarge_pregnancyEntry_stillTappable` (PregnancyFlowTests.swift:222) — Accessibility XXXL에서 AddBabyView "아직 태어나지 않았나요?" 진입점이 `waitForExistence(timeout: 10)` 안에 노출 안 됨. 코드 변경 없음 (마지막 commit 36560ea, 2026-04-?). 가능성: (a) iOS 26.4 시뮬레이터 launch latency 증가, (b) sheet animation 지연, (c) ViewThatFits horizontal/vertical 분기 시점 차이. Fix 옵션: waitForExistence timeout 10s → 20s, 또는 시뮬레이터 dynamic type pre-set. H-8 (디자이너 a11y 시각 검증)으로 catch 가능. 빌드 64 업로드는 이미 성공 (51a6cd4d).
+- [ ] Makefile DEST `name=iPhone 17 Pro` ambiguity → `?= ID 명시`로 영구 fix 적용 (3c84b8a 이후). 새 머신에서 UDID 다를 시 환경변수 override.
+
 ## Security follow-up (2026-05-01 /cso audit)
 - [ ] **Firebase Admin SDK v14 출시 모니터링** — 13.8 transitive CVE 10건(@grpc/proto-loader, gaxios, protobufjs 등) 자동 해소 대기. v14 출시 시 `cd babycare-admin && npm install firebase-admin@14 && npm audit` 재검사.
 - [ ] **iOS PatternReportViewModel Keychain 마이그레이션은 다음 TestFlight 빌드(v2.8.1+)에 포함** — 빌드 63은 UserDefaults 사용. 다음 deploy 시 자동 마이그레이션 확인.
