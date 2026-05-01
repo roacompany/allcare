@@ -97,6 +97,16 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-05-01) — 보안 감사 + fix
+
+### /cso security audit (4 targets, 6 findings → all fixed)
+- **iOS** `9d5de14`: PatternReportViewModel AI API 키 UserDefaults → Keychain 마이그레이션 (F3, AIAdviceViewModel과 동일 패턴)
+- **Admin** `ce5deaa`: npm audit fix (next 16.1.6→16.2.4, HTTP smuggling CVE) + `/api/health` verifyAdmin 강제 + Next.js 보안 헤더 6종 (X-Frame-Options/HSTS/CSP/Permissions-Policy 등)
+- **Admin** `2f6bf0e`: firebase-admin 13.7.0 → 13.8.0 minor (transitive CVE는 v14 출시 대기)
+- **결과**: critical=1→0, high=9→0, moderate=10 (Firebase Admin transitive — acceptable risk)
+- **보고서**: `.gstack/security-reports/2026-05-01-114353.json` (.gstack/ gitignored)
+- **/harness 신규가입 플로우**: 79% Grade B (구조/실행/개선 100%, 맥락 56%, 계획 33%, 검증 78%)
+
 ## Recent Session (2026-04-23~24) — v2.8.0 빌드 63
 
 ### pregnancy-mode-v2 재설계 (21 TODOs, 20 commits on feat/pregnancy-mode-v2)

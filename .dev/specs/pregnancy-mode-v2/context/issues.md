@@ -39,6 +39,12 @@
 ## P4-1
 - [ ] **H-10 법무 검토 대기** (외부 의존 1주): `/Users/roque/allcare/privacy.html` section 3 임신 데이터 고지 → 법무 검토 → signoff 후 git commit + GitHub Pages push (allcare 저장소). 완료 전 배포 금지.
 
+## Security follow-up (2026-05-01 /cso audit)
+- [ ] **Firebase Admin SDK v14 출시 모니터링** — 13.8 transitive CVE 10건(@grpc/proto-loader, gaxios, protobufjs 등) 자동 해소 대기. v14 출시 시 `cd babycare-admin && npm install firebase-admin@14 && npm audit` 재검사.
+- [ ] **iOS PatternReportViewModel Keychain 마이그레이션은 다음 TestFlight 빌드(v2.8.1+)에 포함** — 빌드 63은 UserDefaults 사용. 다음 deploy 시 자동 마이그레이션 확인.
+- [ ] **Vercel 보안 헤더 6종 브라우저 검증** — curl은 봇 challenge로 차단됨. Chrome DevTools에서 Response Headers 확인 권장 (X-Frame-Options/CSP/Permissions-Policy 등 5종, HSTS는 즉시 활성 확인됨).
+- [ ] **CI 머지 게이트 강화** — `babycare-admin/.github/workflows/`에 `npm audit --audit-level=high` step 추가 권장 (직접 의존 CVE 자동 차단).
+
 ## P4-2
 - [ ] **배포 블로커 chain** (사용자 필수 액션):
   1. P0-2b branch `feat/firebase-11.8.0-compat` (204cf49) PR → main merge
