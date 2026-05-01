@@ -18,6 +18,25 @@
 
 ---
 
+## App Store 심사 상태 ✈️ WAITING_FOR_REVIEW
+
+| 항목 | 값 |
+|------|------|
+| 버전 | **v2.8.0** |
+| 제출 일시 | 2026-05-01 18:12 UTC (2026-05-02 03:12 KST) |
+| state | `WAITING_FOR_REVIEW` |
+| Release Type | `AFTER_APPROVAL` (승인 후 자동 출시) |
+| ASC Version ID | `7fecf273-ea07-4f07-810e-92d0a131fdd6` |
+| Review Submission ID | `642e330e-3769-4e79-ab2e-2447f7c71899` |
+| Build | 64 (Delivery `51a6cd4d-e298-4b55-b2d6-c6bfdb00895f`) |
+| Privacy Policy | https://roacompany.github.io/allcare/privacy.html (allcare commit `817b787`, v2.8.0 §3 라이브) |
+| Release Notes (ko) | "v2.8.0 — 안정성 강화 및 성능 개선..." (315자) |
+| H-12 RC 게이팅 | `pregnancy_mode_enabled = false` 유지 — 심사관이 임신 UI 미노출 |
+
+심사 평균 12-24h, 최대 48h. 결과:
+- **APPROVED** → AFTER_APPROVAL이라 자동 출시 (사용자에게 즉시 노출)
+- **REJECTED** → 사유 확인 + fix + 재제출 (재심사 ~24h)
+
 ## TestFlight 업로드 상태 ✅ COMPLETE
 
 | 항목 | 상태 |
