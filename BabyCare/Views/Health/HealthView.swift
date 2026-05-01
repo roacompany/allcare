@@ -12,10 +12,18 @@ struct HealthView: View {
     @State private var showBabySelector = false
 
     var body: some View {
-        // 우선순위: 등록된 아기가 있으면 무조건 육아 health view.
-        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: AppContext 기반 4-state 분기.
+        // .babyOnly / .both → baby Health 우선. 임신 섹션은 additive.
+        // .pregnancyOnly → 임신 전용 뷰.
+        // .empty → ContentView가 처리 (이 분기 미도달).
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .empty:
+            EmptyView()
+        case .babyOnly:
+            babyHealthView
+        case .pregnancyOnly:
             HealthPregnancyView()
-        } else {
+        case .both:
             babyHealthView
         }
     }
@@ -203,6 +211,8 @@ struct HealthView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        pregnancyHealthSectionIfNeeded
                     }
                     .padding(.horizontal)
                 }
@@ -251,6 +261,99 @@ struct HealthView: View {
                 }
             }
         }
+    }
+
+    /// `.both` 컨텍스트일 때만 임신 건강 섹션을 baby Health 목록 하단에 추가(additive).
+    /// baby UI를 대체하지 않음.
+    @ViewBuilder
+    private var pregnancyHealthSectionIfNeeded: some View {
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .both:
+            // 섹션 구분 헤더
+            HStack {
+                Text("임신 건강")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.top, 8)
+
+            // 태동 기록
+            NavigationLink {
+                KickSessionView()
+            } label: {
+                HealthSectionCard(
+                    icon: "hand.tap.fill",
+                    iconColor: AppColors.primaryAccent,
+                    title: "태동 기록",
+                    subtitle: kickSessionSubtitle,
+                    badge: nil,
+                    badgeColor: .clear
+                )
+            }
+            .buttonStyle(.plain)
+
+            // 산전 방문
+            NavigationLink {
+                PrenatalVisitListView()
+            } label: {
+                HealthSectionCard(
+                    icon: "stethoscope",
+                    iconColor: AppColors.indigoColor,
+                    title: "산전 방문",
+                    subtitle: prenatalVisitSubtitle,
+                    badge: dueSoonBadge,
+                    badgeColor: .blue
+                )
+            }
+            .buttonStyle(.plain)
+
+            // 체중 추이
+            NavigationLink {
+                PregnancyWeightView()
+            } label: {
+                HealthSectionCard(
+                    icon: "scalemass.fill",
+                    iconColor: AppColors.sageColor,
+                    title: "체중 추이",
+                    subtitle: pregnancyWeightSubtitle,
+                    badge: nil,
+                    badgeColor: .clear
+                )
+            }
+            .buttonStyle(.plain)
+
+        case .empty, .babyOnly, .pregnancyOnly:
+            EmptyView()
+        }
+    }
+
+    private var kickSessionSubtitle: String {
+        let count = pregnancyVM.kickSessions.count
+        if count == 0 { return "태동을 기록해보세요 (ACOG 10회 목표)" }
+        return "총 \(count)회 기록"
+    }
+
+    private var prenatalVisitSubtitle: String {
+        let total = pregnancyVM.prenatalVisits.count
+        if total == 0 { return "산전 방문 일정을 추가해보세요" }
+        let upcoming = pregnancyVM.prenatalVisits.filter { $0.isDueSoon }.count
+        if upcoming > 0 { return "예정 방문 \(upcoming)건" }
+        return "총 \(total)건 기록"
+    }
+
+    private var dueSoonBadge: String? {
+        let count = pregnancyVM.prenatalVisits.filter { $0.isDueSoon }.count
+        return count > 0 ? "\(count) 예정" : nil
+    }
+
+    private var pregnancyWeightSubtitle: String {
+        let count = pregnancyVM.weightEntries.count
+        if count == 0 { return "체중을 기록해보세요" }
+        if let last = pregnancyVM.weightEntries.sorted(by: { $0.measuredAt > $1.measuredAt }).first {
+            return "최근: \(String(format: "%.1f", last.weight))\(last.unit)"
+        }
+        return "총 \(count)건 기록"
     }
 
     private var vaccinationSubtitle: String {

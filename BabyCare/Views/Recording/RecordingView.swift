@@ -66,10 +66,18 @@ struct RecordingView: View {
     }
 
     var body: some View {
-        // 우선순위: 아기 등록됐으면 무조건 아기 기록 UI.
-        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: AppContext 기반 4-state 분기.
+        // .babyOnly / .both → baby 기록 UI 우선. 임신 기록은 additive.
+        // .pregnancyOnly → 임신 전용 기록 뷰.
+        // .empty → ContentView가 처리 (이 분기 미도달).
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .empty:
+            EmptyView()
+        case .babyOnly:
+            babyRecordingContent
+        case .pregnancyOnly:
             pregnancyRecordingContent
-        } else {
+        case .both:
             babyRecordingContent
         }
     }
@@ -162,6 +170,66 @@ struct RecordingView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Pregnancy Additive Section (`.both` 전용)
+
+    /// `.both` 컨텍스트일 때만 임신 기록 섹션을 baby 기록 UI 하단에 추가(additive).
+    /// baby 기록 탭을 대체하지 않음.
+    @ViewBuilder
+    private var pregnancyRecordingSectionIfNeeded: some View {
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .both:
+            VStack(alignment: .leading, spacing: 8) {
+                Divider()
+                    .padding(.horizontal)
+
+                Text("임신 기록")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+
+                VStack(spacing: 2) {
+                    pregnancyMenuButton(
+                        title: "태동 기록",
+                        subtitle: "태동 세션 시작/기록",
+                        icon: "waveform.path.ecg.rectangle",
+                        color: AppColors.primaryAccent
+                    ) { showKickRecording = true }
+
+                    pregnancyMenuButton(
+                        title: "산전 방문 추가",
+                        subtitle: "병원 방문 일정 기록",
+                        icon: "stethoscope",
+                        color: AppColors.indigoColor
+                    ) { showPrenatalVisit = true }
+
+                    pregnancyMenuButton(
+                        title: "체중 기록",
+                        subtitle: "임신 중 체중 변화 추적",
+                        icon: "scalemass",
+                        color: AppColors.sageColor
+                    ) { showWeightEntry = true }
+
+                    pregnancyMenuButton(
+                        title: "증상 메모",
+                        subtitle: "입덧, 부종 등 증상 기록",
+                        icon: "note.text",
+                        color: AppColors.warmOrangeColor
+                    ) { showSymptomMemo = true }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+            .sheet(isPresented: $showKickRecording) { KickRecordingSheet() }
+            .sheet(isPresented: $showPrenatalVisit) { PrenatalVisitFormSheet() }
+            .sheet(isPresented: $showWeightEntry) { PregnancyWeightEntrySheet() }
+            .sheet(isPresented: $showSymptomMemo) { PregnancySymptomMemoSheet() }
+
+        case .empty, .babyOnly, .pregnancyOnly:
+            EmptyView()
+        }
+    }
+
     // MARK: - Baby Recording Content (기존 육아 모드)
 
     private var babyRecordingContent: some View {
@@ -215,6 +283,8 @@ struct RecordingView: View {
                     }
                 }
                 .id(selectedCategory) // re-render on tab switch
+
+                pregnancyRecordingSectionIfNeeded
             }
             .navigationTitle(babyVM.selectedBaby.map { "\($0.name) 기록" } ?? "기록")
             .navigationBarTitleDisplayMode(.inline)

@@ -28,14 +28,14 @@ make screenshots     # 주요 화면 스크린샷 캡처
 
 ```bash
 make build         # xcodegen + xcodebuild
-make test          # 단위 테스트 252개
+make test          # 단위 테스트 345개
 make lint          # SwiftLint 검사
 make arch-test     # 아키텍처 경계 검사
 make verify        # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
 make plan-verify   # PLAN ↔ 코드 1:1 검증 (활성 spec)
 make smoke-test    # 시뮬레이터 런치 + 크래시 체크
 make qa-check      # QA evidence 파일 게이트
-make ui-test       # XCUITest (PregnancyFlowTests 9개)
+make ui-test       # XCUITest (PregnancyFlowTests 18개)
 make deploy-rules  # Firestore rules + indexes 자동 배포
 make deploy        # 원커맨드 배포 (verify→bump→archive→export→upload)
 make bump          # 빌드 번호 +1
@@ -49,10 +49,10 @@ make status        # 버전/커밋/테스트 상태
 - **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
-- **Firestore**: 200MB persistent cache, 29개 컬렉션 상수 (FirestoreCollections 24개 + 5 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터)
+- **Firestore**: 200MB persistent cache, 30개 컬렉션 상수 (FirestoreCollections 24개 + 6 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터). collectionGroup Partner read 규칙 배포 (2026-04-23)
 - **배지 시스템**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 + Activity/Growth/Routine save path 연동. Phase 2 UI: BadgePresenter + BadgeViewModel (@Observable, arch-test baseline 0) + BadgeSnackbarView + BadgeGalleryView (3-section grid + BadgeTileView + BadgeDetailSheet) + BadgeHomeStrip (Dashboard top) + SettingsView "내 배지" row + Localizable.strings 25 keys — `.dev/specs/badges-ui/PLAN.md` (14 A-items 완료, 5 H-items QA 대기)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
-- **임신 모드**: `FeatureFlags.pregnancyModeEnabled` 게이팅 (6곳: ContentView/Dashboard/Health/Recording/Settings/AddBaby). Pregnancy 모델 독립 컬렉션 (Baby와 분리). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`), WriteBatch 전환 트랜잭션 (Pregnancy→Baby atomic). EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith read-only). baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 무조건 baby UI (DashboardView/HealthView/RecordingView 3곳 동일 패턴). `activePregnancy != nil` 단독 체크 금지.
+- **임신 모드 v2 (v2.8.0+)**: Hybrid 게이팅 — 컴파일 타임 `FeatureFlags.pregnancyModeEnabled` (Layer 1 guard) + `FeatureFlagService` 단일 gateway로 RemoteConfig `pregnancy_mode_enabled` (Layer 2, fetch 실패 시 fallback=false). StableHash DJB2 deterministic cohort. AppContext 4-state enum (`empty/babyOnly/pregnancyOnly/both`)로 앱 상태 중앙화 — `AppContext.resolve(babies:pregnancy:)` static factory. PregnancyFirestoreProviding narrow protocol + MockPregnancyFirestore (BadgeFirestoreProviding 패턴). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`, raw value 영구 계약), WriteBatch + transitionState 전환 (atomic). `markTransitionPending` 2-step 패턴. EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산, FeatureFlag=false 시 clearIfFlagDisabled). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith collectionGroup read). baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 baby UI 유지 + DashboardPregnancyHomeCard 카드 additive. DashboardPregnancyHomeCard / PregnancyRecoveryModal (transitionState=pending orphan Resume UI) / PregnancyTerminationView (출산/종료 CTA 분리). FieldValue.delete()로 transitionState 필드만 rollback (문서 보존). `activePregnancy != nil` 단독 체크 금지.
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
 ## Conventions
@@ -97,6 +97,50 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-05-02) — App Store v2.8.0 심사 제출
+
+### AdMob 미노출 근본 원인 fix (5b6ac5f)
+- ASC API 직접 조회로 확정: `isOrEverWasMadeForKids=false`, `kidsAgeBand=null` → COPPA 의무 대상 아님
+- `tagForChildDirectedTreatment = true`가 자체 제한으로 광고 풀 ~5-20% 축소 → `false` 변경
+- 정책 충돌 0 (privacy.html / IDFA 약속 / ATT 무관)
+
+### v2.8.0 빌드 64 TestFlight + App Store 제출
+- 빌드 64 (`51a6cd4d-...`): AdMob fix + PatternReport Keychain + Admin 보안 헤더 포함
+- Privacy Policy v2.8.0 §3 GitHub Pages 라이브 (allcare `817b787`)
+- ASC API 5-step 자동화 (`reviewSubmissions` 신 API):
+  1. POST /v1/appStoreVersions (v2.8.0 생성)
+  2. build 64 link
+  3. PATCH appStoreVersionLocalizations (ko release notes 315자)
+  4. POST reviewSubmissions + reviewSubmissionItems
+  5. PATCH submitted=true → state: WAITING_FOR_REVIEW
+- 심사 결과 12-48h, AFTER_APPROVAL 자동 출시
+
+### Makefile DEST UDID 명시 (d9f8f14)
+- `DEST ?= 'platform=iOS Simulator,arch=arm64,id=E8CF2728-...'` (iOS 26.4 명시)
+- 환경변수 override 가능 (다른 머신 호환)
+- iOS 26.2 mkstemp signal kill 회피
+
+## Recent Session (2026-05-01) — 보안 감사 + fix
+
+### /cso security audit (4 targets, 6 findings → all fixed)
+- **iOS** `9d5de14`: PatternReportViewModel AI API 키 UserDefaults → Keychain 마이그레이션 (F3, AIAdviceViewModel과 동일 패턴)
+- **Admin** `ce5deaa`: npm audit fix (next 16.1.6→16.2.4, HTTP smuggling CVE) + `/api/health` verifyAdmin 강제 + Next.js 보안 헤더 6종 (X-Frame-Options/HSTS/CSP/Permissions-Policy 등)
+- **Admin** `2f6bf0e`: firebase-admin 13.7.0 → 13.8.0 minor (transitive CVE는 v14 출시 대기)
+- **결과**: critical=1→0, high=9→0, moderate=10 (Firebase Admin transitive — acceptable risk)
+- **보고서**: `.gstack/security-reports/2026-05-01-114353.json` (.gstack/ gitignored)
+- **/harness 신규가입 플로우**: 79% Grade B (구조/실행/개선 100%, 맥락 56%, 계획 33%, 검증 78%)
+
+## Recent Session (2026-04-23~24) — v2.8.0 빌드 63
+
+### pregnancy-mode-v2 재설계 (21 TODOs, 20 commits on feat/pregnancy-mode-v2)
+- **Firebase 11.9.0 hotfix** (PR #3, main merge `7d80f93`): Swift 6 concurrency Issue #14257 fix
+- **Phase 0**: 회귀 분석 + 심사 확인 + markTransitionPending spec + H-items 평가자 + firestore.rules collectionGroup Partner read 배포 (2026-04-23 11:08Z)
+- **Phase 1**: AppContext static factory (14 tests) + ContentView 2-button 온보딩 + DashboardPregnancyHomeCard additive + HealthView/RecordingView .both 진입점 + DashboardPregnancyView D-7 제거
+- **Phase 2**: PregnancyTransitionSheet 출산 CTA + PregnancyTerminationView 분리 + PregnancyRecoveryModal (pending orphan) + PregnancyFirestoreProviding narrow protocol + MockPregnancyFirestore + FeatureFlagService Hybrid + StableHash (DJB2)
+- **Phase 3**: XCUITest +8 (18) + unit +26 (345) + pregnancy-weeks 37주 sanity + QA evidence v2.8.0.md H-1~H-12 scaffold
+- **Phase 4**: Privacy Policy §3 임신 데이터 (법무 검토 대기) + v2.8.0 bump + rollout-log
+- **TestFlight v2.8.0 빌드 63**: Delivery UUID `09fa6305-8981-4593-b2a1-de1e3d150463` (2026-04-23 10:33 KST, make deploy full chain PASS)
+
 ## Recent Session (2026-04-16~19)
 
 ### 임신 모드 P0 완성 (feat/pregnancy-mode)
@@ -121,14 +165,16 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.7.1 (빌드 62) — **임신 모드 FeatureFlag=false** (5빌드 회귀 누적, 재설계 대기)
-- **App Store**: v2.6.1 READY_FOR_SALE
-- **심사 대기**: v2.6.2 (빌드 52) WAITING_FOR_REVIEW — 2026-04-11 제출
-- **TestFlight**: v2.7.1 (빌드 62) — Delivery UUID `34d596a2-fecc-4a4d-9f2b-98c6969c79df` (2026-04-19)
-  - 빌드 61: 임신 모드 enabled (Delivery UUID `d8f86bc5-22e4-4ab1-a972-85d39dd6509b`) — 회귀 누적으로 deprecated
-- **테스트**: 281+ 단위 + 10 XCUITest PASS, 경고 0건, arch-test 0 violations
-- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy 코드는 유지, UI만 hidden)
-- **QA**: 임신 모드 hidden으로 #2/#15 임신 관련 H-items 무관. badges-ui H-items는 별도 검증 필요.
+- **Version**: v2.8.0 (빌드 64) — 심사 제출됨 (WAITING_FOR_REVIEW, 2026-05-02 03:12 KST)
+- **App Store**: v2.6.2 READY_FOR_SALE | **v2.8.0 WAITING_FOR_REVIEW** (releaseType: AFTER_APPROVAL 자동 출시)
+- **TestFlight**: v2.8.0 빌드 64 — Delivery `51a6cd4d-e298-4b55-b2d6-c6bfdb00895f` (2026-05-01 23:31, AdMob fix 포함)
+  - 이전: 빌드 63 (`09fa6305-...`, 2026-04-23), 빌드 62 (`34d596a2-...`, 2026-04-19)
+- **Firebase**: 11.9.0 (PR #3 main merge `7d80f93`)
+- **테스트**: 345 단위 + 18 XCUITest PASS, 경고 0건, arch-test 0 violations
+- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy)
+- **RC Rollout 대기**: 심사 통과 → D+3 무회귀 → Firebase Console RC 100% (Crashlytics ≥99% 확인 후)
+- **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (`817b787`, 법무 검토 미수령 — 통과 후 보강 가능)
+- **Admin**: Vercel 자동 배포 (`90ded4f`+`2f6bf0e`+`ce5deaa` 보안 헤더 + npm audit fix)
 
 ## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
 
@@ -220,8 +266,9 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- ⏸ P0: 임신 모드 — 빌드 62에서 FeatureFlag=false (UI hidden, 데이터 보존). 5빌드 회귀 누적으로 재설계 대기 → `/specify pregnancy-mode-v2`
-- [ ] v2.8: 임신 모드 v2 재설계 — `.dev/NEXT_SESSION.md`의 회귀 invariant + isolation 표 + 검증 공백 spec 첨부 필수
+- ✅ P0: 임신 모드 v2 재설계 — 빌드 64 + App Store v2.8.0 심사 제출 완료 (2026-05-02). 결과 대기
+- [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_mode_enabled=true` 0→25→50→100% 단계 (Crashlytics 무회귀 확인)
+- [ ] H-12 게이팅 유지: 심사 중 RC=false 유지 (현재 default false라 안전)
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
@@ -229,11 +276,11 @@ make dead-code   # 미사용 코드 탐지
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 - 웹: Google Search Console, Naver 등록
 
-### v2.7.1 배포 전 액션
-- [ ] 실기기 QA (임신 모드 + D-day 위젯 + 출산 전환 + 태동 기록)
-- [ ] 3-Agent QA 재실행
-- [ ] firestore.rules 배포 (`firebase deploy --only firestore:rules` — v2.6.2 심사 완료 후)
-- [ ] pregnancy-weeks.json 40주 콘텐츠 완성 (산부인과 전문가)
-- [ ] Privacy Policy 갱신 (건강 데이터 수집 명시)
-- [ ] CHANGELOG/release notes 작성
-- [ ] App Store 제출
+### v2.8.0 배포 후 액션 (사용자 Human)
+- [ ] TestFlight 빌드 63 Apple processing → VALID 확인
+- [ ] 내부 테스터 3일 무회귀 모니터링 (Crashlytics crash-free ≥99%, pregnancy crash 0건)
+- [ ] D+3: Firebase Console → RC `pregnancy_mode_enabled = true` 100% rollout (단계적 0→25→50→100 권장)
+- [ ] H-4 산부인과 전문의 pregnancy-weeks 의료 검증 (2주 external)
+- [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 commit + GitHub Pages push (1주 external)
+- [ ] H-11 Firebase Console Rules Simulator 3 시나리오 수동 테스트
+- [ ] App Store v2.8.0 제출 (RC 100% 안정 후)

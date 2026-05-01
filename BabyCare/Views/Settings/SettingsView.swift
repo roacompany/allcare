@@ -60,6 +60,13 @@ struct SettingsView: View {
                         }
 
                         if pregnancyVM.activePregnancy != nil {
+                            NavigationLink {
+                                PregnancyTerminationView()
+                            } label: {
+                                Label("임신 종료", systemImage: "xmark.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+
                             Button(role: .destructive) {
                                 showDeletePregnancyAlert = true
                             } label: {

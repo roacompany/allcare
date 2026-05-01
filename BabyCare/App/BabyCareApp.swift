@@ -6,6 +6,7 @@ import FirebaseFirestore
 struct BabyCareApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let appState: AppState
+    private let flagService = FeatureFlagService.shared
 
     init() {
         // URLCache 설정 (이미지 캐싱 지원)
@@ -49,8 +50,15 @@ struct BabyCareApp: App {
                 .environment(appState.hospitalReport)
                 .environment(appState.insight)
                 .environment(appState.pregnancy)
+                .environment(flagService)
                 .onOpenURL { url in
                     deepLinkDestination = DeepLinkRouter.destination(from: url)
+                }
+                // FeatureFlagService bootstrap: ContentView.task 외부에서 실행 (first render race 방지).
+                // minimumFetchInterval 기본값(43200초=12시간) 유지 — ThrottledException 방지.
+                .task {
+                    let userId = appState.auth.currentUserId ?? "anonymous"
+                    await flagService.bootstrap(userId: userId)
                 }
         }
     }

@@ -28,11 +28,18 @@ struct DashboardView: View {
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
     var body: some View {
-        // 우선순위: 등록된 아기가 있으면 무조건 육아 대시보드.
-        // pregnancy UI는 "아기 아직 없음 + 임신 등록됨" 상태에서만 노출.
-        if babyVM.babies.isEmpty && pregnancyVM.activePregnancy != nil && FeatureFlags.pregnancyModeEnabled {
+        // 우선순위: AppContext 기반 4-state 분기.
+        // .babyOnly / .both → baby 대시보드 우선. 카드는 additive.
+        // .pregnancyOnly → 임신 전용 뷰.
+        // .empty → ContentView가 처리 (이 분기 미도달).
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .empty:
+            EmptyView()
+        case .babyOnly:
+            babyDashboard
+        case .pregnancyOnly:
             DashboardPregnancyView()
-        } else {
+        case .both:
             babyDashboard
         }
     }
@@ -54,6 +61,7 @@ struct DashboardView: View {
                             .padding(.horizontal, -16) // VStack horizontal padding 상쇄해서 full-width
                     }
                     insightCardsSection
+                    pregnancyHomeCardIfNeeded
                     summaryCardsSection
                     reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {
@@ -144,6 +152,19 @@ struct DashboardView: View {
                 productCandidates = []
             }
             .presentationDetents([.medium])
+        }
+    }
+
+    // MARK: - Pregnancy Home Card (Additive)
+
+    /// `.both` 컨텍스트일 때만 임신 요약 카드를 삽입. baby UI는 유지.
+    @ViewBuilder
+    private var pregnancyHomeCardIfNeeded: some View {
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .both:
+            DashboardPregnancyHomeCard()
+        case .empty, .babyOnly, .pregnancyOnly:
+            EmptyView()
         }
     }
 }
