@@ -22,14 +22,19 @@
 
 | 항목 | 상태 |
 |------|------|
-| TestFlight 업로드 | **✅ UPLOAD SUCCEEDED** |
-| 버전 | **v2.8.0 (빌드 63)** |
-| **Delivery UUID** | **`09fa6305-8981-4593-b2a1-de1e3d150463`** |
-| 업로드 일시 | 2026-04-24 10:33 KST |
-| Transferred | 27.6 MB @ 14.0 MB/s |
-| Apple 처리 상태 | 처리 중 (~5-30분) — `gh api` 또는 ASC Console에서 확인 |
+| 빌드 64 | **✅ UPLOAD SUCCEEDED** (AdMob child-directed=false fix + PatternReport Keychain) |
+|   Delivery UUID | `51a6cd4d-e298-4b55-b2d6-c6bfdb00895f` |
+|   업로드 일시 | 2026-05-01 23:31 KST |
+|   포함 fix | `5b6ac5f` AdMob child-directed=false, `9d5de14` PatternReport Keychain |
+| 빌드 63 | ✅ UPLOAD SUCCEEDED |
+|   Delivery UUID | `09fa6305-8981-4593-b2a1-de1e3d150463` |
+|   업로드 일시 | 2026-04-24 10:33 KST |
 
-**실행된 chain** (exit 0): plan-verify → verify → ui-test → smoke-test → qa-check → deploy-rules → bump(62→63) → archive → export → upload (`xcrun altool`)
+**빌드 64 deploy 절차**:
+- `make deploy` chain은 ui-test 단계에서 시뮬레이터 destination 매칭 실패 (iOS 26.2 mkstemp 이슈) → 단계 분해 실행
+- ui-test 단독 (iOS 26.4 simulator ID 명시): 18 XCUITest 0 failures PASS
+- bump(63→64) → archive → export → upload (수동 keychain unlock + search list 갱신 필요)
+- **개선 필요**: Makefile DEST를 ID 명시(`id=E8CF2728-...`)로 영구 변경, sub-make 변수 전파 이슈 해결
 
 ---
 
