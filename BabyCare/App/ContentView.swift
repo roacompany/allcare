@@ -86,6 +86,7 @@ struct ContentView: View {
                     theme: ThemeManager.shared.currentMode.rawValue
                 )
                 await runBadgeBackfillIfNeeded(userId: userId)
+                await FirestoreService.shared.updateLastAccessedAt(userId: userId)
             }
         }
         .onChange(of: authVM.isAuthenticated) { _, isAuth in
@@ -97,12 +98,16 @@ struct ContentView: View {
                         await pregnancyVM.loadActivePregnancy(userId: userId)
                     }
                     await runBadgeBackfillIfNeeded(userId: userId)
+                    await FirestoreService.shared.updateLastAccessedAt(userId: userId)
                 }
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 scheduleWeeklyInsightIfNeeded()
+                if let userId = authVM.currentUserId {
+                    Task { await FirestoreService.shared.updateLastAccessedAt(userId: userId) }
+                }
             }
         }
         .onChange(of: deepLinkDestination) { _, destination in
