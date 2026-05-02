@@ -100,6 +100,7 @@ struct ContentView: View {
                     theme: ThemeManager.shared.currentMode.rawValue
                 )
                 await runBadgeBackfillIfNeeded(userId: userId)
+                await FirestoreService.shared.updateLastAccessedAt(userId: userId)
             }
         }
         .onChange(of: pregnancyVM.pendingOrphan) { _, orphan in
@@ -121,6 +122,7 @@ struct ContentView: View {
                         await pregnancyVM.loadActivePregnancy(userId: userId)
                     }
                     await runBadgeBackfillIfNeeded(userId: userId)
+                    await FirestoreService.shared.updateLastAccessedAt(userId: userId)
                 }
             }
         }
@@ -130,6 +132,9 @@ struct ContentView: View {
                 // 백그라운드에서 돌아올 때 pending orphan 재체크 (PLAN P2-2)
                 if babyVM.hasInitialLoad {
                     pregnancyVM.detectPendingOrphan()
+                }
+                if let userId = authVM.currentUserId {
+                    Task { await FirestoreService.shared.updateLastAccessedAt(userId: userId) }
                 }
             }
         }
