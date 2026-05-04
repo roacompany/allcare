@@ -1,0 +1,21 @@
+{
+  "parameters": {
+    "pregnancy_mode_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "임신 모드 master kill switch. true + rollout_pct>0이어야 사용자에게 노출."
+    },
+    "pregnancy_rollout_pct": {
+      "defaultValue": {
+        "value": "0"
+      },
+      "valueType": "NUMBER",
+      "description": "임신 모드 코호트 rollout 비율 (0-100). StableHash bucket이 이 값보다 작으면 활성. 0=꺼짐, 25=1/4, 100=전체."
+    }
+  },
+  "version": {
+    "description": "v2.8.0 임신 모드 RC 초기 셋업 (0% rollout, 구조만 준비)"
+  }
+}
