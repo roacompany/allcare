@@ -14,14 +14,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
             FirebaseApp.configure()
         }
 
-        // MobileAds: 비개인화 광고 (privacy.html "IDFA 미사용" 약속 유지)
-        // child-directed는 false — 베이비케어는 App Store "Made for Kids" 카테고리가
-        // 아니며(ASC API isOrEverWasMadeForKids=false, kidsAgeBand=null) 부모(성인)
-        // 사용자 대상 앱이므로 COPPA 의무 대상이 아니다. true로 설정 시 광고 인벤토리
-        // 풀이 ~5-20%로 축소되어 fill rate 저하 → 빈 광고 영역 노출 원인.
-        MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = false
-        MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
-        MobileAds.shared.start(completionHandler: nil)
+        // MobileAds: AdMob 정책 차단(2026-05-06)으로 SDK 초기화 차단 (FeatureFlags.adsEnabled=false).
+        // 차단 해제 후 flag=true로 복구.
+        if FeatureFlags.adsEnabled {
+            MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = false
+            MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
+            MobileAds.shared.start(completionHandler: nil)
+        }
 
         // Analytics 옵트아웃 상태 반영
         AnalyticsService.shared.configure()

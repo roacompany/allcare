@@ -54,7 +54,7 @@ struct DashboardView: View {
                     quickActionsSection
                     weeklyInsightsCard
                     predictionSection
-                    if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 0) {
+                    if FeatureFlags.adsEnabled && AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 0) {
                         AdBannerView()
                             .frame(maxWidth: .infinity)
                             .frame(height: AdBannerView.currentBannerHeight())

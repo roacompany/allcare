@@ -114,7 +114,7 @@ struct HealthView: View {
                         .buttonStyle(.plain)
 
                         // 인라인 광고 (Health 탭)
-                        if AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 3) {
+                        if FeatureFlags.adsEnabled && AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 3) {
                             AdBannerView()
                                 .frame(maxWidth: .infinity)
                                 .frame(height: AdBannerView.currentBannerHeight())
