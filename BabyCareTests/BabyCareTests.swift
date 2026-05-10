@@ -726,7 +726,7 @@ final class BabyCareTests: XCTestCase {
         let curActs = (0..<14).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-$0 * 12 * 3600)), amount: 120) }
         let prevActs = (0..<10).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 12 * 3600)), amount: 100) }
         let curReport = makeReportWithActivities(curActs)
-        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7, metricHistory: [:])
         let candidates = FeedingInsightProvider.candidates(ctx)
         XCTAssertGreaterThanOrEqual(candidates.count, 1, "Feeding provider는 최소 1개 이상의 candidate (count/volume/interval) 생성")
         let metricKeys = Set(candidates.map { $0.metricKey })
@@ -744,7 +744,7 @@ final class BabyCareTests: XCTestCase {
         // 전주는 소변만 5회 → 이번주 wet=7, dirty=7 → wet 변화율 ↑, dirty 변화율 매우 큼
         let prevActs = (0..<5).map { makeDiaperActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 24 * 3600)), type: .diaperWet) }
         let curReport = makeReportWithActivities(curActs)
-        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7, metricHistory: [:])
         let candidates = DiaperInsightProvider.candidates(ctx)
         let keys = Set(candidates.map { $0.metricKey })
         XCTAssertTrue(keys.contains("diaper.wet"), "소변 candidate 존재")
@@ -757,7 +757,7 @@ final class BabyCareTests: XCTestCase {
         let curActs = (0..<7).map { makeSleepActivity(date: now.addingTimeInterval(Double(-$0 * 24 * 3600)), durationHours: 12) }
         let prevActs = (0..<7).map { makeSleepActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 24 * 3600)), durationHours: 10) }
         let curReport = makeReportWithActivities(curActs)
-        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7, metricHistory: [:])
         let candidates = SleepInsightProvider.candidates(ctx)
         let hours = candidates.first { $0.metricKey == "sleep.hours" }
         XCTAssertNotNil(hours, "수면 시간 candidate 존재")
@@ -773,7 +773,7 @@ final class BabyCareTests: XCTestCase {
         ]
         let prevActs: [Activity] = []
         let curReport = makeReportWithActivities(curActs)
-        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7, metricHistory: [:])
         let candidates = HealthInsightProvider.candidates(ctx)
         let fever = candidates.first { $0.metricKey == "health.fever" }
         XCTAssertNotNil(fever, "발열 candidate 생성 (prev=0, cur=2)")
@@ -782,30 +782,27 @@ final class BabyCareTests: XCTestCase {
 
     /// InsightScoringService — minChangePct 미만 candidate 제외
     func testScoringService_filtersBelowMinChangePct() {
-        let small = InsightCandidate(category: .feeding, metricKey: "feeding.count", title: "t", detail: "d", changePercent: 3, trend: .stable, medicalWeight: 1.0, sampleSize: 7)
-        let big = InsightCandidate(category: .sleep, metricKey: "sleep.hours", title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
-        let result = InsightScoringService.selectTopN([small, big], weights: .default)
+        let small = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 6, title: "t", detail: "d", changePercent: 3, trend: .stable, medicalWeight: 1.0, sampleSize: 7)
+        let big = InsightCandidate(category: .sleep, metricKey: "sleep.hours", currentValue: 12, title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        let result = InsightScoringService.selectTopN([small, big], scorer: HeuristicScorer(), metricHistory: [:], weights: .default)
         XCTAssertEqual(result.count, 1, "minChangePct(5) 미만은 필터링")
         XCTAssertEqual(result[0].metricKey, "sleep.hours")
     }
 
-    /// InsightScoringService — score = |Δ%| × weight × min(sample/7, 1) 으로 정렬
+    /// InsightScoringService — heuristic score 정렬
     func testScoringService_sortsByScore() {
-        // candidate A: Δ20 × w1.0 × s1.0 = 20
-        let a = InsightCandidate(category: .feeding, metricKey: "feeding.count", title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
-        // candidate B: Δ10 × w2.0 × s1.0 = 20 (동점) — 정렬은 stable
-        // candidate C: Δ15 × w2.0 × s1.0 = 30 (가장 높음)
-        let c = InsightCandidate(category: .health, metricKey: "health.fever", title: "t", detail: "d", changePercent: 15, trend: .increasing, medicalWeight: 2.0, sampleSize: 7)
-        let result = InsightScoringService.selectTopN([a, c], weights: .default)
+        let a = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 6, title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        let c = InsightCandidate(category: .health, metricKey: "health.fever", currentValue: 2, title: "t", detail: "d", changePercent: 15, trend: .increasing, medicalWeight: 2.0, sampleSize: 7)
+        let result = InsightScoringService.selectTopN([a, c], scorer: HeuristicScorer(), metricHistory: [:], weights: .default)
         XCTAssertEqual(result[0].metricKey, "health.fever", "weight 2.0이 곱해진 health가 1순위")
     }
 
     /// InsightScoringService — maxCount 적용
     func testScoringService_appliesMaxCount() {
         let candidates = (1...10).map {
-            InsightCandidate(category: .feeding, metricKey: "feeding.\($0)", title: "t", detail: "d", changePercent: Double($0 * 5), trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+            InsightCandidate(category: .feeding, metricKey: "feeding.\($0)", currentValue: Double($0), title: "t", detail: "d", changePercent: Double($0 * 5), trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
         }
-        let result = InsightScoringService.selectTopN(candidates, weights: .default)
+        let result = InsightScoringService.selectTopN(candidates, scorer: HeuristicScorer(), metricHistory: [:], weights: .default)
         XCTAssertEqual(result.count, 3, "default maxCount=3")
     }
 
@@ -826,6 +823,110 @@ final class BabyCareTests: XCTestCase {
         let insights = WeeklyInsightService.generateInsights(from: curReport, previousActivities: prevActs, previousDays: 7, currentDays: 7)
         XCTAssertGreaterThan(insights.count, 0, "수유 변화 있을 때 인사이트 생성")
         XCTAssertEqual(insights[0].category, .feeding)
+    }
+
+    // MARK: - Phase 1 ML Tests (Scorer dispatch + Statistical Anomaly)
+
+    /// HeuristicScorer — 기존 룰 동일 결과
+    func testHeuristicScorer_legacyFormula() {
+        let c = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 6, title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.5, sampleSize: 7)
+        let scorer = HeuristicScorer()
+        let s = scorer.score(c, history: [], weights: .default)
+        // |20| × 1.5 × min(7/7, 1.0) = 30
+        XCTAssertEqual(s, 30, accuracy: 0.001)
+    }
+
+    /// StatisticalAnomalyScorer — history 부족 → 0
+    func testAnomalyScorer_insufficientHistory_returnsZero() {
+        let c = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 10, title: "t", detail: "d", changePercent: 50, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        let scorer = StatisticalAnomalyScorer(minSamples: 4)
+        let s = scorer.score(c, history: [5, 5, 5], weights: .default)  // 3주 < 4
+        XCTAssertEqual(s, 0)
+    }
+
+    /// StatisticalAnomalyScorer — history 충분 + currentValue 이상 → 양수
+    func testAnomalyScorer_zScore() {
+        // history mean=5, std=√(((5-5)²+(5-5)²+(5-5)²+(5-5)²)/4) = 0 → fallback (changePct × 0.1 × weight)
+        // 위 케이스는 std=0 fallback 테스트. 분산 있는 케이스:
+        let c = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 10, title: "t", detail: "d", changePercent: 50, trend: .increasing, medicalWeight: 2.0, sampleSize: 7)
+        let scorer = StatisticalAnomalyScorer(minSamples: 4)
+        // history: [4, 5, 6, 5] → mean=5, var=((1+0+1+0)/4)=0.5, std=√0.5≈0.707
+        // zScore = |10 - 5| / 0.707 ≈ 7.07
+        // score = 7.07 × 2.0 ≈ 14.14
+        let s = scorer.score(c, history: [4, 5, 6, 5], weights: .default)
+        XCTAssertGreaterThan(s, 14.0, "Z-score × weight 계산 결과")
+        XCTAssertLessThan(s, 14.5)
+    }
+
+    /// HybridScorer — history 부족 → Heuristic, 충분 → Anomaly
+    func testHybridScorer_fallback() {
+        let c = InsightCandidate(category: .feeding, metricKey: "feeding.count", currentValue: 10, title: "t", detail: "d", changePercent: 50, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        let hybrid = HybridScorer(minSamples: 4)
+        let cold = hybrid.score(c, history: [5, 5], weights: .default)  // 2주 < 4 → heuristic
+        let warm = hybrid.score(c, history: [4, 5, 6, 5], weights: .default)  // 4주 ≥ 4 → anomaly
+        XCTAssertEqual(cold, 50, accuracy: 0.001, "콜드: |50|×1.0×1.0 = 50")
+        XCTAssertGreaterThan(warm, 5, "워밍업: anomaly score (Z=5/std)")
+    }
+
+    /// InsightScorerFactory — mode 매핑
+    func testScorerFactory_modes() {
+        XCTAssertTrue(InsightScorerFactory.make(mode: .heuristic, minSamples: 4) is HeuristicScorer)
+        XCTAssertTrue(InsightScorerFactory.make(mode: .anomaly, minSamples: 4) is StatisticalAnomalyScorer)
+        XCTAssertTrue(InsightScorerFactory.make(mode: .hybrid, minSamples: 4) is HybridScorer)
+    }
+
+    /// InsightScorerMode — RC 문자열 파싱
+    func testScorerMode_parsing() {
+        XCTAssertEqual(InsightScorerMode(rawValue: "heuristic"), .heuristic)
+        XCTAssertEqual(InsightScorerMode(rawValue: "ANOMALY"), .anomaly)
+        XCTAssertEqual(InsightScorerMode(rawValue: "hybrid"), .hybrid)
+        XCTAssertEqual(InsightScorerMode(rawValue: ""), .hybrid, "빈 문자열은 hybrid fallback")
+        XCTAssertEqual(InsightScorerMode(rawValue: "garbage"), .hybrid, "알 수 없는 값은 hybrid fallback")
+    }
+
+    /// WeeklyMetricSnapshot — weekKey ISO 형식
+    func testWeeklyMetricSnapshot_weekKey() {
+        // 2026-05-04 (월요일) → ISO Week 19 of 2026
+        let date = Calendar.iso8601Calendar.date(from: DateComponents(year: 2026, month: 5, day: 4))!
+        let key = WeeklyMetricSnapshot.weekKey(for: date)
+        XCTAssertTrue(key.contains("W"), "weekKey 형식 'YYYYWnn'")
+        XCTAssertEqual(key.count, 7, "예: '2026W19'")
+    }
+
+    /// WeeklyMetricSnapshot — Codable round-trip
+    func testWeeklyMetricSnapshot_codable() throws {
+        let original = WeeklyMetricSnapshot(
+            weekKey: "2026W19",
+            weekStartDate: Date(),
+            metrics: ["feeding.count": 6.5, "diaper.dirty": 3.0]
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(WeeklyMetricSnapshot.self, from: data)
+        XCTAssertEqual(decoded.weekKey, original.weekKey)
+        XCTAssertEqual(decoded.metrics["feeding.count"], 6.5)
+        XCTAssertEqual(decoded.metrics["diaper.dirty"], 3.0)
+    }
+
+    /// WeeklyInsightService.metricHistory — snapshot 배열 → metric_key 시계열
+    func testWeeklyInsightService_metricHistory() {
+        let snaps = [
+            WeeklyMetricSnapshot(weekKey: "2026W19", weekStartDate: Date(), metrics: ["feeding.count": 6, "diaper.dirty": 3]),
+            WeeklyMetricSnapshot(weekKey: "2026W18", weekStartDate: Date().addingTimeInterval(-604800), metrics: ["feeding.count": 5, "diaper.dirty": 4])
+        ]
+        let history = WeeklyInsightService.metricHistory(from: snaps)
+        XCTAssertEqual(history["feeding.count"], [6, 5])
+        XCTAssertEqual(history["diaper.dirty"], [3, 4])
+    }
+
+    /// WeeklyInsightService.snapshotMetrics — candidate currentValue를 metric 사전으로
+    func testWeeklyInsightService_snapshotMetrics() {
+        let now = Date()
+        let curActs = (0..<14).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-$0 * 12 * 3600)), amount: 120) }
+        let report = makeReportWithActivities(curActs)
+        let metrics = WeeklyInsightService.snapshotMetrics(from: report, previousActivities: [], previousDays: 7, currentDays: 7)
+        XCTAssertNotNil(metrics["feeding.count"], "수유 횟수 metric 저장")
+        XCTAssertNotNil(metrics["feeding.volume"], "수유 용량 metric 저장")
+        XCTAssertGreaterThan(metrics["feeding.count"] ?? 0, 0)
     }
 
     // MARK: - Todo/Routine Automation Tests
