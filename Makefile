@@ -2,7 +2,10 @@
 # Usage: make [target]
 
 SCHEME = BabyCare
-DEST = 'platform=iOS Simulator,name=iPhone 17 Pro'
+# DEST: iOS 26.4 iPhone 17 Pro UDID 명시 — name only 지정 시 iOS 26.2 매칭 시 mkstemp signal kill (.claude/rules/simulator-targets.md 참조).
+# 새 머신에서 다를 수 있으므로 환경변수로 override 가능: `make DEST='platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' build`
+# UDID 확인: `xcrun simctl list devices available | grep 'iPhone 17 Pro'`
+DEST ?= 'platform=iOS Simulator,arch=arm64,id=E8CF2728-092B-485D-BEF7-E959ED6B9435'
 PROJECT = BabyCare.xcodeproj
 ARCHIVE_PATH = build/BabyCare.xcarchive
 EXPORT_PATH = build/export

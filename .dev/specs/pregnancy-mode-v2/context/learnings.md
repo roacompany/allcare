@@ -1,0 +1,119 @@
+# pregnancy-mode-v2 Learnings
+
+## P0-1
+- v1 빌드 56-61 회귀 원인 3카테고리: (a) 구조(gating 분산) 4건 / (b) 프로세스(테스트 부족) 2건 / (c) external(Firestore index) 1건.
+- 빌드 60 CRITICAL은 빌드 58 ContentView 부분 fix 후 하위 3-View 불일치가 드러난 전형적 single-source-of-truth 부재 패턴 → v2 AppContext 단일 분기로 구조적 제거.
+- git log + CLAUDE.md "회귀 이력" + learnings.md 3중 교차 확인으로 빌드별 유발 커밋 특정 가능.
+
+## P0-2
+- v2.6.2 (빌드 52) **APPROVED** (READY_FOR_SALE) 확인 — ASC API `/v1/apps/6759935352/appStoreVersions` 2026-04-23 조회. releaseType=AFTER_APPROVAL 자동 출시.
+- v2.7.0도 READY_FOR_SALE → v2.7.1/v2.7.2 bump 시 심사 영향 없음.
+- project.yml Firebase 버전은 11.0.0 (v1 worktree 기준, v2도 동일 소스) — P0-2b에서 11.8+ 업그레이드.
+
+## P0-5
+- collectionGroup 규칙은 `match /databases/{database}/documents` 최상위 scope 필수 — `match /users/{userId}` 중첩 내부 배치 금지 (silent fail).
+- Makefile `deploy-rules` 타겟은 `firebase deploy --only firestore:rules`만 실행 (indexes 별도) → indexes 변경 시 별도 `make deploy-indexes` 또는 `make deploy-rules` 스크립트 확장 필요.
+- 하위 컬렉션(kickSessions/prenatalVisits/etc.)은 Partner 접근 시 부모 pregnancy의 sharedWith를 nested `get()`으로 확인 — 현재 구현 안전, 향후 collectionGroup 쿼리 추가 시 규칙 확장 필요.
+- `sharedWith is list` 타입 가드 + `uid in resource.data.sharedWith` 조합이 Swift `arrayContains` 쿼리와 정확히 매칭.
+
+## P1-1
+- `AppContext` 4-state enum 독립 Utils 파일 + Equatable + tuple exhaustive switch (no default:) 패턴 확정. 향후 P1-2~P2-2 gating에서 `AppContext.resolve(babies:pregnancy:)` 호출.
+- `project.yml`의 `path: BabyCare` recursive glob 덕분에 `BabyCare/Utils/` 신규 파일은 자동 포함 — xcodegen 재실행만으로 충분.
+- BabyCareTests.swift 여러 동일 closing brace 블록 주의 — Edit 경계에 unique context(전체 함수 몸체) 필수.
+- Orchestrator prompt 시 PLAN signature 그대로 인용 (`from` vs `resolve` drift 방지).
+
+## P1-2
+- ContentView 온보딩: 2버튼 패턴 (아기 등록 / 임신 중이에요). FeatureFlags.pregnancyModeEnabled gate 유지 (P2-4에서 FeatureFlagService로 대체 예정).
+- NOT 로직 완전 제거 — `switch AppContext.resolve(...)` 4-state 분기로 대체, `default:` 없음.
+- Nested sheet 제거 완료 (빌드 56 orphan UI 회귀 근본 원인 제거).
+- AddBabyView.swift는 P1-2에서 미수정 — 기존 임신 진입점을 XCUITest backward compat용으로 보존. P1-4/P3-1에서 AppContext 정합 확인 필요.
+
+## P1-5
+- DashboardPregnancyView 최소 수정 (15줄 diff) 성공 — Codex Rec-5 "전면 재작성 금지" invariant 준수.
+- Milestone nil-check는 optional chaining (`info?.milestone`) + if-let로 이미 적용되어 있음 — P1-5는 D-7 제거만 실질 변경.
+- git stash + pop은 pre-existing 변경과 conflict 발생 시 실패 — 선호: `git checkout -- <file>` + 수동 재적용.
+- xcodebuild "BUILD FAILED / database is locked" 은 DerivedData 동시 접근 경합 — 병렬 make verify 회피 필요.
+
+## P1-4
+- HealthView/RecordingView `switch AppContext.resolve` 4-case 분기 + additive `pregnancyHealthSectionIfNeeded` / `pregnancyRecordingSectionIfNeeded` @ViewBuilder 패턴 — P1-3 DashboardView와 동일한 구조적 합의.
+- RecordingView `.both` 임신 기록 entry는 VStack section (5번째 CategoryTabBar 탭 추가 대신) — 발견성(discoverability) QA 필요 (H-items 관련).
+- kickSessionSubtitle/prenatalVisitSubtitle/dueSoonBadge helper는 HealthView + HealthPregnancyView에 중복 — drift 리스크, 추후 공유 extension 고려.
+- 검증자가 P1-5 commit 이전 시점 snapshot에 기반해 거짓 violation 보고한 경우가 있었음 — 오케스트레이터는 `git log`로 실제 commit 상태 재확인 필요.
+
+## P2-1
+- 출산 CTA (PregnancyTransitionSheet "출산했어요") / 종료 CTA (Settings > PregnancyTerminationView deep path) 완전 분리. Q1+DP-4 준수.
+- `terminatePregnancy()` P0-3 two-step 패턴: markTransitionPending → WriteBatch (outcome + archivedAt + transitionState=completed). `.born` precondition guard.
+- Settings에 "임신 종료" NavigationLink (.secondary 색상) — 감정적으로 민감한 액션 de-emphasize.
+
+## P2-2
+- `pendingOrphan: Pregnancy?` + `detectPendingOrphan()` + `resumePendingTransition()` + `rollbackPendingTransition()` 4가지 메서드. loadActivePregnancy 말미 호출 + scenePhase .active 재탐지.
+- `rollbackPendingTransition`은 `FieldValue.delete()`로 `transitionState` 필드만 제거 — 문서 보존 100%, 데이터 삭제 금지 룰 준수.
+- `interactiveDismissDisabled(true)` — 명시적 선택 강제 (스와이프 dismiss 차단).
+- 2+ orphan Settings 배너는 DP-4로 deferred — v2.8 범위 외.
+- `nonisolated static let pendingStaleThreshold` — @MainActor @Observable 클래스 상수에 test context 접근 허용.
+
+## P2-4
+- `FeatureFlagService` (@Observable @MainActor singleton) + `StableHash` (DJB2) 신규. 3-layer fallback: RemoteConfig → cache → compile-time. Fetch 실패 시 fallback=false 강제 (A-18).
+- Firebase SDK 11.0도 async/await `fetchAndActivate()` 지원 — P0-2b (11.8+) merge 대기 없이 P2-4 진행 가능.
+- `try? fetchAndActivate()` 패턴: do/catch 없이 fallback=false 보장.
+- Bootstrap은 `BabyCareApp.task` (NOT ContentView.task) — 첫 렌더 race 방지 (빌드 60 회귀 패턴 유사).
+- DJB2 'abc' = 193485963 — regression guard 테스트 추가.
+- 이전 Compile-time `FeatureFlags.pregnancyModeEnabled = true`로 변경 (Codex Rec-3: AND-combine 금지, Layer 1 guard() 조기 종료). 현재 FeatureFlags는 여전히 hardcoded — 런타임 게이팅은 FeatureFlagService.shared.isPregnancyModeEnabled로 수행.
+- ContentView/SettingsView/AddBabyView은 여전히 `FeatureFlags.pregnancyModeEnabled` 직접 참조 (P1 scope 존중) — v2.8 post-ship에서 proxy 전환 고려.
+
+## P3-1
+- XCUITest 18 = 10 기존 + 8 신규 (onboarding 2-button, dashboard additive, health/recording additive, settings termination, transition sheet). Build 58-61 회귀 방지 커버리지.
+- 단위 테스트 345 = 319 기존 + 26 신규 (4 클래스: AppContextLifecycleTests 8, PregnancyRecoveryModalStateTests 5, TerminationFlowEdgeCaseTests 6, FeatureFlagServiceBehaviorTests 7).
+- `UI_TESTING_PREGNANCY_ENABLED` launch arg 신규 추가 — FeatureFlag=false 빌드 62에서도 임신 UI 테스트 가능.
+- XCUITest는 알파벳 순 실행, `continueAfterFailure=false`로 failsafe 유지. Settings/termination paths는 soft assertion (FeatureFlag=false 시 UI 미노출 대응).
+
+## P3-2+P3-3
+- `.dev/qa-evidence/v2.8.0.md` 구축 — H-1~H-12 12개 섹션 + 37주 pregnancy-weeks summary table + agent-automatable [V] 10건 + human PENDING 12 상태 라인.
+- make qa-check는 MARKETING_VERSION 기반으로 v{version}.md 파일 게이트 — v2.8.0.md는 project.yml bump 후 활성.
+- Agent self-signoff 가능 범위: test count grep, firestore.rules code 구조, FeatureFlags compile-time value, RemoteConfig defaults, sanity script. 불가: visual/haptics/real-device/external review.
+- Week 22 + Week 36 fruitSize 중복 (파파야) — 전문의 리뷰 시 flag.
+
+## P4-1
+- `/Users/roque/allcare/privacy.html` section 3 신설 (임신 모드 데이터 수집/HealthKit/Partner 공유/RemoteConfig/Analytics 제외/데이터 보존). 섹션 번호 재정렬 (3→4 through 10→11).
+- PENDING 법무 검토 banner (yellow left-border 스타일) + HTML 주석 dual visibility — 렌더+소스 양쪽에서 보이도록.
+- `make deploy-rules`는 idempotent: 이미 배포된 상태면 "already up to date" exit 0 (실패 아님).
+- `make index-check`는 복합 쿼리 3개 컬렉션 모두 등록 확인 (P2-3 COLLECTION_GROUP pregnancies 포함).
+- privacy.html은 `/Users/roque/allcare/` 에 수정만 하고 git commit 안 함 — 법무 signoff 대기.
+
+## P4-2
+- project.yml MARKETING_VERSION은 base(line 16) + Widget target(line 167) 두 군데 — 동시 bump 필수.
+- v2.8.0.md QA evidence 파일은 P3-3에서 PASS 마커 기 작성 완료 — `make qa-check`는 version bump 즉시 활성.
+- rollout-log.md 스캐폴드: P0-2b blocker 명시 + D+0~D+4 Crashlytics crash-free gate + rollback plan + human-action items.
+- deploy_readiness=BLOCKED_P0-2B — main이 Firebase 11.0 유지, 204cf49 merge 필요.
+- **배포 5가지 human-only 액션**: (a) P0-2b PR/merge to main → (b) pregnancy-mode-v2 sync main → (c) `make deploy` → (d) TestFlight 3일 모니터링 → (e) RC 0%→100% 단계 publish.
+
+## P1-3
+- DashboardPregnancyHomeCard additive 패턴 — NavigationLink to DashboardPregnancyView, AppColors(.primaryAccent, .warmOrangeColor, .indigoColor) 사용, 0 raw hex.
+- `pregnancyHomeCardIfNeeded` @ViewBuilder로 AppContext.both 시에만 카드 삽입, 다른 case는 EmptyView — 단일 진실 소스 유지.
+- Verify worker의 Read tool이 session 초반에 stale 내용을 반환할 수 있음 — `git diff HEAD`로 확인 필수 (Orchestrator가 override).
+
+## P0-2b
+- Firebase 11.0 → 11.9.0 (latest 11.x stable) 업그레이드 성공 — 279 unit tests PASS, smoke-test PASS, widget build PASS. make verify clean.
+- XCUITest 6/10 실패는 main 기준 이미 존재 — FeatureFlags.pregnancyModeEnabled=false로 임신 UI 숨김이 원인. Firebase 업그레이드 회귀 아님.
+- GoogleService-Info.plist는 gitignored — 새 worktree 생성 시 main에서 수동 복사 필수.
+- Makefile `DEST`가 `name=iPhone 17 Pro`만 지정 시, 다중 시뮬레이터(26.2 + 26.4 both named iPhone 17 Pro) 환경에서 의도치 않은 선택 가능 — ID 명시 권장.
+- 별도 worktree 작업이므로 pregnancy-mode-v2와 완전 격리 — git 경합 없음.
+- **Branch commit 204cf49 main merge 및 TestFlight 업로드는 사용자 수동 수행 대기.**
+
+## P2-3
+- Swift 6 strict concurrency: 동일 optional inout 프로퍼티를 한 줄에서 read+write 시 exclusive access 위반 — `if p?.x == nil { p?.x = y }` 분리 필수.
+- Protocol은 기본 파라미터 불가 — protocol extension의 편의 오버로드로 우회 (default 값으로 required method 호출).
+- `FirestoreService+Pregnancy.swift`에서 `collectionGroup` 쿼리는 `private pregnancyRef` 헬퍼 우회하고 `db.collectionGroup` 직접 호출 필요.
+- `index_check.py`는 `.whereField + .order` 조합만 스캔 — `arrayContains + whereField` (no order) 패턴은 수동 COLLECTION_GROUP 인덱스 추가가 정답.
+- BadgeFirestoreProviding 패턴(narrow + Mock) 재사용성 확인 — 다른 도메인으로 확장 가능.
+
+## P0-3
+- gap-analyzer의 `markTransitionPending 0건 호출` 분석은 오류. 실제 호출은 `PregnancyViewModel.swift:365`에 존재. Scenario (c) 채택 → `pending_is_valid=valid`, P2-2 Resume UI 유효.
+- v1은 이미 2단계 commit 패턴(markTransitionPending → WriteBatch)을 올바르게 구현. v2에서도 동일 패턴 보존 권장.
+- Scenario 분류 전 실제 코드 grep 필수 — 분석 전제 오류 가능.
+
+## P0-4
+- PLAN.md Verification Summary에 H-item이 10개가 아닌 12개(H-1~H-12) — Spec 내 숫자 표기(`H-items 10개`)와 실제 데이터 불일치. 실제는 12개 채택.
+- v2.7.1 QA evidence 포맷(`H | 영역 | 자동검증 | 결과 | 비고`)에서 v2는 `평가자`, `기준`, `Evidence 포맷`, `기한` 4컬럼 확장.
+- H-4/H-10 외부 의존은 평가자 셀에 "AI 에이전트 불가" 태그로 명시 필요 — 할당 혼동 방지.
+

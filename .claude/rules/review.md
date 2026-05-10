@@ -23,3 +23,9 @@ globs: "**/*.swift"
 - 인증/가족공유 로직 변경
 - AI 가드레일 관련 코드
 - 새 서비스 클래스 추가
+
+## Verify/Review 방법론
+
+- **git diff가 ground truth**: Verify agent는 반드시 `git diff HEAD -- <file>` 로 실제 변경 확인. Read tool은 세션 중 stale cache 반환 가능 — Read 결과와 git diff가 다르면 git diff 채택. pregnancy-mode-v2 P1-3에서 verify worker Read tool이 stale 내용 반환해 false FAILED 보고함.
+- **XCUITest 실패 개수는 branch baseline과 diff**: 예를 들어 `FeatureFlags.pregnancyModeEnabled=false` 상태에서는 임신 UI 관련 XCUITest 6/10이 pre-existing 실패. 이를 regression으로 오판하지 말고 main 동일 branch에서 같은 failure pattern인지 확인.
+- **3-Agent QA 실행 순서**: single-host machine에서 시뮬레이터 경합 방지 — Code Quality (no sim) → Mobile Responsive (static) → Visual/UX (sim). 병렬 launch 시 `signal kill` 발생하면 serial 재실행.

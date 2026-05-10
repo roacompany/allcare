@@ -14,10 +14,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
             FirebaseApp.configure()
         }
 
-        // MobileAds: child-directed + non-personalized (must be set BEFORE start())
-        MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = true
-        MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
-        MobileAds.shared.start(completionHandler: nil)
+        // MobileAds: AdMob 정책 차단(2026-05-06)으로 SDK 초기화 차단 (FeatureFlags.adsEnabled=false).
+        // 차단 해제 후 flag=true로 복구.
+        if FeatureFlags.adsEnabled {
+            MobileAds.shared.requestConfiguration.tagForChildDirectedTreatment = false
+            MobileAds.shared.requestConfiguration.publisherPrivacyPersonalizationState = .disabled
+            MobileAds.shared.start(completionHandler: nil)
+        }
 
         // Analytics 옵트아웃 상태 반영
         AnalyticsService.shared.configure()

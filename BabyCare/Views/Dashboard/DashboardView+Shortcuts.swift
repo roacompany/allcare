@@ -11,7 +11,7 @@ extension DashboardView {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
 
-                ForEach(activityVM.weeklyInsights) { insight in
+                ForEach(Array(activityVM.weeklyInsights.enumerated()), id: \.element.id) { idx, insight in
                     HStack(spacing: 10) {
                         Image(systemName: insightSymbol(for: insight.category))
                             .font(.body)
@@ -35,6 +35,13 @@ extension DashboardView {
                                 .foregroundStyle(changePercent > 0 ? Color.green : Color.red)
                         }
                     }
+                    .onAppear {
+                        AnalyticsService.shared.logInsightShown(
+                            metricKey: insight.metricKey,
+                            category: insight.category.rawValue,
+                            position: idx
+                        )
+                    }
                 }
             }
             .padding(14)
@@ -45,19 +52,21 @@ extension DashboardView {
         }
     }
 
-    private func insightSymbol(for category: WeeklyInsightService.InsightCategory) -> String {
+    private func insightSymbol(for category: InsightCategory) -> String {
         switch category {
         case .feeding: return "fork.knife"
         case .sleep:   return "moon.zzz.fill"
         case .diaper:  return "drop.fill"
+        case .health:  return "heart.fill"
         }
     }
 
-    private func insightColor(for category: WeeklyInsightService.InsightCategory) -> Color {
+    private func insightColor(for category: InsightCategory) -> Color {
         switch category {
         case .feeding: return feedingColor
         case .sleep:   return sleepColor
         case .diaper:  return diaperColor
+        case .health:  return Color.red
         }
     }
 

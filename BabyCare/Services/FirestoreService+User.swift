@@ -11,6 +11,7 @@ extension FirestoreService {
     /// Firebase Auth metadata.lastSignInTime은 명시적 로그인에만 갱신되어 정확한 활동 추적 불가.
     /// 1시간 throttle로 쓰기 비용 제한.
     func updateLastAccessedAt(userId: String) async {
+        if CommandLine.arguments.contains("UI_TESTING") { return }
         let now = Date()
         let lastPersisted = UserDefaults.standard.object(forKey: Self.lastAccessedAtKey) as? Date
         if let lastPersisted, now.timeIntervalSince(lastPersisted) < Self.lastAccessedAtThrottleSeconds {

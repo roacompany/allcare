@@ -6,7 +6,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // babies 및 하위 컬렉션 (activities, growth, diary, vaccinations, milestones)
+      // babies 및 하위 컬렉션 (activities, growth, diary, vaccinations, milestones, weeklyMetrics)
       match /babies/{babyId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
         match /{subcollection}/{docId} {
@@ -98,6 +98,15 @@ service cloud.firestore {
           allow write: if request.auth != null && request.auth.uid == userId;
         }
       }
+    }
+
+    // --- 임신 모드 collectionGroup: 파트너 read (sharedWith) ---
+    // collectionGroup 쿼리 (fetchSharedPregnancy) 지원: sharedWith 포함 사용자 read 허용
+    match /{path=**}/pregnancies/{pregnancyId} {
+      allow read: if request.auth != null
+        && resource != null
+        && resource.data.sharedWith is list
+        && request.auth.uid in resource.data.sharedWith;
     }
 
     // --- 초대 ---

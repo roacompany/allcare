@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 @MainActor @Observable
 final class PatternReportViewModel {
@@ -34,12 +35,45 @@ final class PatternReportViewModel {
 
     private static let apiKeyKey = "ai_api_key"
 
+    /// AI API 키 — Keychain 저장 (AIAdviceViewModel과 공유 키 + 동일 패턴).
+    /// UserDefaults legacy 값이 있으면 자동으로 Keychain에 마이그레이션 후 제거.
     var apiKey: String {
-        UserDefaults.standard.string(forKey: Self.apiKeyKey) ?? ""
+        if let keychainValue = Self.loadFromKeychain(key: Self.apiKeyKey) {
+            return keychainValue
+        }
+        if let legacyValue = UserDefaults.standard.string(forKey: Self.apiKeyKey),
+           !legacyValue.isEmpty {
+            Self.saveToKeychain(key: Self.apiKeyKey, value: legacyValue)
+            UserDefaults.standard.removeObject(forKey: Self.apiKeyKey)
+            return legacyValue
+        }
+        return ""
     }
 
     var hasAPIKey: Bool {
         !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // MARK: - Keychain Helpers (AIAdviceViewModel와 동일 패턴, 동일 키 공유)
+
+    private static func saveToKeychain(key: String, value: String) {
+        let data = value.data(using: .utf8)!
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                     kSecAttrAccount as String: key,
+                                     kSecValueData as String: data]
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static func loadFromKeychain(key: String) -> String? {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                     kSecAttrAccount as String: key,
+                                     kSecMatchLimit as String: kSecMatchLimitOne,
+                                     kSecReturnData as String: true]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     // MARK: - Load Report

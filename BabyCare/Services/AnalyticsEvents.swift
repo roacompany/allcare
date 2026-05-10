@@ -47,6 +47,12 @@ enum AnalyticsEvents {
 
     // Settings
     static let analyticsOptOutToggle = "analytics_opt_out_toggle"
+
+    // Insights — Phase 2 ML 학습용 telemetry (engagement label 수집).
+    // 임신 모드 데이터는 절대 포함 금지 (memory feedback_no_data_deletion / safety.md 준수).
+    static let insightGenerated = "insight_generated"
+    static let insightShown = "insight_shown"
+    static let insightTapped = "insight_tapped"
 }
 
 // MARK: - Parameter Keys
@@ -56,6 +62,12 @@ enum AnalyticsParams {
     static let actionType = "action_type"
     static let category = "category"
     static let source = "source"
+
+    // Insights
+    static let metricKey = "metric_key"
+    static let position = "position"
+    static let scorerMode = "scorer_mode"
+    static let historyWeeks = "history_weeks"
 }
 
 // MARK: - User Properties

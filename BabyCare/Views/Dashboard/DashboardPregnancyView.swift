@@ -53,8 +53,8 @@ struct DashboardPregnancyView: View {
 
                     dDayCard
 
-                    // 출산 임박 CTA 배너 (D-7 이내)
-                    if let dDay = pregnancyVM.dDay, dDay <= 7 {
+                    // 출산 CTA 배너 (예정일 설정 시 항상 노출)
+                    if pregnancyVM.dDay != nil {
                         birthCTABanner
                     }
 

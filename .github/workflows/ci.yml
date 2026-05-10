@@ -34,7 +34,7 @@ jobs:
           xcodebuild build \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
             -quiet
 
       - name: Lint
@@ -48,6 +48,6 @@ jobs:
           xcodebuild test \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
             -only-testing:BabyCareTests \
             -quiet
