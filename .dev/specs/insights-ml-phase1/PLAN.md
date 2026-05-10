@@ -101,22 +101,23 @@ candidate.history.count >= minSamples (default 4)?
 신규:
 - `BabyCare/Models/WeeklyMetricSnapshot.swift`
 - `BabyCare/Services/FirestoreService+Insights.swift` — save/fetch snapshots
-- `BabyCare/Services/Insights/InsightScorer.swift` — protocol + dispatch
-- `BabyCare/Services/Insights/HeuristicScorer.swift` — 현재 rule 추출
-- `BabyCare/Services/Insights/StatisticalAnomalyScorer.swift` — Z-score
+- `BabyCare/Services/Insights/InsightScorer.swift` — protocol + Heuristic + StatisticalAnomaly + Hybrid + Factory (단일 파일에 통합)
 - `.dev/specs/insights-ml-phase1/PLAN.md` (this file)
 
 수정:
 - `BabyCare/Services/Insights/InsightProvider.swift` — Candidate에 currentValue
 - `BabyCare/Services/Insights/InsightScoringService.swift` — 디스패치
 - `BabyCare/Services/Insights/InsightWeights.swift` — RC 신규 키
-- `BabyCare/Services/Insights/{Feeding,Diaper,Sleep,Health}InsightProvider.swift` — currentValue 채움
+- `BabyCare/Services/Insights/FeedingInsightProvider.swift` — currentValue
+- `BabyCare/Services/Insights/DiaperInsightProvider.swift` — currentValue
+- `BabyCare/Services/Insights/SleepInsightProvider.swift` — currentValue
+- `BabyCare/Services/Insights/HealthInsightProvider.swift` — currentValue
 - `BabyCare/Services/WeeklyInsightService.swift` — metricHistory 컨텍스트 빌드
 - `BabyCare/ViewModels/ActivityViewModel.swift` — snapshot 저장 + history 로드
 - `BabyCare/Services/AnalyticsEvents.swift` — 신규 이벤트
 - `BabyCare/Utils/Constants.swift` — `weeklyMetrics` 컬렉션 상수
 - `firestore.rules` — 기존 wildcard로 커버됨 확인
-- `remoteconfig.template.json` — 신규 RC 키
+- `remoteconfig.template.json` — 신규 RC 키 (main worktree)
 - `CLAUDE.md` — Architecture 섹션 인사이트 v3 반영
 
 테스트:
