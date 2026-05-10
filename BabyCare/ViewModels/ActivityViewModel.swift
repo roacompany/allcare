@@ -167,7 +167,12 @@ final class ActivityViewModel {
                 previousActivities: previousWeekActivities,
                 previousPeriod: (start: twoWeeksAgo, end: weekAgo)
             )
-            weeklyInsights = WeeklyInsightService.generateInsights(from: comparisonReport)
+            weeklyInsights = WeeklyInsightService.generateInsights(
+                from: comparisonReport,
+                previousActivities: previousWeekActivities,
+                previousDays: 7,
+                currentDays: 7
+            )
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-172800)

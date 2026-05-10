@@ -45,19 +45,21 @@ extension DashboardView {
         }
     }
 
-    private func insightSymbol(for category: WeeklyInsightService.InsightCategory) -> String {
+    private func insightSymbol(for category: InsightCategory) -> String {
         switch category {
         case .feeding: return "fork.knife"
         case .sleep:   return "moon.zzz.fill"
         case .diaper:  return "drop.fill"
+        case .health:  return "heart.fill"
         }
     }
 
-    private func insightColor(for category: WeeklyInsightService.InsightCategory) -> Color {
+    private func insightColor(for category: InsightCategory) -> Color {
         switch category {
         case .feeding: return feedingColor
         case .sleep:   return sleepColor
         case .diaper:  return diaperColor
+        case .health:  return Color.red
         }
     }
 

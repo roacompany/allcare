@@ -699,147 +699,133 @@ final class BabyCareTests: XCTestCase {
 
     // MARK: - WeeklyInsight Tests
 
-    // MARK: Helpers
+    // MARK: - Insight Provider Tests (v2: Provider + Scoring)
 
-    private func makePatternReport(
-        feedingDailyAverage: Double = 6,
-        feedingPrevious: Double? = nil,
-        sleepDailyAverageHours: Double = 12,
-        sleepPrevious: Double? = nil,
-        diaperDailyAverage: Double = 5,
-        diaperPrevious: Double? = nil
-    ) -> PatternReport {
+    private func makeFeedingActivity(date: Date, amount: Double = 100, type: Activity.ActivityType = .feedingBottle) -> Activity {
+        Activity(babyId: "b1", type: type, startTime: date, amount: amount)
+    }
+
+    private func makeSleepActivity(date: Date, durationHours: Double = 1.0, quality: Activity.SleepQualityType? = nil) -> Activity {
+        Activity(babyId: "b1", type: .sleep, startTime: date, duration: durationHours * 3600, sleepQuality: quality)
+    }
+
+    private func makeDiaperActivity(date: Date, type: Activity.ActivityType = .diaperWet) -> Activity {
+        Activity(babyId: "b1", type: type, startTime: date)
+    }
+
+    private func makeReportWithActivities(_ acts: [Activity], days: Int = 7) -> PatternReport {
+        let cal = Calendar.current
+        let end = Date()
+        let start = cal.date(byAdding: .day, value: -days, to: end) ?? end
+        return PatternAnalysisService.analyze(activities: acts, period: "test", startDate: start, endDate: end)
+    }
+
+    /// FeedingInsightProvider — 횟수/용량/간격 candidate 생성 (이전 활동 있을 때)
+    func testFeedingInsightProvider_producesMultipleCandidates() {
         let now = Date()
-        let feeding = FeedingPattern(
-            totalCount: 42,
-            dailyAverage: feedingDailyAverage,
-            averageInterval: nil,
-            intervalTrend: .stable,
-            totalMl: 0,
-            dailyMlAverage: 0,
-            breastVsBottleRatio: (breast: 1, bottle: 0),
-            peakHours: [],
-            dailyCounts: [],
-            previousDailyAverage: feedingPrevious
-        )
-        let sleep = SleepPattern(
-            totalHours: 84,
-            dailyAverageHours: sleepDailyAverageHours,
-            averageDuration: 3600,
-            durationTrend: .stable,
-            qualityDistribution: [:],
-            methodDistribution: [:],
-            peakSleepHours: [],
-            dailyHours: [],
-            previousDailyAverageHours: sleepPrevious
-        )
-        let diaper = DiaperPattern(
-            totalCount: 35,
-            dailyAverage: diaperDailyAverage,
-            wetVsDirtyRatio: (wet: 2, dirty: 1, both: 0),
-            stoolColorDistribution: [:],
-            consistencyDistribution: [:],
-            rashCount: 0,
-            dailyCounts: [],
-            previousDailyAverage: diaperPrevious
-        )
-        let health = HealthPattern(
-            temperatureReadings: [],
-            averageTemp: nil,
-            highTempDays: 0,
-            medicationCount: 0,
-            medicationNames: [:],
-            consecutiveFeverDays: 0
-        )
-        let summary = SummaryPattern(
-            totalRecords: 77,
-            mostActiveDay: nil,
-            leastActiveDay: nil,
-            categoryDistribution: [:],
-            missingDays: 0
-        )
-        return PatternReport(
-            period: "7일",
-            startDate: now.addingTimeInterval(-604800),
-            endDate: now,
-            feeding: feeding,
-            sleep: sleep,
-            diaper: diaper,
-            health: health,
-            summary: summary
-        )
+        let curActs = (0..<14).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-$0 * 12 * 3600)), amount: 120) }
+        let prevActs = (0..<10).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 12 * 3600)), amount: 100) }
+        let curReport = makeReportWithActivities(curActs)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let candidates = FeedingInsightProvider.candidates(ctx)
+        XCTAssertGreaterThanOrEqual(candidates.count, 1, "Feeding provider는 최소 1개 이상의 candidate (count/volume/interval) 생성")
+        let metricKeys = Set(candidates.map { $0.metricKey })
+        XCTAssertTrue(metricKeys.contains("feeding.count"), "수유 횟수 candidate 존재")
     }
 
-    /// 수유·수면·배변 모두 비교 데이터 있음 → 인사이트 3개 생성
-    func testGenerateInsights_withComparisonData() {
-        let report = makePatternReport(
-            feedingDailyAverage: 6,
-            feedingPrevious: 5,
-            sleepDailyAverageHours: 12,
-            sleepPrevious: 10,
-            diaperDailyAverage: 5,
-            diaperPrevious: 6
-        )
-        let insights = WeeklyInsightService.generateInsights(from: report)
-        XCTAssertEqual(insights.count, 3, "3개 카테고리 모두 이전 데이터 있을 때 인사이트 3개가 반환되어야 합니다")
+    /// DiaperInsightProvider — wet/dirty 분리 candidate
+    func testDiaperInsightProvider_splitsWetAndDirty() {
+        let now = Date()
+        var curActs: [Activity] = []
+        for i in 0..<14 {
+            let d = now.addingTimeInterval(Double(-i * 6 * 3600))
+            curActs.append(makeDiaperActivity(date: d, type: i % 2 == 0 ? .diaperWet : .diaperDirty))
+        }
+        // 전주는 소변만 5회 → 이번주 wet=7, dirty=7 → wet 변화율 ↑, dirty 변화율 매우 큼
+        let prevActs = (0..<5).map { makeDiaperActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 24 * 3600)), type: .diaperWet) }
+        let curReport = makeReportWithActivities(curActs)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let candidates = DiaperInsightProvider.candidates(ctx)
+        let keys = Set(candidates.map { $0.metricKey })
+        XCTAssertTrue(keys.contains("diaper.wet"), "소변 candidate 존재")
+        // 대변 prev=0이라 nil 반환됨 (subMetricCandidate guard)
     }
 
-    /// 3개 카테고리가 모두 변화했을 때 최대 3개(prefix(3)) 동작 확인
-    func testGenerateInsights_maxThree() {
-        let report = makePatternReport(
-            feedingDailyAverage: 8,
-            feedingPrevious: 5,
-            sleepDailyAverageHours: 14,
-            sleepPrevious: 10,
-            diaperDailyAverage: 3,
-            diaperPrevious: 6
-        )
-        let insights = WeeklyInsightService.generateInsights(from: report)
-        XCTAssertLessThanOrEqual(insights.count, 3, "generateInsights는 최대 3개만 반환해야 합니다")
-        XCTAssertEqual(insights.count, 3, "3개 카테고리 모두 변화 시 정확히 3개가 반환되어야 합니다")
+    /// SleepInsightProvider — 시간 candidate
+    func testSleepInsightProvider_hoursCandidate() {
+        let now = Date()
+        let curActs = (0..<7).map { makeSleepActivity(date: now.addingTimeInterval(Double(-$0 * 24 * 3600)), durationHours: 12) }
+        let prevActs = (0..<7).map { makeSleepActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 24 * 3600)), durationHours: 10) }
+        let curReport = makeReportWithActivities(curActs)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let candidates = SleepInsightProvider.candidates(ctx)
+        let hours = candidates.first { $0.metricKey == "sleep.hours" }
+        XCTAssertNotNil(hours, "수면 시간 candidate 존재")
+        XCTAssertGreaterThan(hours?.changePercent ?? 0, 0, "10→12시간 변화는 양수 changePercent")
     }
 
-    /// previousDailyAverage 모두 nil → 빈 배열
-    func testGenerateInsights_emptyPrevious() {
-        let report = makePatternReport(
-            feedingPrevious: nil,
-            sleepPrevious: nil,
-            diaperPrevious: nil
-        )
-        let insights = WeeklyInsightService.generateInsights(from: report)
-        XCTAssertTrue(insights.isEmpty, "이전 기간 데이터가 없으면 인사이트는 빈 배열이어야 합니다")
+    /// HealthInsightProvider — 발열 prev=0, cur>0이면 changePct=300으로 강조
+    func testHealthInsightProvider_feverFromZero() {
+        let now = Date()
+        let curActs = [
+            Activity(babyId: "b1", type: .temperature, startTime: now, temperature: 38.5),
+            Activity(babyId: "b1", type: .temperature, startTime: now.addingTimeInterval(-86400), temperature: 38.2)
+        ]
+        let prevActs: [Activity] = []
+        let curReport = makeReportWithActivities(curActs)
+        let ctx = InsightContext(current: curReport, previousActivities: prevActs, previousDays: 7, weights: .default, currentDays: 7)
+        let candidates = HealthInsightProvider.candidates(ctx)
+        let fever = candidates.first { $0.metricKey == "health.fever" }
+        XCTAssertNotNil(fever, "발열 candidate 생성 (prev=0, cur=2)")
+        XCTAssertEqual(fever?.changePercent, 300, "prev=0인데 cur>0이면 300% 강조")
     }
 
-    /// 변화율 3% → trend .stable, title에 "안정" 포함
-    func testGenerateInsights_stableUnder5Percent() {
-        // 수유: 이전 100, 현재 103 → 변화율 3% < 5% → .stable
-        let report = makePatternReport(
-            feedingDailyAverage: 103,
-            feedingPrevious: 100,
-            sleepPrevious: nil,
-            diaperPrevious: nil
-        )
-        let insights = WeeklyInsightService.generateInsights(from: report)
-        XCTAssertEqual(insights.count, 1, "수유만 이전 데이터 있을 때 인사이트 1개여야 합니다")
-        XCTAssertEqual(insights[0].trend, .stable, "3% 변화는 .stable 트렌드여야 합니다")
-        XCTAssertTrue(insights[0].title.contains("안정"), "stable 인사이트 title에 '안정'이 포함되어야 합니다")
+    /// InsightScoringService — minChangePct 미만 candidate 제외
+    func testScoringService_filtersBelowMinChangePct() {
+        let small = InsightCandidate(category: .feeding, metricKey: "feeding.count", title: "t", detail: "d", changePercent: 3, trend: .stable, medicalWeight: 1.0, sampleSize: 7)
+        let big = InsightCandidate(category: .sleep, metricKey: "sleep.hours", title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        let result = InsightScoringService.selectTopN([small, big], weights: .default)
+        XCTAssertEqual(result.count, 1, "minChangePct(5) 미만은 필터링")
+        XCTAssertEqual(result[0].metricKey, "sleep.hours")
     }
 
-    /// feeding 10% 변화, sleep 30% 변화 → sleep이 첫 번째 (변화율 내림차순 정렬)
-    func testGenerateInsights_sortedByChangePercent() {
-        // feeding: 이전 10, 현재 11 → 10% 증가
-        // sleep: 이전 10, 현재 13 → 30% 증가
-        let report = makePatternReport(
-            feedingDailyAverage: 11,
-            feedingPrevious: 10,
-            sleepDailyAverageHours: 13,
-            sleepPrevious: 10,
-            diaperPrevious: nil
-        )
-        let insights = WeeklyInsightService.generateInsights(from: report)
-        XCTAssertEqual(insights.count, 2, "feeding+sleep 2개 인사이트가 반환되어야 합니다")
-        XCTAssertEqual(insights[0].category, .sleep, "변화율이 높은 sleep이 첫 번째여야 합니다")
-        XCTAssertEqual(insights[1].category, .feeding, "변화율이 낮은 feeding이 두 번째여야 합니다")
+    /// InsightScoringService — score = |Δ%| × weight × min(sample/7, 1) 으로 정렬
+    func testScoringService_sortsByScore() {
+        // candidate A: Δ20 × w1.0 × s1.0 = 20
+        let a = InsightCandidate(category: .feeding, metricKey: "feeding.count", title: "t", detail: "d", changePercent: 20, trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        // candidate B: Δ10 × w2.0 × s1.0 = 20 (동점) — 정렬은 stable
+        // candidate C: Δ15 × w2.0 × s1.0 = 30 (가장 높음)
+        let c = InsightCandidate(category: .health, metricKey: "health.fever", title: "t", detail: "d", changePercent: 15, trend: .increasing, medicalWeight: 2.0, sampleSize: 7)
+        let result = InsightScoringService.selectTopN([a, c], weights: .default)
+        XCTAssertEqual(result[0].metricKey, "health.fever", "weight 2.0이 곱해진 health가 1순위")
+    }
+
+    /// InsightScoringService — maxCount 적용
+    func testScoringService_appliesMaxCount() {
+        let candidates = (1...10).map {
+            InsightCandidate(category: .feeding, metricKey: "feeding.\($0)", title: "t", detail: "d", changePercent: Double($0 * 5), trend: .increasing, medicalWeight: 1.0, sampleSize: 7)
+        }
+        let result = InsightScoringService.selectTopN(candidates, weights: .default)
+        XCTAssertEqual(result.count, 3, "default maxCount=3")
+    }
+
+    /// InsightWeights.default — 기대 값 확인
+    func testInsightWeights_defaults() {
+        XCTAssertEqual(InsightWeights.default.minChangePct, 5)
+        XCTAssertEqual(InsightWeights.default.maxCount, 3)
+        XCTAssertEqual(InsightWeights.default.diaperDirty, 1.5, "대변은 0.8(소변)보다 가중치 ↑")
+        XCTAssertEqual(InsightWeights.default.healthFever, 2.0, "발열이 가장 높은 가중치")
+    }
+
+    /// E2E — WeeklyInsightService 새 시그니처
+    func testWeeklyInsightService_e2e() {
+        let now = Date()
+        let curActs = (0..<14).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-$0 * 12 * 3600)), amount: 150) }
+        let prevActs = (0..<7).map { makeFeedingActivity(date: now.addingTimeInterval(Double(-(7 + $0) * 12 * 3600)), amount: 100) }
+        let curReport = makeReportWithActivities(curActs)
+        let insights = WeeklyInsightService.generateInsights(from: curReport, previousActivities: prevActs, previousDays: 7, currentDays: 7)
+        XCTAssertGreaterThan(insights.count, 0, "수유 변화 있을 때 인사이트 생성")
+        XCTAssertEqual(insights[0].category, .feeding)
     }
 
     // MARK: - Todo/Routine Automation Tests
