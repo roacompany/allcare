@@ -45,7 +45,8 @@ make status        # 버전/커밋/테스트 상태
 ## Architecture
 
 - **패턴**: @MainActor @Observable MVVM, AppState 싱글톤 (23 VM)
-- **서비스 분리**: ActivityTimerManager, FeedingPredictionService v2 (day/night 개인화), WeeklyInsightService, PercentileCalculator, MedicationSafetyService
+- **서비스 분리**: ActivityTimerManager, FeedingPredictionService v2 (day/night 개인화), WeeklyInsightService v3 (Provider+Scoring+per-baby Z-score), PercentileCalculator, MedicationSafetyService
+- **주간 인사이트 v3 (Phase 1 ML)**: `Services/Insights/` — `InsightProvider` (Feeding/Diaper/Sleep/Health, sub-metric 분리), `InsightScorer` 프로토콜 (HeuristicScorer / StatisticalAnomalyScorer / HybridScorer + Factory), `InsightScoringService` 디스패치, `InsightWeights` RC 외부화. **WeeklyMetricSnapshot** Firestore 영속 (`users/{uid}/babies/{bid}/weeklyMetrics/{YYYYWnn}`) — per-baby history 입력. Hybrid mode: history ≥ minSamples(=4)면 Z-score, 미만이면 Heuristic fallback (신규 사용자 회귀 0). RC: `insight_scorer_mode` / `insight_min_history_weeks` / `insight_history_weeks` + 9개 medical weight. Analytics: `insight_generated/shown/tapped` (Phase 2 supervised label 수집). 임신 데이터는 절대 포함 금지 (safety.md).
 - **성장 차트**: GrowthView+Charts — Apple Charts AreaMark WHO 밴드(3rd~97th) + 백분위 추이 트렌드
 - **인프라**: RetryHelper (지수 백오프), OfflineQueue (쓰기 큐잉+자동 sync), CachedAsyncImage (2-tier), NetworkMonitor
 - **가족 공유**: Baby.ownerUserId + BabyViewModel.dataUserId() — 공유 아기 데이터 경로 자동 라우팅
