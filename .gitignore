@@ -36,3 +36,4 @@ Pods/
 *.swp
 *~
 .gstack/
+.worktrees/
