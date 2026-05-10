@@ -167,12 +167,42 @@ final class ActivityViewModel {
                 previousActivities: previousWeekActivities,
                 previousPeriod: (start: twoWeeksAgo, end: weekAgo)
             )
+            // metric history 로드 (Phase 1 ML — per-baby Z-score scorer 입력)
+            let historyWeeks = InsightWeights.fromRC().historyWeeks
+            let snapshots = (try? await firestoreService.fetchWeeklyMetricSnapshots(
+                userId: userId, babyId: babyId, limit: historyWeeks
+            )) ?? []
+            let metricHistory = WeeklyInsightService.metricHistory(from: snapshots)
+
             weeklyInsights = WeeklyInsightService.generateInsights(
+                from: comparisonReport,
+                previousActivities: previousWeekActivities,
+                previousDays: 7,
+                currentDays: 7,
+                metricHistory: metricHistory
+            )
+
+            // 이번 주 metric 스냅샷 저장 (idempotent overwrite 가능)
+            let metrics = WeeklyInsightService.snapshotMetrics(
                 from: comparisonReport,
                 previousActivities: previousWeekActivities,
                 previousDays: 7,
                 currentDays: 7
             )
+            let weekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
+            let snapshot = WeeklyMetricSnapshot(weekKey: weekKey, weekStartDate: weekAgo, metrics: metrics)
+            try? await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
+
+            // Analytics — Phase 2 ML 학습용 telemetry
+            for (idx, insight) in weeklyInsights.enumerated() {
+                AnalyticsService.shared.logInsightGenerated(
+                    metricKey: insight.metricKey,
+                    category: insight.category.rawValue,
+                    position: idx,
+                    scorerMode: InsightWeights.fromRC().scorerMode.rawValue,
+                    historyWeeks: snapshots.count
+                )
+            }
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-172800)

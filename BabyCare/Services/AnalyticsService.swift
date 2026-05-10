@@ -66,6 +66,38 @@ final class AnalyticsService: AnalyticsTracking {
         Self.logger.info("Analytics opt-out toggled: collection \(enabled ? "enabled" : "disabled")")
     }
 
+    // MARK: - Insights Telemetry (Phase 2 ML 학습용)
+
+    /// 인사이트 카드 노출 시점에 호출. 카테고리, metric, 위치, scorer mode, history depth.
+    /// 임신 데이터 포함 금지 (safety.md). 카테고리는 feeding/sleep/diaper/health만 사용.
+    func logInsightGenerated(metricKey: String, category: String, position: Int, scorerMode: String, historyWeeks: Int) {
+        trackEvent(AnalyticsEvents.insightGenerated, parameters: [
+            AnalyticsParams.metricKey: metricKey,
+            AnalyticsParams.category: category,
+            AnalyticsParams.position: String(position),
+            AnalyticsParams.scorerMode: scorerMode,
+            AnalyticsParams.historyWeeks: String(historyWeeks)
+        ])
+    }
+
+    /// 인사이트 카드 화면 노출 (impression). UI에서 onAppear 시 호출.
+    func logInsightShown(metricKey: String, category: String, position: Int) {
+        trackEvent(AnalyticsEvents.insightShown, parameters: [
+            AnalyticsParams.metricKey: metricKey,
+            AnalyticsParams.category: category,
+            AnalyticsParams.position: String(position)
+        ])
+    }
+
+    /// 인사이트 카드 탭. 탭 가능한 UI 추가 시 호출.
+    func logInsightTapped(metricKey: String, category: String, position: Int) {
+        trackEvent(AnalyticsEvents.insightTapped, parameters: [
+            AnalyticsParams.metricKey: metricKey,
+            AnalyticsParams.category: category,
+            AnalyticsParams.position: String(position)
+        ])
+    }
+
     /// 사용자 속성 6종 업데이트
     @MainActor
     func updateUserProperties(babyCount: Int, familySharingEnabled: Bool, theme: String) {

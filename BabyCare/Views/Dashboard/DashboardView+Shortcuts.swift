@@ -11,7 +11,7 @@ extension DashboardView {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
 
-                ForEach(activityVM.weeklyInsights) { insight in
+                ForEach(Array(activityVM.weeklyInsights.enumerated()), id: \.element.id) { idx, insight in
                     HStack(spacing: 10) {
                         Image(systemName: insightSymbol(for: insight.category))
                             .font(.body)
@@ -34,6 +34,13 @@ extension DashboardView {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(changePercent > 0 ? Color.green : Color.red)
                         }
+                    }
+                    .onAppear {
+                        AnalyticsService.shared.logInsightShown(
+                            metricKey: insight.metricKey,
+                            category: insight.category.rawValue,
+                            position: idx
+                        )
                     }
                 }
             }
