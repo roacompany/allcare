@@ -12,10 +12,65 @@
         "value": "0"
       },
       "valueType": "NUMBER",
-      "description": "임신 모드 코호트 rollout 비율 (0-100). StableHash bucket이 이 값보다 작으면 활성. 0=꺼짐, 25=1/4, 100=전체."
+      "description": "임신 모드 코호트 rollout 비율 (0-100). StableHash bucket이 이 값보다 작으면 활성."
+    },
+    "weight_feeding_count": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 횟수 변화."
+    },
+    "weight_feeding_volume": {
+      "defaultValue": { "value": "1.2" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 용량(mL) 변화. count보다 약간 우선."
+    },
+    "weight_feeding_interval": {
+      "defaultValue": { "value": "0.7" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 평균 간격."
+    },
+    "weight_diaper_wet": {
+      "defaultValue": { "value": "0.8" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 소변 횟수."
+    },
+    "weight_diaper_dirty": {
+      "defaultValue": { "value": "1.5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 대변 횟수. 소화/탈수 등 의학적 의미 우선."
+    },
+    "weight_sleep_hours": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수면 시간."
+    },
+    "weight_sleep_quality": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수면 품질(좋음 비율)."
+    },
+    "weight_health_fever": {
+      "defaultValue": { "value": "2.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 발열일. 이상치성 신호이므로 가장 높음."
+    },
+    "weight_health_medication": {
+      "defaultValue": { "value": "1.5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 약 복용 횟수."
+    },
+    "insight_min_change_pct": {
+      "defaultValue": { "value": "5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 최소 변화율(%) 임계값. 미만 후보 제외."
+    },
+    "insight_max_count": {
+      "defaultValue": { "value": "3" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 최종 노출 카드 수."
     }
   },
   "version": {
-    "description": "v2.8.0 임신 모드 RC 초기 셋업 (0% rollout, 구조만 준비)"
+    "description": "v2.8.1 — 주간 인사이트 가중치 RC 외부화 (Provider/Scoring 파이프라인)"
   }
 }
