@@ -2960,31 +2960,6 @@ final class WidgetDataStoreTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    // MARK: - BannerAdManager state machine
-
-    @MainActor
-    func testBannerAdManager_loadState_equality() {
-        let idle: BannerAdManager.LoadState = .idle
-        XCTAssertEqual(idle, .idle)
-        XCTAssertNotEqual(idle, .loading)
-        XCTAssertNotEqual(idle, .loaded)
-    }
-
-    @MainActor
-    func testBannerAdManager_failedState_comparesByAttempt() {
-        let attempt1: BannerAdManager.LoadState = .failed(attempt: 1)
-        let attempt2: BannerAdManager.LoadState = .failed(attempt: 2)
-        XCTAssertEqual(attempt1, .failed(attempt: 1))
-        XCTAssertNotEqual(attempt1, attempt2)
-    }
-
-    @MainActor
-    func testBannerAdManager_safeScreenWidth_returnsReasonableValue() {
-        let width = BannerAdManager.safeScreenWidth()
-        XCTAssertGreaterThanOrEqual(width, 320)
-        XCTAssertLessThanOrEqual(width, 1366)
-    }
-
     // MARK: - BadgeEvaluator.BackfillCounts
 
     @MainActor

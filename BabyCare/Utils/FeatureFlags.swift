@@ -2,10 +2,6 @@ import Foundation
 
 enum FeatureFlags {
     static let cryAnalysisEnabled: Bool = true
-    /// AdMob 광고 compile-time kill switch.
-    /// 2026-05-06 AdMob 정책 차단으로 false. SDK init + 모든 AdBannerView 비노출.
-    /// 차단 해제 후 true로 복구하여 재배포.
-    static let adsEnabled: Bool = false
     /// 임신 모드 compile-time kill switch.
     /// true = 코드 활성화 (v2.8+ 재설계 이후). FeatureFlagService가 RemoteConfig +
     /// 코호트 rollout %를 조합해 최종 노출 여부를 결정한다.

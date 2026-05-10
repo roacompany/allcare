@@ -113,13 +113,6 @@ struct HealthView: View {
                         }
                         .buttonStyle(.plain)
 
-                        // 인라인 광고 (Health 탭)
-                        if FeatureFlags.adsEnabled && AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 3) {
-                            AdBannerView()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: AdBannerView.currentBannerHeight())
-                        }
-
                         // 이유식 가이드
                         NavigationLink {
                             BabyFoodGuideView()

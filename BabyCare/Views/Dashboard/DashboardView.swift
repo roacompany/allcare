@@ -54,12 +54,6 @@ struct DashboardView: View {
                     quickActionsSection
                     weeklyInsightsCard
                     predictionSection
-                    if FeatureFlags.adsEnabled && AdExperimentVariant.currentVariant.shouldShowBanner(forTab: 0) {
-                        AdBannerView()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: AdBannerView.currentBannerHeight())
-                            .padding(.horizontal, -16) // VStack horizontal padding 상쇄해서 full-width
-                    }
                     insightCardsSection
                     pregnancyHomeCardIfNeeded
                     summaryCardsSection
