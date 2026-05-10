@@ -1,0 +1,91 @@
+{
+  "parameters": {
+    "pregnancy_mode_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "임신 모드 master kill switch. true + rollout_pct>0이어야 사용자에게 노출."
+    },
+    "pregnancy_rollout_pct": {
+      "defaultValue": {
+        "value": "0"
+      },
+      "valueType": "NUMBER",
+      "description": "임신 모드 코호트 rollout 비율 (0-100). StableHash bucket이 이 값보다 작으면 활성."
+    },
+    "weight_feeding_count": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 횟수 변화."
+    },
+    "weight_feeding_volume": {
+      "defaultValue": { "value": "1.2" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 용량(mL) 변화. count보다 약간 우선."
+    },
+    "weight_feeding_interval": {
+      "defaultValue": { "value": "0.7" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수유 평균 간격."
+    },
+    "weight_diaper_wet": {
+      "defaultValue": { "value": "0.8" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 소변 횟수."
+    },
+    "weight_diaper_dirty": {
+      "defaultValue": { "value": "1.5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 대변 횟수. 소화/탈수 등 의학적 의미 우선."
+    },
+    "weight_sleep_hours": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수면 시간."
+    },
+    "weight_sleep_quality": {
+      "defaultValue": { "value": "1.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 수면 품질(좋음 비율)."
+    },
+    "weight_health_fever": {
+      "defaultValue": { "value": "2.0" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 발열일. 이상치성 신호이므로 가장 높음."
+    },
+    "weight_health_medication": {
+      "defaultValue": { "value": "1.5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 가중치 — 약 복용 횟수."
+    },
+    "insight_min_change_pct": {
+      "defaultValue": { "value": "5" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 최소 변화율(%) 임계값. 미만 후보 제외."
+    },
+    "insight_max_count": {
+      "defaultValue": { "value": "3" },
+      "valueType": "NUMBER",
+      "description": "주간 인사이트 최종 노출 카드 수."
+    },
+    "insight_scorer_mode": {
+      "defaultValue": { "value": "hybrid" },
+      "valueType": "STRING",
+      "description": "Phase 1 ML — 인사이트 스코어 모드. heuristic / anomaly / hybrid (cold-start fallback). 알 수 없는 값은 hybrid."
+    },
+    "insight_min_history_weeks": {
+      "defaultValue": { "value": "4" },
+      "valueType": "NUMBER",
+      "description": "Anomaly scorer 활성 최소 history 주차. 미만 시 Heuristic fallback. 신규 사용자 회귀 방지."
+    },
+    "insight_history_weeks": {
+      "defaultValue": { "value": "8" },
+      "valueType": "NUMBER",
+      "description": "Snapshot fetch 윈도우. 클수록 mean/std 안정성 ↑, Firestore 비용 ↑."
+    }
+  },
+  "version": {
+    "description": "v2.8.2+ — 주간 인사이트 Phase 1 ML (per-baby Z-score + scorer mode dispatch)"
+  }
+}
