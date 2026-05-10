@@ -50,6 +50,7 @@ enum HealthInsightProvider: InsightProvider {
         let detail = "\(prevDays)일 → \(curDays)일 (전주 대비)"
         return InsightCandidate(
             category: .health, metricKey: "health.fever",
+            currentValue: Double(curDays),
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample
@@ -73,6 +74,7 @@ enum HealthInsightProvider: InsightProvider {
         let detail = "\(prevCount)회 → \(curCount)회 (전주 대비)"
         return InsightCandidate(
             category: .health, metricKey: "health.medication",
+            currentValue: Double(curCount),
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample

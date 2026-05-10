@@ -41,6 +41,7 @@ enum SleepInsightProvider: InsightProvider {
         let detail = "일 평균 \(fmt(prevDailyHours))시간 → \(fmt(curDailyHours))시간 (전주 대비)"
         return InsightCandidate(
             category: .sleep, metricKey: "sleep.hours",
+            currentValue: curDailyHours,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample
@@ -73,6 +74,7 @@ enum SleepInsightProvider: InsightProvider {
         let detail = "좋음 비율 \(Int(prevGoodRatio.rounded()))% → \(Int(curGoodRatio.rounded()))% (전주 대비)"
         return InsightCandidate(
             category: .sleep, metricKey: "sleep.quality",
+            currentValue: curGoodRatio,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample

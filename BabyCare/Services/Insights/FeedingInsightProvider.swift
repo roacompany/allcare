@@ -45,6 +45,7 @@ enum FeedingInsightProvider: InsightProvider {
         let detail = "일 평균 \(fmt(prevDailyAvg))회 → \(fmt(curDailyAvg))회 (전주 대비)"
         return InsightCandidate(
             category: .feeding, metricKey: "feeding.count",
+            currentValue: curDailyAvg,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample
@@ -70,6 +71,7 @@ enum FeedingInsightProvider: InsightProvider {
         let detail = "일 평균 \(Int(prevDailyMl.rounded()))mL → \(Int(curDailyMl.rounded()))mL (전주 대비)"
         return InsightCandidate(
             category: .feeding, metricKey: "feeding.volume",
+            currentValue: curDailyMl,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample
@@ -103,6 +105,7 @@ enum FeedingInsightProvider: InsightProvider {
         let detail = "평균 \(fmt(prevHr))시간 → \(fmt(curHr))시간 (전주 대비)"
         return InsightCandidate(
             category: .feeding, metricKey: "feeding.interval",
+            currentValue: curHr,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample

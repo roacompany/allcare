@@ -58,6 +58,7 @@ enum DiaperInsightProvider: InsightProvider {
         let detail = "일 평균 \(fmt(prevDailyAvg))회 → \(fmt(curDailyAvg))회 (전주 대비)"
         return InsightCandidate(
             category: .diaper, metricKey: metricKey,
+            currentValue: curDailyAvg,
             title: title, detail: detail,
             changePercent: changePct, trend: trend,
             medicalWeight: weight, sampleSize: sample

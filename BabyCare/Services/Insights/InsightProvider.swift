@@ -17,6 +17,9 @@ struct InsightCandidate {
     let category: InsightCategory
     /// 디버깅/RC 가중치 매칭용 (예: "feeding.count", "feeding.volume", "diaper.wet").
     let metricKey: String
+    /// 이번 주 metric 값. WeeklyMetricSnapshot에 저장됨.
+    /// Phase 1 anomaly scorer의 Z-score 입력. Phase 2 ML 모델 feature.
+    let currentValue: Double
     let title: String
     let detail: String
     /// 변화율 (전주 대비). 양수=증가, 음수=감소, 0=stable.
@@ -30,7 +33,7 @@ struct InsightCandidate {
 
 // MARK: - InsightContext
 
-/// Provider 입력. 현재 주 PatternReport + 비교용 전주 활동 + RC 가중치.
+/// Provider 입력. 현재 주 PatternReport + 비교용 전주 활동 + RC 가중치 + history.
 struct InsightContext {
     let current: PatternReport
     let previousActivities: [Activity]
@@ -38,6 +41,10 @@ struct InsightContext {
     let weights: InsightWeights
     /// 현재 주 계산에 사용된 일수 (sampleSize 정규화용).
     let currentDays: Int
+    /// 같은 babyId의 metricKey별 과거 주차 값 (최신 → 과거).
+    /// 비어있으면 anomaly scorer는 0 반환 → hybrid mode가 heuristic으로 fallback.
+    /// Phase 1: WeeklyMetricSnapshot에서 로드. Phase 2 ML feature.
+    let metricHistory: [String: [Double]]
 }
 
 // MARK: - InsightProvider
