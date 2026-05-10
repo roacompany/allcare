@@ -32,6 +32,34 @@ globs: "**/project.yml,**/Package.*"
 - 처리 완료 확인: App Store Connect 또는 ASC API `/v1/builds?filter[app]=<APP_ID>&sort=-uploadedDate`.
 - 업로드된 빌드는 무효화 불가 — Build Number는 monotonic.
 
+## ASC train closed (code 90186 / 90062)
+
+- `WAITING_FOR_REVIEW` 빌드가 자동 승인되면 해당 marketing version train이 닫힘.
+- 동일 버전으로 새 빌드 제출 시 `code 90186` ("Invalid Pre-Release Train") 또는 `code 90062` ("must contain higher version than previously approved").
+- 해결: `MARKETING_VERSION` bump (예: 2.8.1 → 2.8.2) 후 새 train 생성.
+- **예방**: 심사 제출 전 빌드 충분히 검증. 긴급 fix 가능성 있으면 multiple builds 미리 업로드.
+
+## PLAN.md 파일 경로는 brace glob 금지
+
+- `make plan-verify`는 PLAN.md 내 파일 경로를 literal로 검증 — shell glob expansion 미지원.
+- 금지: `BabyCare/Services/Insights/{Feeding,Diaper,Sleep,Health}InsightProvider.swift`
+- 허용: 4개 path를 명시적 분리 (각 줄에 한 파일씩).
+- 증상: 실제 파일이 존재해도 "파일 없음" false fail. v2.8.2 deploy 시 발생.
+
+## 통계 모델 첫 주 빈 dict 버그
+
+- Provider/Service에서 `prev > 0` 가드를 두면 첫 주(이전 데이터 없음) 모든 metric이 dict에서 제외됨.
+- 원인: "데이터 없음"과 "실제값 0"이 동일하게 처리됨.
+- 해결: snapshotMetrics 같은 추출 함수는 Provider 우회하여 직접 PatternReport에서 값 추출.
+- Phase 1 ML WeeklyMetricSnapshot 도입 시 발견.
+
+## Provider/Service 시그니처 변경 시 grep 필수
+
+- `InsightProvider.candidates(_:)` 같은 시그니처 변경 시 호출처 + 테스트 파일까지 전수 확인.
+- 단일 `BabyCareTests/BabyCareTests.swift`에 모든 단위 테스트 집중 — grep 누락 시 컴파일 fail.
+- 명령: `grep -rn "<메서드명>" BabyCare/ BabyCareTests/`
+
 ## 참조
 
 - pregnancy-mode-v2 `.dev/specs/pregnancy-mode-v2/context/learnings.md` P0-2b / P4-2.
+- insights-ml-phase1 `.dev/specs/insights-ml-phase1/PLAN.md`.

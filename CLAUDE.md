@@ -166,16 +166,23 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.0 (빌드 64) — 심사 제출됨 (WAITING_FOR_REVIEW, 2026-05-02 03:12 KST)
-- **App Store**: v2.6.2 READY_FOR_SALE | **v2.8.0 WAITING_FOR_REVIEW** (releaseType: AFTER_APPROVAL 자동 출시)
-- **TestFlight**: v2.8.0 빌드 64 — Delivery `51a6cd4d-e298-4b55-b2d6-c6bfdb00895f` (2026-05-01 23:31, AdMob fix 포함)
-  - 이전: 빌드 63 (`09fa6305-...`, 2026-04-23), 빌드 62 (`34d596a2-...`, 2026-04-19)
+- **Version**: v2.8.2 (빌드 66) — App Store WAITING_FOR_REVIEW (2026-05-10, Phase 1 ML)
+- **App Store**:
+  - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
+  - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
+  - **v2.8.2 WAITING_FOR_REVIEW** (Phase 1 ML 인사이트, releaseType AFTER_APPROVAL)
+- **TestFlight**: v2.8.2 빌드 66 (`101f6cb5-5b45-4562-b565-9a937045e117`, 2026-05-10)
+  - 이전: 빌드 65 (v2.8.1 광고 제거 `a1678846-...`), 빌드 64 (v2.8.0 `51a6cd4d-...`)
 - **Firebase**: 11.9.0 (PR #3 main merge `7d80f93`)
-- **테스트**: 345 단위 + 18 XCUITest PASS, 경고 0건, arch-test 0 violations
-- **규모**: 280+ Swift 파일, 23개 VM, 30개 Firestore 컬렉션 (24기본 + 6 pregnancy)
-- **RC Rollout 대기**: 심사 통과 → D+3 무회귀 → Firebase Console RC 100% (Crashlytics ≥99% 확인 후)
-- **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (`817b787`, 법무 검토 미수령 — 통과 후 보강 가능)
-- **Admin**: Vercel 자동 배포 (`90ded4f`+`2f6bf0e`+`ce5deaa` 보안 헤더 + npm audit fix)
+- **Firestore**: `weeklyMetrics` 신규 컬렉션 추가 (`users/{uid}/babies/{bid}/weeklyMetrics/{YYYYWnn}`)
+- **Remote Config**: 16개 파라미터 deploy 완료 (pregnancy 2 + weight 9 + insight 5)
+- **테스트**: 354 단위 + 18 XCUITest PASS (Phase 1 ML +9 추가), arch-test 0 violations
+- **규모**: 295+ Swift 파일, 23개 VM, 31개 Firestore 컬렉션 (30 + weeklyMetrics)
+- **AdMob**: SDK + UI 비활성화 (`FeatureFlags.adsEnabled=false`). 정책 차단 항소 후 1줄 복구
+- **iOS main 미push**: 4 commits (bf62691 lastAccessedAt + RC 16 파라미터)
+- **iOS feat/pregnancy-mode-v2 미push**: 14 commits (이번 세션 누적)
+- **Admin**: Vercel 자동 배포 (Insights ML 탭 `33acb7f` + lastAccessedAt fallback `174f8ea`)
+- **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (법무 검토 미수령)
 
 ## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
 
@@ -267,21 +274,29 @@ make dead-code   # 미사용 코드 탐지
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
 
 ### 로드맵
-- ✅ P0: 임신 모드 v2 재설계 — 빌드 64 + App Store v2.8.0 심사 제출 완료 (2026-05-02). 결과 대기
-- [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_mode_enabled=true` 0→25→50→100% 단계 (Crashlytics 무회귀 확인)
-- [ ] H-12 게이팅 유지: 심사 중 RC=false 유지 (현재 default false라 안전)
+- ✅ P0: 임신 모드 v2 — v2.8.0 App Store 출시 완료 (2026-05-02 승인)
+- ✅ P0: 광고 제거 hotfix — v2.8.1 출시 완료 (2026-05-06)
+- ✅ P0: Phase 1 ML 인사이트 — v2.8.2 심사 제출 (2026-05-10)
+- [ ] v2.8.2 심사 통과 대기 (12-48h 예상)
+- [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
+- [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
+- [ ] Phase 2 ML: 4주+ 데이터 누적 후 anomaly mode 활성화 (`insight_scorer_mode=anomaly`) 또는 CoreML 합성 baseline
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:
   - ✅ ~~수면장소~~ / ~~배지 Phase 1~~ / ~~badges-ui Phase 2~~ / ~~feature-enhancement-rollout 9개~~ (2026-04-15)
   - ⏳ 커스텀활동, Apple Health, 커뮤니티
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
-- 웹: Google Search Console, Naver 등록
 
-### v2.8.0 배포 후 액션 (사용자 Human)
-- [ ] TestFlight 빌드 63 Apple processing → VALID 확인
-- [ ] 내부 테스터 3일 무회귀 모니터링 (Crashlytics crash-free ≥99%, pregnancy crash 0건)
-- [ ] D+3: Firebase Console → RC `pregnancy_mode_enabled = true` 100% rollout (단계적 0→25→50→100 권장)
+### 즉시 처리 필요 (사용자 액션)
+- [ ] iOS main + feat/pregnancy-mode-v2 push (이번 세션 18 commits 대기)
+- [ ] AdMob Console 차단 사유 확인 + 항소 양식 작성
+- [ ] TestFlight 빌드 65/66 실기기 무회귀 검증
+- [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 보강 (1주 external)
+- [ ] feat/pregnancy-mode-v2 → main 머지 (v2.8.2 심사 통과 후) + `fix/last-accessed-at` 브랜치 삭제
+
+### 추후 개선 (P2)
+- [ ] Admin Insights 탭 RC 라이브 가중치 (현재 default만, Firebase Admin SDK RC 추가)
+- [ ] Phase 2 ML: CoreML 합성 데이터 baseline (1-2주, InsightScorer 프로토콜 swap)
+- [ ] Dashboard 콘텐츠 저장소 catalog 이관 (이유식 18 + 발달 18 하드코딩)
 - [ ] H-4 산부인과 전문의 pregnancy-weeks 의료 검증 (2주 external)
-- [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 commit + GitHub Pages push (1주 external)
-- [ ] H-11 Firebase Console Rules Simulator 3 시나리오 수동 테스트
-- [ ] App Store v2.8.0 제출 (RC 100% 안정 후)
+- [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출)
