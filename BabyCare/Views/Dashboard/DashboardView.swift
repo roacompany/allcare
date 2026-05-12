@@ -21,6 +21,10 @@ struct DashboardView: View {
     @State var quickInputType: Activity.ActivityType?
     @State var showMoreSection = false
 
+    // MARK: - Weekly Highlights v2
+    @State var isHighlightV2Active: Bool = false
+    @State private var selectedHighlight: InsightCandidate?
+
     let feedingColor = AppColors.feedingColor
     let sleepColor = AppColors.sleepColor
     let diaperColor = AppColors.diaperColor
@@ -52,11 +56,12 @@ struct DashboardView: View {
                     alertBannersSection
                     BadgeHomeStrip()
                     quickActionsSection
-                    weeklyInsightsCard
+                    highlightTickerOrV1Card
                     predictionSection
                     insightCardsSection
                     pregnancyHomeCardIfNeeded
                     summaryCardsSection
+                    highlightGridIfNeeded
                     reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {
                         VStack(spacing: 12) {
@@ -86,6 +91,17 @@ struct DashboardView: View {
         }
         .task {
             await loadData()
+        }
+        .task {
+            guard let userId = authVM.currentUserId else { return }
+            isHighlightV2Active = await FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
+        }
+        .sheet(item: $selectedHighlight) { candidate in
+            HighlightDetailSheet(
+                candidate: candidate,
+                sparkline: insightService.sparklineData(for: candidate.metricKey),
+                aiSummary: nil
+            )
         }
         .sheet(item: $editingActivity) { activity in
             ActivityEditSheet(activity: activity) { updated in
@@ -146,6 +162,66 @@ struct DashboardView: View {
                 productCandidates = []
             }
             .presentationDetents([.medium])
+        }
+    }
+
+    // MARK: - Weekly Highlights XOR (v1 / v2)
+
+    /// AppContext + isHighlightV2Active 기반 XOR 분기.
+    /// - `.babyOnly` / `.both` + isHighlightV2Active=true → HighlightTickerView
+    /// - `.babyOnly` / `.both` + isHighlightV2Active=false → weeklyInsightsCard (v1)
+    /// - `.empty` / `.pregnancyOnly` → EmptyView (v1 fallback도 숨김)
+    @ViewBuilder
+    private var highlightTickerOrV1Card: some View {
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .empty:
+            EmptyView()
+        case .pregnancyOnly:
+            EmptyView()
+        case .babyOnly, .both:
+            if isHighlightV2Active {
+                HighlightTickerView(
+                    candidates: insightService.topHighlights(
+                        for: AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy),
+                        weights: InsightWeights.fromRC()
+                    ),
+                    onCandidateSelected: { candidate in
+                        selectedHighlight = candidate
+                    }
+                )
+            } else {
+                weeklyInsightsCard
+            }
+        }
+    }
+
+    /// summaryCardsSection 아래에 배치. V2 활성 + 적합 AppContext 시만 노출.
+    @ViewBuilder
+    private var highlightGridIfNeeded: some View {
+        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        case .empty:
+            EmptyView()
+        case .pregnancyOnly:
+            EmptyView()
+        case .babyOnly, .both:
+            if isHighlightV2Active {
+                let categories: [InsightCategory] = [.feeding, .sleep, .diaper, .health]
+                let candidates = insightService.topHighlights(
+                    for: AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy),
+                    weights: InsightWeights.fromRC()
+                )
+                let cards: [WeeklyHighlightGrid.CardData] = categories.map { cat in
+                    let match = candidates.first { $0.category == cat }
+                    return WeeklyHighlightGrid.CardData(
+                        category: cat,
+                        metricKey: match?.metricKey ?? cat.rawValue,
+                        sparkline: insightService.sparklineData(for: match?.metricKey ?? cat.rawValue),
+                        changePercent: match?.changePercent ?? 0
+                    )
+                }
+                WeeklyHighlightGridContainer(cards: cards)
+                    .accessibilityIdentifier("weeklyHighlightGrid")
+            }
         }
     }
 

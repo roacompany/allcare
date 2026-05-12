@@ -37,5 +37,10 @@
   "todo-7": {
     "highlight_grid": "BabyCare/Views/Dashboard/WeeklyHighlightGrid.swift",
     "container": "WeeklyHighlightGridContainer (same file, .equatable() wrapper)"
+  },
+  "todo-8": {
+    "dashboard_integration": "BabyCare/Views/Dashboard/DashboardView.swift",
+    "shortcuts_v1_id": "BabyCare/Views/Dashboard/DashboardView+Shortcuts.swift",
+    "insight_candidate_identifiable": "BabyCare/Services/Insights/InsightProvider.swift (id=metricKey 추가)"
   }
 }

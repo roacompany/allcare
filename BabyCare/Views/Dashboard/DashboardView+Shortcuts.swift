@@ -49,6 +49,7 @@ extension DashboardView {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color(.systemGroupedBackground))
             )
+            .accessibilityIdentifier("weeklyInsightsCardV1")
         }
     }
 

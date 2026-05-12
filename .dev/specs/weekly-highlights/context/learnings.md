@@ -10,6 +10,13 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 8
+- `InsightCandidate`에 `Identifiable` 추가 (id = metricKey, 주차 내 unique) → `.sheet(item:)` 바인딩 가능
+- async `isHighlightV2Enabled` 평가는 `.task` modifier + `@State var isHighlightV2Active`로 holding
+- `FeatureFlagService.shared` 직접 접근 — @Environment 주입 없이 .task 내부에서 사용 가능
+- 동일 View에 여러 `.task` modifier 체이닝 가능 (loadData + RC 평가 분리)
+- AppContext switch에 `default:` 0개 유지 (A-18 invariant)
+
 ## TODO 6
 - `FirebaseFunctions` product은 project.yml에 명시 추가 필요 (Firebase 11.9.0 패키지에 포함되어 있어도 product 선언 없으면 컴파일 에러)
 - ESLint 9.x: `.eslintignore` deprecated → `eslint.config.js` flat config 권장 (현재 .eslintrc.js + lint 스크립트 src/ 한정 처리)

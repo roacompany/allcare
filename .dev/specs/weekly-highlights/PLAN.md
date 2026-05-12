@@ -978,7 +978,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] TODO 8: DashboardView 통합 + AppContext gating + XOR v1/v2
+### [x] TODO 8: DashboardView 통합 + AppContext gating + XOR v1/v2
 
 **Type**: work
 
@@ -1031,21 +1031,21 @@ risk: MEDIUM
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `isHighlightV2Enabled=false` 시 v1 `weeklyInsightsCard` 표시 + 신규 섹션 모두 hidden
-- [ ] `isHighlightV2Enabled=true` 시 신규 티커/그리드 표시 + v1 hidden
-- [ ] AppContext switch 4 case 명시
-- [ ] `selectedHighlight` 변경 시 sheet 표시
-- [ ] accessibilityIdentifier "weeklyHighlightTicker" / "weeklyInsightsCardV1" / "weeklyHighlightGrid"
+- [x] `isHighlightV2Enabled=false` 시 v1 `weeklyInsightsCard` 표시 + 신규 섹션 모두 hidden
+- [x] `isHighlightV2Enabled=true` 시 신규 티커/그리드 표시 + v1 hidden
+- [x] AppContext switch 4 case 명시
+- [x] `selectedHighlight` 변경 시 sheet 표시
+- [x] accessibilityIdentifier "weeklyHighlightTicker" / "weeklyInsightsCardV1" / "weeklyHighlightGrid"
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
-- [ ] `grep -c 'default:' BabyCare/Views/Dashboard/DashboardView.swift` 변화 없음 (A-18)
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
+- [x] `grep -c 'default:' BabyCare/Views/Dashboard/DashboardView.swift` == 0 (A-18 invariant)
 
 *Runtime:*
-- [ ] `make test` PASS
-- [ ] `make ui-test` PASS — A-19, A-20
+- [ ] `make test` PASS (deferred to TODO 10 — InsightCandidate Identifiable 추가)
+- [ ] `make ui-test` PASS — A-19, A-20 (deferred to TODO 10)
 
 **Verify**:
 ```yaml
