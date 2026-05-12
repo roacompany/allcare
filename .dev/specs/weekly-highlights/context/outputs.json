@@ -41,12 +41,25 @@
   "todo-8": {
     "dashboard_integration": "BabyCare/Views/Dashboard/DashboardView.swift",
     "shortcuts_v1_id": "BabyCare/Views/Dashboard/DashboardView+Shortcuts.swift",
-    "insight_candidate_identifiable": "BabyCare/Services/Insights/InsightProvider.swift (id=metricKey 추가)"
+    "insight_candidate_identifiable": "BabyCare/Services/Insights/InsightProvider.swift"
   },
   "todo-9": {
     "precache_worker": "BabyCare/Services/HighlightPrecacheService.swift",
     "app_hook": "BabyCare/App/BabyCareApp.swift",
     "refresh_hook": "BabyCare/Views/Dashboard/DashboardView.swift",
     "app_state_registration": "BabyCare/App/AppState.swift"
+  },
+  "todo-10": {
+    "unit_tests_count": 371,
+    "ui_tests_file": "BabyCareUITests/WeeklyHighlightFlowTests.swift",
+    "ui_tests_count": 5,
+    "a11y_ids": [
+      "weeklyHighlightTicker",
+      "highlightDetailSheet",
+      "weeklyHighlightGrid",
+      "highlightCard_0..3",
+      "weeklyInsightsCardV1"
+    ],
+    "qa_evidence_file": ".dev/qa-evidence/weekly-highlights/v2.8.3.md"
   }
 }

@@ -10,6 +10,13 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 10
+- `WeeklyMetricSnapshot.init`은 `babyId` 없음, `weekStartDate` 필수 (`recordedAt` 아님)
+- `PatternReport`는 `PatternAnalysisService.analyze()`로만 생성 가능 (직접 init 불가) — 테스트는 mock builder 패턴
+- `make plan-verify`는 PLAN.md backtick `.swift` 참조 시 basename 폴백 — 슬래시 없는 경로는 전체 문자열이 basename. 디렉토리 포함 경로 필수
+- `project.yml path: BabyCareUITests` → 신규 .swift 파일 xcodegen 자동 포함
+- 별도 XCUITest 파일 (WeeklyHighlightFlowTests.swift)로 분리 — PLAN.md 파일명 참조 plan-verify 충족
+
 ## TODO 9
 - `HighlightPrecacheService`를 `AppState`에 등록 — @Environment injection 일관성 유지 (별도 singleton 회피)
 - AppState `private init()`에서 로컬 상수로 InsightService 먼저 할당 후 highlightPrecache에 주입 — self-reference 회피

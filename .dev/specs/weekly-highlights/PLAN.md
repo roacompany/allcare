@@ -377,7 +377,7 @@ TODO-1 (P0 인프라)
 
 *Functional:*
 - [x] `FirestoreCollections.highlightCache == "highlightCache"` (line 정의 확인)
-- [x] 7 Analytics 상수 정의 (`grep -c 'highlight_' AnalyticsEvents.swift` ≥ 7)
+- [x] 7 Analytics 상수 정의 (`grep -c 'highlight_' BabyCare/Services/AnalyticsEvents.swift` ≥ 7)
 - [x] `FeatureFlagService.isHighlightV2Enabled` 메서드 시그니처 존재
 - [x] `FeatureFlags.highlightsEnabled == true` compile-time
 - [x] `remoteconfig.template.json` 2 키 추가

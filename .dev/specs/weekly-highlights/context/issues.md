@@ -6,3 +6,6 @@
 
 ## TODO 4
 - [ ] PLAN.md 라인 643 `.paused(isPaused)` modifier 스펙이 PeriodicTimelineSchedule에 실재 X → 정적 카드 분기로 대체. TODO 10 XCUITest 작성 시 `isPaused` toggle 검증을 시뮬레이터 일시정지 후 카드 정적 표시 확인으로 작성 필요
+
+## TODO 10
+- [ ] **UI_TESTING_HIGHLIGHT_V2 launch argument 미구현**: DashboardView에 `isHighlightV2Active=true` 강제 주입하는 launch arg 처리 코드 없음. testFlag_on_v2Active / testHighlightTicker_tapOpensSheet / testHighlightGrid_4CardsVisible 3개 XCUITest는 RC false 환경에서 guard-return으로 SKIP — TODO Final에서 launch arg 처리 추가하거나 별도 RC override 메커니즘 필요. A-19 (V1 fallback)는 즉시 가능
