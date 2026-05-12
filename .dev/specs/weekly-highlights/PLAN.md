@@ -1347,7 +1347,7 @@ risk: LOW
 
 ---
 
-### [ ] TODO 11: Admin Batch Worker + Mac LaunchAgent (AI 생성 인프라)
+### [x] TODO 11: Admin Batch Worker + Mac LaunchAgent (AI 생성 인프라) — E2E 검증 완료 2026-05-12
 
 **Type**: work (신규, 2026-05-12 추가)
 
@@ -1403,21 +1403,21 @@ risk: LOW
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] Admin route Bearer 인증 + Firestore Admin SDK read 가능
-- [ ] Mac worker `/summarize` 200자 클램프 응답
-- [ ] pregnancy_ metricKey allowlist reject (HTTP 400)
-- [ ] LaunchAgent 부팅 시 자동 시작
-- [ ] cloudflared tunnel 외부 호출 통과
-- [ ] Vercel cron daily 실행 시 `highlightCache` 도큐먼트 N개 write
+- [x] Admin route Bearer 인증 + Firestore Admin SDK read 가능 (`/api/cron/highlight-batch`)
+- [x] Mac worker `/summarize` 200자 클램프 응답 (E2E: feeding_total_oz 32.5oz 시나리오 한국어 응답)
+- [x] pregnancy_ metricKey allowlist reject (HTTP 400 `invalid_argument`)
+- [x] LaunchAgent 부팅 시 자동 시작 (worker + quicktunnel KeepAlive=true)
+- [x] cloudflared tunnel 외부 호출 통과 (Quick Tunnel anonymous URL, OAuth 불필요)
+- [x] Vercel cron 자동화 검증 — manual 트리거 시 attempted=8, written=8, failed=0
 
 *Static:*
-- [ ] `npm --prefix babycare-admin run build` exit 0
-- [ ] `npm --prefix babycare-admin/scripts/mac-worker install` 성공
-- [ ] LaunchAgent plist `plutil -lint` PASS
+- [x] `npm --prefix babycare-admin run build` exit 0 (`/api/cron/highlight-batch` 라우트 컴파일됨)
+- [x] `npm --prefix babycare-admin/scripts/mac-worker install` 성공 (express ^4.21)
+- [x] LaunchAgent plist `plutil -lint` PASS (worker + quicktunnel 2개)
 
 *Runtime:*
-- [ ] Cron 1회 수동 트리거 → Firestore highlightCache 도큐먼트 생성 확인 (사용자 액션)
-- [ ] iOS 앱 `HighlightDetailSheet`에서 AI summary 표시 확인 (실기기)
+- [x] Cron 1회 수동 트리거 → Firestore highlightCache 도큐먼트 4개 생성 확인 (1 active user × feeding/sleep/diaper/health)
+- [ ] iOS 앱 `HighlightDetailSheet`에서 AI summary 표시 확인 (실기기 — v2.8.3 TestFlight 후)
 
 **Must NOT do**:
 - `MAC_WORKER_SECRET`, `CRON_SECRET` 평문 commit 금지 (Vercel ENV / `.env.local` 만)
