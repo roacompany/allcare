@@ -96,4 +96,52 @@ final class FeatureFlagService {
 
     /// 테스트 전용: compile-time kill switch 값 반환
     var compileTimeValue: Bool { compileTime }
+
+    // MARK: - Weekly Highlights (v2.8.3+)
+
+    /// UserDefaults 캐시 키 (Layer 3, highlights)
+    private static let highlightCacheKey = "lastKnownGood_highlightV2Enabled"
+
+    /// RemoteConfig key 상수 (highlights)
+    private enum HLRCKey {
+        static let enabled = "highlight_enabled"
+        static let tickerPct = "highlight_ticker_pct"
+    }
+
+    /// 주간 하이라이트 Hybrid 3-layer 활성화 여부.
+    ///   Layer 1: compile-time `FeatureFlags.highlightsEnabled` kill switch
+    ///   Layer 2: RC `highlight_enabled` + `highlight_ticker_pct` 코호트
+    ///   Layer 3: UserDefaults 오프라인 fallback 캐시
+    ///
+    /// A-18 Invariant: fetch 실패 시 fallback = false.
+    /// - Parameter userId: Firebase Auth currentUserId (cohort bucket 결정에 사용)
+    /// - Returns: 주간 하이라이트 노출 여부
+    func isHighlightV2Enabled(userId: String) async -> Bool {
+        // Layer 1: compile-time kill switch
+        guard FeatureFlags.highlightsEnabled else { return false }
+
+        // RemoteConfig defaults 설정 (fetch 실패 시 in-memory default 적용, A-18)
+        RemoteConfig.remoteConfig().setDefaults([
+            HLRCKey.enabled: false as NSObject,
+            HLRCKey.tickerPct: 0 as NSObject
+        ])
+
+        // Layer 2: RemoteConfig fetch & cohort bucketing
+        // fetchAndActivate 실패 시 try? 로 무시 → defaults(false) 유지 (A-18)
+        _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
+
+        let rcEnabled = RemoteConfig.remoteConfig()
+            .configValue(forKey: HLRCKey.enabled).boolValue
+        guard rcEnabled else { return false }
+
+        let rcPct = RemoteConfig.remoteConfig()
+            .configValue(forKey: HLRCKey.tickerPct).numberValue.intValue
+        let bucket = Int(StableHash.djb2(userId) % 100)
+        let resolved = bucket < rcPct
+
+        // Layer 3: 성공 시 UserDefaults 캐시 갱신 (오프라인 fallback)
+        UserDefaults.standard.set(resolved, forKey: FeatureFlagService.highlightCacheKey)
+
+        return resolved
+    }
 }

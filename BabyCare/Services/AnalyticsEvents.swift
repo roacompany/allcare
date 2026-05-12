@@ -53,6 +53,15 @@ enum AnalyticsEvents {
     static let insightGenerated = "insight_generated"
     static let insightShown = "insight_shown"
     static let insightTapped = "insight_tapped"
+
+    // Weekly Highlights — v2.8.3+ AI 주간 하이라이트 ticker + sheet telemetry.
+    static let highlightTickerShown = "highlight_ticker_shown"
+    static let highlightTickerTapped = "highlight_ticker_tapped"
+    static let highlightTickerPaused = "highlight_ticker_paused"
+    static let highlightSheetOpened = "highlight_sheet_opened"
+    static let highlightSheetDismissed = "highlight_sheet_dismissed"
+    static let highlightCacheHit = "highlight_cache_hit"
+    static let highlightPatternReportTapped = "highlight_pattern_report_tapped"
 }
 
 // MARK: - Parameter Keys

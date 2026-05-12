@@ -13,4 +13,12 @@ enum FeatureFlags {
     /// NOTE: 이 값은 FeatureFlagService.compileTime으로 읽힌다.
     ///       FeatureFlagService 단독 게이트웨이 — 직접 FirebaseRemoteConfig 금지 (A-18).
     static let pregnancyModeEnabled: Bool = true
+    /// 주간 하이라이트 compile-time kill switch.
+    /// true = 코드 활성화. FeatureFlagService.isHighlightV2Enabled(userId:)가
+    /// RemoteConfig highlight_enabled + StableHash 코호트 bucketing으로 최종 노출 여부 결정.
+    /// false 설정 시 RC fetch 없이 즉시 비활성 (A-18 invariant).
+    ///
+    /// NOTE: 이 값은 FeatureFlagService.isHighlightV2Enabled에서 Layer 1 guard로 읽힌다.
+    ///       FirebaseRemoteConfig 직접 import 금지 (FeatureFlagService 단독 게이트웨이).
+    static let highlightsEnabled: Bool = true
 }

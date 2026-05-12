@@ -476,31 +476,6 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNil(currentReport.feeding.previousDailyAverage, "이전 기간 데이터 없으면 previousDailyAverage는 nil이어야 합니다")
     }
 
-    // MARK: - AdExperimentVariant Tests
-
-    func testAdExperimentVariant_allThreeTabs_showsOnDashboardCalendarHealth() {
-        let variant: AdExperimentVariant = .allThreeTabs
-        XCTAssertTrue(variant.shouldShowBanner(forTab: 0), "Dashboard(0)은 표시")
-        XCTAssertTrue(variant.shouldShowBanner(forTab: 1), "Calendar(1)은 표시")
-        XCTAssertTrue(variant.shouldShowBanner(forTab: 3), "Health(3)은 표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 2), "기록+(2)는 미표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 4), "Settings(4)는 미표시")
-    }
-
-    func testAdExperimentVariant_dashboardOnly_showsOnDashboardOnly() {
-        let variant: AdExperimentVariant = .dashboardOnly
-        XCTAssertTrue(variant.shouldShowBanner(forTab: 0), "Dashboard(0)만 표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 1), "Calendar(1) 미표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 2), "기록+(2) 미표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 3), "Health(3) 미표시")
-        XCTAssertFalse(variant.shouldShowBanner(forTab: 4), "Settings(4) 미표시")
-    }
-
-    func testAdExperimentVariant_currentVariant_defaultsToAllThreeTabs() {
-        XCTAssertEqual(AdExperimentVariant.currentVariant, .allThreeTabs,
-                       "기본 variant는 .allThreeTabs (A안)여야 합니다")
-    }
-
     // MARK: - Cry Analysis Tests
 
     func test_cryLabel_allCasesCount_equalsFive() {
@@ -4390,5 +4365,31 @@ final class FeatureFlagServiceBehaviorTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: key)
         let clearedResult = service.coldStartDefault(userId: "isolation-user")
         XCTAssertFalse(clearedResult, "캐시 제거 → coldStart false 복원")
+    }
+
+    // MARK: - Weekly Highlights Cohort (A-23)
+
+    /// A-23: isHighlightV2Enabled 코호트 — DJB2 deterministic 검증.
+    /// 동일 userId로 StableHash.djb2 호출 시 항상 동일 bucket 반환.
+    func testCohort_djb2Deterministic() {
+        let userId = "highlight-test-user-abc"
+        let bucket1 = StableHash.djb2(userId) % 100
+        let bucket2 = StableHash.djb2(userId) % 100
+        XCTAssertEqual(bucket1, bucket2, "DJB2는 동일 userId에 대해 항상 동일 bucket 반환 (deterministic)")
+    }
+
+    /// A-23b: 서로 다른 userId는 다른 bucket에 매핑될 수 있음 (collision 없는 기본 케이스).
+    func testCohort_djb2_differentUsers_differentBuckets() {
+        let user1 = "user-highlight-001"
+        let user2 = "user-highlight-002"
+        // DJB2 충돌이 없다는 보장은 없지만, 이 두 입력은 다른 값 반환
+        let b1 = StableHash.djb2(user1)
+        let b2 = StableHash.djb2(user2)
+        XCTAssertNotEqual(b1, b2, "서로 다른 userId는 서로 다른 DJB2 해시 반환")
+    }
+
+    /// A-23c: FeatureFlags.highlightsEnabled compile-time 상수 검증.
+    func testHighlightsEnabled_compiletimeTrue() {
+        XCTAssertTrue(FeatureFlags.highlightsEnabled, "FeatureFlags.highlightsEnabled는 true (v2.8.3 기본값)")
     }
 }

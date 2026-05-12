@@ -1,0 +1,16 @@
+{
+  "todo-1": {
+    "rc_keys": ["highlight_enabled", "highlight_ticker_pct"],
+    "event_keys": [
+      "highlightTickerShown",
+      "highlightTickerTapped",
+      "highlightTickerPaused",
+      "highlightSheetOpened",
+      "highlightSheetDismissed",
+      "highlightCacheHit",
+      "highlightPatternReportTapped"
+    ],
+    "collection_constant": "BabyCare/Utils/Constants.swift",
+    "feature_flag_method": "BabyCare/Services/FeatureFlagService.swift"
+  }
+}

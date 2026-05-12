@@ -98,6 +98,10 @@ enum FirestoreCollections {
     /// 주간 metric 스냅샷. 경로: users/{uid}/babies/{bid}/weeklyMetrics/{weekKey}
     /// Phase 1 통계적 이상치 탐지의 history input. Phase 2 ML 학습 입력.
     static let weeklyMetrics = "weeklyMetrics"
+    // MARK: - Weekly Highlights
+    /// AI 주간 하이라이트 캐시. 경로: users/{uid}/babies/{bid}/highlightCache/{weekKey}
+    /// HighlightAISummaryService 생성 결과 영속. TTL 7일.
+    static let highlightCache = "highlightCache"
 }
 
 enum CoupangConfig {

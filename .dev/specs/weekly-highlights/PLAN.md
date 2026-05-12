@@ -324,7 +324,7 @@ TODO-1 (P0 인프라)
 
 ## TODOs
 
-### [ ] TODO 1: 인프라 — RC + Analytics + FirestoreCollections + FeatureFlag + Cohort
+### [x] TODO 1: 인프라 — RC + Analytics + FirestoreCollections + FeatureFlag + Cohort
 
 **Type**: work
 
@@ -376,20 +376,20 @@ TODO-1 (P0 인프라)
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `FirestoreCollections.highlightCache == "highlightCache"` (line 정의 확인)
-- [ ] 7 Analytics 상수 정의 (`grep -c 'highlight_' AnalyticsEvents.swift` ≥ 7)
-- [ ] `FeatureFlagService.isHighlightV2Enabled` 메서드 시그니처 존재
-- [ ] `FeatureFlags.highlightsEnabled == true` compile-time
-- [ ] `remoteconfig.template.json` 2 키 추가
+- [x] `FirestoreCollections.highlightCache == "highlightCache"` (line 정의 확인)
+- [x] 7 Analytics 상수 정의 (`grep -c 'highlight_' AnalyticsEvents.swift` ≥ 7)
+- [x] `FeatureFlagService.isHighlightV2Enabled` 메서드 시그니처 존재
+- [x] `FeatureFlags.highlightsEnabled == true` compile-time
+- [x] `remoteconfig.template.json` 2 키 추가
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations (baseline)
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations (baseline)
 
 *Runtime:*
-- [ ] `make test` PASS — `testCohort_djb2Deterministic` (A-23)
-- [ ] `bash scripts/feature_flag_smoke.sh highlights` exit 0 (A-2)
+- [x] `make test` PASS — `testCohort_djb2Deterministic` (A-23)
+- [x] `bash scripts/feature_flag_smoke.sh highlights` exit 0 (A-2)
 
 **Verify**:
 ```yaml
