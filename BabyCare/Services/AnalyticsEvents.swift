@@ -62,6 +62,7 @@ enum AnalyticsEvents {
     static let highlightSheetDismissed = "highlight_sheet_dismissed"
     static let highlightCacheHit = "highlight_cache_hit"
     static let highlightPatternReportTapped = "highlight_pattern_report_tapped"
+    static let highlightCardTapped = "highlight_card_tapped"
 }
 
 // MARK: - Parameter Keys

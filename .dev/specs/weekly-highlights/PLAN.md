@@ -909,7 +909,7 @@ risk: HIGH
 
 ---
 
-### [ ] TODO 7: WeeklyHighlightGrid (4 카드 Sparkline + WoW)
+### [x] TODO 7: WeeklyHighlightGrid (4 카드 Sparkline + WoW)
 
 **Type**: work
 
@@ -948,18 +948,18 @@ risk: HIGH
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] 4 카드 렌더 (Feeding/Sleep/Diaper/Health metricKey 매핑)
-- [ ] 각 카드 accessibilityIdentifier="highlightCard_0..3"
-- [ ] 빈 sparkline 시 placeholder
-- [ ] pregnancyOnly 시 hidden
+- [x] 4 카드 렌더 (Feeding/Sleep/Diaper/Health metricKey 매핑)
+- [x] 각 카드 accessibilityIdentifier="highlightCard_0..3"
+- [x] 빈 sparkline 시 placeholder
+- [x] pregnancyOnly 시 hidden (parent gating)
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
 
 *Runtime:*
-- [ ] `make test` PASS — A-17
+- [ ] `make test` PASS — A-17 (deferred to TODO 10)
 
 **Verify**:
 ```yaml

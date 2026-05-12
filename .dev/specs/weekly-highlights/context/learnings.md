@@ -10,6 +10,12 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 7
+- Swift 6: View + Equatable 동시 채택 시 `static func ==`을 `nonisolated`로 선언 → MainActor isolation 충돌 회피
+- `.equatable()` modifier는 Equatable 채택 View에만 적용 — LazyVGrid 내부 직접 적용 불가, 컨테이너로 감싸는 패턴
+- `WeeklyHighlightGridContainer` 분리 → TODO 8 DashboardView는 Container 사용 권장
+- `AnalyticsEvents.highlightCardTapped` 추가 (8번째 이벤트, PLAN 스펙 7개에서 1개 추가)
+
 ## TODO 5
 - iOS 26.4 SDK: `.accentColor` ShapeStyle shorthand 컴파일 실패 → `Color.accentColor` 사용
 - 두 개의 `.onAppear` modifier 체이닝 가능 (초기값 세팅 + Analytics 추적 분리)

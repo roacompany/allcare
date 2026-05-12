@@ -8,7 +8,8 @@
       "highlightSheetOpened",
       "highlightSheetDismissed",
       "highlightCacheHit",
-      "highlightPatternReportTapped"
+      "highlightPatternReportTapped",
+      "highlightCardTapped"
     ],
     "collection_constant": "BabyCare/Utils/Constants.swift",
     "feature_flag_method": "BabyCare/Services/FeatureFlagService.swift"
@@ -27,5 +28,9 @@
   },
   "todo-5": {
     "detail_sheet": "BabyCare/Views/Dashboard/HighlightDetailSheet.swift"
+  },
+  "todo-7": {
+    "highlight_grid": "BabyCare/Views/Dashboard/WeeklyHighlightGrid.swift",
+    "container": "WeeklyHighlightGridContainer (same file, .equatable() wrapper)"
   }
 }
