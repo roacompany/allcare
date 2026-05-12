@@ -706,7 +706,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] TODO 5: HighlightDetailSheet (Sparkline + AI summary fallback + 일괄 표시)
+### [x] TODO 5: HighlightDetailSheet (Sparkline + AI summary fallback + 일괄 표시)
 
 **Type**: work
 
@@ -762,20 +762,20 @@ risk: MEDIUM
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] aiSummary=nil 시 fallback 텍스트 표시
-- [ ] aiSummary=String 도착 시 교체
-- [ ] 200자 초과 입력 시 클램프 (`.prefix(200).count == 200`)
-- [ ] sparkline=[] 시 placeholder rect 표시 (크래시 0)
-- [ ] "더 보기" NavLink → PatternReportView push
-- [ ] accessibilityIdentifier="highlightDetailSheet"
+- [x] aiSummary=nil 시 fallback 텍스트 표시
+- [x] aiSummary=String 도착 시 교체
+- [x] 200자 초과 입력 시 클램프 (`.prefix(200).count == 200`)
+- [x] sparkline=[] 시 placeholder rect 표시 (크래시 0)
+- [x] "더 보기" NavLink → PatternReportView push
+- [x] accessibilityIdentifier="highlightDetailSheet"
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
 
 *Runtime:*
-- [ ] `make test` PASS — A-12, A-13
+- [ ] `make test` PASS — A-12, A-13 (deferred to TODO 10)
 
 **Verify**:
 ```yaml

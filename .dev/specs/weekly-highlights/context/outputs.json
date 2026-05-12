@@ -24,5 +24,8 @@
   },
   "todo-4": {
     "ticker_view": "BabyCare/Views/Dashboard/HighlightTickerView.swift"
+  },
+  "todo-5": {
+    "detail_sheet": "BabyCare/Views/Dashboard/HighlightDetailSheet.swift"
   }
 }

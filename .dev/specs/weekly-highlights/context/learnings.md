@@ -10,6 +10,12 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 5
+- iOS 26.4 SDK: `.accentColor` ShapeStyle shorthand 컴파일 실패 → `Color.accentColor` 사용
+- 두 개의 `.onAppear` modifier 체이닝 가능 (초기값 세팅 + Analytics 추적 분리)
+- NavigationLink Analytics는 `.simultaneousGesture(TapGesture)` 패턴 (destination 실행 차단 없이 이벤트 전송)
+- arch_test.sh는 FirestoreService/AuthService 직접 참조만 검사 — AnalyticsService.shared는 Views에서 허용
+
 ## TODO 4
 - PLAN 스펙 `.paused(isPaused)` modifier는 `PeriodicTimelineSchedule`에 미존재 (AnimationTimelineSchedule 전용) — `isPaused == true` 시 정적 카드로 분기하는 방식으로 대체 (기능 동등)
 - `InsightCandidate`에 `accessibilityLabel` 필드 없음 — `title`로 대체. TODO 10 테스트 작성 시 주의
