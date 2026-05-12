@@ -10,6 +10,12 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 4
+- PLAN 스펙 `.paused(isPaused)` modifier는 `PeriodicTimelineSchedule`에 미존재 (AnimationTimelineSchedule 전용) — `isPaused == true` 시 정적 카드로 분기하는 방식으로 대체 (기능 동등)
+- `InsightCandidate`에 `accessibilityLabel` 필드 없음 — `title`로 대체. TODO 10 테스트 작성 시 주의
+- `String.prefix(n)`은 Substring → `Text()` 전달 시 `String()` 캐스팅 필요
+- TimelineView context closure에서 State 변경은 `.onChange` modifier로 분리 (Swift 6 경고 회피)
+
 ## TODO 3
 - PLAN.md 파일 경로 drift: `BabyCare/Services/Insights/InsightService.swift` → 실제는 `BabyCare/Services/InsightService.swift` (Insights 서브폴더 없음). PLAN 5개 위치 일괄 수정
 - InsightProvider 기존 metricKey는 dot notation (`feeding.count`, `diaper.wet`) 사용 — allowlist에 `_` (HighlightAICache용) + `.` (InsightProvider용) 양쪽 prefix 모두 포함

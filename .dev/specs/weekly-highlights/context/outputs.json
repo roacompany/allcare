@@ -21,5 +21,8 @@
   },
   "todo-3": {
     "insight_service_ext": "BabyCare/Services/InsightService.swift"
+  },
+  "todo-4": {
+    "ticker_view": "BabyCare/Views/Dashboard/HighlightTickerView.swift"
   }
 }

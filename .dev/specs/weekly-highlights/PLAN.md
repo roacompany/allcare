@@ -618,7 +618,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] TODO 4: HighlightTickerView (TimelineView + reduceMotion + 일시정지)
+### [x] TODO 4: HighlightTickerView (TimelineView + reduceMotion + 일시정지)
 
 **Type**: work
 
@@ -669,20 +669,20 @@ risk: MEDIUM
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] reduceMotion=true 시 자동 롤링 정지 (정적 표시)
-- [ ] reduceMotion=false 시 5초 간격 자동 롤링
-- [ ] 탭 → isPaused 토글
-- [ ] 빈 candidates 시 EmptyView 반환
-- [ ] 인덱스 마지막 → 0 순환
-- [ ] accessibilityIdentifier="weeklyHighlightTicker"
+- [x] reduceMotion=true 시 자동 롤링 정지 (정적 표시)
+- [x] reduceMotion=false 시 5초 간격 자동 롤링
+- [x] 탭 → isPaused 토글 (정적 카드로 전환, `.paused()` modifier는 PeriodicTimelineSchedule 미지원)
+- [x] 빈 candidates 시 EmptyView 반환
+- [x] 인덱스 마지막 → 0 순환
+- [x] accessibilityIdentifier="weeklyHighlightTicker"
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations (Views가 Service 직접 호출 X — InsightService는 @Environment 주입만)
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations (Views가 Service 직접 호출 X — InsightService는 @Environment 주입만)
 
 *Runtime:*
-- [ ] `make test` PASS — A-10, A-11
+- [ ] `make test` PASS — A-10, A-11 (deferred to TODO 10)
 
 **Verify**:
 ```yaml
