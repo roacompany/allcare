@@ -42,5 +42,11 @@
     "dashboard_integration": "BabyCare/Views/Dashboard/DashboardView.swift",
     "shortcuts_v1_id": "BabyCare/Views/Dashboard/DashboardView+Shortcuts.swift",
     "insight_candidate_identifiable": "BabyCare/Services/Insights/InsightProvider.swift (id=metricKey 추가)"
+  },
+  "todo-9": {
+    "precache_worker": "BabyCare/Services/HighlightPrecacheService.swift",
+    "app_hook": "BabyCare/App/BabyCareApp.swift",
+    "refresh_hook": "BabyCare/Views/Dashboard/DashboardView.swift",
+    "app_state_registration": "BabyCare/App/AppState.swift"
   }
 }

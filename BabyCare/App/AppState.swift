@@ -24,6 +24,7 @@ final class AppState {
     let badgePresenter: BadgePresenter
     let insight: InsightService
     let pregnancy: PregnancyViewModel
+    let highlightPrecache: HighlightPrecacheService
 
     private init() {
         // Firebase는 AppDelegate에서 초기화됨
@@ -43,7 +44,13 @@ final class AppState {
         purchase = PurchaseViewModel()
         hospitalReport = HospitalReportViewModel()
         badgePresenter = BadgePresenter()
-        insight = InsightService()
+        let insightSvc = InsightService()
+        insight = insightSvc
         pregnancy = PregnancyViewModel()
+        highlightPrecache = HighlightPrecacheService(
+            insightService: insightSvc,
+            aiSummaryService: HighlightAISummaryService(),
+            flagService: FeatureFlagService.shared
+        )
     }
 }

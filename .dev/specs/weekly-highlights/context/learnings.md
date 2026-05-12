@@ -10,6 +10,12 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 9
+- `HighlightPrecacheService`를 `AppState`에 등록 — @Environment injection 일관성 유지 (별도 singleton 회피)
+- AppState `private init()`에서 로컬 상수로 InsightService 먼저 할당 후 highlightPrecache에 주입 — self-reference 회피
+- precomputeIfNeeded는 `.babyOnly` AppContext 고정 (babyId 존재 시 pregnancyOnly 아님)
+- `scenePhase=.active` hook 금지 — @Observable re-render마다 트리거 위험. `.task`는 1회만 실행
+
 ## TODO 8
 - `InsightCandidate`에 `Identifiable` 추가 (id = metricKey, 주차 내 unique) → `.sheet(item:)` 바인딩 가능
 - async `isHighlightV2Enabled` 평가는 `.task` modifier + `@State var isHighlightV2Active`로 holding

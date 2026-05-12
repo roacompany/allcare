@@ -10,6 +10,7 @@ struct DashboardView: View {
     @Environment(AnnouncementViewModel.self) var announcementVM
     @Environment(InsightService.self) var insightService
     @Environment(PregnancyViewModel.self) var pregnancyVM
+    @Environment(HighlightPrecacheService.self) var precacheService
 
     @State var showBabySelector = false
     @State var showTimerWarningOnSwitch = false
@@ -81,6 +82,15 @@ struct DashboardView: View {
             }
             .refreshable {
                 await loadData()
+                // Pull-to-refresh: 주간 하이라이트 AI 요약 사전 캐시 갱신 (Codex R-2: scenePhase hook 미사용).
+                guard let userId = authVM.currentUserId,
+                      let babyId = babyVM.selectedBaby?.id else { return }
+                let weekKey = WeeklyMetricSnapshot.weekKey(for: Date())
+                await precacheService.precomputeIfNeeded(
+                    userId: userId,
+                    babyId: babyId,
+                    weekKey: weekKey
+                )
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

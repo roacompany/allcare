@@ -1073,7 +1073,7 @@ risk: HIGH
 
 ---
 
-### [ ] TODO 9: 사전 캐시 워커 (앱 launch + pull-to-refresh, scenePhase hook 미사용)
+### [x] TODO 9: 사전 캐시 워커 (앱 launch + pull-to-refresh, scenePhase hook 미사용)
 
 **Type**: work
 
@@ -1117,18 +1117,18 @@ risk: HIGH
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `precomputeIfNeeded` 멱등성 (이미 신선 시 호출 0회)
-- [ ] in-flight 가드 (동시 호출 시 1회만 실행)
-- [ ] RC false 시 skip
-- [ ] Pregnancy metricKey 입력 시 reject (defense in depth)
+- [x] `precomputeIfNeeded` 멱등성 (이미 신선 시 호출 0회)
+- [x] in-flight 가드 (동시 호출 시 1회만 실행)
+- [x] RC false 시 skip
+- [x] Pregnancy metricKey 입력 시 reject (defense in depth)
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
 
 *Runtime:*
-- [ ] `make test` PASS — A-21, A-22
+- [ ] `make test` PASS — A-21, A-22 (deferred to TODO 10)
 
 **Verify**:
 ```yaml

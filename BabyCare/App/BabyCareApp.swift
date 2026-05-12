@@ -50,6 +50,7 @@ struct BabyCareApp: App {
                 .environment(appState.hospitalReport)
                 .environment(appState.insight)
                 .environment(appState.pregnancy)
+                .environment(appState.highlightPrecache)
                 .environment(flagService)
                 .onOpenURL { url in
                     deepLinkDestination = DeepLinkRouter.destination(from: url)
@@ -59,6 +60,18 @@ struct BabyCareApp: App {
                 .task {
                     let userId = appState.auth.currentUserId ?? "anonymous"
                     await flagService.bootstrap(userId: userId)
+                }
+                // HighlightPrecacheService: 앱 launch 1회 trigger (scenePhase hook 미사용, Codex R-2).
+                // userId/babyId가 nil이면 skip (로그인 전 상태).
+                .task {
+                    guard let userId = appState.auth.currentUserId,
+                          let babyId = appState.baby.selectedBaby?.id else { return }
+                    let weekKey = WeeklyMetricSnapshot.weekKey(for: Date())
+                    await appState.highlightPrecache.precomputeIfNeeded(
+                        userId: userId,
+                        babyId: babyId,
+                        weekKey: weekKey
+                    )
                 }
         }
     }
