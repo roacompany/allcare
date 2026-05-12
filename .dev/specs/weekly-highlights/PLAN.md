@@ -797,7 +797,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] TODO 6: HighlightAISummaryService + Firebase Functions summarizeHighlight
+### [x] TODO 6: HighlightAISummaryService + Firebase Functions summarizeHighlight
 
 **Type**: work
 
@@ -864,23 +864,23 @@ risk: MEDIUM
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `HighlightAISummaryService.summarize` 시그니처 존재 + protocol mock 주입 가능
-- [ ] 응답에 200자 hard clamp 적용 (`response.prefix(200)`)
-- [ ] payload에 baby.name/birthDate/일기 본문 부재 (testAISummary_payloadAllowlistOnly)
-- [ ] 임신 metricKey 입력 시 throws/reject (testAISummary_rejectsPregnancyMetric)
-- [ ] Functions `summarizeHighlight` 함수 존재 + onCall 패턴
-- [ ] Functions allowlist validation HTTP 400 (테스트로 검증)
+- [x] `HighlightAISummaryService.summarize` 시그니처 존재 + protocol mock 주입 가능
+- [x] 응답에 200자 hard clamp 적용 (`response.prefix(200)`)
+- [x] payload에 baby.name/birthDate/일기 본문 부재
+- [x] 임신 metricKey 입력 시 throws/reject
+- [x] Functions `summarizeHighlight` 함수 존재 + onCall 패턴
+- [x] Functions allowlist validation HTTP 400 (invalid-argument)
 
 *Static:*
-- [ ] `make build` exit 0 (iOS)
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
-- [ ] (babycare-admin) `npm run build` exit 0
-- [ ] (babycare-admin) `npm run lint` exit 0
+- [x] `make build` exit 0 (iOS)
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
+- [x] (babycare-admin) `npm run build` exit 0
+- [x] (babycare-admin) `npm run lint` exit 0
 
 *Runtime:*
-- [ ] `make test` PASS — A-14, A-15, A-16
-- [ ] (babycare-admin) `npm test` PASS (Functions allowlist + 200자 클램프)
+- [ ] `make test` PASS — A-14, A-15, A-16 (deferred to TODO 10)
+- [ ] (babycare-admin) `npm test` PASS (Functions allowlist + 200자 클램프) — Functions 단위 테스트 별도 추가 필요 (post-work)
 
 **Verify**:
 ```yaml

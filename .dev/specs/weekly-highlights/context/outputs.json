@@ -29,6 +29,11 @@
   "todo-5": {
     "detail_sheet": "BabyCare/Views/Dashboard/HighlightDetailSheet.swift"
   },
+  "todo-6": {
+    "ai_service": "BabyCare/Services/HighlightAISummaryService.swift",
+    "functions_handler": "babycare-admin/functions/src/summarizeHighlight.ts",
+    "project_yml_update": "FirebaseFunctions product added to BabyCare target"
+  },
   "todo-7": {
     "highlight_grid": "BabyCare/Views/Dashboard/WeeklyHighlightGrid.swift",
     "container": "WeeklyHighlightGridContainer (same file, .equatable() wrapper)"

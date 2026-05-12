@@ -10,6 +10,14 @@
 - `deleteHighlightAICache(weekKey:)`는 `whereField(weekKey)` 쿼리 + batch delete로 다건 무효화 — RC version invalidation 시그널 처리에 적합
 - `HighlightFirestoreProviding` extension은 FirestoreService+Highlight.swift 하단에 협소 protocol 선언 (PregnancyFirestoreProviding 패턴과 동일)
 
+## TODO 6
+- `FirebaseFunctions` product은 project.yml에 명시 추가 필요 (Firebase 11.9.0 패키지에 포함되어 있어도 product 선언 없으면 컴파일 에러)
+- ESLint 9.x: `.eslintignore` deprecated → `eslint.config.js` flat config 권장 (현재 .eslintrc.js + lint 스크립트 src/ 한정 처리)
+- Anthropic SDK 0.39: `client.messages.create()` + `cache_control: { type: "ephemeral" }` system 블록 prompt caching
+- `RateLimitError.headers["retry-after"]`는 string — `parseInt` 변환 필요
+- `HighlightAISummaryService`는 @MainActor 없이 Sendable final class — `HighlightFirestoreProviding` Sendable 의존하여 Task.detached 백그라운드 갱신
+- Functions daily cap은 월별 서브컬렉션 (usageStats/{uid}/{YYYYMM}/highlightSummarize) — 월 단위 자동 파티셔닝 + old data 정리 용이
+
 ## TODO 7
 - Swift 6: View + Equatable 동시 채택 시 `static func ==`을 `nonisolated`로 선언 → MainActor isolation 충돌 회피
 - `.equatable()` modifier는 Equatable 채택 View에만 적용 — LazyVGrid 내부 직접 적용 불가, 컨테이너로 감싸는 패턴

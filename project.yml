@@ -43,6 +43,8 @@ targets:
         product: FirebaseAnalytics
       - package: Firebase
         product: FirebaseRemoteConfig
+      - package: Firebase
+        product: FirebaseFunctions
       - sdk: WidgetKit.framework
       - target: BabyCareWidgetExtension
     entitlements:
