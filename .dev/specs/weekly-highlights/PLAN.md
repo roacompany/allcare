@@ -415,7 +415,7 @@ risk: LOW
 
 ---
 
-### [ ] TODO 2: HighlightAICache 모델 + FirestoreService CRUD + rules
+### [x] TODO 2: HighlightAICache 모델 + FirestoreService CRUD + rules
 
 **Type**: work
 
@@ -485,20 +485,20 @@ risk: LOW
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `HighlightAICache` Codable 채택, `id` computed property 정의
-- [ ] `FirestoreService+Highlight` CRUD 3 메서드 존재
-- [ ] `HighlightFirestoreProviding` 프로토콜 정의
-- [ ] `MockHighlightFirestore` BabyCareTests 위치 (단위 테스트 단일 파일 정책 무관 — Mock은 별도 OK, 기존 MockBadge/Pregnancy 패턴)
-- [ ] `firestore.rules` highlightCache 규칙 추가 (allowlist regex 포함)
+- [x] `HighlightAICache` Codable 채택, `id` computed property 정의
+- [x] `FirestoreService+Highlight` CRUD 3 메서드 존재
+- [x] `HighlightFirestoreProviding` 프로토콜 정의
+- [x] `MockHighlightFirestore` BabyCareTests 위치 (단위 테스트 단일 파일 정책 무관 — Mock은 별도 OK, 기존 MockBadge/Pregnancy 패턴)
+- [x] `firestore.rules` highlightCache 규칙 추가 (allowlist regex 포함)
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations
-- [ ] `make index-check` PASS
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations
+- [x] `make index-check` PASS
 
 *Runtime:*
-- [ ] `make test` PASS — A-4 testHighlightAICache_codableRoundTrip, A-5 testHighlightAICache_TTLBoundary
+- [ ] `make test` PASS — A-4 testHighlightAICache_codableRoundTrip, A-5 testHighlightAICache_TTLBoundary (deferred to TODO 10)
 
 **Verify**:
 ```yaml

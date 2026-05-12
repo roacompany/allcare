@@ -12,5 +12,11 @@
     ],
     "collection_constant": "BabyCare/Utils/Constants.swift",
     "feature_flag_method": "BabyCare/Services/FeatureFlagService.swift"
+  },
+  "todo-2": {
+    "cache_model": "BabyCare/Models/HighlightAICache.swift",
+    "firestore_crud": "BabyCare/Services/FirestoreService+Highlight.swift",
+    "mock_firestore": "BabyCareTests/MockHighlightFirestore.swift",
+    "firestore_rules": "firestore.rules"
   }
 }
