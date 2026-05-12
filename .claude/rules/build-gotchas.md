@@ -4,6 +4,17 @@ globs: "**/project.yml,**/Package.*"
 
 # Build Gotchas
 
+## GoogleService-Info.plist 누락으로 인한 즉시 crash (worktree)
+
+- **`.gitignore`에 등재된 plist는 worktree 생성 시 자동 복사 X** → `FirebaseApp.configure()` 호출 시 'com.firebase.core' 예외로 앱 실행 즉시 crash
+- 증상: `make build` 통과 → `make smoke-test` / 실기기 / 시뮬레이터 launch 시점에 'could not find a valid GoogleService-Info.plist' 예외
+- 해결:
+  1. `.dev/config.yml` `worktree.copy_files`에 `BabyCare/GoogleService-Info.plist` 명시 → 이후 `hy create` 자동 복사
+  2. 기존 worktree에 누락 시: `cp /Users/roque/BabyCare/BabyCare/GoogleService-Info.plist <worktree>/BabyCare/`
+  3. 복사 후 `xcodegen generate` 재실행 → .app 번들 재포함
+- **archive (TestFlight upload)도 동일 영향**: archive 빌드는 시뮬레이터 launch step이 없어 빌드 통과해도 실행 시 crash. archive 전 plist 존재 확인 필수 — TestFlight v2.8.3 빌드 67 미포함 사례.
+- `Info.plist`는 별개 (project.yml에 명시 등재, 자동 생성). 혼동 금지.
+
 ## Firebase SDK cross-branch merge
 
 - **main ← feat/... merge로 Firebase 버전 변경 시 DerivedData clean 필수**.
