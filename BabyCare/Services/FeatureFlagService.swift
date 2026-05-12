@@ -55,9 +55,13 @@ final class FeatureFlagService {
         }
 
         // RemoteConfig defaults 설정 (fetch 실패 시 in-memory default 적용)
+        // CR-005: pregnancy + highlights 모든 RC defaults를 bootstrap에서 통합 등록.
+        // isHighlightV2Enabled에서 중복 setDefaults + fetchAndActivate 호출 제거.
         RemoteConfig.remoteConfig().setDefaults([
             RCKey.enabled: false as NSObject,
-            RCKey.rolloutPct: 0 as NSObject
+            RCKey.rolloutPct: 0 as NSObject,
+            HLRCKey.enabled: false as NSObject,
+            HLRCKey.tickerPct: 0 as NSObject
         ])
 
         // Layer 2: RemoteConfig fetch & cohort bucketing
@@ -116,20 +120,13 @@ final class FeatureFlagService {
     /// A-18 Invariant: fetch 실패 시 fallback = false.
     /// - Parameter userId: Firebase Auth currentUserId (cohort bucket 결정에 사용)
     /// - Returns: 주간 하이라이트 노출 여부
-    func isHighlightV2Enabled(userId: String) async -> Bool {
+    func isHighlightV2Enabled(userId: String) -> Bool {
         // Layer 1: compile-time kill switch
         guard FeatureFlags.highlightsEnabled else { return false }
 
-        // RemoteConfig defaults 설정 (fetch 실패 시 in-memory default 적용, A-18)
-        RemoteConfig.remoteConfig().setDefaults([
-            HLRCKey.enabled: false as NSObject,
-            HLRCKey.tickerPct: 0 as NSObject
-        ])
-
-        // Layer 2: RemoteConfig fetch & cohort bucketing
-        // fetchAndActivate 실패 시 try? 로 무시 → defaults(false) 유지 (A-18)
-        _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
-
+        // CR-005: bootstrap()이 setDefaults + fetchAndActivate 책임을 가짐.
+        // 여기서는 캐시된 RC 값만 읽음 → 세션당 1회 RC fetch 보장 + throttle 리스크 해소.
+        // bootstrap 미실행 상태에서는 defaults(false) 적용 → highlights false (A-18 invariant).
         let rcEnabled = RemoteConfig.remoteConfig()
             .configValue(forKey: HLRCKey.enabled).boolValue
         guard rcEnabled else { return false }

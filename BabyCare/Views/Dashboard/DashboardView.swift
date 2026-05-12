@@ -95,14 +95,19 @@ struct DashboardView: View {
             await loadData()
         }
         .task {
+            // CR-005: isHighlightV2Enabled는 더 이상 async가 아님 (bootstrap이 RC fetch 담당).
+            // bootstrap이 완료된 후 호출되도록 .task에서 짧게 await으로 디스패치 보장.
             guard let userId = authVM.currentUserId else { return }
-            isHighlightV2Active = await FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
+            isHighlightV2Active = FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
         }
         .sheet(item: $selectedHighlight) { candidate in
-            HighlightDetailSheet(
+            // CR-002: Admin batch가 Firestore에 채워둔 AI summary를 sheet 열릴 때 fetch.
+            // 미존재/만료 시 nil → HighlightDetailSheet 내부에서 candidate.detail fallback 표시.
+            HighlightDetailSheetContainer(
                 candidate: candidate,
                 sparkline: insightService.sparklineData(for: candidate.metricKey),
-                aiSummary: nil
+                userId: authVM.currentUserId.flatMap { babyVM.dataUserId(currentUserId: $0) } ?? authVM.currentUserId,
+                babyId: babyVM.selectedBaby?.id
             )
         }
         .sheet(item: $editingActivity) { activity in

@@ -11,7 +11,6 @@ struct HighlightTickerView: View {
 
     // MARK: - Environment
 
-    @Environment(InsightService.self) private var insightService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // MARK: - Properties
@@ -102,8 +101,11 @@ struct HighlightTickerView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
+            // CR-004: tap이 발생한 시점의 렌더된 후보(candidate)를 직접 캡처.
+            // candidates[currentIndex] 사용 시 TimelineView tick 직후 탭 → displayed card와
+            // sheet candidate 불일치 가능. 클로저 인자로 받은 candidate는 항상 렌더 중인 카드.
             isPaused.toggle()
-            onCandidateSelected?(candidates[currentIndex])
+            onCandidateSelected?(candidate)
         }
     }
 

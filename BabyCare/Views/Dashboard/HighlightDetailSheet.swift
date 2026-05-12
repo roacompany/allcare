@@ -219,3 +219,43 @@ struct HighlightDetailSheet: View {
         }
     }
 }
+
+// MARK: - HighlightDetailSheetContainer (CR-002)
+
+/// `HighlightDetailSheet` 의 비동기 AI summary fetch 래퍼.
+/// Admin batch가 Firestore `highlightCache`에 미리 저장해둔 요약을 sheet 열릴 때 read.
+/// 캐시 미존재/만료 시 nil → HighlightDetailSheet 내부에서 `candidate.detail` fallback.
+struct HighlightDetailSheetContainer: View {
+
+    let candidate: InsightCandidate
+    let sparkline: [Double]
+    let userId: String?
+    let babyId: String?
+
+    @State private var aiSummary: String?
+
+    /// Service는 매번 새로 생성해도 비용이 거의 없음 (Firestore client는 내부 싱글톤 사용).
+    private let aiService: HighlightAISummaryServiceProviding = HighlightAISummaryService()
+
+    var body: some View {
+        HighlightDetailSheet(
+            candidate: candidate,
+            sparkline: sparkline,
+            aiSummary: aiSummary
+        )
+        .task(id: candidate.id) {
+            guard let userId, let babyId else { return }
+            let weekKey = WeeklyMetricSnapshot.weekKey(for: Date())
+            do {
+                aiSummary = try await aiService.fetchCachedSummary(
+                    candidate: candidate,
+                    weekKey: weekKey,
+                    babyId: babyId,
+                    userId: userId
+                )
+            } catch {
+                aiSummary = nil
+            }
+        }
+    }
+}
