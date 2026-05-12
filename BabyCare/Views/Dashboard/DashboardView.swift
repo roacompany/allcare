@@ -10,7 +10,6 @@ struct DashboardView: View {
     @Environment(AnnouncementViewModel.self) var announcementVM
     @Environment(InsightService.self) var insightService
     @Environment(PregnancyViewModel.self) var pregnancyVM
-    @Environment(HighlightPrecacheService.self) var precacheService
 
     @State var showBabySelector = false
     @State var showTimerWarningOnSwitch = false
@@ -82,15 +81,8 @@ struct DashboardView: View {
             }
             .refreshable {
                 await loadData()
-                // Pull-to-refresh: 주간 하이라이트 AI 요약 사전 캐시 갱신 (Codex R-2: scenePhase hook 미사용).
-                guard let userId = authVM.currentUserId,
-                      let babyId = babyVM.selectedBaby?.id else { return }
-                let weekKey = WeeklyMetricSnapshot.weekKey(for: Date())
-                await precacheService.precomputeIfNeeded(
-                    userId: userId,
-                    babyId: babyId,
-                    weekKey: weekKey
-                )
+                // 주: AI 요약 캐시는 babycare-admin Vercel Cron + Mac worker가 처리
+                // (본인 Claude Code Pro 구독). iOS는 Firestore read만 수행.
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

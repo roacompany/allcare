@@ -4664,7 +4664,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
         let input = String(repeating: "가", count: 250)
         XCTAssertEqual(input.count, 250)
 
-        // 200자 클램프 (HighlightAISummaryService.fetchAndCache 내부 로직과 동일)
+        // 200자 클램프 (admin batch worker / Mac LaunchAgent claude CLI 결과에 적용되는 로직과 동일)
         let clamped = String(input.prefix(200))
         XCTAssertEqual(clamped.count, 200, "250자 입력 → 200자로 hard clamp")
 
@@ -4676,10 +4676,10 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
 
     // MARK: - A-15: AI Summary payload allowlist (PII 없음)
 
-    /// HighlightAISummaryService payload에 baby.name / birthDate가 포함되지 않음.
-    /// payload 구성 로직 검증 (allowlist: 집계 수치만).
+    /// Admin batch worker payload에 baby.name / birthDate가 포함되지 않음.
+    /// payload 구성 로직 검증 (allowlist: 집계 수치만, Mac worker → claude CLI 입력 동일 룰).
     func testAISummary_payloadAllowlistOnly() {
-        // callSummarizeHighlight의 payload 구성:
+        // admin batch route → Mac worker 전달 payload 구성:
         // ["weekKey", "metricKey", "changePercent", "currentValue", "sampleSize", "sparkline"]
         let allowedKeys: Set<String> = [
             "weekKey", "metricKey", "changePercent", "currentValue", "sampleSize", "sparkline"
@@ -4703,7 +4703,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
 
     // MARK: - A-16: AI Summary pregnancy metricKey reject
 
-    /// HighlightAISummaryService가 pregnancy_ metricKey 입력 시 즉시 throw함.
+    /// HighlightAISummaryService가 pregnancy_ metricKey 입력 시 즉시 throw함 (Firestore read 차단 전).
     func testAISummary_rejectsPregnancyMetric() async {
         let mock = MockHighlightFirestore()
         let service = HighlightAISummaryService(firestoreProvider: mock)
@@ -4721,12 +4721,11 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
         )
 
         do {
-            _ = try await service.summarize(
+            _ = try await service.fetchCachedSummary(
                 candidate: pregnancyCandidate,
                 weekKey: "2026W20",
                 babyId: "test-baby",
-                userId: "test-user",
-                sparkline: []
+                userId: "test-user"
             )
             XCTFail("pregnancy_ metricKey는 즉시 throw해야 함")
         } catch let error as HighlightAISummaryError {
@@ -4736,9 +4735,34 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
                 XCTFail("HighlightAISummaryError.pregnancyMetricRejected가 아닌 다른 에러: \(error)")
             }
         } catch {
-            // pregnancy_ reject는 HighlightAISummaryError.pregnancyMetricRejected로 throw
             XCTFail("예상치 못한 에러 타입: \(error)")
         }
+    }
+
+    /// 캐시 미존재 시 fetchCachedSummary는 nil 반환 (호출부에서 fallback 처리).
+    func testAISummary_returnsNilWhenCacheMissing() async throws {
+        let mock = MockHighlightFirestore()
+        let service = HighlightAISummaryService(firestoreProvider: mock)
+
+        let candidate = InsightCandidate(
+            category: .feeding,
+            metricKey: "feeding_total_oz",
+            currentValue: 24,
+            title: "수유",
+            detail: "테스트",
+            changePercent: 10,
+            trend: .up,
+            medicalWeight: 1.0,
+            sampleSize: 7
+        )
+
+        let result = try await service.fetchCachedSummary(
+            candidate: candidate,
+            weekKey: "2026W20",
+            babyId: "test-baby",
+            userId: "test-user"
+        )
+        XCTAssertNil(result, "캐시 미존재 시 nil 반환 (admin batch가 채우기 전 상태)")
     }
 
     // MARK: - A-17: WeeklyHighlightGrid 4 카드 metricKey 매핑
@@ -4767,46 +4791,43 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
         }
     }
 
-    // MARK: - A-21: Precache Worker idempotent
+    // MARK: - A-21: AI Summary 캐시 만료 처리 (Admin batch 패턴)
 
-    /// UserDefaults 키 존재 시 HighlightPrecacheService가 추가 호출하지 않음.
-    @MainActor
-    func testPrecacheWorker_idempotent() async {
-        let weekKey = "2026W20-idempotent-test"
-        let udKey = "\(HighlightPrecacheService.precacheKeyPrefix)\(weekKey)"
+    /// 만료된 캐시 entry는 fetchCachedSummary에서 nil 반환 — 호출부는 fallback 사용.
+    /// AI 생성 책임은 admin batch worker에 있으므로 iOS는 read만 한다.
+    func testAISummary_returnsNilWhenCacheExpired() async throws {
+        let mock = MockHighlightFirestore()
+        let service = HighlightAISummaryService(firestoreProvider: mock)
 
-        // 사전 정리
-        UserDefaults.standard.removeObject(forKey: udKey)
-        defer { UserDefaults.standard.removeObject(forKey: udKey) }
-
-        // UserDefaults 키를 미리 설정 (이미 precache 완료 상태)
-        UserDefaults.standard.set(true, forKey: udKey)
-
-        // Mock AI Summary Service (호출 카운터 포함)
-        final class MockAISummaryService: HighlightAISummaryServiceProviding, @unchecked Sendable {
-            private(set) var callCount: Int = 0
-            func summarize(candidate: InsightCandidate, weekKey: String, babyId: String, userId: String, sparkline: [Double]) async throws -> String {
-                callCount += 1
-                return "mock summary"
-            }
-        }
-
-        let mockAI = MockAISummaryService()
-        let service = HighlightPrecacheService(
-            insightService: InsightService(),
-            aiSummaryService: mockAI,
-            flagService: FeatureFlagService.shared
+        let candidate = InsightCandidate(
+            category: .feeding,
+            metricKey: "feeding_total_oz",
+            currentValue: 24,
+            title: "수유",
+            detail: "테스트",
+            changePercent: 10,
+            trend: .up,
+            medicalWeight: 1.0,
+            sampleSize: 7
         )
 
-        // precomputeIfNeeded 호출 — 멱등성으로 인해 실제 처리 없이 skip 되어야 함
-        // (RC fetch 없이 UserDefaults key 체크만으로 early return)
-        // 단, RC fetch가 필요하므로 skip 검증은 callCount=0으로 대체
-        // Note: FeatureFlagService.shared.isHighlightV2Enabled는 RC fetch 필요
-        // → 테스트 환경에서 false 반환 예상 (RC 미설정)
-        // → guard enabled else { return } 에서 이미 early return
-        // 따라서 mockAI.callCount는 0이어야 함
-        await service.precomputeIfNeeded(userId: "test-user", babyId: "test-baby", weekKey: weekKey)
-        XCTAssertEqual(mockAI.callCount, 0, "UserDefaults 키 존재 시 또는 RC disabled 시 AI 호출 0회")
+        // 169시간 전 (TTL 168h 초과) 캐시 시드
+        let expired = HighlightAICache(
+            weekKey: "2026W20",
+            metricKey: "feeding_total_oz",
+            summary: "오래된 요약",
+            createdAt: Date().addingTimeInterval(-169 * 3600),
+            rcVersionHash: nil
+        )
+        try await mock.saveHighlightAICache(expired, userId: "test-user", babyId: "test-baby")
+
+        let result = try await service.fetchCachedSummary(
+            candidate: candidate,
+            weekKey: "2026W20",
+            babyId: "test-baby",
+            userId: "test-user"
+        )
+        XCTAssertNil(result, "만료 캐시는 nil 반환 → 호출부 candidate.detail fallback")
     }
 
     // MARK: - A-22: Analytics 이벤트 param 검증 (weekKey/babyId 없음)

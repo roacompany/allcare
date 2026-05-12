@@ -797,19 +797,23 @@ risk: MEDIUM
 
 ---
 
-### [x] TODO 6: HighlightAISummaryService + Firebase Functions summarizeHighlight
+### [x] TODO 6: HighlightAISummaryService — Firestore read-only (Admin batch 패턴)
+
+> **변경 이력**: 초기 PLAN은 Firebase Functions + Anthropic API 직접 호출 방식이었으나, 사용자 결정으로 **Admin batch worker 패턴**으로 전환 (2026-05-12).
+> AI 생성은 Admin (Vercel cron + Mac LaunchAgent worker, 본인 Claude Code 구독 사용) 측에서 처리하고, iOS는 Firestore `highlightCache` 컬렉션 read만 수행.
+> Functions/Anthropic API 키 불필요. 약관 리스크 ↓, 가용성 ↑, 동시성 해결.
 
 **Type**: work
 
-**Required Tools**: `firebase-cli` (post-work, deploy 단계만)
+**Required Tools**: (none)
 
 **Inputs**:
 - `cache_model` (file): `${todo-2.outputs.cache_model}`
 - `event_keys` (list): `${todo-1.outputs.event_keys}`
 
 **Outputs**:
-- `ai_service` (file): `BabyCare/Services/HighlightAISummaryService.swift`
-- `functions_handler` (file): `babycare-admin/functions/src/summarizeHighlight.ts` (별도 repo)
+- `ai_service` (file): `BabyCare/Services/HighlightAISummaryService.swift` (Firestore read-only)
+- `functions_handler` (file): ~~`babycare-admin/functions/src/summarizeHighlight.ts`~~ **삭제됨 — TODO 11에서 Admin batch route + Mac worker로 대체**
 
 **Steps**:
 
@@ -1073,9 +1077,12 @@ risk: HIGH
 
 ---
 
-### [x] TODO 9: 사전 캐시 워커 (앱 launch + pull-to-refresh, scenePhase hook 미사용)
+### [~] TODO 9: 사전 캐시 워커 — **삭제됨 (Admin batch로 대체)**
 
-**Type**: work
+> **변경 이력**: Admin batch worker 패턴(TODO 11)이 iOS 측 precache 책임을 흡수. iOS는 Firestore read만 수행하므로 별도 in-app worker 불필요.
+> `HighlightPrecacheService.swift` 파일 + AppState 등록 + launch/refresh hook 모두 제거.
+
+**Type**: work (REVERTED)
 
 **Required Tools**: (none)
 
@@ -1337,3 +1344,89 @@ risk: LOW
 - [ ] `make ui-test` exit 0 — UI_TESTING_HIGHLIGHT_V2 launch arg 미구현 (post-work)
 - [ ] `make smoke-test` exit 0 — H-items 실기기 위임
 - [ ] `make verify` exit 0 — 단위/UI 테스트 시뮬레이터 의존 (개별 검증 PASS)
+
+---
+
+### [ ] TODO 11: Admin Batch Worker + Mac LaunchAgent (AI 생성 인프라)
+
+**Type**: work (신규, 2026-05-12 추가)
+
+**Rationale**: 사용자가 Anthropic API 직접 호출 비용 + 약관 회색지대를 회피하기 위해 본인 Claude Code Pro 구독을 활용하는 배치 패턴 채택.
+
+**Required Tools**: `node`, `npm`, `claude` (CLI), `cloudflared`, `launchctl`
+
+**Inputs**:
+- `cache_model` (file): `${todo-2.outputs.cache_model}` — HighlightAICache 스키마
+- Firestore Admin SDK credentials (Service Account JSON)
+
+**Outputs**:
+- `admin_batch_route` (file): `babycare-admin/app/api/cron/highlight-batch/route.ts` — Vercel Cron 진입점
+- `mac_worker_server` (file): `babycare-admin/scripts/mac-worker/server.js` — Node Express + claude subprocess
+- `launch_agent` (file): `babycare-admin/scripts/mac-worker/com.roacompany.babycare-highlight-worker.plist`
+- `install_guide` (file): `babycare-admin/scripts/mac-worker/README.md` — cloudflared + LaunchAgent 설치
+- `vercel_cron` (file): `babycare-admin/vercel.json` — cron schedule
+
+**Steps**:
+
+**A. Admin Vercel Cron route** (`babycare-admin/app/api/cron/highlight-batch/route.ts`):
+- `Authorization: Bearer ${CRON_SECRET}` 검증 (Vercel cron header)
+- Firestore Admin SDK로 활성 baby 목록 fetch (sample: `babies` collectionGroup, last 30d 활동)
+- 각 baby × topHighlight metricKey (4 카테고리 × N명) 후보 list 생성
+- Mac worker tunnel URL POST (`MAC_WORKER_URL` ENV, Bearer `MAC_WORKER_SECRET`)
+- 응답받은 summary string을 `users/{uid}/babies/{bid}/highlightCache/{weekKey}_{metricKey}` write
+- 실패한 baby는 다음 cron 사이클로 retry
+- Per-run cap 100 calls (Mac 부하 보호)
+
+**B. Mac local worker** (`babycare-admin/scripts/mac-worker/server.js`):
+- Express POST `/summarize` endpoint
+- `Authorization: Bearer ${MAC_WORKER_SECRET}` 검증
+- Body: `{ metricKey, changePercent, currentValue, sampleSize, sparkline }`
+- `child_process.spawn('claude', ['--print', '--system', SYSTEM_PROMPT, USER_MESSAGE])` 실행 (또는 `--append-system-prompt`)
+- stdout 캡처 → 200자 클램프 → `{ summary }` 응답
+- pregnancy_ metricKey allowlist reject (defense in depth)
+- Port 3458 (naejibpalgi 3457과 충돌 회피)
+
+**C. LaunchAgent plist** (`com.roacompany.babycare-highlight-worker.plist`):
+- KeepAlive=true, RunAtLoad=true
+- WorkingDirectory + StandardOut/ErrorPath 로그
+- cloudflared LaunchAgent 별도 (`com.roacompany.babycare-highlight-tunnel.plist`)
+
+**D. cloudflared tunnel**:
+- 별도 LaunchAgent 또는 cloudflared 자체 service 모드
+- Subdomain 예: `babycare-highlight-worker.YOURDOMAIN`
+
+**E. 설치 가이드** (`README.md`):
+- Node 20 / claude CLI 인증 / cloudflared 인증 / LaunchAgent 등록 단계
+- Vercel ENV: `MAC_WORKER_URL`, `MAC_WORKER_SECRET`, `CRON_SECRET`, `GOOGLE_APPLICATION_CREDENTIALS` 또는 `FIREBASE_SERVICE_ACCOUNT_JSON`
+- 동작 확인 curl 예시
+
+**Acceptance Criteria**:
+
+*Functional:*
+- [ ] Admin route Bearer 인증 + Firestore Admin SDK read 가능
+- [ ] Mac worker `/summarize` 200자 클램프 응답
+- [ ] pregnancy_ metricKey allowlist reject (HTTP 400)
+- [ ] LaunchAgent 부팅 시 자동 시작
+- [ ] cloudflared tunnel 외부 호출 통과
+- [ ] Vercel cron daily 실행 시 `highlightCache` 도큐먼트 N개 write
+
+*Static:*
+- [ ] `npm --prefix babycare-admin run build` exit 0
+- [ ] `npm --prefix babycare-admin/scripts/mac-worker install` 성공
+- [ ] LaunchAgent plist `plutil -lint` PASS
+
+*Runtime:*
+- [ ] Cron 1회 수동 트리거 → Firestore highlightCache 도큐먼트 생성 확인 (사용자 액션)
+- [ ] iOS 앱 `HighlightDetailSheet`에서 AI summary 표시 확인 (실기기)
+
+**Must NOT do**:
+- `MAC_WORKER_SECRET`, `CRON_SECRET` 평문 commit 금지 (Vercel ENV / `.env.local` 만)
+- Service Account JSON commit 금지 (Vercel ENV `FIREBASE_SERVICE_ACCOUNT_JSON` base64 또는 GitHub secret)
+- pregnancy_ metricKey allowlist skip 금지
+- 1 Pro 구독으로 동시 N개 claude CLI subprocess 금지 — 순차 queue 1개씩
+- iOS 앱에서 worker URL 직접 호출 금지 (반드시 Admin route 경유)
+
+**References**:
+- `/Users/roque/naejibpalgi` — 동일 패턴 (cloudflared + LaunchAgent + Mac 로컬 서버)
+- `https://vercel.com/docs/cron-jobs` — Vercel Cron
+- `https://docs.anthropic.com/claude/docs/claude-code/cli-usage` — claude CLI --print flag
