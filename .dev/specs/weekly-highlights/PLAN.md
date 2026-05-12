@@ -157,7 +157,7 @@
 
 - `BabyCare/Models/HighlightAICache.swift` (신규 모델, Codable)
 - `BabyCare/Services/FirestoreService+Highlight.swift` (CRUD + Mock 프로토콜)
-- `BabyCare/Services/Insights/InsightService.swift` 확장 (topHighlights computed property + allowlist filter)
+- `BabyCare/Services/InsightService.swift` 확장 (topHighlights computed property + allowlist filter)
 - `BabyCare/Views/Dashboard/HighlightTickerView.swift` (신규 View, TimelineView 기반)
 - `BabyCare/Views/Dashboard/HighlightDetailSheet.swift` (신규 View, Sparkline + AI summary)
 - `BabyCare/Views/Dashboard/WeeklyHighlightGrid.swift` (신규 View, 4 카드)
@@ -271,7 +271,7 @@ TODO-1 (P0 인프라)
 |---|---|---|---|
 | 1 | `feat(highlights): RC 2 + Analytics 7 + FirestoreCollections + StableHash cohort` | Constants/AnalyticsEvents/FeatureFlagService/remoteconfig.template.json | always |
 | 2 | `feat(highlights): HighlightAICache model + FirestoreService CRUD + rules` | Models/Services/firestore.rules/MockHighlightFirestore | always |
-| 3 | `feat(highlights): InsightService.topHighlights with allowlist + AppContext gating` | Services/Insights/InsightService.swift | always |
+| 3 | `feat(highlights): InsightService.topHighlights with allowlist + AppContext gating` | Services/InsightService.swift | always |
 | 4 | `feat(highlights): HighlightTickerView (TimelineView + reduceMotion)` | Views/Dashboard/HighlightTickerView.swift | always |
 | 5 | `feat(highlights): HighlightDetailSheet (Sparkline + AI summary + fallback)` | Views/Dashboard/HighlightDetailSheet.swift | always |
 | 6 | `feat(highlights): HighlightAISummaryService + Firebase Functions summarizeHighlight` | Services/HighlightAISummaryService.swift + babycare-admin/functions/ (별도 repo) | always (2 commits) |
@@ -524,7 +524,7 @@ risk: MEDIUM
 
 ---
 
-### [ ] TODO 3: InsightService 확장 — topHighlights + allowlist + AppContext gating
+### [x] TODO 3: InsightService 확장 — topHighlights + allowlist + AppContext gating
 
 **Type**: work
 
@@ -535,7 +535,7 @@ risk: MEDIUM
 - `firestore_crud` (file): `${todo-2.outputs.firestore_crud}`
 
 **Outputs**:
-- `insight_service_ext` (file): `BabyCare/Services/Insights/InsightService.swift` 확장
+- `insight_service_ext` (file): `BabyCare/Services/InsightService.swift` 확장
 
 **Steps**:
 - [ ] `InsightService`에 `topHighlights(for ctx: AppContext, weights: InsightWeights) -> [InsightCandidate]` 추가:
@@ -577,18 +577,18 @@ risk: MEDIUM
 **Acceptance Criteria**:
 
 *Functional:*
-- [ ] `InsightService.topHighlights` 메서드 시그니처 존재
-- [ ] `empty` / `pregnancyOnly` AppContext 시 빈 배열 반환
-- [ ] `babyOnly` / `both` AppContext 시 Top N 반환
-- [ ] allowlist 필터 적용 (feeding/sleep/diaper/health prefix만)
-- [ ] `pregnancy_*` metricKey 입력 시 filter out
-- [ ] `sparklineData(for:)` 메서드 4주 클램프 + 음수/NaN 제거
+- [x] `InsightService.topHighlights` 메서드 시그니처 존재
+- [x] `empty` / `pregnancyOnly` AppContext 시 빈 배열 반환
+- [x] `babyOnly` / `both` AppContext 시 Top N 반환
+- [x] allowlist 필터 적용 (feeding/sleep/diaper/health prefix만)
+- [x] `pregnancy_*` metricKey 입력 시 filter out
+- [x] `sparklineData(for:)` 메서드 4주 클램프 + 음수/NaN 제거
 
 *Static:*
-- [ ] `make build` exit 0
-- [ ] `make lint` exit 0
-- [ ] `make arch-test` 0 violations (Views가 InsightService 직접 참조 금지 유지)
-- [ ] `grep -c 'default:' BabyCare/Services/Insights/InsightService.swift` 변화 없음 (A-18 검증 대상은 DashboardView지만 InsightService도 default 금지)
+- [x] `make build` exit 0
+- [x] `make lint` exit 0
+- [x] `make arch-test` 0 violations (Views가 InsightService 직접 참조 금지 유지)
+- [x] `grep -c 'default:' BabyCare/Services/InsightService.swift` 변화 없음 (baseline: 1 napIntervalHours + 1 comment text, AppContext switch에 default 0개)
 
 *Runtime:*
 - [ ] `make test` PASS — A-7, A-8, A-9, A-13

@@ -18,5 +18,8 @@
     "firestore_crud": "BabyCare/Services/FirestoreService+Highlight.swift",
     "mock_firestore": "BabyCareTests/MockHighlightFirestore.swift",
     "firestore_rules": "firestore.rules"
+  },
+  "todo-3": {
+    "insight_service_ext": "BabyCare/Services/InsightService.swift"
   }
 }
