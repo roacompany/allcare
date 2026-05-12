@@ -48,15 +48,10 @@ final class FeatureFlagService {
     /// App 시작 시 호출. ContentView.task 외부 (BabyCareApp.init 직후 .task)에서 실행.
     /// - Parameter userId: Firebase Auth currentUserId (코호트 버킷 결정에 사용)
     func bootstrap(userId: String) async {
-        // Layer 1: compile-time kill switch
-        guard compileTime else {
-            pregnancyModeEnabled = false
-            return
-        }
-
-        // RemoteConfig defaults 설정 (fetch 실패 시 in-memory default 적용)
-        // CR-005: pregnancy + highlights 모든 RC defaults를 bootstrap에서 통합 등록.
-        // isHighlightV2Enabled에서 중복 setDefaults + fetchAndActivate 호출 제거.
+        // CR-R01: RemoteConfig defaults는 어떤 compile-time kill switch와도 무관하게
+        // 항상 등록. pregnancy/highlights 모두 자기 자신의 compile-time guard를
+        // isHighlightV2Enabled / isPregnancyModeEnabled에서 독립 평가하므로,
+        // 한쪽 kill switch가 다른 쪽 RC defaults를 차단해선 안 됨.
         RemoteConfig.remoteConfig().setDefaults([
             RCKey.enabled: false as NSObject,
             RCKey.rolloutPct: 0 as NSObject,
@@ -64,7 +59,15 @@ final class FeatureFlagService {
             HLRCKey.tickerPct: 0 as NSObject
         ])
 
-        // Layer 2: RemoteConfig fetch & cohort bucketing
+        // Layer 1: compile-time kill switch (pregnancy 전용)
+        guard compileTime else {
+            pregnancyModeEnabled = false
+            // RC fetch는 여전히 시도 — highlights는 별도 compile-time guard 사용
+            _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
+            return
+        }
+
+        // Layer 2: RemoteConfig fetch & cohort bucketing (pregnancy + highlights 공통)
         // fetchAndActivate 실패 시 try? 로 무시 → defaults(false) 유지 (A-18)
         _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
 

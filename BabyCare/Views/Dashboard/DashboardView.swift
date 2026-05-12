@@ -22,7 +22,14 @@ struct DashboardView: View {
     @State var showMoreSection = false
 
     // MARK: - Weekly Highlights v2
-    @State var isHighlightV2Active: Bool = false
+    // CR-R02: @State 기반 .task 평가는 bootstrap async와 race 가능.
+    // computed property로 전환 — RC는 캐시되므로 매 render O(1), bootstrap 완료 즉시 반영.
+    // FeatureFlagService cohort 사용 의도: feature flag rollout 단위로 owner userId
+    // (cohort는 data path가 아니므로 babyVM.dataUserId() 불필요).
+    var isHighlightV2Active: Bool {
+        guard let userId = authVM.currentUserId else { return false }
+        return FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
+    }
     @State private var selectedHighlight: InsightCandidate?
 
     let feedingColor = AppColors.feedingColor
@@ -94,12 +101,8 @@ struct DashboardView: View {
         .task {
             await loadData()
         }
-        .task {
-            // CR-005: isHighlightV2Enabled는 더 이상 async가 아님 (bootstrap이 RC fetch 담당).
-            // bootstrap이 완료된 후 호출되도록 .task에서 짧게 await으로 디스패치 보장.
-            guard let userId = authVM.currentUserId else { return }
-            isHighlightV2Active = FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
-        }
+        // CR-R02: isHighlightV2Active는 computed property로 전환됨 (.task 제거).
+        // FeatureFlagService.shared가 @Observable이므로 RC 상태 변경 시 자동 invalidate.
         .sheet(item: $selectedHighlight) { candidate in
             // CR-002: Admin batch가 Firestore에 채워둔 AI summary를 sheet 열릴 때 fetch.
             // 미존재/만료 시 nil → HighlightDetailSheet 내부에서 candidate.detail fallback 표시.
@@ -180,7 +183,10 @@ struct DashboardView: View {
     /// - `.empty` / `.pregnancyOnly` → EmptyView (v1 fallback도 숨김)
     @ViewBuilder
     private var highlightTickerOrV1Card: some View {
-        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        // CR-007: AppContext + weights를 view 단위로 1회 캐싱.
+        let appCtx = AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy)
+        let weights = InsightWeights.fromRC()
+        switch appCtx {
         case .empty:
             EmptyView()
         case .pregnancyOnly:
@@ -188,10 +194,7 @@ struct DashboardView: View {
         case .babyOnly, .both:
             if isHighlightV2Active {
                 HighlightTickerView(
-                    candidates: insightService.topHighlights(
-                        for: AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy),
-                        weights: InsightWeights.fromRC()
-                    ),
+                    candidates: insightService.topHighlights(for: appCtx, weights: weights),
                     onCandidateSelected: { candidate in
                         selectedHighlight = candidate
                     }
@@ -205,7 +208,10 @@ struct DashboardView: View {
     /// summaryCardsSection 아래에 배치. V2 활성 + 적합 AppContext 시만 노출.
     @ViewBuilder
     private var highlightGridIfNeeded: some View {
-        switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+        // CR-007: AppContext + weights를 view 단위로 1회 캐싱.
+        let appCtx = AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy)
+        let weights = InsightWeights.fromRC()
+        switch appCtx {
         case .empty:
             EmptyView()
         case .pregnancyOnly:
@@ -213,10 +219,7 @@ struct DashboardView: View {
         case .babyOnly, .both:
             if isHighlightV2Active {
                 let categories: [InsightCategory] = [.feeding, .sleep, .diaper, .health]
-                let candidates = insightService.topHighlights(
-                    for: AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy),
-                    weights: InsightWeights.fromRC()
-                )
+                let candidates = insightService.topHighlights(for: appCtx, weights: weights)
                 let cards: [WeeklyHighlightGrid.CardData] = categories.map { cat in
                     let match = candidates.first { $0.category == cat }
                     return WeeklyHighlightGrid.CardData(
