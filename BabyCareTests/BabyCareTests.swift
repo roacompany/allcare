@@ -4468,7 +4468,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
             title: "태동",
             detail: "테스트",
             changePercent: 5,
-            trend: .up,
+            trend: .increasing,
             medicalWeight: 1.0,
             sampleSize: 7
         )
@@ -4715,7 +4715,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
             title: "태동",
             detail: "테스트",
             changePercent: 20,
-            trend: .up,
+            trend: .increasing,
             medicalWeight: 1.0,
             sampleSize: 7
         )
@@ -4751,7 +4751,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
             title: "수유",
             detail: "테스트",
             changePercent: 10,
-            trend: .up,
+            trend: .increasing,
             medicalWeight: 1.0,
             sampleSize: 7
         )
@@ -4806,7 +4806,7 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
             title: "수유",
             detail: "테스트",
             changePercent: 10,
-            trend: .up,
+            trend: .increasing,
             medicalWeight: 1.0,
             sampleSize: 7
         )
