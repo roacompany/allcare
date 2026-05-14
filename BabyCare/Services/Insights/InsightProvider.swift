@@ -13,7 +13,9 @@ enum InsightCategory: String {
 // MARK: - InsightCandidate
 
 /// Provider가 만들어낸 후보. Scorer가 sort + filter + top N 선택.
-struct InsightCandidate {
+struct InsightCandidate: Identifiable {
+    /// `.sheet(item:)` 바인딩용. metricKey는 주차 내 unique.
+    var id: String { metricKey }
     let category: InsightCategory
     /// 디버깅/RC 가중치 매칭용 (예: "feeding.count", "feeding.volume", "diaper.wet").
     let metricKey: String

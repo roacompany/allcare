@@ -21,6 +21,17 @@ struct DashboardView: View {
     @State var quickInputType: Activity.ActivityType?
     @State var showMoreSection = false
 
+    // MARK: - Weekly Highlights v2
+    // CR-R02: @State 기반 .task 평가는 bootstrap async와 race 가능.
+    // computed property로 전환 — RC는 캐시되므로 매 render O(1), bootstrap 완료 즉시 반영.
+    // FeatureFlagService cohort 사용 의도: feature flag rollout 단위로 owner userId
+    // (cohort는 data path가 아니므로 babyVM.dataUserId() 불필요).
+    var isHighlightV2Active: Bool {
+        guard let userId = authVM.currentUserId else { return false }
+        return FeatureFlagService.shared.isHighlightV2Enabled(userId: userId)
+    }
+    @State private var selectedHighlight: InsightCandidate?
+
     let feedingColor = AppColors.feedingColor
     let sleepColor = AppColors.sleepColor
     let diaperColor = AppColors.diaperColor
@@ -52,11 +63,12 @@ struct DashboardView: View {
                     alertBannersSection
                     BadgeHomeStrip()
                     quickActionsSection
-                    weeklyInsightsCard
+                    highlightTickerOrV1Card
                     predictionSection
                     insightCardsSection
                     pregnancyHomeCardIfNeeded
                     summaryCardsSection
+                    highlightGridIfNeeded
                     reorderSummaryCard
                     DisclosureGroup(isExpanded: $showMoreSection) {
                         VStack(spacing: 12) {
@@ -76,6 +88,8 @@ struct DashboardView: View {
             }
             .refreshable {
                 await loadData()
+                // 주: AI 요약 캐시는 babycare-admin Vercel Cron + Mac worker가 처리
+                // (본인 Claude Code Pro 구독). iOS는 Firestore read만 수행.
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -86,6 +100,18 @@ struct DashboardView: View {
         }
         .task {
             await loadData()
+        }
+        // CR-R02: isHighlightV2Active는 computed property로 전환됨 (.task 제거).
+        // FeatureFlagService.shared가 @Observable이므로 RC 상태 변경 시 자동 invalidate.
+        .sheet(item: $selectedHighlight) { candidate in
+            // CR-002: Admin batch가 Firestore에 채워둔 AI summary를 sheet 열릴 때 fetch.
+            // 미존재/만료 시 nil → HighlightDetailSheet 내부에서 candidate.detail fallback 표시.
+            HighlightDetailSheetContainer(
+                candidate: candidate,
+                sparkline: insightService.sparklineData(for: candidate.metricKey),
+                userId: authVM.currentUserId.flatMap { babyVM.dataUserId(currentUserId: $0) } ?? authVM.currentUserId,
+                babyId: babyVM.selectedBaby?.id
+            )
         }
         .sheet(item: $editingActivity) { activity in
             ActivityEditSheet(activity: activity) { updated in
@@ -146,6 +172,66 @@ struct DashboardView: View {
                 productCandidates = []
             }
             .presentationDetents([.medium])
+        }
+    }
+
+    // MARK: - Weekly Highlights XOR (v1 / v2)
+
+    /// AppContext + isHighlightV2Active 기반 XOR 분기.
+    /// - `.babyOnly` / `.both` + isHighlightV2Active=true → HighlightTickerView
+    /// - `.babyOnly` / `.both` + isHighlightV2Active=false → weeklyInsightsCard (v1)
+    /// - `.empty` / `.pregnancyOnly` → EmptyView (v1 fallback도 숨김)
+    @ViewBuilder
+    private var highlightTickerOrV1Card: some View {
+        // CR-007: AppContext + weights를 view 단위로 1회 캐싱.
+        let appCtx = AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy)
+        let weights = InsightWeights.fromRC()
+        switch appCtx {
+        case .empty:
+            EmptyView()
+        case .pregnancyOnly:
+            EmptyView()
+        case .babyOnly, .both:
+            if isHighlightV2Active {
+                HighlightTickerView(
+                    candidates: insightService.topHighlights(for: appCtx, weights: weights),
+                    onCandidateSelected: { candidate in
+                        selectedHighlight = candidate
+                    }
+                )
+            } else {
+                weeklyInsightsCard
+            }
+        }
+    }
+
+    /// summaryCardsSection 아래에 배치. V2 활성 + 적합 AppContext 시만 노출.
+    @ViewBuilder
+    private var highlightGridIfNeeded: some View {
+        // CR-007: AppContext + weights를 view 단위로 1회 캐싱.
+        let appCtx = AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy)
+        let weights = InsightWeights.fromRC()
+        switch appCtx {
+        case .empty:
+            EmptyView()
+        case .pregnancyOnly:
+            EmptyView()
+        case .babyOnly, .both:
+            if isHighlightV2Active {
+                let categories: [InsightCategory] = [.feeding, .sleep, .diaper, .health]
+                let candidates = insightService.topHighlights(for: appCtx, weights: weights)
+                let cards: [WeeklyHighlightGrid.CardData] = categories.map { cat in
+                    let match = candidates.first { $0.category == cat }
+                    return WeeklyHighlightGrid.CardData(
+                        category: cat,
+                        metricKey: match?.metricKey ?? cat.rawValue,
+                        sparkline: insightService.sparklineData(for: match?.metricKey ?? cat.rawValue),
+                        changePercent: match?.changePercent ?? 0
+                    )
+                }
+                WeeklyHighlightGridContainer(cards: cards)
+                    .accessibilityIdentifier("weeklyHighlightGrid")
+            }
         }
     }
 

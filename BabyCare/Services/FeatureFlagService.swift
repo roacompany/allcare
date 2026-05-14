@@ -48,19 +48,26 @@ final class FeatureFlagService {
     /// App 시작 시 호출. ContentView.task 외부 (BabyCareApp.init 직후 .task)에서 실행.
     /// - Parameter userId: Firebase Auth currentUserId (코호트 버킷 결정에 사용)
     func bootstrap(userId: String) async {
-        // Layer 1: compile-time kill switch
+        // CR-R01: RemoteConfig defaults는 어떤 compile-time kill switch와도 무관하게
+        // 항상 등록. pregnancy/highlights 모두 자기 자신의 compile-time guard를
+        // isHighlightV2Enabled / isPregnancyModeEnabled에서 독립 평가하므로,
+        // 한쪽 kill switch가 다른 쪽 RC defaults를 차단해선 안 됨.
+        RemoteConfig.remoteConfig().setDefaults([
+            RCKey.enabled: false as NSObject,
+            RCKey.rolloutPct: 0 as NSObject,
+            HLRCKey.enabled: false as NSObject,
+            HLRCKey.tickerPct: 0 as NSObject
+        ])
+
+        // Layer 1: compile-time kill switch (pregnancy 전용)
         guard compileTime else {
             pregnancyModeEnabled = false
+            // RC fetch는 여전히 시도 — highlights는 별도 compile-time guard 사용
+            _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
             return
         }
 
-        // RemoteConfig defaults 설정 (fetch 실패 시 in-memory default 적용)
-        RemoteConfig.remoteConfig().setDefaults([
-            RCKey.enabled: false as NSObject,
-            RCKey.rolloutPct: 0 as NSObject
-        ])
-
-        // Layer 2: RemoteConfig fetch & cohort bucketing
+        // Layer 2: RemoteConfig fetch & cohort bucketing (pregnancy + highlights 공통)
         // fetchAndActivate 실패 시 try? 로 무시 → defaults(false) 유지 (A-18)
         _ = try? await RemoteConfig.remoteConfig().fetchAndActivate()
 
@@ -96,4 +103,45 @@ final class FeatureFlagService {
 
     /// 테스트 전용: compile-time kill switch 값 반환
     var compileTimeValue: Bool { compileTime }
+
+    // MARK: - Weekly Highlights (v2.8.3+)
+
+    /// UserDefaults 캐시 키 (Layer 3, highlights)
+    private static let highlightCacheKey = "lastKnownGood_highlightV2Enabled"
+
+    /// RemoteConfig key 상수 (highlights)
+    private enum HLRCKey {
+        static let enabled = "highlight_enabled"
+        static let tickerPct = "highlight_ticker_pct"
+    }
+
+    /// 주간 하이라이트 Hybrid 3-layer 활성화 여부.
+    ///   Layer 1: compile-time `FeatureFlags.highlightsEnabled` kill switch
+    ///   Layer 2: RC `highlight_enabled` + `highlight_ticker_pct` 코호트
+    ///   Layer 3: UserDefaults 오프라인 fallback 캐시
+    ///
+    /// A-18 Invariant: fetch 실패 시 fallback = false.
+    /// - Parameter userId: Firebase Auth currentUserId (cohort bucket 결정에 사용)
+    /// - Returns: 주간 하이라이트 노출 여부
+    func isHighlightV2Enabled(userId: String) -> Bool {
+        // Layer 1: compile-time kill switch
+        guard FeatureFlags.highlightsEnabled else { return false }
+
+        // CR-005: bootstrap()이 setDefaults + fetchAndActivate 책임을 가짐.
+        // 여기서는 캐시된 RC 값만 읽음 → 세션당 1회 RC fetch 보장 + throttle 리스크 해소.
+        // bootstrap 미실행 상태에서는 defaults(false) 적용 → highlights false (A-18 invariant).
+        let rcEnabled = RemoteConfig.remoteConfig()
+            .configValue(forKey: HLRCKey.enabled).boolValue
+        guard rcEnabled else { return false }
+
+        let rcPct = RemoteConfig.remoteConfig()
+            .configValue(forKey: HLRCKey.tickerPct).numberValue.intValue
+        let bucket = Int(StableHash.djb2(userId) % 100)
+        let resolved = bucket < rcPct
+
+        // Layer 3: 성공 시 UserDefaults 캐시 갱신 (오프라인 fallback)
+        UserDefaults.standard.set(resolved, forKey: FeatureFlagService.highlightCacheKey)
+
+        return resolved
+    }
 }

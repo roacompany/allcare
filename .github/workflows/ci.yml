@@ -19,26 +19,94 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+        run: |
+          ls -d /Applications/Xcode_*.app 2>/dev/null
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
 
       - name: Install SwiftLint
         run: brew install swiftlint
+
+      - name: Setup stub GoogleService-Info.plist
+        run: |
+          # gitignored 실제 plist 부재로 FirebaseApp.configure() 가 simulator
+          # launch 시 abort. 단위 테스트는 Firebase 네트워크 호출 없음 — 구조만
+          # 유효한 stub 로 충분 (build-gotchas.md "signal abrt" 섹션 참조).
+          if [ ! -f BabyCare/GoogleService-Info.plist ]; then
+            cat > BabyCare/GoogleService-Info.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>API_KEY</key><string>AIzaSyDUMMYCIKEYFORCIUNITTESTSONLY00</string>
+            <key>BUNDLE_ID</key><string>com.roacompany.allcare</string>
+            <key>CLIENT_ID</key><string>000000000000-ci.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-ci</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:cicicicicicicici</string>
+            <key>PROJECT_ID</key><string>ci-stub-project</string>
+            <key>STORAGE_BUCKET</key><string>ci-stub-project.appspot.com</string>
+            <key>PLIST_VERSION</key><string>1</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+          </dict>
+          </plist>
+          PLIST
+            echo "Wrote stub plist for CI"
+          fi
 
       - name: Generate project
         run: |
           brew install xcodegen
           xcodegen generate
 
+      - name: Resolve simulator
+        id: sim
+        run: |
+          # iOS 26.2 는 "signal kill before bootstrapping" 이슈 (rules/simulator-targets.md).
+          # 26.4 는 안정이지만 runner 미설치 — iOS 18.x 우선, 26.x fallback (26.2 제외).
+          xcrun simctl list devices available
+          UDID=$(xcrun simctl list devices available -j | jq -r '
+            .devices
+            | to_entries
+            | map(select((.key | test("iOS|com.apple.CoreSimulator.SimRuntime.iOS"))
+                  and (.key | test("26\\.2") | not)))
+            | sort_by(
+                if (.key | test("18\\.")) then "Z" + .key
+                else "M" + .key
+                end)
+            | reverse
+            | map(.value[]
+                | select(.isAvailable == true
+                  and (.name | test("iPhone 1[5-9]|iPhone [2-9][0-9]"))))
+            | .[0].udid // empty
+          ')
+          if [ -z "$UDID" ]; then
+            echo "::error::No suitable iPhone simulator found on runner"
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator UDID: $UDID"
+          xcrun simctl list devices available -j | jq -r --arg u "$UDID" '
+            .devices | to_entries[] | .key as $rt
+            | .value[] | select(.udid == $u)
+            | "Selected: \(.name) on \($rt)"'
+
       - name: Build
         run: |
           xcodebuild build \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -quiet
 
       - name: Lint
-        run: swiftlint lint --strict --config .swiftlint.yml
+        run: bash scripts/harness_lint.sh
 
       - name: Architecture test
         run: bash scripts/arch_test.sh
@@ -48,6 +116,6 @@ jobs:
           xcodebuild test \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -only-testing:BabyCareTests \
             -quiet

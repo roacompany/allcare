@@ -1,0 +1,11 @@
+# hy worktree 설정.
+# .dev/local.json은 ignored이지만 .dev/config.yml은 commit됨 (팀/세션 공유).
+worktree:
+  base_dir: ".worktrees/{name}"
+  # worktree 생성 시 main에서 복사할 ignored 파일들.
+  # 누락 시 즉시 crash 발생하는 secret/config 파일 명시:
+  # - GoogleService-Info.plist: FirebaseApp.configure() 실패 시 'com.firebase.core' 예외로 즉시 crash
+  copy_files:
+    - "BabyCare/GoogleService-Info.plist"
+  # hy go <name> 후 실행 명령
+  post_command: "claude"

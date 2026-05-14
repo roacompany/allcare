@@ -182,6 +182,18 @@ final class ActivityViewModel {
                 metricHistory: metricHistory
             )
 
+            // Weekly Highlights v2 (CR-001): InsightService.topHighlights가 동일 입력을
+            // 사용하므로 ActivityViewModel이 컨텍스트를 push한다. 미연결 시 티커/그리드 빈 상태.
+            let highlightCtx = InsightContext(
+                current: currentReport,
+                previousActivities: previousWeekActivities,
+                previousDays: 7,
+                weights: InsightWeights.fromRC(),
+                currentDays: 7,
+                metricHistory: metricHistory
+            )
+            AppState.shared.insight.refreshHighlightContext(highlightCtx, snapshots: snapshots)
+
             // 이번 주 metric 스냅샷 저장 (idempotent overwrite 가능)
             let metrics = WeeklyInsightService.snapshotMetrics(
                 from: comparisonReport,

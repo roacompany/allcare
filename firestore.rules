@@ -100,6 +100,16 @@ service cloud.firestore {
       }
     }
 
+    // --- AI 주간 하이라이트 캐시 ---
+    // highlightCache는 babies 하위 서브컬렉션이므로 위 /babies/{babyId}/{subcollection}/{docId} 규칙에 포함되지만
+    // metricKey allowlist (defense in depth) 를 위해 별도 명시.
+    match /users/{uid}/babies/{bid}/highlightCache/{doc} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.metricKey.matches('^(feeding|sleep|diaper|health)_.+');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     // --- 임신 모드 collectionGroup: 파트너 read (sharedWith) ---
     // collectionGroup 쿼리 (fetchSharedPregnancy) 지원: sharedWith 포함 사용자 read 허용
     match /{path=**}/pregnancies/{pregnancyId} {

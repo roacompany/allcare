@@ -1,0 +1,65 @@
+{
+  "todo-1": {
+    "rc_keys": ["highlight_enabled", "highlight_ticker_pct"],
+    "event_keys": [
+      "highlightTickerShown",
+      "highlightTickerTapped",
+      "highlightTickerPaused",
+      "highlightSheetOpened",
+      "highlightSheetDismissed",
+      "highlightCacheHit",
+      "highlightPatternReportTapped",
+      "highlightCardTapped"
+    ],
+    "collection_constant": "BabyCare/Utils/Constants.swift",
+    "feature_flag_method": "BabyCare/Services/FeatureFlagService.swift"
+  },
+  "todo-2": {
+    "cache_model": "BabyCare/Models/HighlightAICache.swift",
+    "firestore_crud": "BabyCare/Services/FirestoreService+Highlight.swift",
+    "mock_firestore": "BabyCareTests/MockHighlightFirestore.swift",
+    "firestore_rules": "firestore.rules"
+  },
+  "todo-3": {
+    "insight_service_ext": "BabyCare/Services/InsightService.swift"
+  },
+  "todo-4": {
+    "ticker_view": "BabyCare/Views/Dashboard/HighlightTickerView.swift"
+  },
+  "todo-5": {
+    "detail_sheet": "BabyCare/Views/Dashboard/HighlightDetailSheet.swift"
+  },
+  "todo-6": {
+    "ai_service": "BabyCare/Services/HighlightAISummaryService.swift",
+    "functions_handler": "babycare-admin/functions/src/summarizeHighlight.ts",
+    "project_yml_update": "FirebaseFunctions product added to BabyCare target"
+  },
+  "todo-7": {
+    "highlight_grid": "BabyCare/Views/Dashboard/WeeklyHighlightGrid.swift",
+    "container": "WeeklyHighlightGridContainer (same file, .equatable() wrapper)"
+  },
+  "todo-8": {
+    "dashboard_integration": "BabyCare/Views/Dashboard/DashboardView.swift",
+    "shortcuts_v1_id": "BabyCare/Views/Dashboard/DashboardView+Shortcuts.swift",
+    "insight_candidate_identifiable": "BabyCare/Services/Insights/InsightProvider.swift"
+  },
+  "todo-9": {
+    "precache_worker": "BabyCare/Services/HighlightPrecacheService.swift",
+    "app_hook": "BabyCare/App/BabyCareApp.swift",
+    "refresh_hook": "BabyCare/Views/Dashboard/DashboardView.swift",
+    "app_state_registration": "BabyCare/App/AppState.swift"
+  },
+  "todo-10": {
+    "unit_tests_count": 371,
+    "ui_tests_file": "BabyCareUITests/WeeklyHighlightFlowTests.swift",
+    "ui_tests_count": 5,
+    "a11y_ids": [
+      "weeklyHighlightTicker",
+      "highlightDetailSheet",
+      "weeklyHighlightGrid",
+      "highlightCard_0..3",
+      "weeklyInsightsCardV1"
+    ],
+    "qa_evidence_file": ".dev/qa-evidence/weekly-highlights/v2.8.3.md"
+  }
+}

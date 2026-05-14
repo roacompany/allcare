@@ -60,6 +60,9 @@ struct BabyCareApp: App {
                     let userId = appState.auth.currentUserId ?? "anonymous"
                     await flagService.bootstrap(userId: userId)
                 }
+                // 주: AI 요약 사전 캐시는 babycare-admin Vercel Cron + Mac LaunchAgent worker가
+                // 본인 Claude Code Pro 구독으로 배치 처리한 후 Firestore에 저장한다.
+                // iOS는 별도 launch hook 없이 HighlightAISummaryService.fetchCachedSummary로 read만 수행.
         }
     }
 }

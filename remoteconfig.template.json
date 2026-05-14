@@ -83,9 +83,23 @@
       "defaultValue": { "value": "8" },
       "valueType": "NUMBER",
       "description": "Snapshot fetch 윈도우. 클수록 mean/std 안정성 ↑, Firestore 비용 ↑."
+    },
+    "highlight_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "valueType": "BOOLEAN",
+      "description": "주간 하이라이트 master kill switch. true + highlight_ticker_pct>0이어야 사용자에게 노출."
+    },
+    "highlight_ticker_pct": {
+      "defaultValue": {
+        "value": "0"
+      },
+      "valueType": "NUMBER",
+      "description": "주간 하이라이트 코호트 rollout 비율 (0-100). StableHash DJB2 bucket이 이 값보다 작으면 활성."
     }
   },
   "version": {
-    "description": "v2.8.2+ — 주간 인사이트 Phase 1 ML (per-baby Z-score + scorer mode dispatch)"
+    "description": "v2.8.3+ — 주간 하이라이트 AI (RC 2키 추가: highlight_enabled + highlight_ticker_pct)"
   }
 }

@@ -37,3 +37,4 @@ Pods/
 *~
 .gstack/
 .worktrees/
+.dev/local.json

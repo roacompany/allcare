@@ -6,7 +6,11 @@
 # 4) RemoteConfig pregnancy_mode_enabled 키 fallback=false 동작 확인 (unit test)
 # 5) fallback=false 오프라인 시뮬레이션 (기존 H-5 toggle 테스트 포함)
 #
-# Usage: bash scripts/feature_flag_smoke.sh
+# Weekly Highlights 확장 (TODO 1):
+#   bash scripts/feature_flag_smoke.sh highlights
+#   — RC 2키 (highlight_enabled / highlight_ticker_pct) fallback 기본값 검증
+#
+# Usage: bash scripts/feature_flag_smoke.sh [highlights]
 
 set -euo pipefail
 
@@ -30,6 +34,115 @@ check() {
         ((FAIL++)) || true
     fi
 }
+
+MODE="${1:-}"
+
+# ── Highlights 전용 smoke (bash scripts/feature_flag_smoke.sh highlights)
+if [ "$MODE" = "highlights" ]; then
+    echo "▸ Weekly Highlights RC key smoke test..."
+    echo ""
+
+    RC_TEMPLATE="$PROJECT_DIR/remoteconfig.template.json"
+    FFS_FILE_HL="$PROJECT_DIR/BabyCare/Services/FeatureFlagService.swift"
+    FLAGS_FILE_HL="$PROJECT_DIR/BabyCare/Utils/FeatureFlags.swift"
+
+    HL_PASS=0
+    HL_FAIL=0
+
+    hl_check() {
+        local label="$1"
+        local result="$2"
+        if [ "$result" = "ok" ]; then
+            echo "  ✅ $label"
+            ((HL_PASS++)) || true
+        else
+            echo "  ❌ $label"
+            ((HL_FAIL++)) || true
+        fi
+    }
+
+    # H-1: highlight_enabled 키가 remoteconfig.template.json에 있음
+    if grep -q '"highlight_enabled"' "$RC_TEMPLATE" 2>/dev/null; then
+        hl_check "RC: highlight_enabled key exists in remoteconfig.template.json" "ok"
+    else
+        hl_check "RC: highlight_enabled key exists in remoteconfig.template.json" "fail"
+    fi
+
+    # H-2: highlight_enabled 기본값 false
+    if grep -A3 '"highlight_enabled"' "$RC_TEMPLATE" 2>/dev/null | grep -q '"false"'; then
+        hl_check "RC: highlight_enabled default = false (A-18 invariant)" "ok"
+    else
+        hl_check "RC: highlight_enabled default = false (A-18 invariant)" "fail"
+    fi
+
+    # H-3: highlight_ticker_pct 키가 remoteconfig.template.json에 있음
+    if grep -q '"highlight_ticker_pct"' "$RC_TEMPLATE" 2>/dev/null; then
+        hl_check "RC: highlight_ticker_pct key exists in remoteconfig.template.json" "ok"
+    else
+        hl_check "RC: highlight_ticker_pct key exists in remoteconfig.template.json" "fail"
+    fi
+
+    # H-4: highlight_ticker_pct 기본값 0
+    if grep -A3 '"highlight_ticker_pct"' "$RC_TEMPLATE" 2>/dev/null | grep -q '"0"'; then
+        hl_check "RC: highlight_ticker_pct default = 0 (safe rollout gate)" "ok"
+    else
+        hl_check "RC: highlight_ticker_pct default = 0 (safe rollout gate)" "fail"
+    fi
+
+    # H-5: FeatureFlagService에 highlight_enabled 키 정의됨
+    if grep -q "highlight_enabled" "$FFS_FILE_HL" 2>/dev/null; then
+        hl_check "FeatureFlagService: highlight_enabled key referenced" "ok"
+    else
+        hl_check "FeatureFlagService: highlight_enabled key referenced" "fail"
+    fi
+
+    # H-6: FeatureFlagService에 highlight_ticker_pct 키 정의됨
+    if grep -q "highlight_ticker_pct" "$FFS_FILE_HL" 2>/dev/null; then
+        hl_check "FeatureFlagService: highlight_ticker_pct key referenced" "ok"
+    else
+        hl_check "FeatureFlagService: highlight_ticker_pct key referenced" "fail"
+    fi
+
+    # H-7: isHighlightV2Enabled 메서드 시그니처 존재
+    if grep -q "isHighlightV2Enabled" "$FFS_FILE_HL" 2>/dev/null; then
+        hl_check "FeatureFlagService: isHighlightV2Enabled method defined" "ok"
+    else
+        hl_check "FeatureFlagService: isHighlightV2Enabled method defined" "fail"
+    fi
+
+    # H-8: FeatureFlags.highlightsEnabled compile-time guard 존재
+    if grep -q "highlightsEnabled" "$FLAGS_FILE_HL" 2>/dev/null; then
+        hl_check "FeatureFlags: highlightsEnabled compile-time guard exists" "ok"
+    else
+        hl_check "FeatureFlags: highlightsEnabled compile-time guard exists" "fail"
+    fi
+
+    # H-9: A-18 — FeatureFlags.swift에 FirebaseRemoteConfig import 없음
+    if ! grep -q "import FirebaseRemoteConfig" "$FLAGS_FILE_HL" 2>/dev/null; then
+        hl_check "A-18: No 'import FirebaseRemoteConfig' in FeatureFlags.swift" "ok"
+    else
+        hl_check "A-18: No 'import FirebaseRemoteConfig' in FeatureFlags.swift" "fail"
+    fi
+
+    # H-10: DJB2 StableHash 코호트 사용 (Swift.hashValue/Int.random 금지)
+    if grep -q "StableHash.djb2" "$FFS_FILE_HL" 2>/dev/null; then
+        hl_check "Cohort: StableHash.djb2 used (no Swift.hashValue / Int.random)" "ok"
+    else
+        hl_check "Cohort: StableHash.djb2 used (no Swift.hashValue / Int.random)" "fail"
+    fi
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  PASS: $HL_PASS  FAIL: $HL_FAIL"
+
+    if [ "$HL_FAIL" -gt 0 ]; then
+        echo "❌ highlights smoke FAILED"
+        exit 1
+    else
+        echo "✅ highlights smoke PASSED"
+        exit 0
+    fi
+fi
 
 echo "▸ P2-4 FeatureFlagService Hybrid smoke test..."
 echo ""
