@@ -68,12 +68,19 @@ jobs:
       - name: Resolve simulator
         id: sim
         run: |
+          # iOS 26.2 는 "signal kill before bootstrapping" 이슈 (rules/simulator-targets.md).
+          # 26.4 는 안정이지만 runner 미설치 — iOS 18.x 우선, 26.x fallback (26.2 제외).
           xcrun simctl list devices available
           UDID=$(xcrun simctl list devices available -j | jq -r '
             .devices
             | to_entries
-            | map(select(.key | test("iOS|com.apple.CoreSimulator.SimRuntime.iOS")))
-            | sort_by(.key) | reverse
+            | map(select((.key | test("iOS|com.apple.CoreSimulator.SimRuntime.iOS"))
+                  and (.key | test("26\\.2") | not)))
+            | sort_by(
+                if (.key | test("18\\.")) then "Z" + .key
+                else "M" + .key
+                end)
+            | reverse
             | map(.value[]
                 | select(.isAvailable == true
                   and (.name | test("iPhone 1[5-9]|iPhone [2-9][0-9]"))))
@@ -85,6 +92,10 @@ jobs:
           fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "Using simulator UDID: $UDID"
+          xcrun simctl list devices available -j | jq -r --arg u "$UDID" '
+            .devices | to_entries[] | .key as $rt
+            | .value[] | select(.udid == $u)
+            | "Selected: \(.name) on \($rt)"'
 
       - name: Build
         run: |
