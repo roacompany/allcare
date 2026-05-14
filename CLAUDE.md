@@ -166,23 +166,23 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.2 (빌드 66) — App Store WAITING_FOR_REVIEW (2026-05-10, Phase 1 ML)
+- **Version**: v2.8.3 (빌드 68) — TestFlight 만 (App Store 미제출, Weekly Highlights v2)
 - **App Store**:
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
-  - **v2.8.2 WAITING_FOR_REVIEW** (Phase 1 ML 인사이트, releaseType AFTER_APPROVAL)
-- **TestFlight**: v2.8.2 빌드 66 (`101f6cb5-5b45-4562-b565-9a937045e117`, 2026-05-10)
-  - 이전: 빌드 65 (v2.8.1 광고 제거 `a1678846-...`), 빌드 64 (v2.8.0 `51a6cd4d-...`)
-- **Firebase**: 11.9.0 (PR #3 main merge `7d80f93`)
-- **Firestore**: `weeklyMetrics` 신규 컬렉션 추가 (`users/{uid}/babies/{bid}/weeklyMetrics/{YYYYWnn}`)
-- **Remote Config**: 16개 파라미터 deploy 완료 (pregnancy 2 + weight 9 + insight 5)
-- **테스트**: 354 단위 + 18 XCUITest PASS (Phase 1 ML +9 추가), arch-test 0 violations
-- **규모**: 295+ Swift 파일, 23개 VM, 31개 Firestore 컬렉션 (30 + weeklyMetrics)
-- **AdMob**: SDK + UI 비활성화 (`FeatureFlags.adsEnabled=false`). 정책 차단 항소 후 1줄 복구
-- **iOS main 미push**: 4 commits (bf62691 lastAccessedAt + RC 16 파라미터)
-- **iOS feat/pregnancy-mode-v2 미push**: 14 commits (이번 세션 누적)
-- **Admin**: Vercel 자동 배포 (Insights ML 탭 `33acb7f` + lastAccessedAt fallback `174f8ea`)
+  - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
+  - **v2.8.3 미제출** — TestFlight 만 (실기기 무회귀 검증 + AI 의료 감수 25 샘플 후 결정)
+- **TestFlight**: v2.8.3 빌드 68 (`f61fed76-...`, 2026-05-12 — plist 누락 fix 후 재업로드), 빌드 67 (`62cfb14c-...`)
+  - 이전: 빌드 66 (v2.8.2 ML `101f6cb5-...`), 65 (v2.8.1), 64 (v2.8.0)
+- **Firebase**: 11.9.0
+- **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
+- **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
+- **테스트**: 371 단위 + 23 XCUITest (Highlights +17 unit +5 XCUITest). CI Test 인프라 부채 — 별도 PR 예정
+- **규모**: 308+ Swift 파일, 23개 VM, 32개 Firestore 컬렉션
+- **AdMob**: 완전 폐기 (2026-05-10 `ddb63d1`) — SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거 12 파일 -467 lines
+- **Admin**: Vercel 자동 배포 (Insights ML 탭 + lastAccessedAt fallback + Weekly Highlights worker `c283ef5`)
 - **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (법무 검토 미수령)
+- **PR #5 머지** (2026-05-14 `18defbb`): Weekly Highlights v2 admin override squash merge. CI 6 iter — Build/Lint/Arch PASS, Test 단계 iOS 26.2 sim documented bug + Firebase init in CI 해결 부채.
 
 ## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
 
@@ -276,8 +276,10 @@ make dead-code   # 미사용 코드 탐지
 ### 로드맵
 - ✅ P0: 임신 모드 v2 — v2.8.0 App Store 출시 완료 (2026-05-02 승인)
 - ✅ P0: 광고 제거 hotfix — v2.8.1 출시 완료 (2026-05-06)
-- ✅ P0: Phase 1 ML 인사이트 — v2.8.2 심사 제출 (2026-05-10)
-- [ ] v2.8.2 심사 통과 대기 (12-48h 예상)
+- ✅ P0: Phase 1 ML 인사이트 — v2.8.2 출시 완료 (2026-05-10)
+- ✅ P0: Weekly Highlights v2 — v2.8.3 TestFlight 67/68 (2026-05-12), PR #5 main merge (2026-05-14)
+- [ ] v2.8.3 실기기 무회귀 검증 + AI 의료 감수 25 샘플 → App Store 제출 결정
+- [ ] CI Test 단계 인프라 fix (별도 PR) — iOS 26.2 sim 회피 + Firebase init in test mode
 - [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
 - [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
 - [ ] Phase 2 ML: 4주+ 데이터 누적 후 anomaly mode 활성화 (`insight_scorer_mode=anomaly`) 또는 CoreML 합성 baseline
@@ -288,11 +290,12 @@ make dead-code   # 미사용 코드 탐지
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 
 ### 즉시 처리 필요 (사용자 액션)
-- [ ] iOS main + feat/pregnancy-mode-v2 push (이번 세션 18 commits 대기)
-- [ ] AdMob Console 차단 사유 확인 + 항소 양식 작성
-- [ ] TestFlight 빌드 65/66 실기기 무회귀 검증
+- [ ] TestFlight 빌드 67/68 (v2.8.3 Weekly Highlights) 실기기 무회귀 검증
+- [ ] Firebase Console RC `highlight_enabled=true` + `highlight_ticker_pct` 0→5→25→50→100% 단계 활성화
+- [ ] H-3 AI 의료 감수 25 샘플 (Admin batch Cron 결과 기반) → 통과 후 v2.8.3 App Store 제출 결정
+- [ ] CI Test 단계 인프라 fix (별도 PR) — `.github/workflows/ci.yml` iOS 26.2 회피 + Firebase init in test mode 가드. PR #5 admin override 부채.
+- [ ] AdMob Console 차단 사유 확인 + 항소 (코드 폐기는 완료, 항소만 user action)
 - [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 보강 (1주 external)
-- [ ] feat/pregnancy-mode-v2 → main 머지 (v2.8.2 심사 통과 후) + `fix/last-accessed-at` 브랜치 삭제
 
 ### 추후 개선 (P2)
 - [ ] Admin Insights 탭 RC 라이브 가중치 (현재 default만, Firebase Admin SDK RC 추가)

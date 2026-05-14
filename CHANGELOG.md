@@ -2,6 +2,103 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.8.3] - 2026-05-12 (TestFlight 빌드 67/68)
+
+### Added — Weekly Highlights v2 (Phase 1 ML 활용)
+
+- **자동 롤링 티커**: 대시보드 상단 5초 간격 자동 전환, reduceMotion 대응 (TimelineView)
+- **AI 요약 bottom sheet**: 하이라이트 탭 → Sparkline + Claude 4.5 Haiku 200자 요약 + 폴백
+- **Sparkline 4 카드 그리드**: feeding/sleep/diaper/health (LazyVGrid + .equatable + WoW 변화율)
+- **AI 캐시 아키텍처**: iOS 앱은 Firestore `highlightCache` read-only. 본인 Claude Code Pro 구독으로 처리 — babycare-admin Vercel Cron (02 KST daily) → cloudflared tunnel → Mac LaunchAgent → `claude` CLI → Firestore. 동시성/약관/비용 동시 해결.
+- **FeatureFlagService.isHighlightV2Enabled**: 3-layer (compile-time flag + RC `highlight_enabled` + DJB2 `highlight_ticker_pct` cohort)
+- **XOR 통합**: DashboardView `weeklyInsightsCard` v1 fallback / v2 active 안전망
+- **AI payload allowlist**: baby.name/birthDate/일기 본문 0 (의료앱 안전)
+
+### Changed
+
+- **InsightService.topHighlights**: allowlist + AppContext gating (feeding/sleep/diaper/health 만, pregnancy_ leak 0)
+- **FirestoreCollections**: `highlightCache` 추가 (32번째)
+- **RC 2 키**: `highlight_enabled` / `highlight_ticker_pct` (0% rollout default)
+- **Analytics**: 7개 이벤트 (`highlight_shown/tapped/ai_loaded/...` weekKey/babyId 미포함, 준개인정보 보호)
+
+### Tests
+
+- 단위 테스트 +17 (allowlist / scoring / cohort / fallback)
+- XCUITest +5 (a11y 5 identifiers, `weeklyInsightsCardV1` fallback)
+- QA evidence — H-3 AI 의료 감수 25 샘플 / H-4 Firestore audit / H-7 Performance 보류
+
+### Known Issues
+
+- **CI Test 단계 인프라 부채**: macos-15 + Xcode 26.x + iOS 26.2 simulator 조합에서 `signal abrt before bootstrapping` (rules/simulator-targets.md documented). PR #5 머지는 admin override — 별도 PR 로 분리 예정. Build/Lint/Arch 는 PASS.
+- 실기기 무회귀 검증, RC `highlight_enabled` 활성화, AI 의료 감수 25 샘플은 후속 작업.
+
+## [2.8.2] - 2026-05-10 (TestFlight 빌드 65/66, App Store READY_FOR_SALE)
+
+### Added — Phase 1 ML 인사이트
+
+- **InsightScorer 프로토콜**: HeuristicScorer / StatisticalAnomalyScorer / HybridScorer + Factory
+- **WeeklyMetricSnapshot**: Firestore 영속 (`users/{uid}/babies/{bid}/weeklyMetrics/{YYYYWnn}`) — per-baby Z-score history
+- **Hybrid mode**: history ≥ 4주면 per-baby Z-score, 미만이면 Heuristic fallback (신규 사용자 회귀 0)
+- **InsightWeights RC 외부화**: 9개 medical weight + scorer_mode + min_history_weeks + history_weeks
+- **Analytics 3종**: `insight_generated/shown/tapped` (Phase 2 supervised label 수집)
+- **Admin Insights ML 탭**: `/api/users/[uid]/insights/[bid]` Top 3 score / 전체 metric / 주차별 시계열 / RC default 가중치 (babycare-admin `33acb7f`)
+
+### Changed
+
+- **InsightProvider 4분할**: Feeding/Diaper/Sleep/Health (sub-metric 분리)
+- **InsightScoringService**: scorer 디스패치 + telemetry
+- **Firestore**: 31개 컬렉션 (30 + weeklyMetrics)
+
+### Build & Deploy
+
+- v2.8.2 빌드 65/66 — `make deploy` full chain PASS
+- 354 단위 테스트 PASS (+9 Phase 1 ML)
+- `make plan-verify` 파일 경로 brace glob 금지 학습 (build-gotchas.md)
+- ASC API 5-step 자동 제출 → AFTER_APPROVAL READY_FOR_SALE
+
+## [2.8.1] - 2026-05-06 (App Store READY_FOR_SALE)
+
+### Fixed — AdMob 정책 차단 hotfix
+
+- **`FeatureFlags.adsEnabled = false`**: 1-line kill switch (SDK init + AdBannerView UI 모두 가드, 코드 보존)
+- 정책 차단 사유: AdMob Console 확인 + 항소 사용자 액션 필요
+- TestFlight 빌드 65 → App Store 자동 출시
+
+### Note
+
+이후 v2.8.x 후속에서 AdMob 완전 폐기됨 (`ddb63d1`): SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거. 12 파일 -467 lines.
+
+## [2.8.0] - 2026-05-02 (TestFlight 빌드 63/64, App Store READY_FOR_SALE)
+
+### Added — 임신 모드 v2 재설계
+
+- **AppContext 4-state enum**: `empty/babyOnly/pregnancyOnly/both` 중앙화 (`AppContext.resolve(babies:pregnancy:)` static factory)
+- **Hybrid 게이팅**: 컴파일타임 `FeatureFlags.pregnancyModeEnabled` (Layer 1 guard) + `FeatureFlagService` 단일 gateway로 RC `pregnancy_mode_enabled` (Layer 2, fetch 실패 fallback=false). DJB2 deterministic cohort.
+- **PregnancyFirestoreProviding narrow protocol** + **MockPregnancyFirestore**
+- **WriteBatch + transitionState**: 출산 전환 atomic, `markTransitionPending` 2-step 패턴, `FieldValue.delete()` rollback
+- **EDD `eddHistory` append-only** (덮어쓰기 금지)
+- **PregnancyWidgetDataStore**: lmpDate/dueDate 원본 저장, Provider 동적 계산, FeatureFlag=false 시 clearIfFlagDisabled
+- **DashboardPregnancyHomeCard**: baby > pregnancy 우선순위 (`babies.isEmpty=false`면 baby UI 유지, 카드 additive)
+- **PregnancyRecoveryModal**: transitionState=pending orphan Resume UI
+- **PregnancyTerminationView**: 출산/종료 CTA 분리
+
+### Fixed — AdMob 미노출
+
+- ASC API 직접 조회: `isOrEverWasMadeForKids=false` → COPPA 의무 대상 아님
+- `tagForChildDirectedTreatment = true` → `false` (광고 풀 5-20% 축소 해제)
+- 정책 충돌 0 (privacy.html / IDFA 약속 / ATT 무관)
+
+### Tests
+
+- XCUITest 18 (+8) — 임신 플로우
+- 단위 345 (+26) — KickSession/PregnancyDateMath/PregnancyOutcome/CryAnalysisViewModel/a11y
+
+### Build & Deploy
+
+- Firebase 11.9.0 hotfix (PR #3 `7d80f93`) — Swift 6 concurrency Issue #14257
+- firestore.rules collectionGroup Partner read 배포 (top-level `match /databases/{db}/documents` scope 필수)
+- v2.8.0 빌드 63/64 ASC API 5-step 자동 제출 → AFTER_APPROVAL 출시
+
 ## [2.7.1] - 2026-04-19 (TestFlight 빌드 62)
 
 ### 빌드 61 → 62: 임신 모드 임시 hide
