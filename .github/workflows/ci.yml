@@ -19,7 +19,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+        run: |
+          ls -d /Applications/Xcode_*.app 2>/dev/null
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
 
       - name: Install SwiftLint
         run: brew install swiftlint
@@ -29,16 +34,37 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
+      - name: Resolve simulator
+        id: sim
+        run: |
+          xcrun simctl list devices available
+          UDID=$(xcrun simctl list devices available -j | jq -r '
+            .devices
+            | to_entries
+            | map(select(.key | test("iOS|com.apple.CoreSimulator.SimRuntime.iOS")))
+            | sort_by(.key) | reverse
+            | map(.value[]
+                | select(.isAvailable == true
+                  and (.name | test("iPhone 1[5-9]|iPhone [2-9][0-9]"))))
+            | .[0].udid // empty
+          ')
+          if [ -z "$UDID" ]; then
+            echo "::error::No suitable iPhone simulator found on runner"
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator UDID: $UDID"
+
       - name: Build
         run: |
           xcodebuild build \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -quiet
 
       - name: Lint
-        run: swiftlint lint --strict --config .swiftlint.yml
+        run: bash scripts/harness_lint.sh
 
       - name: Architecture test
         run: bash scripts/arch_test.sh
@@ -48,6 +74,6 @@ jobs:
           xcodebuild test \
             -project BabyCare.xcodeproj \
             -scheme BabyCare \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -only-testing:BabyCareTests \
             -quiet
