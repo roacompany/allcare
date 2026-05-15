@@ -177,12 +177,13 @@ harness-score: 96% (Grade A) — 2026-04-17
 - **Firebase**: 11.9.0
 - **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
 - **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
-- **테스트**: 371 단위 + 23 XCUITest (Highlights +17 unit +5 XCUITest). CI Test 인프라 부채 — 별도 PR 예정
+- **테스트**: 371 단위 + 23 XCUITest (Highlights +17 unit +5 XCUITest). **CI Test 인프라 fix 완료** (PR #7 `2c57c1f`, 2026-05-15). CI에서 365 PASS / 5 skip (사전 부채, 별도 PR 예정).
 - **규모**: 308+ Swift 파일, 23개 VM, 32개 Firestore 컬렉션
 - **AdMob**: 완전 폐기 (2026-05-10 `ddb63d1`) — SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거 12 파일 -467 lines
 - **Admin**: Vercel 자동 배포 (Insights ML 탭 + lastAccessedAt fallback + Weekly Highlights worker `c283ef5`)
 - **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (법무 검토 미수령)
 - **PR #5 머지** (2026-05-14 `18defbb`): Weekly Highlights v2 admin override squash merge. CI 6 iter — Build/Lint/Arch PASS, Test 단계 iOS 26.2 sim documented bug + Firebase init in CI 해결 부채.
+- **PR #7 머지** (2026-05-15 `2c57c1f`): CI Test 인프라 fix. **진짜 root cause**: stub plist API_KEY 35자 (39자 필수) → `+[FIRInstallations validateAPIKey:]` SIGABRT. 4 iter 추측 fix 후 `-resultBundlePath` artifact + verbose log로 stack trace 확보 → 1줄 fix. 365 test PASS / 5 skip (사전 부채). 학습: **`-quiet` 플래그가 데이터를 가리면 추측 commit이 누적된다 — diagnostic 인프라부터 깔 것**.
 
 ## v2.7.1 임신 모드 회귀 이력 (재설계 참고)
 
@@ -279,7 +280,7 @@ make dead-code   # 미사용 코드 탐지
 - ✅ P0: Phase 1 ML 인사이트 — v2.8.2 출시 완료 (2026-05-10)
 - ✅ P0: Weekly Highlights v2 — v2.8.3 TestFlight 67/68 (2026-05-12), PR #5 main merge (2026-05-14)
 - [ ] v2.8.3 실기기 무회귀 검증 + AI 의료 감수 25 샘플 → App Store 제출 결정
-- [ ] CI Test 단계 인프라 fix (별도 PR) — iOS 26.2 sim 회피 + Firebase init in test mode
+- ✅ CI Test 단계 인프라 fix — PR #7 머지 (`2c57c1f`, 2026-05-15). stub plist API_KEY 35→39자 + AppDelegate XCTest 가드 + iOS 18.x sim 강제. **부채**: CI에서 처음 실행된 테스트 5건 사전 실패 — 별도 PR 예정 (`-skip-testing`로 임시 우회 중).
 - [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
 - [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
 - [ ] Phase 2 ML: 4주+ 데이터 누적 후 anomaly mode 활성화 (`insight_scorer_mode=anomaly`) 또는 CoreML 합성 baseline
@@ -293,7 +294,7 @@ make dead-code   # 미사용 코드 탐지
 - [ ] TestFlight 빌드 67/68 (v2.8.3 Weekly Highlights) 실기기 무회귀 검증
 - [ ] Firebase Console RC `highlight_enabled=true` + `highlight_ticker_pct` 0→5→25→50→100% 단계 활성화
 - [ ] H-3 AI 의료 감수 25 샘플 (Admin batch Cron 결과 기반) → 통과 후 v2.8.3 App Store 제출 결정
-- [ ] CI Test 단계 인프라 fix (별도 PR) — `.github/workflows/ci.yml` iOS 26.2 회피 + Firebase init in test mode 가드. PR #5 admin override 부채.
+- [ ] CI Test 사전 부채 5건 fix (별도 PR) — `-skip-testing`로 우회 중. 2 crash + 3 assertion fail. 위치: BabyCareTests.swift L1844/L4243/L4551/L4707 (TerminationFlow stillbirth, AISummary rejectsPregnancyMetric, HighlightTicker reduceMotion, DiaryAnalysis monthly avg/ratio).
 - [ ] AdMob Console 차단 사유 확인 + 항소 (코드 폐기는 완료, 항소만 user action)
 - [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 보강 (1주 external)
 
