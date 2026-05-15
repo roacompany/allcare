@@ -77,10 +77,9 @@ final class HighlightAISummaryService: HighlightAISummaryServiceProviding {
         let metricKey = candidate.metricKey
 
         // ── pregnancy_ metricKey reject (defense in depth) ────────────────
+        // throw가 계약. assertionFailure 사용 금지 — DEBUG에서 SIGTRAP으로
+        // throw 도달 전 abort 되며 단위 테스트가 catch 불가 (테스트가 검증하는 것은 throw).
         if metricKey.hasPrefix("pregnancy_") {
-            assertionFailure(
-                "HighlightAISummaryService: pregnancy_ metricKey는 허용되지 않습니다. metricKey=\(metricKey)"
-            )
             throw HighlightAISummaryError.pregnancyMetricRejected(metricKey)
         }
 
