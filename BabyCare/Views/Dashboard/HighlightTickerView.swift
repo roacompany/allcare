@@ -28,11 +28,17 @@ struct HighlightTickerView: View {
     var body: some View {
         if candidates.isEmpty {
             EmptyView()
-        } else if reduceMotion || candidates.count <= 1 {
+        } else if Self.shouldUseStaticCard(reduceMotion: reduceMotion, candidateCount: candidates.count) {
             staticCardView
         } else {
             animatedTickerView
         }
+    }
+
+    /// 단위 테스트 가능한 라우팅 predicate. body 의 분기 조건을 외부 추출.
+    /// reduceMotion=true 또는 후보 1개 이하 → static 카드. 그 외 → animated ticker.
+    static func shouldUseStaticCard(reduceMotion: Bool, candidateCount: Int) -> Bool {
+        reduceMotion || candidateCount <= 1
     }
 
     // MARK: - Static Card (reduceMotion or single candidate)

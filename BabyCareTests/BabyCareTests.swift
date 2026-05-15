@@ -4549,26 +4549,26 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
 
     // MARK: - A-10: Ticker reduceMotion 정적 표시
 
-    /// HighlightTickerView는 단일 후보일 때 정적 카드로 표시됨 (reduceMotion 등가).
-    /// UI 레이어 직접 테스트 대신, body 조건 분기 `reduceMotion || candidates.count <= 1` 검증.
-    /// Swift 6에서 View body를 단위 테스트로 직접 검증 불가 → 조건 값 검증으로 대체.
+    /// HighlightTickerView 라우팅 predicate `shouldUseStaticCard` 검증.
+    /// body 분기 조건을 외부 helper로 추출하여 단위 테스트 가능 (Swift 6 View body 직접 검증 불가).
+    /// 이 테스트는 production 함수를 직접 호출하므로 body 조건 inversion 시 fail로 detect 가능.
     func testHighlightTicker_reduceMotionPauses() {
         // Case 1: reduceMotion=true + 다중 후보 → static (reduceMotion 우선)
         XCTAssertTrue(
-            true || 3 <= 1,
-            "reduceMotion=true: 다중 후보여도 static 카드 경로 (reduceMotion 우선)"
+            HighlightTickerView.shouldUseStaticCard(reduceMotion: true, candidateCount: 3),
+            "reduceMotion=true: 다중 후보여도 static 카드 (reduceMotion 우선)"
         )
 
         // Case 2: reduceMotion=false + 1개 이하 → static (count guard)
         XCTAssertTrue(
-            false || 1 <= 1,
-            "후보 1개 이하: reduceMotion=false 여도 static 카드 경로"
+            HighlightTickerView.shouldUseStaticCard(reduceMotion: false, candidateCount: 1),
+            "후보 1개 이하: reduceMotion=false 여도 static 카드"
         )
 
         // Case 3: reduceMotion=false + 3개 → animated path
         XCTAssertFalse(
-            false || 3 <= 1,
-            "reduceMotion=false + 후보 3개: animated 티커 경로 (static 미진입)"
+            HighlightTickerView.shouldUseStaticCard(reduceMotion: false, candidateCount: 3),
+            "reduceMotion=false + 후보 3개: animated 티커 (static 미진입)"
         )
     }
 
