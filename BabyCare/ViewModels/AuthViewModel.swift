@@ -20,7 +20,10 @@ final class AuthViewModel {
 
     init() {
         // UI 테스트 모드: Firebase 없이 인증 완료 상태로 시작
-        if CommandLine.arguments.contains("UI_TESTING") {
+        // CI 단위 테스트 모드(XCTestConfigurationFilePath)도 동일 처리 — Firebase
+        // 미초기화 상태에서 Auth.auth() 접근 시 stub credential로 abort 우회.
+        let isXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        if CommandLine.arguments.contains("UI_TESTING") || isXCTest {
             isAuthenticated = true
             currentUserId = "ui-test-user"
             return

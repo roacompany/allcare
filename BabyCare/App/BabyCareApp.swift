@@ -9,21 +9,34 @@ struct BabyCareApp: App {
     private let flagService = FeatureFlagService.shared
 
     init() {
+        // CI 단위 테스트 호스트 부팅 가드. xcodebuild test가 host process에 자동
+        // 주입하는 환경변수로 감지 — App.init()는 AppDelegate보다 먼저/별도로
+        // 실행되므로 Firebase 호출이 stub credential로 abort 되는 것을 우회.
+        // (rules/build-gotchas.md "signal abrt" 섹션, AppDelegate 가드 보강)
+        let isXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
         // URLCache 설정 (이미지 캐싱 지원)
         URLCache.shared = URLCache(
             memoryCapacity: 50 * 1024 * 1024,   // 50MB memory
             diskCapacity: 200 * 1024 * 1024      // 200MB disk
         )
-        // AppState → AuthViewModel → Auth.auth() 호출 전에 Firebase 초기화 필수
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
+
+        if !isXCTest {
+            // AppState → AuthViewModel → Auth.auth() 호출 전에 Firebase 초기화 필수
+            if FirebaseApp.app() == nil {
+                FirebaseApp.configure()
+            }
+            // Firestore 오프라인 영속성: 200MB 캐시
+            let firestoreSettings = Firestore.firestore().settings
+            firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: 200 * 1024 * 1024 as NSNumber)
+            Firestore.firestore().settings = firestoreSettings
         }
-        // Firestore 오프라인 영속성: 200MB 캐시
-        let firestoreSettings = Firestore.firestore().settings
-        firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: 200 * 1024 * 1024 as NSNumber)
-        Firestore.firestore().settings = firestoreSettings
+
         appState = AppState.shared
-        ThemeManager.shared.applyAppearance()
+
+        if !isXCTest {
+            ThemeManager.shared.applyAppearance()
+        }
     }
 
     @State private var deepLinkDestination: DeepLinkRouter.Destination?
