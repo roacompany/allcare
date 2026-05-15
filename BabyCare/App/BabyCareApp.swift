@@ -9,10 +9,12 @@ struct BabyCareApp: App {
     private let flagService = FeatureFlagService.shared
 
     init() {
-        // CI 단위 테스트 호스트 부팅 가드. xcodebuild test가 host process에 자동
-        // 주입하는 환경변수로 감지 — App.init()는 AppDelegate보다 먼저/별도로
-        // 실행되므로 Firebase 호출이 stub credential로 abort 되는 것을 우회.
-        // (rules/build-gotchas.md "signal abrt" 섹션, AppDelegate 가드 보강)
+        // CI 단위 테스트 모드. xcodebuild test가 host process에 자동 주입하는
+        // 환경변수로 감지. FirebaseApp.configure()는 유지해야 함 — FirestoreService.shared
+        // 의 `let db = Firestore.firestore()` 가 AppState 초기화 chain에서 호출되어
+        // configure 없으면 abort. PersistentCacheSettings(disk write)와 ThemeManager만 skip.
+        // 실제 crash 지점인 Auth listener는 AuthViewModel 내부에서 별도 가드.
+        // (rules/build-gotchas.md "signal abrt" 섹션)
         let isXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
         // URLCache 설정 (이미지 캐싱 지원)
@@ -21,12 +23,14 @@ struct BabyCareApp: App {
             diskCapacity: 200 * 1024 * 1024      // 200MB disk
         )
 
+        // AppState → FirestoreService.shared → Firestore.firestore() 호출 전에 필수
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+
         if !isXCTest {
-            // AppState → AuthViewModel → Auth.auth() 호출 전에 Firebase 초기화 필수
-            if FirebaseApp.app() == nil {
-                FirebaseApp.configure()
-            }
-            // Firestore 오프라인 영속성: 200MB 캐시
+            // Firestore 오프라인 영속성: 200MB 캐시. XCTest에서는 stub project ID로
+            // disk 캐시 생성 시 비결정적 동작 가능 — 기본 MemoryCacheSettings 사용.
             let firestoreSettings = Firestore.firestore().settings
             firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: 200 * 1024 * 1024 as NSNumber)
             Firestore.firestore().settings = firestoreSettings
