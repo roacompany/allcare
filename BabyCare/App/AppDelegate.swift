@@ -9,6 +9,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        // 단위 테스트 호스트 앱 부팅 시 Firebase/Messaging/APNs 우회. xcodebuild test
+        // 가 host process 에 자동 주입하는 환경변수로 감지 — production 영향 0.
+        // 6 iter CI 디버깅 후 도입 (rules/build-gotchas.md "signal abrt" 섹션).
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
+
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
