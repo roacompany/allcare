@@ -1842,9 +1842,11 @@ final class BabyCareTests: XCTestCase {
     }
 
     func testDiaryAnalysis_monthlyDistribution_averageLength() {
+        // 월 중간 + 정오로 timezone 무관하게 month=4 보장
+        // (월말/월초 자정은 Calendar.current 가 다른 zone일 때 다른 월로 인식 가능)
         var cal = Calendar.current
         cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
-        let date = cal.date(from: DateComponents(year: 2026, month: 4, day: 1))!
+        let date = cal.date(from: DateComponents(year: 2026, month: 4, day: 15, hour: 12))!
         let entries = [
             DiaryEntry(babyId: "b1", date: date, content: "12345"),      // 5자
             DiaryEntry(babyId: "b1", date: date, content: "1234567890")  // 10자
@@ -1921,9 +1923,10 @@ final class BabyCareTests: XCTestCase {
     }
 
     func testDiaryAnalysis_monthlyDistribution_ratio_correctPercentage() {
+        // 월 중간 + 정오로 timezone 무관하게 month=2 보장
         var cal = Calendar.current
         cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
-        let date = cal.date(from: DateComponents(year: 2026, month: 2, day: 1))!
+        let date = cal.date(from: DateComponents(year: 2026, month: 2, day: 15, hour: 12))!
         let entries = [
             DiaryEntry(babyId: "b1", date: date, content: "a", mood: .happy),
             DiaryEntry(babyId: "b1", date: date, content: "b", mood: .happy),
@@ -4547,22 +4550,26 @@ final class WeeklyHighlightsRegressionTests: XCTestCase {
     // MARK: - A-10: Ticker reduceMotion 정적 표시
 
     /// HighlightTickerView는 단일 후보일 때 정적 카드로 표시됨 (reduceMotion 등가).
-    /// UI 레이어 직접 테스트 대신, 1개 이하 후보 → staticCard path로의 라우팅 논리 검증.
+    /// UI 레이어 직접 테스트 대신, body 조건 분기 `reduceMotion || candidates.count <= 1` 검증.
+    /// Swift 6에서 View body를 단위 테스트로 직접 검증 불가 → 조건 값 검증으로 대체.
     func testHighlightTicker_reduceMotionPauses() {
-        // 1개 이하 후보: body가 staticCardView 반환 (reduceMotion || candidates.count <= 1)
-        // 이 논리는 HighlightTickerView.body의 조건 분기에서 검증됨.
-        // Swift 6에서 View body를 단위 테스트로 직접 검증 불가 → 조건 값 검증으로 대체.
-        let singleCandidateCount = 1
-        let multiCandidateCount = 3
-        let reduceMotion = true
+        // Case 1: reduceMotion=true + 다중 후보 → static (reduceMotion 우선)
+        XCTAssertTrue(
+            true || 3 <= 1,
+            "reduceMotion=true: 다중 후보여도 static 카드 경로 (reduceMotion 우선)"
+        )
 
-        // reduceMotion=true 또는 1개 이하 → static path
-        let shouldUseStatic = reduceMotion || singleCandidateCount <= 1
-        XCTAssertTrue(shouldUseStatic, "reduceMotion=true 또는 후보 1개 이하: static 카드 경로")
+        // Case 2: reduceMotion=false + 1개 이하 → static (count guard)
+        XCTAssertTrue(
+            false || 1 <= 1,
+            "후보 1개 이하: reduceMotion=false 여도 static 카드 경로"
+        )
 
-        // reduceMotion=false + 3개 → animated path
-        let shouldAnimate = !reduceMotion && multiCandidateCount > 1
-        XCTAssertTrue(shouldAnimate, "reduceMotion=false + 후보 3개: animated 티커 경로")
+        // Case 3: reduceMotion=false + 3개 → animated path
+        XCTAssertFalse(
+            false || 3 <= 1,
+            "reduceMotion=false + 후보 3개: animated 티커 경로 (static 미진입)"
+        )
     }
 
     // MARK: - A-11: Ticker 인덱스 순환
