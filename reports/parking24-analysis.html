@@ -250,7 +250,7 @@
 </header>
 <main>
   <div class="callout info">
-    공항 주차대행 예약 플랫폼 <strong>PARKING 24</strong>의 본사이트(<code>parking24.me</code>)를 라이브에서 직접 fetch·HTML 파싱·헤더 측정해 정리한 보고서입니다. 인프라·SEO·콘텐츠·UX·파트너 분기·외부 API 노출까지 7개 축으로 분석했습니다.
+    공항 주차대행 예약 플랫폼 <strong>PARKING 24</strong>의 본사이트(<code>parking24.me</code>)를 라이브에서 직접 fetch·HTML 파싱·헤더 측정해 정리한 보고서입니다. 인프라·SEO·콘텐츠·UX·파트너 분기·외부 API 노출·<strong>/admin 영역</strong>까지 8개 축으로 분석했습니다.
   </div>
 
   <div class="toc">
@@ -265,7 +265,8 @@
       <li><a href="#s7">파트너 서브도메인 usimsa.parking24.me</a></li>
       <li><a href="#s8">Partner API 공개 가이드 /docs/partner-api</a></li>
       <li><a href="#s9">액션 후보 (정리)</a></li>
-      <li><a href="#s10">총평</a></li>
+      <li><a href="#s10">/admin 관리자 영역</a></li>
+      <li><a href="#s11">총평</a></li>
     </ol>
   </div>
 
@@ -488,7 +489,96 @@ PARKING 24는 통신판매 중개자로서 ...
   </section>
 
   <section id="s10">
-    <h2><span class="num">10</span>총평</h2>
+    <h2><span class="num">10</span><code>/admin</code> 관리자 영역</h2>
+    <p>robots.txt에서 Disallow되어 본 사이트 SEO 분석에서는 제외했지만, 별도로 점검했습니다. <strong>gating·인증·역할 ACL 모두 정상</strong> 작동.</p>
+
+    <h3>접근 통제 <span class="badge badge-ok">정상</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>URL</th><th>응답</th><th>동작</th></tr></thead>
+        <tbody>
+          <tr><td><code>/admin</code></td><td>307</td><td>→ <code>/admin/login</code> 리다이렉트</td></tr>
+          <tr><td><code>/admin/dashboard</code></td><td>307</td><td>→ <code>/admin/login</code> 리다이렉트</td></tr>
+          <tr><td><code>/admin/login</code></td><td>200</td><td>19.4 KB / TTFB 231 ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><code>&lt;meta name="robots" content="noindex, nofollow"&gt;</code> 적용 ✅ (admin layout metadata)</li>
+      <li>cache-control: <code>private, no-cache, no-store</code> ✅</li>
+      <li>보안 헤더(CSP/HSTS/x-frame/nosniff) 본 사이트와 동일 ✅</li>
+    </ul>
+
+    <h3>로그인 옵션 (2종)</h3>
+    <div class="quote">P24 Admin
+관리자 계정으로 로그인하세요.
+
+[ 🐙 GitHub로 로그인 ]
+─── 또는 ───
+이메일    [           ]
+비밀번호  [           ]
+[ 이메일로 로그인 ]</div>
+    <ul>
+      <li><strong>GitHub OAuth</strong> — Supabase Auth provider 사용</li>
+      <li><strong>이메일/비밀번호</strong> — Supabase Auth + admin_users 테이블 lookup</li>
+    </ul>
+
+    <h3>관리자 역할 (4종) <span class="badge badge-info">middleware ACL</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>역할</th><th>접근 범위</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUPER_ADMIN</code></td><td>전체 15개 admin 경로 + 파트너 포털 impersonation</td></tr>
+          <tr><td><code>LOT_ADMIN</code></td><td>airports / plans / prices / exclusive-lots / quotas / reservations / customers</td></tr>
+          <tr><td><code>PARTNER_ADMIN</code></td><td>exclusive-lots / quotas / reservations / customers / partners (자기 파트너만)</td></tr>
+          <tr><td><code>PARTNER_SUPER_ADMIN</code></td><td><strong>/admin 전체 차단</strong> → /partner로 안내 (API gateway 슈퍼관리자)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Admin 라우트 (21개) <span class="badge badge-ok">전부 gating</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>그룹</th><th>경로</th></tr></thead>
+        <tbody>
+          <tr><td>운영</td><td>airports · plans · prices · exclusive-lots · quotas</td></tr>
+          <tr><td>예약</td><td>reservations · customers · settlements</td></tr>
+          <tr><td>콘텐츠</td><td>benefits · banners · seo · <strong>theme</strong>(5섹션+갤러리) · <strong>page-content</strong>(Layer 4 IA)</td></tr>
+          <tr><td>파트너</td><td>partners (+ 7 서브: pricing/benefits/banners/exclusive-lots/coupons/api-keys/business-info)</td></tr>
+          <tr><td>시스템</td><td>settings · users · <strong>partner-api-errors</strong>(SUPER_ADMIN 전용)</td></tr>
+          <tr><td>인증</td><td>login · unauthorized</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>특수 패턴</h3>
+    <ul>
+      <li><strong>Impersonation</strong>: SUPER_ADMIN이 <code>/admin/partners</code>에서 "포털 보기" 클릭 → <code>x-impersonating-admin-id</code> 헤더로 파트너 포털 진입. 별도 자산 분리.</li>
+      <li><strong>Inline edit token</strong>: admin이 <code>POST /api/admin/page-content/edit-token</code>으로 HMAC-SHA256 5분 토큰 발급 → customer 페이지를 <code>?edit_mode=1&amp;edit_token=...</code>로 iframe 로드 → middleware 검증 → <code>x-edit-mode</code> + <code>x-edit-admin</code> 헤더로 EditableBlock contenteditable 활성화 (Layer 4 IA).</li>
+      <li><strong>postMessage 이벤트</strong>: <code>block:select</code> / <code>block:edit</code> → admin parent에서 <code>PUT /api/admin/page-content</code> → revalidatePageContent → iframe reload.</li>
+    </ul>
+
+    <h3>잔여 점검 포인트</h3>
+    <div class="action-card">
+      <h4>E-1 · 로그인 페이지 title 분리 <span class="badge badge-info">minor</span></h4>
+      <p>현재 <code>&lt;title&gt;PARKING 24 - 공항 주차대행 예약&lt;/title&gt;</code>로 일반 사이트와 동일. "P24 Admin 로그인"으로 분리 권장 (UX/북마크 구분).</p>
+    </div>
+    <div class="action-card">
+      <h4>E-2 · 이메일 로그인 rate-limit 가시화</h4>
+      <p>Supabase Auth 기본 rate-limit은 있지만 admin 영역은 별도 IP/계정 임계치 + 로그 영구화(<code>partner_api_errors</code> 유사 패턴) 검토.</p>
+    </div>
+    <div class="action-card">
+      <h4>E-3 · /admin/unauthorized 페이지 카피</h4>
+      <p>역할 없는 사용자가 도착하는 page — 라이브 확인 못 했음(인증 후 도달). 카피 톤·되돌아가기 CTA 점검 필요.</p>
+    </div>
+    <div class="action-card">
+      <h4>E-4 · Impersonation 감사 로그</h4>
+      <p><code>x-impersonating-admin-id</code> 헤더를 모든 mutation API에서 감사 로그(누가 누구로 무엇을 했는지)로 영구화하는지 확인 필요.</p>
+    </div>
+  </section>
+
+  <section id="s11">
+    <h2><span class="num">11</span>총평</h2>
     <div class="grid-2">
       <div class="callout info">
         <strong>✅ production-grade</strong><br>
