@@ -45,7 +45,7 @@ jobs:
             <key>CLIENT_ID</key><string>000000000000-ci.apps.googleusercontent.com</string>
             <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-ci</string>
             <key>GCM_SENDER_ID</key><string>000000000000</string>
-            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:cicicicicicicici</string>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:aaaaaaaaaaaaaaaa</string>
             <key>PROJECT_ID</key><string>ci-stub-project</string>
             <key>STORAGE_BUCKET</key><string>ci-stub-project.appspot.com</string>
             <key>PLIST_VERSION</key><string>1</string>
@@ -68,26 +68,23 @@ jobs:
       - name: Resolve simulator
         id: sim
         run: |
-          # iOS 26.2 는 "signal kill before bootstrapping" 이슈 (rules/simulator-targets.md).
-          # 26.4 는 안정이지만 runner 미설치 — iOS 18.x 우선, 26.x fallback (26.2 제외).
+          # iOS 26.2 는 "signal abrt before bootstrapping" documented bug
+          # (rules/simulator-targets.md). 26.4 stable 이지만 macos-15 runner 미설치.
+          # → iOS 18.x 만 사용 (26.x 전체 회피, runner 18.5/18.6 보유).
+          # 키 포맷: "com.apple.CoreSimulator.SimRuntime.iOS-18-5" (하이픈).
           xcrun simctl list devices available
           UDID=$(xcrun simctl list devices available -j | jq -r '
             .devices
             | to_entries
-            | map(select((.key | test("iOS|com.apple.CoreSimulator.SimRuntime.iOS"))
-                  and (.key | test("26\\.2") | not)))
-            | sort_by(
-                if (.key | test("18\\.")) then "Z" + .key
-                else "M" + .key
-                end)
-            | reverse
+            | map(select(.key | test("iOS-18-")))
+            | sort_by(.key) | reverse
             | map(.value[]
                 | select(.isAvailable == true
                   and (.name | test("iPhone 1[5-9]|iPhone [2-9][0-9]"))))
             | .[0].udid // empty
           ')
           if [ -z "$UDID" ]; then
-            echo "::error::No suitable iPhone simulator found on runner"
+            echo "::error::No iOS 18.x iPhone simulator on runner (필요: rules/simulator-targets.md)"
             exit 1
           fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
