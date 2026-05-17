@@ -166,13 +166,13 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.3 (빌드 68) — TestFlight 만 (App Store 미제출, Weekly Highlights v2)
+- **Version**: v2.8.3 (빌드 69) — TestFlight 만 (App Store 미제출, Weekly Highlights v2 + nested NavigationStack fix)
 - **App Store**:
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
   - **v2.8.3 미제출** — TestFlight 만 (실기기 무회귀 검증 + AI 의료 감수 25 샘플 후 결정)
-- **TestFlight**: v2.8.3 빌드 68 (`f61fed76-...`, 2026-05-12 — plist 누락 fix 후 재업로드), 빌드 67 (`62cfb14c-...`)
+- **TestFlight**: v2.8.3 빌드 69 (`c040f15f-...`, 2026-05-17 — nested NavigationStack fix, 사용자 "통계 누르면 종료" 회귀 해소 검증 완료), 빌드 68 (`f61fed76-...`, 2026-05-12), 빌드 67 (`62cfb14c-...`)
   - 이전: 빌드 66 (v2.8.2 ML `101f6cb5-...`), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
 - **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
@@ -280,7 +280,7 @@ make dead-code   # 미사용 코드 탐지
 - ✅ P0: 광고 제거 hotfix — v2.8.1 출시 완료 (2026-05-06)
 - ✅ P0: Phase 1 ML 인사이트 — v2.8.2 출시 완료 (2026-05-10)
 - ✅ P0: Weekly Highlights v2 — v2.8.3 TestFlight 67/68 (2026-05-12), PR #5 main merge (2026-05-14)
-- [ ] v2.8.3 실기기 무회귀 검증 + AI 의료 감수 25 샘플 → App Store 제출 결정
+- [ ] v2.8.3 빌드 69 추가 무회귀 검증 (다른 push view 8개 nav 경로) + AI 의료 감수 25 샘플 → App Store 제출 결정
 - ✅ CI Test 단계 인프라 fix — PR #7 머지 (`2c57c1f`, 2026-05-15). stub plist API_KEY 35→39자 + AppDelegate XCTest 가드 + iOS 18.x sim 강제. **부채**: CI에서 처음 실행된 테스트 5건 사전 실패 — 별도 PR 예정 (`-skip-testing`로 임시 우회 중).
 - [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
 - [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
@@ -292,7 +292,8 @@ make dead-code   # 미사용 코드 탐지
 - Admin: SERVICE_ACCOUNT, 사용자관리, 통계, 개인정보처리방침
 
 ### 즉시 처리 필요 (사용자 액션)
-- [ ] TestFlight 빌드 67/68 (v2.8.3 Weekly Highlights) 실기기 무회귀 검증
+- ✅ TestFlight 빌드 69 (nested NavigationStack fix) — 사용자 "통계 누르면 종료" 회귀 해소 검증 완료 (2026-05-17)
+- [ ] TestFlight 빌드 69 (v2.8.3 Weekly Highlights + nav fix) 추가 무회귀 검증 (다른 push view 9개 navigation 경로)
 - [ ] Firebase Console RC `highlight_enabled=true` + `highlight_ticker_pct` 0→5→25→50→100% 단계 활성화
 - [ ] H-3 AI 의료 감수 25 샘플 (Admin batch Cron 결과 기반) → 통과 후 v2.8.3 App Store 제출 결정
 - ✅ CI Test 사전 부채 5건 fix — PR #8 머지 (`c291e33`, 2026-05-15). root cause 4종: timezone(Diary 2건), 단일변수로 두 분기 검증(HighlightTicker), assertionFailure가 throw 전 SIGTRAP(AISummary), 직전 host crash 연쇄(stillbirth). 370/370 PASS, 0 skip. multi-model 리뷰(Gemini+Claude SHIP) + CR-001(testable helper 추출) 적용.

@@ -11,6 +11,7 @@ globs: "**/*.swift"
 - 의학 데이터: 면책 문구 필수
 - 테스트: BabyCareTests.swift 단일 파일에 append
 - UIView는 단일 parent만 가능 — 여러 SwiftUI 컨텍스트에서 동일 UIView 인스턴스 공유 금지. UIViewRepresentable은 per-instance로 생성 (BannerAdManager per-instance 패턴 참조). 빌드 59 회귀 원인.
+- **NavigationLink로 push되는 View는 body root에 NavigationStack 금지** — 중첩 NavigationStack 패턴은 iOS 17/18에서 toolbar items 결합 시 latent crash hotspot. PR #9에서 8개 view 일괄 해소 (StatsView/AIAdviceView/CryAnalysisView/DiaryView/GrowthView/SoundPlayerView/TodoView/DashboardPregnancyView). 사용자 "통계 누르면 종료" 회귀 root cause. 새 View 추가 시 push-only 면 NavigationStack 제거하고 부모(Dashboard/Settings/Health) 의 NavigationStack 사용. Tab root + push dual-use 시 push 측에서 wrap (DashboardView.swift:52 패턴).
 
 ## Swift 6 Strict Concurrency
 
