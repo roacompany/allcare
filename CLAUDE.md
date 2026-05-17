@@ -53,6 +53,9 @@ make status        # 버전/커밋/테스트 상태
 - **Firestore**: 200MB persistent cache, 30개 컬렉션 상수 (FirestoreCollections 24개 + 6 pregnancy), 페이지네이션 (일기 커서/구매 limit/할일 필터). collectionGroup Partner read 규칙 배포 (2026-04-23)
 - **배지 시스템**: Badge/UserStats 모델, BadgeCatalog 8개, FirestoreService+Badge/Stats, BadgeEvaluator 단일 진입점 + Activity/Growth/Routine save path 연동. Phase 2 UI: BadgePresenter + BadgeViewModel (@Observable, arch-test baseline 0) + BadgeSnackbarView + BadgeGalleryView (3-section grid + BadgeTileView + BadgeDetailSheet) + BadgeHomeStrip (Dashboard top) + SettingsView "내 배지" row + Localizable.strings 25 keys — `.dev/specs/badges-ui/PLAN.md` (14 A-items 완료, 5 H-items QA 대기)
 - **분석**: Services/Analysis/ — 6단계 파이프라인
+- **Narrow Protocol 패턴 (11종, ISP)**: 신규 Firestore 컬렉션 추가 시 5단계 필수 — (1) `FirestoreCollections.X` 상수 (2) `FirestoreService+X.swift` 확장 (3) `XFirestoreProviding` narrow protocol + `extension FirestoreService: XFirestoreProviding {}` (4) `BabyCareTests/MockXFirestore.swift` (호출 카운터 + 에러 주입) (5) `firestore.rules` / `firestore.indexes.json` 확인. 완성 11종: Pregnancy / Badge / Cry / AuthMigration / Storage / FCMToken / Catalog / Sound / Analysis / OfflineQueue / Highlight. arch-test Rule 3 baseline=0 강제 (Firestore.firestore() 직접 호출 금지).
+- **VM Helper Protocol**: `ViewModels/Helpers/ViewModelHelpers.swift` — `LoadingStateful` (`withLoading { ... }` defer 누락 invariant 보장) + `OptimisticReplaceable` (`optimisticReplace(in:original:with:save:)` ReferenceWritableKeyPath 기반 자동 rollback). ViewModel 동시 채택 가능. 호출처 8건 적용 (HealthVM/ActivityVM/RoutineVM).
+- **AppLogger**: `Utils/AppLogger.swift` — 단일 subsystem (Bundle.main.bundleIdentifier), 14 카테고리 (admin / analysis / auth / badge / calendar / catalog / firestore / highlight / liveActivity / ml / pregnancy / push / sound / todo). `print()` 금지, non-fatal silent error 는 `logSilent(_:error:logger:)` 경유 (Crashlytics 단일 후크 후보).
 - **임신 모드 v2 (v2.8.0+)**: Hybrid 게이팅 — 컴파일 타임 `FeatureFlags.pregnancyModeEnabled` (Layer 1 guard) + `FeatureFlagService` 단일 gateway로 RemoteConfig `pregnancy_mode_enabled` (Layer 2, fetch 실패 시 fallback=false). StableHash DJB2 deterministic cohort. AppContext 4-state enum (`empty/babyOnly/pregnancyOnly/both`)로 앱 상태 중앙화 — `AppContext.resolve(babies:pregnancy:)` static factory. PregnancyFirestoreProviding narrow protocol + MockPregnancyFirestore (BadgeFirestoreProviding 패턴). outcomeType enum(`ongoing|born|miscarriage|stillbirth|terminated`, raw value 영구 계약), WriteBatch + transitionState 전환 (atomic). `markTransitionPending` 2-step 패턴. EDD `eddHistory` 배열 append-only. `PregnancyViewModel.dataUserId()` 공유 패턴. 임신 데이터 Analytics payload 금지. PregnancyWidgetSyncService→PregnancyWidgetDataStore (lmpDate/dueDate 원본 저장, 위젯 Provider 동적 계산, FeatureFlag=false 시 clearIfFlagDisabled). HealthKit 연동 (opt-in). 파트너 공유 (sharedWith collectionGroup read). baby > pregnancy UI 우선순위: `babies.isEmpty`가 false이면 baby UI 유지 + DashboardPregnancyHomeCard 카드 additive. DashboardPregnancyHomeCard / PregnancyRecoveryModal (transitionState=pending orphan Resume UI) / PregnancyTerminationView (출산/종료 CTA 분리). FieldValue.delete()로 transitionState 필드만 rollback (문서 보존). `activePregnancy != nil` 단독 체크 금지.
 - **탭**: 홈 | 캘린더 | ➕기록 | 건강 | 설정
 
@@ -64,8 +67,9 @@ make status        # 버전/커밋/테스트 상태
 - 색상: `AppColors` enum (Asset Catalog 18개 Dynamic Color)
 - 의학 데이터: 면책 문구 필수
 - AI 가드레일: AIGuardrailService.prohibitedRules 수정 금지
-- 테스트: BabyCareTests.swift 단일 파일에 append
+- 테스트: BabyCareTests.swift 단일 파일에 append (도메인 분리 예외: Pregnancy / Widgets / FeatureFlags / WeeklyHighlights 선례, 단일 파일 4,900+라인 임계 초과 시)
 - 공유 아기 데이터: `babyVM.dataUserId()` 사용 필수 (authVM.currentUserId 직접 사용 금지)
+- 로깅: `print()` 금지 — 모든 진단은 `AppLogger.<category>` 경유 (PII 자동 마스킹). silent error 는 `logSilent` helper.
 
 ## Must NOT Do
 
@@ -79,6 +83,8 @@ make status        # 버전/커밋/테스트 상태
 - EDD 덮어쓰기 금지 (eddHistory append 강제)
 - 출산 전환을 단일 write로 처리 금지 (WriteBatch + transitionState 필수)
 - Pregnancy 위젯 데이터를 기존 WidgetDataStore에 병합 금지 (PregnancyWidgetDataStore 분리)
+- `print()` 직접 호출 금지 — `AppLogger.<category>` 경유 (PII 마스킹, Console.app 필터 활용)
+- `Firestore.firestore()` 직접 호출 금지 (ViewModels/Views/그 외 Services) — `FirestoreService+X.swift` 경유 필수. arch-test Rule 3 자동 차단 (baseline=0).
 
 ## Harness
 
@@ -97,6 +103,42 @@ harness-score: 96% (Grade A) — 2026-04-17
 - PLAN.md 항목 체크 시 위 기호 사용
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
+
+## Recent Session (2026-05-17) — 코드 품질 6 라운드 (PR #10~#15)
+
+### 다각도 코드 작성 수준 점검 (75/100 B)
+- 구조 78 / 가독성 76 / Swift 6 동시성 82 / 테스트 64 (3-agent 병렬)
+- arch-test 안전 신호 vs 실제 위반 76건 괴리 식별 — Rule 3 도입 동기
+
+### Round 1 (#10 `936747f`): arch-test Rule 3 + AppConstants + 3 narrow protocol
+- `scripts/arch_test.sh` per-rule baseline 리팩토링 + Rule 3 신설 (Firestore.firestore() 차단)
+- `AppConstants` 5 도메인 상수 (secondsPerHour/Day, kickSessionMaxSeconds, feedingTimerMaxSeconds, highlightCacheTTLSeconds, feverThresholdCelsius) + 13파일 sweep
+- Cry / AuthMigration / Storage narrow protocol 3종 — R3 10→5
+
+### Round 2 (#11 `e2f4c05`): R3 baseline 0 달성
+- FCMToken / Catalog / Sound / Analysis / OfflineQueue 5종 narrow protocol
+- OfflineQueue PendingOperation Sendable 표시 ([String:Any] 누수 차단)
+
+### Round 3 (#12 `1608c42`): BabyCareTests Pregnancy 분리
+- 8 클래스 → `BabyCareTests+Pregnancy.swift` (-768 라인)
+
+### Round 4 (#13 `a00296c`): VM helper protocol
+- `LoadingStateful` + `OptimisticReplaceable` (`ViewModels/Helpers/ViewModelHelpers.swift`)
+- 8 호출처 sweep (HealthVM 6 / ActivityVM 1 / RoutineVM 3)
+
+### Round 5 (#14 `36be921`): AppLogger 인프라
+- 14 카테고리 단일 subsystem + `logSilent` helper
+- `print()` 7건 → AppLogger / Critical silent error 2건 (ActivityVM:206 ML, PregnancyVM:82-86) 진단 로깅
+
+### Round 6 (#15 `1b44d1f`): BabyCareTests 추가 분리
+- Widgets / FeatureFlags / WeeklyHighlights 3 도메인 (-1,615 라인)
+- 누적: 4,901 → 2,518 라인 (-48.6%), 21 → 6 클래스
+
+### 누적 지표
+- arch-test R3 violations: 10 → **0** (영구 차단)
+- narrow protocol: 3 → **11**, Mock: 4 → **12**
+- `print()` 잔존: 7 → **0**
+- 모든 PR squash merge, CI Verify 통과
 
 ## Recent Session (2026-05-02) — App Store v2.8.0 심사 제출
 
@@ -274,6 +316,12 @@ make dead-code   # 미사용 코드 탐지
 
 ### 리팩토링 잔여
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
+- [ ] `try? await` silent 흘리기 잔여 sweep — `logSilent` 로 교체 (Round 5 에서 critical 2건만 처리, 잔여 ~38건)
+- [ ] `BadgeEvaluator` 등 5 Service 의 self-declared `Logger(...)` → `AppLogger` 통일 (subsystem 하드코딩 제거)
+- [ ] VM helper protocol 확장 — in-place mutation / append-or-replace 패턴 (RoutineVM toggleItem / HealthVM saveHospitalVisit)
+- [ ] `arch_test.sh` BASELINE 자동 갱신 (현재 수동, 잊으면 silent positive)
+- [ ] InsightService 525라인 v1+v3 공존 정리 (Provider 추가 분할)
+- [ ] GitHub Actions `actions/checkout@v4` → v5 (Node.js 24, deadline 2026-09-16)
 
 ### 로드맵
 - ✅ P0: 임신 모드 v2 — v2.8.0 App Store 출시 완료 (2026-05-02 승인)

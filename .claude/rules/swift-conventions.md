@@ -23,3 +23,36 @@ globs: "**/*.swift"
   ```
 - **@MainActor @Observable class의 상수는 `nonisolated static let`** — test context(non-MainActor)에서 MainActor 호핑 없이 접근 가능. 예: `nonisolated static let threshold: TimeInterval = 60`.
 - **Switch exhaustive 강제**: AppContext 등 4-state enum switch에서 `default:` case 금지. 새 case 추가 시 컴파일러가 모든 call-site 알림 (빌드 58 silent skip 회귀 방지 패턴).
+- **`[String: Any]` protocol 시그니처 금지**: Swift 6 Sendable 위반. Codable + Sendable struct 를 교환 통화로 사용, dict 직렬화는 구현체 내부 격리.
+- **SwiftLint `statement_position`**: `do { try x() } catch { ... }` 한 줄 패턴 금지 — multi-line `do { ... } catch { ... }` 필수.
+
+## Logging (AppLogger)
+
+- **`print()` 사용 금지** — 모든 진단은 `AppLogger.<category>` 경유 (OSLog 기반 PII 마스킹, Console.app/Instruments 필터).
+- **14 카테고리** (`Utils/AppLogger.swift`): admin / analysis / auth / badge / calendar / catalog / firestore / highlight / liveActivity / ml / pregnancy / push / sound / todo. 신규 카테고리는 알파벳 정렬 유지.
+- **non-fatal silent error**: `logSilent(_ message: String, error: Error? = nil, logger: Logger)` 사용. `try? await` / empty catch 의도적 흘리기 진단용.
+  ```swift
+  // ❌ print("fetch failed: \(error)")
+  // ❌ try? await op()  // 어디서 실패했는지 알 수 없음
+  // ✅
+  do { try await op() }
+  catch { logSilent("op 실패", error: error, logger: AppLogger.ml) }
+  ```
+- **사용자에게 errorMessage 노출하는 분기에 `logSilent` 중복 사용 금지** (이중 표시 방지).
+- 향후 Crashlytics non-fatal 연동 시 `logSilent` 단일 후크 포인트.
+
+## ViewModel Helper Protocol
+
+`ViewModels/Helpers/ViewModelHelpers.swift` 의 2 protocol 활용:
+
+- **`LoadingStateful`** — `isLoading: Bool` 가진 VM 채택. `await withLoading { ... }` 로 defer 누락 invariant 보장 (early-return / throw / cancellation 모두 안전). 직접 토글 금지.
+- **`OptimisticReplaceable`** — 배열 1개 item 교체 + Firestore save + 실패 시 rollback 패턴. ReferenceWritableKeyPath 로 배열 binding:
+  ```swift
+  if let error = await optimisticReplace(
+      in: \.items, original: old, with: updated,
+      save: { try await self.firestoreService.saveX(updated) }
+  ) {
+      errorMessage = "...: \(error.localizedDescription)"
+  }
+  ```
+- 두 protocol 직교 — 동시 채택 가능. 단일 item 교체만 지원 (in-place mutation / append-or-replace 패턴은 별도 helper 후속 예정).
