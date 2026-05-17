@@ -131,10 +131,10 @@ enum Preprocessor {
             previousAggregate = agg
         }
 
-        // 연속 결측 3일 초과 MNAR 경고 (콘솔 로그)
+        // 연속 결측 3일 초과 MNAR 경고
         let missingRuns = aggregates.filter { $0.isMissingData }.count
         if missingRuns > 3 {
-            print("[Analysis] MNAR 경고: \(missingRuns)일 결측 — 분석 신뢰도 저하")
+            AppLogger.analysis.warning("MNAR 경고: \(missingRuns, privacy: .public)일 결측 — 분석 신뢰도 저하")
         }
 
         return aggregates

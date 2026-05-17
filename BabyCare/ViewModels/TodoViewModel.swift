@@ -187,7 +187,7 @@ final class TodoViewModel {
                     try await firestoreService.saveTodo(newTodo, userId: userId)
                     todos.append(newTodo)
                 } catch {
-                    print("[TodoViewModel] 반복 할일 다음 occurrence 생성 실패: \(error.localizedDescription)")
+                    logSilent("반복 할일 다음 occurrence 생성 실패", error: error, logger: AppLogger.todo)
                 }
             }
         } catch {

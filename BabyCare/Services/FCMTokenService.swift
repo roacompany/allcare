@@ -21,7 +21,7 @@ final class FCMTokenService {
         do {
             try await firestore.saveFCMToken(userId: userId, deviceId: deviceId, token: token)
         } catch {
-            print("[FCM] 토큰 저장 실패: \(error.localizedDescription)")
+            logSilent("FCM 토큰 저장 실패", error: error, logger: AppLogger.push)
         }
     }
 
@@ -33,7 +33,7 @@ final class FCMTokenService {
         do {
             try await firestore.deleteFCMToken(userId: userId, deviceId: deviceId)
         } catch {
-            print("[FCM] 토큰 삭제 실패: \(error.localizedDescription)")
+            logSilent("FCM 토큰 삭제 실패", error: error, logger: AppLogger.push)
         }
         cachedToken = nil
     }

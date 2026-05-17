@@ -48,14 +48,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency Messag
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        print("[APNs] 등록 실패: \(error.localizedDescription)")
+        logSilent("APNs 등록 실패", error: error, logger: AppLogger.push)
     }
 
     // MARK: - MessagingDelegate
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
-        print("[FCM] 토큰 수신: \(token.prefix(20))...")
+        AppLogger.push.info("FCM 토큰 수신: \(token.prefix(20), privacy: .public)...")
 
         Task { @MainActor in
             await FCMTokenService.shared.saveToken(token)

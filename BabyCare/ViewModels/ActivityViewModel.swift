@@ -203,7 +203,12 @@ final class ActivityViewModel: OptimisticReplaceable {
             )
             let weekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
             let snapshot = WeeklyMetricSnapshot(weekKey: weekKey, weekStartDate: weekAgo, metrics: metrics)
-            try? await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
+            do {
+                try await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
+            } catch {
+                // Phase 2 ML 학습 입력 손실 — non-fatal, 다음 주차 누적으로 회복 가능하나 진단 필수
+                logSilent("WeeklyMetricSnapshot 저장 실패 (weekKey=\(weekKey))", error: error, logger: AppLogger.ml)
+            }
 
             // Analytics — Phase 2 ML 학습용 telemetry
             for (idx, insight) in weeklyInsights.enumerated() {
