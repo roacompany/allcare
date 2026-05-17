@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor @Observable
-final class HealthViewModel {
+final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
     var vaccinations: [Vaccination] = []
     var milestones: [Milestone] = []
     var hospitalVisits: [HospitalVisit] = []
@@ -88,22 +88,21 @@ final class HealthViewModel {
 
     func loadAll(userId: String, babyId: String, babyName: String = "아기") async {
         currentBabyName = babyName
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let (vax, ms, hv) = try await RetryHelper.withRetry {
-                async let vaxResult = self.firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
-                async let msResult = self.firestoreService.fetchMilestones(userId: userId, babyId: babyId)
-                async let hvResult = self.firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
-                return try await (vaxResult, msResult, hvResult)
+        await withLoading {
+            do {
+                let (vax, ms, hv) = try await RetryHelper.withRetry {
+                    async let vaxResult = self.firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
+                    async let msResult = self.firestoreService.fetchMilestones(userId: userId, babyId: babyId)
+                    async let hvResult = self.firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
+                    return try await (vaxResult, msResult, hvResult)
+                }
+                vaccinations = vax
+                milestones = ms
+                hospitalVisits = hv
+                scheduleVaccinationReminders(babyName: babyName)
+            } catch {
+                errorMessage = "건강 정보를 불러오지 못했습니다: \(error.localizedDescription)"
             }
-            vaccinations = vax
-            milestones = ms
-            hospitalVisits = hv
-            scheduleVaccinationReminders(babyName: babyName)
-        } catch {
-            errorMessage = "건강 정보를 불러오지 못했습니다: \(error.localizedDescription)"
         }
     }
 
@@ -130,18 +129,10 @@ final class HealthViewModel {
         updated.isCompleted = true
         updated.administeredDate = administeredDate
 
-        // Optimistic update
-        if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
-            vaccinations[idx] = updated
-        }
-
-        do {
-            try await firestoreService.saveVaccination(updated, userId: userId)
-        } catch {
-            // Rollback
-            if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
-                vaccinations[idx] = vaccination
-            }
+        if let error = await optimisticReplace(
+            in: \.vaccinations, original: vaccination, with: updated,
+            save: { try await self.firestoreService.saveVaccination(updated, userId: userId) }
+        ) {
             errorMessage = "접종 기록 저장에 실패했습니다: \(error.localizedDescription)"
         }
     }
@@ -151,18 +142,10 @@ final class HealthViewModel {
         updated.isCompleted = false
         updated.administeredDate = nil
 
-        // Optimistic update
-        if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
-            vaccinations[idx] = updated
-        }
-
-        do {
-            try await firestoreService.saveVaccination(updated, userId: userId)
-        } catch {
-            // Rollback
-            if let idx = vaccinations.firstIndex(where: { $0.id == vaccination.id }) {
-                vaccinations[idx] = vaccination
-            }
+        if let error = await optimisticReplace(
+            in: \.vaccinations, original: vaccination, with: updated,
+            save: { try await self.firestoreService.saveVaccination(updated, userId: userId) }
+        ) {
             errorMessage = "접종 취소에 실패했습니다: \(error.localizedDescription)"
         }
     }
@@ -174,18 +157,10 @@ final class HealthViewModel {
         updated.isAchieved = !milestone.isAchieved
         updated.achievedDate = updated.isAchieved ? (achievedDate ?? Date()) : nil
 
-        // Optimistic update
-        if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
-            milestones[idx] = updated
-        }
-
-        do {
-            try await firestoreService.saveMilestone(updated, userId: userId)
-        } catch {
-            // Rollback
-            if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
-                milestones[idx] = milestone
-            }
+        if let error = await optimisticReplace(
+            in: \.milestones, original: milestone, with: updated,
+            save: { try await self.firestoreService.saveMilestone(updated, userId: userId) }
+        ) {
             errorMessage = "이정표 저장에 실패했습니다: \(error.localizedDescription)"
         }
     }
@@ -194,16 +169,10 @@ final class HealthViewModel {
         var updated = milestone
         updated.achievedDate = achievedDate
 
-        if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
-            milestones[idx] = updated
-        }
-
-        do {
-            try await firestoreService.saveMilestone(updated, userId: userId)
-        } catch {
-            if let idx = milestones.firstIndex(where: { $0.id == milestone.id }) {
-                milestones[idx] = milestone
-            }
+        if let error = await optimisticReplace(
+            in: \.milestones, original: milestone, with: updated,
+            save: { try await self.firestoreService.saveMilestone(updated, userId: userId) }
+        ) {
             errorMessage = "이정표 저장에 실패했습니다: \(error.localizedDescription)"
         }
     }
@@ -343,12 +312,12 @@ final class HealthViewModel {
     }
 
     func loadAllergyRecords(userId: String, babyId: String) async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            allergyRecords = try await firestoreService.fetchAllergyRecords(userId: userId, babyId: babyId)
-        } catch {
-            errorMessage = "알레르기 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+        await withLoading {
+            do {
+                allergyRecords = try await firestoreService.fetchAllergyRecords(userId: userId, babyId: babyId)
+            } catch {
+                errorMessage = "알레르기 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+            }
         }
     }
 

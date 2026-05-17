@@ -1,7 +1,7 @@
 import Foundation
 
 @MainActor @Observable
-final class ActivityViewModel {
+final class ActivityViewModel: OptimisticReplaceable {
     var todayActivities: [Activity] = []
     var isLoading = false
     var errorMessage: String?
