@@ -25,7 +25,7 @@ final class DiaryViewModel {
     var existingPhotoURLs: [String] = []
 
     private let firestoreService = FirestoreService.shared
-    private let storageService = StorageService.shared
+    private let storageService: StorageServiceProviding = StorageService.shared
 
     // MARK: - Validation
 

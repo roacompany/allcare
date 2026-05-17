@@ -1,7 +1,6 @@
 import Foundation
 import FirebaseAuth
 import FirebaseCore
-import FirebaseFirestore
 import AuthenticationServices
 
 @MainActor @Observable
@@ -16,9 +15,11 @@ final class AuthViewModel {
     var currentUserId: String?
 
     private let authService = AuthService.shared
+    private let migration: AuthMigrationProviding
     nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
-    init() {
+    init(migration: AuthMigrationProviding = FirestoreService.shared) {
+        self.migration = migration
         // UI 테스트 모드: Firebase 없이 인증 완료 상태로 시작
         if CommandLine.arguments.contains("UI_TESTING") {
             isAuthenticated = true
@@ -145,89 +146,14 @@ final class AuthViewModel {
         isLoading = false
     }
 
+    /// 계정 + 모든 서브컬렉션 데이터 삭제. 실제 batch 로직은 FirestoreService+User 에 위치.
     private func deleteUserData(userId: String) async throws {
-        let db = FirebaseFirestore.Firestore.firestore()
-        let userDoc = db.collection(FirestoreCollections.users).document(userId)
-        // "familySharing"(구형) + "sharedAccess"(신형) 모두 삭제
-        let subcollections = [
-            "premiumStatus", FirestoreCollections.babies, FirestoreCollections.activities,
-            FirestoreCollections.hospitalVisits, FirestoreCollections.vaccinations,
-            FirestoreCollections.milestones, "diaryEntries", FirestoreCollections.todos,
-            FirestoreCollections.routines, FirestoreCollections.products,
-            "purchaseRecords", FirestoreCollections.sharedAccess, FirestoreCollections.familySharing
-        ]
-        // 배치 쓰기로 원자적 삭제 (최대 500개)
-        var batch = db.batch()
-        var count = 0
-        for name in subcollections {
-            let snapshot = try await userDoc.collection(name).getDocuments()
-            for doc in snapshot.documents {
-                batch.deleteDocument(doc.reference)
-                count += 1
-                if count >= 400 {
-                    try await batch.commit()
-                    batch = db.batch()
-                    count = 0
-                }
-            }
-        }
-
-        // invites 컬렉션에서 내가 만든 초대 삭제
-        let invites = try await db.collection(FirestoreCollections.invites)
-            .whereField("ownerUserId", isEqualTo: userId)
-            .getDocuments()
-        for doc in invites.documents {
-            batch.deleteDocument(doc.reference)
-            count += 1
-            if count >= 400 { try await batch.commit(); batch = db.batch(); count = 0 }
-        }
-
-        batch.deleteDocument(userDoc)
-        try await batch.commit()
+        try await migration.deleteAllUserData(userId: userId)
     }
 
-    /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션
+    /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션. 실제 batch 로직은 FirestoreService+User 에 위치.
     func migrateFamilySharingIfNeeded(userId: String) async {
-        let db = FirebaseFirestore.Firestore.firestore()
-        let userDoc = db.collection(FirestoreCollections.users).document(userId)
-        let legacyRef = userDoc.collection(FirestoreCollections.familySharing)
-        let newRef = userDoc.collection(FirestoreCollections.sharedAccess)
-
-        do {
-            let snapshot = try await legacyRef.getDocuments()
-            guard !snapshot.documents.isEmpty else { return }
-
-            // 신형 문서 존재 여부를 병렬로 일괄 확인
-            // String 값만 캡처해 Swift 6 @MainActor Sendable 요건 충족
-            // Firestore.firestore() 싱글톤을 클로저 내부에서 직접 호출 (local 캡처 회피)
-            let docIds = snapshot.documents.map { $0.documentID }
-            let newRefPath = newRef.path   // String — Sendable
-            let existingMap = await withTaskGroup(of: (String, Bool).self) { group in
-                for docId in docIds {
-                    group.addTask {
-                        let ref = Firestore.firestore().collection(newRefPath).document(docId)
-                        let snap = try? await ref.getDocument()
-                        return (docId, snap?.exists ?? false)
-                    }
-                }
-                var map: [String: Bool] = [:]
-                for await (id, exists) in group { map[id] = exists }
-                return map
-            }
-
-            let batch = db.batch()
-            for doc in snapshot.documents {
-                let newDocRef = newRef.document(doc.documentID)
-                // 신형 문서가 이미 존재하면 setData 스킵 (deleteDocument는 항상 수행)
-                if !(existingMap[doc.documentID] ?? false) {
-                    batch.setData(doc.data(), forDocument: newDocRef)
-                }
-                batch.deleteDocument(doc.reference)
-            }
-            try await batch.commit()
-        } catch {
-            // 실패 시 아무것도 안 바뀜 (원자성 보장) — 다음 로그인에 재시도
-        }
+        await migration.migrateFamilySharingIfNeeded(userId: userId)
     }
 
     func resetPassword() async {

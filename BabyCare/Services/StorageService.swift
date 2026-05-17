@@ -2,6 +2,15 @@ import Foundation
 import FirebaseStorage
 import UIKit
 
+/// BabyViewModel / DiaryViewModel 이 의존하는 사진 업로드 narrow protocol (ISP).
+/// Mock 으로 호출 검증 가능 — 실제 압축/업로드는 통합 테스트에서 검증.
+protocol StorageServiceProviding: Sendable {
+    func uploadBabyPhoto(_ image: UIImage, userId: String, babyId: String) async throws -> String
+    func uploadDiaryPhoto(_ image: UIImage, userId: String, babyId: String, diaryId: String, index: Int) async throws -> String
+}
+
+extension StorageService: StorageServiceProviding {}
+
 final class StorageService: Sendable {
     static let shared = StorageService()
     nonisolated(unsafe) private let storage = Storage.storage()
