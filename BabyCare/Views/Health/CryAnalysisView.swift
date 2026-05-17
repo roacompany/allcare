@@ -24,7 +24,6 @@ struct CryAnalysisView: View {
     }
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     // 1. 면책 배너 (항상 표시)
@@ -75,7 +74,6 @@ struct CryAnalysisView: View {
                     showOnboardingSheet = false
                 }
             }
-        }
     }
 
     // MARK: - Recording Entry Point

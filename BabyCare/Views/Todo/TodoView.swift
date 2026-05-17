@@ -5,7 +5,6 @@ struct TodoView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
-        NavigationStack {
             List {
                 if !todoVM.overdueTodos.isEmpty {
                     Section("지연됨") {
@@ -122,7 +121,6 @@ struct TodoView: View {
                 guard let userId = authVM.currentUserId else { return }
                 await todoVM.loadTodos(userId: userId)
             }
-        }
     }
 }
 

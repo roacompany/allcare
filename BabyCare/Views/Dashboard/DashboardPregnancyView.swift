@@ -46,7 +46,6 @@ struct DashboardPregnancyView: View {
     }
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     disclaimerBanner
@@ -90,7 +89,6 @@ struct DashboardPregnancyView: View {
                     PregnancyTransitionSheet(pregnancy: pregnancy)
                 }
             }
-        }
     }
 
     // MARK: - Birth CTA Banner

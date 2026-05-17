@@ -49,7 +49,7 @@ struct DashboardView: View {
         case .babyOnly:
             babyDashboard
         case .pregnancyOnly:
-            DashboardPregnancyView()
+            NavigationStack { DashboardPregnancyView() }
         case .both:
             babyDashboard
         }

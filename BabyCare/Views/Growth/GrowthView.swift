@@ -23,7 +23,6 @@ struct GrowthView: View {
     var isLoading: Bool { growthVM.isLoading }
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     Text("이 성장 기록은 참고용이며 의학적 진단을 대체하지 않습니다.")
@@ -158,7 +157,6 @@ struct GrowthView: View {
             } message: {
                 Text(saveError ?? "")
             }
-        }
     }
 
     // MARK: - Data
