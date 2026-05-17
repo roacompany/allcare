@@ -66,9 +66,10 @@ done < <(find "$PROJECT_DIR/BabyCare" -name '*.swift' 2>/dev/null)
 # 베이스라인 (점진적 감축 — 새 위반만 차단)
 BASELINE_R1=0
 BASELINE_R2=0
-# Rule 3 (Firestore.firestore() 직접): 도입 시점 10건 — CryAnalysisViewModel 2 / AuthViewModel 3 / CatalogService 1 / OfflineQueue 1 / SoundLibraryService 1 / AnalysisEngine 1 / FCMTokenService 1
-# 목표: CryFirestoreProviding 적용 후 8건, AuthService 추상화 후 5건, 나머지는 점진적
-BASELINE_R3=10
+# Rule 3 (Firestore.firestore() 직접): 현재 8건 — AuthViewModel 3 / CatalogService 1 / OfflineQueue 1 / SoundLibraryService 1 / AnalysisEngine 1 / FCMTokenService 1
+# 이력: 10 → 8 (CryFirestoreProviding 적용, 2026-05-17)
+# 목표: AuthService 추상화 후 5건, 나머지 Service 도 점진적으로 narrow protocol 패턴 이관
+BASELINE_R3=8
 
 TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS))
 TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3))

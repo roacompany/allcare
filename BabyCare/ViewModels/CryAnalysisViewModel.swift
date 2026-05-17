@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import FirebaseFirestore
 
 // MARK: - CryAnalysisViewModel
 // 울음 분석 화면의 상태 머신. 마이크 권한 → 녹음 → 분석 → 결과 흐름을 관리.
@@ -43,9 +42,14 @@ final class CryAnalysisViewModel {
     // MARK: - Dependencies
 
     private let service: CryAnalysisServiceProviding
+    private let firestore: CryFirestoreProviding
 
-    init(service: CryAnalysisServiceProviding = CryAnalysisService()) {
+    init(
+        service: CryAnalysisServiceProviding = CryAnalysisService(),
+        firestore: CryFirestoreProviding = FirestoreService.shared
+    ) {
         self.service = service
+        self.firestore = firestore
     }
 
     // MARK: - Recording Flow
@@ -129,31 +133,12 @@ final class CryAnalysisViewModel {
     /// CryRecord를 Firestore에 저장.
     /// dataUserId는 View에서 babyVM.dataUserId(currentUserId:) 를 통해 주입.
     func save(babyId: String, dataUserId: String, record: CryRecord) async throws {
-        let db = Firestore.firestore()
-        let collectionRef = db
-            .collection(FirestoreCollections.users)
-            .document(dataUserId)
-            .collection(FirestoreCollections.babies)
-            .document(babyId)
-            .collection(FirestoreCollections.cryRecords)
-
-        try collectionRef.document(record.id).setData(from: record)
+        try await firestore.saveCryRecord(record, userId: dataUserId, babyId: babyId)
     }
 
     // MARK: - History
 
     func loadHistory(babyId: String, dataUserId: String) async throws {
-        let db = Firestore.firestore()
-        let snapshot = try await db
-            .collection(FirestoreCollections.users)
-            .document(dataUserId)
-            .collection(FirestoreCollections.babies)
-            .document(babyId)
-            .collection(FirestoreCollections.cryRecords)
-            .order(by: "recordedAt", descending: true)
-            .limit(to: 20)
-            .getDocuments()
-
-        history = try snapshot.documents.compactMap { try $0.data(as: CryRecord.self) }
+        history = try await firestore.fetchRecentCryRecords(userId: dataUserId, babyId: babyId, limit: 20)
     }
 }
