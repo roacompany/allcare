@@ -1,25 +1,30 @@
 #!/bin/bash
 # Harness Engineering: S3(아키텍처 경계 강제)
-# Views must not import Services directly, Models must not import Views
+# - Rule 1: Views → Services 직접 참조 금지 (allowlist 기반)
+# - Rule 2: Models → Views 참조 금지
+# - Rule 3: Firestore.firestore() 직접 호출은 FirestoreService(+extensions)에서만
+#   → narrow protocol(BadgeFirestoreProviding 등) 패턴으로 mock 가능하도록 강제
 # Usage: bash scripts/arch_test.sh
 
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VIOLATIONS=0
+
+RULE1_VIOLATIONS=0
+RULE2_VIOLATIONS=0
+RULE3_VIOLATIONS=0
 
 echo "▸ Checking architecture boundaries..."
 
 # Rule 1: Views/ must not directly reference Service classes (except via ViewModel)
 while IFS= read -r file; do
-    # FirestoreService, AuthService 등 직접 참조 탐지
     MATCHES=$(grep -n 'FirestoreService\|AuthService\|StorageService\|NotificationService\|CatalogService\|SoundLibraryService\|ExportService\|PDFReportService\|HospitalReportService' "$file" 2>/dev/null | grep -v '//.*Service' | grep -v 'ViewModel' || true)
     if [ -n "$MATCHES" ]; then
         while IFS= read -r match; do
             LINE=$(echo "$match" | cut -d: -f1)
             BASENAME=$(basename "$file")
-            echo "  ❌ $BASENAME:$LINE: Views should use ViewModel, not Service directly"
-            ((VIOLATIONS++)) || true
+            echo "  ❌ [R1] $BASENAME:$LINE: Views should use ViewModel, not Service directly"
+            ((RULE1_VIOLATIONS++)) || true
         done <<< "$MATCHES"
     fi
 done < <(find "$PROJECT_DIR/BabyCare/Views" -name '*.swift' 2>/dev/null)
@@ -31,23 +36,68 @@ while IFS= read -r file; do
         while IFS= read -r match; do
             LINE=$(echo "$match" | cut -d: -f1)
             BASENAME=$(basename "$file")
-            echo "  ❌ $BASENAME:$LINE: Models should not reference Views"
-            ((VIOLATIONS++)) || true
+            echo "  ❌ [R2] $BASENAME:$LINE: Models should not reference Views"
+            ((RULE2_VIOLATIONS++)) || true
         done <<< "$MATCHES"
     fi
 done < <(find "$PROJECT_DIR/BabyCare/Models" -name '*.swift' 2>/dev/null)
 
-# 기존 위반 기준선: 17건 (2026-04-14)
-# 새 위반이 늘어나면 실패, 줄어들면 성공
-BASELINE=0
+# Rule 3: Firestore.firestore() 직접 호출은 FirestoreService(+extensions) 에서만
+# 허용: BabyCare/Services/FirestoreService*.swift, BabyCare/App/BabyCareApp.swift (앱 초기화 settings)
+# 차단: ViewModels / 그 외 Services / Views 등에서의 직접 호출
+#   → narrow protocol(BadgeFirestoreProviding 등) 패턴으로 강제
+while IFS= read -r file; do
+    REL_PATH="${file#$PROJECT_DIR/}"
+    case "$REL_PATH" in
+        BabyCare/Services/FirestoreService*.swift) continue ;;
+        BabyCare/App/BabyCareApp.swift) continue ;;
+    esac
+    MATCHES=$(grep -n 'Firestore\.firestore()' "$file" 2>/dev/null | grep -Ev ':[[:space:]]*(//|\*)' || true)
+    if [ -n "$MATCHES" ]; then
+        while IFS= read -r match; do
+            LINE=$(echo "$match" | cut -d: -f1)
+            BASENAME=$(basename "$file")
+            echo "  ❌ [R3] $BASENAME:$LINE: Firestore.firestore() 직접 호출 — narrow protocol(*FirestoreProviding) 패턴 사용"
+            ((RULE3_VIOLATIONS++)) || true
+        done <<< "$MATCHES"
+    fi
+done < <(find "$PROJECT_DIR/BabyCare" -name '*.swift' 2>/dev/null)
 
-if [ "$VIOLATIONS" -gt "$BASELINE" ]; then
-    echo "❌ Architecture test FAILED: $VIOLATIONS violation(s) (baseline: $BASELINE)"
-    echo "   새 위반이 추가됨. 기존 위반 수를 넘지 않도록 수정하세요."
+# 베이스라인 (점진적 감축 — 새 위반만 차단)
+BASELINE_R1=0
+BASELINE_R2=0
+# Rule 3 (Firestore.firestore() 직접): 도입 시점 10건 — CryAnalysisViewModel 2 / AuthViewModel 3 / CatalogService 1 / OfflineQueue 1 / SoundLibraryService 1 / AnalysisEngine 1 / FCMTokenService 1
+# 목표: CryFirestoreProviding 적용 후 8건, AuthService 추상화 후 5건, 나머지는 점진적
+BASELINE_R3=10
+
+TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS))
+TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3))
+
+FAIL=0
+if [ "$RULE1_VIOLATIONS" -gt "$BASELINE_R1" ]; then
+    echo "❌ Rule 1 (Views→Services) FAIL: $RULE1_VIOLATIONS > baseline $BASELINE_R1"
+    FAIL=1
+fi
+if [ "$RULE2_VIOLATIONS" -gt "$BASELINE_R2" ]; then
+    echo "❌ Rule 2 (Models→Views) FAIL: $RULE2_VIOLATIONS > baseline $BASELINE_R2"
+    FAIL=1
+fi
+if [ "$RULE3_VIOLATIONS" -gt "$BASELINE_R3" ]; then
+    echo "❌ Rule 3 (Firestore.firestore() 직접) FAIL: $RULE3_VIOLATIONS > baseline $BASELINE_R3"
+    echo "   새 위반 추가됨. narrow protocol 패턴(BadgeFirestoreProviding 등)을 사용하세요."
+    FAIL=1
+fi
+
+if [ "$FAIL" -eq 1 ]; then
     exit 1
-elif [ "$VIOLATIONS" -gt 0 ]; then
-    echo "⚠️  Architecture: $VIOLATIONS existing violation(s) (baseline: $BASELINE)"
-    echo "   기존 위반은 점진적으로 해결. 새 위반 추가 금지."
+fi
+
+if [ "$RULE3_VIOLATIONS" -lt "$BASELINE_R3" ]; then
+    echo "🎉 Rule 3 위반 감소: $RULE3_VIOLATIONS < baseline $BASELINE_R3 — scripts/arch_test.sh BASELINE_R3=$RULE3_VIOLATIONS 으로 갱신하세요"
+fi
+
+if [ "$TOTAL_VIOLATIONS" -eq 0 ]; then
+    echo "✅ Architecture test PASSED (R1=0 R2=0 R3=0)"
 else
-    echo "✅ Architecture test PASSED (0 violations)"
+    echo "⚠️  Architecture: R1=$RULE1_VIOLATIONS/$BASELINE_R1 R2=$RULE2_VIOLATIONS/$BASELINE_R2 R3=$RULE3_VIOLATIONS/$BASELINE_R3 (within baseline)"
 fi
