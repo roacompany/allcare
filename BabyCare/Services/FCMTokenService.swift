@@ -1,15 +1,16 @@
 import Foundation
 import FirebaseAuth
-import FirebaseFirestore
 import UIKit
 
 @MainActor
 final class FCMTokenService {
     static let shared = FCMTokenService()
-    private let db = Firestore.firestore()
+    private let firestore: FCMTokenFirestoreProviding
     private var cachedToken: String?
 
-    private init() {}
+    init(firestore: FCMTokenFirestoreProviding = FirestoreService.shared) {
+        self.firestore = firestore
+    }
 
     /// FCM 토큰을 Firestore에 저장
     func saveToken(_ token: String) async {
@@ -17,17 +18,8 @@ final class FCMTokenService {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        let ref = db.collection(FirestoreCollections.users)
-            .document(userId)
-            .collection(FirestoreCollections.fcmTokens)
-            .document(deviceId)
-
         do {
-            try await ref.setData([
-                "token": token,
-                "updatedAt": FieldValue.serverTimestamp(),
-                "platform": "iOS"
-            ])
+            try await firestore.saveFCMToken(userId: userId, deviceId: deviceId, token: token)
         } catch {
             print("[FCM] 토큰 저장 실패: \(error.localizedDescription)")
         }
@@ -38,13 +30,8 @@ final class FCMTokenService {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        let ref = db.collection(FirestoreCollections.users)
-            .document(userId)
-            .collection(FirestoreCollections.fcmTokens)
-            .document(deviceId)
-
         do {
-            try await ref.delete()
+            try await firestore.deleteFCMToken(userId: userId, deviceId: deviceId)
         } catch {
             print("[FCM] 토큰 삭제 실패: \(error.localizedDescription)")
         }

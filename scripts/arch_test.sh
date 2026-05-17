@@ -66,10 +66,10 @@ done < <(find "$PROJECT_DIR/BabyCare" -name '*.swift' 2>/dev/null)
 # 베이스라인 (점진적 감축 — 새 위반만 차단)
 BASELINE_R1=0
 BASELINE_R2=0
-# Rule 3 (Firestore.firestore() 직접): 현재 5건 — CatalogService 1 / OfflineQueue 1 / SoundLibraryService 1 / AnalysisEngine 1 / FCMTokenService 1
-# 이력: 10 → 8 (CryFirestoreProviding, 2026-05-17) → 5 (AuthMigrationProviding, 2026-05-17)
-# 목표: 잔여 5건 Service 도 점진적으로 narrow protocol 패턴(BadgeFirestoreProviding 등) 이관
-BASELINE_R3=5
+# Rule 3 (Firestore.firestore() 직접): 0건 — 모든 호출은 FirestoreService(+extensions) 경유
+# 이력: 10 → 8 (Cry, 2026-05-17) → 5 (AuthMigration, 2026-05-17) → 0 (FCMToken/Catalog/Sound/Analysis/OfflineQueue, 2026-05-17)
+# 신규 컬렉션 추가 시: FirestoreCollections.X 상수 + FirestoreService+X.swift + XFirestoreProviding + MockX 패턴 적용
+BASELINE_R3=0
 
 TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS))
 TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3))
