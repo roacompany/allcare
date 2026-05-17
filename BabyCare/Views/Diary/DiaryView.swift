@@ -7,7 +7,6 @@ struct DiaryView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
-        NavigationStack {
             Group {
                 if diaryVM.entries.isEmpty && !diaryVM.isLoading {
                     EmptyStateView(
@@ -136,7 +135,6 @@ struct DiaryView: View {
                     await diaryVM.loadEntries(userId: userId, babyId: babyId)
                 }
             }
-        }
     }
 }
 

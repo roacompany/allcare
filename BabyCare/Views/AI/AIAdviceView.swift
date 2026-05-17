@@ -7,7 +7,6 @@ struct AIAdviceView: View {
     @State private var showClearConfirm = false
 
     var body: some View {
-        NavigationStack {
             @Bindable var vm = vm
 
             VStack(spacing: 0) {
@@ -66,7 +65,6 @@ struct AIAdviceView: View {
                     showAPIKeySheet = true
                 }
             }
-        }
     }
 
     // MARK: - Topic Selection

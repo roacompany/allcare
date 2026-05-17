@@ -11,7 +11,6 @@ struct SoundPlayerView: View {
     private let timerOptions = [15, 30, 45, 60, 90, 120]
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     // ── Now Playing 카드
@@ -39,7 +38,6 @@ struct SoundPlayerView: View {
             .task {
                 await vm.fetchTracksIfNeeded()
             }
-        }
     }
 
     // MARK: - Now Playing

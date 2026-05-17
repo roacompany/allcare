@@ -12,8 +12,7 @@ struct StatsView: View {
     @State private var isGeneratingPDF = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 20) {
                     // Period Picker
                     Picker("기간", selection: Bindable(statsVM).selectedPeriod) {
@@ -92,7 +91,6 @@ struct StatsView: View {
                     ShareSheet(items: [url])
                 }
             }
-        }
     }
 
     // MARK: - Share Sheet
