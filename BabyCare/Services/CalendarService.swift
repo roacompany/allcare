@@ -41,8 +41,8 @@ final class CalendarService {
         if let purpose = visit.purpose { notes.append("방문 사유: \(purpose)") }
         if !notes.isEmpty { event.notes = notes.joined(separator: "\n") }
 
-        event.addAlarm(EKAlarm(relativeOffset: -3600)) // 1시간 전
-        event.addAlarm(EKAlarm(relativeOffset: -86400)) // 1일 전
+        event.addAlarm(EKAlarm(relativeOffset: -AppConstants.secondsPerHour)) // 1시간 전
+        event.addAlarm(EKAlarm(relativeOffset: -AppConstants.secondsPerDay)) // 1일 전
 
         return saveEvent(event, id: "hospital_\(visit.id)")
     }
@@ -57,8 +57,8 @@ final class CalendarService {
         event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: nextDate) ?? nextDate
         event.calendar = store.defaultCalendarForNewEvents
         event.notes = "이전 방문: \(DateFormatters.shortDate.string(from: visit.visitDate))"
-        event.addAlarm(EKAlarm(relativeOffset: -3600))
-        event.addAlarm(EKAlarm(relativeOffset: -86400))
+        event.addAlarm(EKAlarm(relativeOffset: -AppConstants.secondsPerHour))
+        event.addAlarm(EKAlarm(relativeOffset: -AppConstants.secondsPerDay))
 
         return saveEvent(event, id: "hospital_next_\(visit.id)")
     }
@@ -74,8 +74,8 @@ final class CalendarService {
         event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: vaccination.scheduledDate) ?? vaccination.scheduledDate
         event.calendar = store.defaultCalendarForNewEvents
         event.isAllDay = true
-        event.addAlarm(EKAlarm(relativeOffset: -86400)) // 1일 전
-        event.addAlarm(EKAlarm(relativeOffset: -259200)) // 3일 전
+        event.addAlarm(EKAlarm(relativeOffset: -AppConstants.secondsPerDay)) // 1일 전
+        event.addAlarm(EKAlarm(relativeOffset: -3 * AppConstants.secondsPerDay)) // 3일 전
 
         return saveEvent(event, id: "vax_\(vaccination.id)")
     }

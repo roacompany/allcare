@@ -20,6 +20,6 @@ struct FeedingTimerAttributes: ActivityAttributes {
     var feedingTypeIcon: String
     /// 타이머 시작 시각
     var startTime: Date
-    /// 최대 자동 종료 시간 (8시간)
-    static let maxDurationSeconds: Int = 8 * 3600
+    /// 최대 자동 종료 시간 (8시간). Widget target에서 공유되므로 AppConstants 대신 인라인.
+    static let maxDurationSeconds: Int = 8 * 60 * 60
 }

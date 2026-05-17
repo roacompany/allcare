@@ -25,8 +25,8 @@ struct HighlightAICache: Identifiable, Codable, Hashable {
     /// RC weight 변경 시 hash 불일치 → 캐시 무효화 신호.
     let rcVersionHash: UInt32?
 
-    /// TTL 만료 여부. 생성 후 168시간(7일) 초과 시 true.
+    /// TTL 만료 여부. 생성 후 7일 초과 시 true.
     var isExpired: Bool {
-        Date().timeIntervalSince(createdAt) > 168 * 3600
+        Date().timeIntervalSince(createdAt) > AppConstants.highlightCacheTTLSeconds
     }
 }

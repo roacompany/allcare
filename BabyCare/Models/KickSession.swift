@@ -53,7 +53,7 @@ struct KickSession: Identifiable, Codable, Hashable {
 
     /// ACOG 표준 2시간 초과 여부.
     var exceededTwoHours: Bool {
-        durationSeconds > 7200
+        durationSeconds > AppConstants.kickSessionMaxSeconds
     }
 }
 

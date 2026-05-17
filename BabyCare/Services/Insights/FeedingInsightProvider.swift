@@ -90,7 +90,7 @@ enum FeedingInsightProvider: InsightProvider {
         var prevIntervals: [TimeInterval] = []
         for i in 1..<sortedPrev.count {
             let gap = sortedPrev[i].startTime.timeIntervalSince(sortedPrev[i - 1].startTime)
-            if gap < 86400 { prevIntervals.append(gap) }
+            if gap < AppConstants.secondsPerDay { prevIntervals.append(gap) }
         }
         guard !prevIntervals.isEmpty else { return nil }
         let prevAvg = prevIntervals.reduce(0, +) / Double(prevIntervals.count)

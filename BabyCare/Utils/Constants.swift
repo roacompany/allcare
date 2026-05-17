@@ -48,6 +48,23 @@ enum AppConstants {
     static let maxPhotoDimension: CGFloat = 1024
     static let firestoreBatchLimit = 500
 
+    // MARK: - Time
+    static let secondsPerHour: TimeInterval = 3_600
+    static let secondsPerDay: TimeInterval = 86_400
+
+    // MARK: - Domain Limits
+    /// 태동 세션 최대 길이 (2시간). 초과 시 자동 정지.
+    static let kickSessionMaxSeconds: TimeInterval = 2 * secondsPerHour
+    /// 수유 타이머 최대 길이 (8시간). Live Activity 종료 임계.
+    static let feedingTimerMaxSeconds: TimeInterval = 8 * secondsPerHour
+    /// 주간 하이라이트 AI 캐시 TTL (7일).
+    static let highlightCacheTTLSeconds: TimeInterval = 7 * secondsPerDay
+
+    // MARK: - Medical Thresholds
+    /// 발열 임계 온도 (°C). AAP/대한소아과학회 기준.
+    /// 별칭: Services/Analysis/ReferenceTable.feverThreshold 와 동일 값 — 통계 분석 파이프라인은 ReferenceTable 사용.
+    static let feverThresholdCelsius: Double = 38.0
+
     /// 월령별 적정 수유 간격 (시간) — AAP/대한소아과학회 기준
     static func feedingIntervalHours(ageInMonths: Int) -> Double {
         switch ageInMonths {

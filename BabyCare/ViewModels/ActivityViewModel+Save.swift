@@ -145,7 +145,7 @@ extension ActivityViewModel {
             errorMessage = "최소 1초 이상 기록해주세요."
             return false
         }
-        if type == .sleep, let duration = activity.duration, duration > 86400 {
+        if type == .sleep, let duration = activity.duration, duration > AppConstants.secondsPerDay {
             errorMessage = "수면 시간이 24시간을 초과합니다. 시간을 확인해주세요."
             return false
         }
