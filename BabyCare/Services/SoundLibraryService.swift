@@ -1,5 +1,4 @@
 import Foundation
-import FirebaseFirestore
 import OSLog
 
 // MARK: - SoundLibraryService
@@ -29,12 +28,14 @@ final class SoundLibraryService {
     // MARK: - Private
 
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "SoundLibrary")
-    private let db = Firestore.firestore()
+    private let firestore: SoundFirestoreProviding
 
     /// UserDefaults 캐시 키
     private let cacheKey = "sound_library_cache_v1"
 
-    private init() {}
+    init(firestore: SoundFirestoreProviding = FirestoreService.shared) {
+        self.firestore = firestore
+    }
 
     // MARK: - 공개 API
 
@@ -45,18 +46,7 @@ final class SoundLibraryService {
 
         // 1) Firestore 시도
         do {
-            let snapshot = try await db.collection(FirestoreCollections.sounds)
-                .order(by: "sortOrder")
-                .getDocuments()
-
-            let fetched: [SoundTrack] = snapshot.documents.compactMap { doc in
-                do {
-                    return try doc.data(as: SoundTrack.self)
-                } catch {
-                    Self.logger.warning("Decode failed \(doc.documentID): \(error.localizedDescription)")
-                    return nil
-                }
-            }
+            let fetched = try await firestore.fetchSoundTracks()
 
             if !fetched.isEmpty {
                 tracks = fetched

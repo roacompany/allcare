@@ -1,7 +1,6 @@
 import Foundation
-import FirebaseFirestore
 
-struct PendingOperation: Codable, Identifiable {
+struct PendingOperation: Codable, Identifiable, Sendable {
     let id: String
     let timestamp: Date
     let type: OperationType
@@ -10,7 +9,7 @@ struct PendingOperation: Codable, Identifiable {
     let jsonData: Data?  // nil for delete operations
     var retryCount: Int = 0
 
-    enum OperationType: String, Codable {
+    enum OperationType: String, Codable, Sendable {
         case create, update, delete
     }
 }
@@ -24,8 +23,12 @@ final class OfflineQueue {
     private(set) var isFlushing = false
 
     private let storageKey = "babycare_offline_queue"
+    private let firestore: OfflineQueueFirestoreProviding
 
-    init() { load() }
+    init(firestore: OfflineQueueFirestoreProviding = FirestoreService.shared) {
+        self.firestore = firestore
+        load()
+    }
 
     func enqueue(_ op: PendingOperation) {
         operations.append(op)
@@ -55,17 +58,7 @@ final class OfflineQueue {
     }
 
     private func execute(_ op: PendingOperation) async throws {
-        let db = Firestore.firestore()
-        let ref = db.document(op.collectionPath + "/" + op.documentId)
-
-        switch op.type {
-        case .create, .update:
-            guard let data = op.jsonData,
-                  let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-            try await ref.setData(dict)
-        case .delete:
-            try await ref.delete()
-        }
+        try await firestore.executePendingOperation(op)
     }
 
     private func save() {

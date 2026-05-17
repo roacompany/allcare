@@ -1,13 +1,14 @@
 import Foundation
-import FirebaseFirestore
 
 // MARK: - 분석 엔진 진입점
 
 final class AnalysisEngine: @unchecked Sendable {
     static let shared = AnalysisEngine()
-    private init() {}
+    private let firestore: AnalysisFirestoreProviding
 
-    private nonisolated(unsafe) let db = Firestore.firestore()
+    init(firestore: AnalysisFirestoreProviding = FirestoreService.shared) {
+        self.firestore = firestore
+    }
 
     // MARK: - 메인 분석 실행
 
@@ -125,22 +126,13 @@ final class AnalysisEngine: @unchecked Sendable {
         return flags
     }
 
-    // MARK: - Firestore 캐시
+    // MARK: - Firestore 캐시 (narrow protocol 위임)
 
     private func saveResult(_ result: AnalysisResult, userId: String) async {
-        let ref = db.collection(FirestoreCollections.users).document(userId)
-            .collection(FirestoreCollections.babies).document(result.babyId)
-            .collection(FirestoreCollections.hospitalReports).document(result.id)
-        try? ref.setData(from: result)
+        try? await firestore.saveAnalysisResult(result, userId: userId)
     }
 
     func fetchCachedResult(babyId: String, visitId: String, userId: String) async -> AnalysisResult? {
-        let snapshot = try? await db.collection(FirestoreCollections.users).document(userId)
-            .collection(FirestoreCollections.babies).document(babyId)
-            .collection(FirestoreCollections.hospitalReports)
-            .whereField("hospitalVisitId", isEqualTo: visitId)
-            .limit(to: 1)
-            .getDocuments()
-        return snapshot?.documents.first.flatMap { try? $0.data(as: AnalysisResult.self) }
+        await firestore.fetchCachedAnalysisResult(babyId: babyId, visitId: visitId, userId: userId)
     }
 }
