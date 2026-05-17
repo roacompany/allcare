@@ -20,6 +20,8 @@ struct FeedingTimerAttributes: ActivityAttributes {
     var feedingTypeIcon: String
     /// 타이머 시작 시각
     var startTime: Date
-    /// 최대 자동 종료 시간 (8시간). Widget target에서 공유되므로 AppConstants 대신 인라인.
+    /// 최대 자동 종료 시간 (8시간). Widget target 공유 파일이라 AppConstants 미참조.
+    /// 값 변경 시 `BabyCare/Utils/Constants.swift` 의 `AppConstants.feedingTimerMaxSeconds`
+    /// 와 반드시 동기 유지 (drift 시 메인 앱과 위젯 동작 불일치).
     static let maxDurationSeconds: Int = 8 * 60 * 60
 }

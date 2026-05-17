@@ -94,7 +94,9 @@ if [ "$FAIL" -eq 1 ]; then
 fi
 
 if [ "$RULE3_VIOLATIONS" -lt "$BASELINE_R3" ]; then
-    echo "🎉 Rule 3 위반 감소: $RULE3_VIOLATIONS < baseline $BASELINE_R3 — scripts/arch_test.sh BASELINE_R3=$RULE3_VIOLATIONS 으로 갱신하세요"
+    echo "🎉 Rule 3 위반 감소: $RULE3_VIOLATIONS < baseline $BASELINE_R3"
+    echo "   ⚠️  scripts/arch_test.sh 의 BASELINE_R3 을 $RULE3_VIOLATIONS 로 갱신해 같은 PR 에 함께 커밋하세요"
+    echo "   (갱신 안 하면 다음 회귀가 silent 통과)"
 fi
 
 if [ "$TOTAL_VIOLATIONS" -eq 0 ]; then
