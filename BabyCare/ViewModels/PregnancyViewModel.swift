@@ -227,7 +227,7 @@ final class PregnancyViewModel {
         session.kicks.append(KickEvent())
         // ACOG 2시간 초과 시 자동 종료.
         if session.exceededTwoHours {
-            session.endedAt = session.startedAt.addingTimeInterval(7200)
+            session.endedAt = session.startedAt.addingTimeInterval(AppConstants.kickSessionMaxSeconds)
             currentKickSession = nil
         } else {
             currentKickSession = session

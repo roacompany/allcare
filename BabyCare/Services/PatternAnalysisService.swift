@@ -124,7 +124,7 @@ enum PatternAnalysisService {
             var intervals: [TimeInterval] = []
             for i in 1..<sorted.count {
                 let interval = sorted[i].startTime.timeIntervalSince(sorted[i - 1].startTime)
-                if interval < 86400 { // 24시간 이내만
+                if interval < AppConstants.secondsPerDay { // 24시간 이내만
                     intervals.append(interval)
                 }
             }

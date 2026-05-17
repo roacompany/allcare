@@ -93,7 +93,7 @@ final class ActivityTimerManager {
         let elapsed = Date().timeIntervalSince(startTime)
 
         // 24시간 이상 지난 타이머는 복구하지 않음 (비정상 상태)
-        guard elapsed < 86400 else {
+        guard elapsed < AppConstants.secondsPerDay else {
             UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
             UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
             LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)

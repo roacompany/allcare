@@ -58,7 +58,7 @@ extension PatternAnalysisService {
             let arr = Array(slice)
             for i in 1..<arr.count {
                 let interval = arr[i].startTime.timeIntervalSince(arr[i - 1].startTime)
-                if interval < 86400 { intervals.append(interval) }
+                if interval < AppConstants.secondsPerDay { intervals.append(interval) }
             }
             guard !intervals.isEmpty else { return nil }
             return intervals.reduce(0, +) / Double(intervals.count)

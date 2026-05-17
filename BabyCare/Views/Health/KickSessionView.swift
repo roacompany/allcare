@@ -240,8 +240,8 @@ struct KickSessionView: View {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
                 self.elapsedSeconds += 1
-                // 2시간(7200초) 초과 시 자동 정지
-                if self.elapsedSeconds >= 7200 {
+                // 2시간 초과 시 자동 정지
+                if Double(self.elapsedSeconds) >= AppConstants.kickSessionMaxSeconds {
                     self.stopTimer()
                 }
             }

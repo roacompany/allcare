@@ -217,7 +217,7 @@ final class ActivityViewModel {
             }
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
-            let fortyEightHoursAgo = Date().addingTimeInterval(-172800)
+            let fortyEightHoursAgo = Date().addingTimeInterval(-2 * AppConstants.secondsPerDay)
             recentTemperatureActivities = try await RetryHelper.withRetry {
                 try await self.firestoreService.fetchActivities(
                     userId: userId, babyId: babyId, from: fortyEightHoursAgo, to: Date()
@@ -328,8 +328,8 @@ final class ActivityViewModel {
     /// recentTemperatureActivities(48h 범위)에서 최근 24시간만 필터링 — 야간 발열 페어 감지 가능
     var recentHighTemperatureCount: Int {
         return recentTemperatureActivities.filter {
-            ($0.temperature ?? 0) >= 38.0 &&
-            $0.startTime > Date().addingTimeInterval(-86400)
+            ($0.temperature ?? 0) >= AppConstants.feverThresholdCelsius &&
+            $0.startTime > Date().addingTimeInterval(-AppConstants.secondsPerDay)
         }.count
     }
 

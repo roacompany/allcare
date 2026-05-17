@@ -18,7 +18,11 @@ final class BabyViewModel {
     var babyPhoto: UIImage?
 
     private let firestoreService = FirestoreService.shared
-    private let storageService = StorageService.shared
+    private let storageService: StorageServiceProviding
+
+    init(storageService: StorageServiceProviding = StorageService.shared) {
+        self.storageService = storageService
+    }
 
     // MARK: - Data User Resolution
 
