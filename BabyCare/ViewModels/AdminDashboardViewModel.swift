@@ -10,7 +10,7 @@ final class AdminDashboardViewModel {
         do {
             userCount = try await firestoreService.fetchUserCount()
         } catch {
-            print("[Admin] 사용자 수 조회 실패: \(error.localizedDescription)")
+            logSilent("사용자 수 조회 실패", error: error, logger: AppLogger.admin)
         }
     }
 }

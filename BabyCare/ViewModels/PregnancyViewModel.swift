@@ -79,11 +79,37 @@ final class PregnancyViewModel {
                 async let items = firestoreService.fetchChecklistItems(userId: dataOwner, pregnancyId: pid)
                 async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
                 async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
-                self.kickSessions = (try? await kicks) ?? []
-                self.prenatalVisits = (try? await visits) ?? []
-                self.checklistItems = (try? await items) ?? []
-                self.weightEntries = (try? await weights) ?? []
-                self.symptoms = (try? await symptomList) ?? []
+                // 5개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
+                do {
+                    self.kickSessions = try await kicks
+                } catch {
+                    logSilent("fetchKickSessions 실패", error: error, logger: AppLogger.pregnancy)
+                    self.kickSessions = []
+                }
+                do {
+                    self.prenatalVisits = try await visits
+                } catch {
+                    logSilent("fetchPrenatalVisits 실패", error: error, logger: AppLogger.pregnancy)
+                    self.prenatalVisits = []
+                }
+                do {
+                    self.checklistItems = try await items
+                } catch {
+                    logSilent("fetchChecklistItems 실패", error: error, logger: AppLogger.pregnancy)
+                    self.checklistItems = []
+                }
+                do {
+                    self.weightEntries = try await weights
+                } catch {
+                    logSilent("fetchWeightEntries 실패", error: error, logger: AppLogger.pregnancy)
+                    self.weightEntries = []
+                }
+                do {
+                    self.symptoms = try await symptomList
+                } catch {
+                    logSilent("fetchSymptoms 실패", error: error, logger: AppLogger.pregnancy)
+                    self.symptoms = []
+                }
             }
             // pending orphan 감지 (30초 임계값)
             detectPendingOrphan()
