@@ -215,16 +215,14 @@ extension ActivityViewModel {
     }
 
     func updateActivity(_ activity: Activity, userId: String) async {
-        guard let index = todayActivities.firstIndex(where: { $0.id == activity.id }) else { return }
+        guard let original = todayActivities.first(where: { $0.id == activity.id }) else { return }
 
-        let backup = todayActivities[index]
-        todayActivities[index] = activity
-
-        do {
-            try await firestoreService.saveActivity(activity, userId: userId)
-        } catch {
-            todayActivities[index] = backup
+        if let error = await optimisticReplace(
+            in: \.todayActivities, original: original, with: activity,
+            save: { try await self.firestoreService.saveActivity(activity, userId: userId) }
+        ) {
             errorMessage = "기록 수정에 실패했습니다."
+            _ = error
         }
     }
 
