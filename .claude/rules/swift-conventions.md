@@ -29,7 +29,8 @@ globs: "**/*.swift"
 ## Logging (AppLogger)
 
 - **`print()` 사용 금지** — 모든 진단은 `AppLogger.<category>` 경유 (OSLog 기반 PII 마스킹, Console.app/Instruments 필터).
-- **14 카테고리** (`Utils/AppLogger.swift`): admin / analysis / auth / badge / calendar / catalog / firestore / highlight / liveActivity / ml / pregnancy / push / sound / todo. 신규 카테고리는 알파벳 정렬 유지.
+- **`Logger(subsystem:category:)` 직접 선언 금지** — `private static let logger = Logger(...)` / `static let log = Logger(...)` 패턴 금지. `AppLogger.<category>` 사용 (subsystem 단일 소스 보장). `import OSLog` 도 불필요 (AppLogger 경유 시). Round 7 (#16) baseline=0 — Service self-declared Logger 0건 유지.
+- **15 카테고리** (`Utils/AppLogger.swift`): admin / analysis / analytics / auth / badge / calendar / catalog / firestore / highlight / liveActivity / ml / pregnancy / push / sound / todo. 신규 카테고리는 알파벳 정렬 유지.
 - **non-fatal silent error**: `logSilent(_ message: String, error: Error? = nil, logger: Logger)` 사용. `try? await` / empty catch 의도적 흘리기 진단용.
   ```swift
   // ❌ print("fetch failed: \(error)")
@@ -39,6 +40,7 @@ globs: "**/*.swift"
   catch { logSilent("op 실패", error: error, logger: AppLogger.ml) }
   ```
 - **사용자에게 errorMessage 노출하는 분기에 `logSilent` 중복 사용 금지** (이중 표시 방지).
+- **`try? await` 의도적 skip 허용 예외 3종** (Round 7 잔존 15건 패턴): (1) `Task.sleep(nanoseconds:)` — CancellationError 만 발생, 흘려도 안전 (2) `FeatureFlagService.fetchAndActivate()` — safety.md A-18, 실패 시 defaults=false 강제 (3) AppLogger.swift 내 doc comment 예시 코드. 그 외 `try? await` 는 `logSilent` 패턴으로 변환.
 - 향후 Crashlytics non-fatal 연동 시 `logSilent` 단일 후크 포인트.
 
 ## ViewModel Helper Protocol

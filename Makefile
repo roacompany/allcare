@@ -151,7 +151,7 @@ deploy:
 # 유틸리티
 # ═══════════════════════════════════════
 
-.PHONY: dead-code clean status help
+.PHONY: dead-code clean status asc-status help
 
 ## 미사용 코드 탐지
 dead-code:
@@ -175,6 +175,10 @@ status:
 	echo "  미배포 커밋: $$COMMITS"
 	@echo "  테스트: $$(xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareTests -quiet 2>&1 | grep 'Executed' | tail -1 | sed 's/.*Executed //' | sed 's/ seconds.*/s/')"
 	@echo "═══════════════════════════════"
+
+## ASC 버전 상태 조회 (전체 / V=2.8.3 특정 버전). train closed 자동 감지
+asc-status:
+	@python3 scripts/asc_status.py $(V)
 
 ## 도움말
 help:
