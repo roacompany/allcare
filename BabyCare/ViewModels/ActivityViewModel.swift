@@ -169,9 +169,15 @@ final class ActivityViewModel: OptimisticReplaceable {
             )
             // metric history 로드 (Phase 1 ML — per-baby Z-score scorer 입력)
             let historyWeeks = InsightWeights.fromRC().historyWeeks
-            let snapshots = (try? await firestoreService.fetchWeeklyMetricSnapshots(
-                userId: userId, babyId: babyId, limit: historyWeeks
-            )) ?? []
+            let snapshots: [WeeklyMetricSnapshot]
+            do {
+                snapshots = try await firestoreService.fetchWeeklyMetricSnapshots(
+                    userId: userId, babyId: babyId, limit: historyWeeks
+                )
+            } catch {
+                logSilent("weekly metric snapshot 로드 실패", error: error, logger: AppLogger.ml)
+                snapshots = []
+            }
             let metricHistory = WeeklyInsightService.metricHistory(from: snapshots)
 
             weeklyInsights = WeeklyInsightService.generateInsights(

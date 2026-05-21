@@ -163,7 +163,11 @@ struct SolidFoodSection: View {
                     guard let currentUserId = authVM.currentUserId,
                           let baby = babyVM.selectedBaby else { return }
                     let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-                    try? await healthVM.saveAllergyRecord(confirmedRecord, userId: dataUserId, babyId: baby.id)
+                    do {
+                        try await healthVM.saveAllergyRecord(confirmedRecord, userId: dataUserId, babyId: baby.id)
+                    } catch {
+                        logSilent("알러지 자동 제안 저장 실패", error: error, logger: AppLogger.firestore)
+                    }
                 }
             }
         }

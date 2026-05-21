@@ -1,6 +1,5 @@
 import Foundation
 import FirebaseAnalytics
-import OSLog
 
 // MARK: - Protocol
 
@@ -24,7 +23,6 @@ extension AnalyticsTracking {
 
 final class AnalyticsService: AnalyticsTracking {
     static let shared = AnalyticsService()
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "Analytics")
 
     private static let optOutKey = "analytics_opt_out"
 
@@ -38,7 +36,7 @@ final class AnalyticsService: AnalyticsTracking {
     func configure() {
         let enabled = isEnabled
         Analytics.setAnalyticsCollectionEnabled(enabled)
-        Self.logger.info("Analytics collection \(enabled ? "enabled" : "disabled")")
+        AppLogger.analytics.info("Analytics collection \(enabled ? "enabled" : "disabled")")
     }
 
     func trackScreen(_ name: String, parameters: [String: String] = [:]) {
@@ -63,7 +61,7 @@ final class AnalyticsService: AnalyticsTracking {
     func setEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(!enabled, forKey: Self.optOutKey)
         Analytics.setAnalyticsCollectionEnabled(enabled)
-        Self.logger.info("Analytics opt-out toggled: collection \(enabled ? "enabled" : "disabled")")
+        AppLogger.analytics.info("Analytics opt-out toggled: collection \(enabled ? "enabled" : "disabled")")
     }
 
     // MARK: - Insights Telemetry (Phase 2 ML 학습용)

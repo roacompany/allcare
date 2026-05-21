@@ -79,14 +79,25 @@ final class BabyViewModel {
             }
 
             // 공유된 아기도 로드 (병렬 패치, 1개 실패해도 나머지 계속)
-            let sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []
+            let sharedAccess: [SharedBabyAccess]
+            do {
+                sharedAccess = try await firestoreService.fetchSharedAccess(userId: userId)
+            } catch {
+                logSilent("공유 접근 로드 실패", error: error, logger: AppLogger.firestore)
+                sharedAccess = []
+            }
             let sharedBabies = await withTaskGroup(of: Baby?.self) { group in
                 for access in sharedAccess {
                     group.addTask {
-                        guard var baby = try? await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else { return nil }
-                        // Tag shared baby with its owner's userId so all data loads use the correct Firestore path
-                        baby.ownerUserId = access.ownerUserId
-                        return baby
+                        do {
+                            guard var baby = try await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else { return nil }
+                            // Tag shared baby with its owner's userId so all data loads use the correct Firestore path
+                            baby.ownerUserId = access.ownerUserId
+                            return baby
+                        } catch {
+                            logSilent("공유 아기 로드 실패: \(access.babyId)", error: error, logger: AppLogger.firestore)
+                            return nil
+                        }
                     }
                 }
                 var results: [Baby] = []

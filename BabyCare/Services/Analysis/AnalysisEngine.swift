@@ -129,7 +129,11 @@ final class AnalysisEngine: @unchecked Sendable {
     // MARK: - Firestore 캐시 (narrow protocol 위임)
 
     private func saveResult(_ result: AnalysisResult, userId: String) async {
-        try? await firestore.saveAnalysisResult(result, userId: userId)
+        do {
+            try await firestore.saveAnalysisResult(result, userId: userId)
+        } catch {
+            logSilent("analysis 결과 캐시 저장 실패", error: error, logger: AppLogger.analysis)
+        }
     }
 
     func fetchCachedResult(babyId: String, visitId: String, userId: String) async -> AnalysisResult? {

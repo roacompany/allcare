@@ -314,9 +314,13 @@ struct AddDiaryView: View {
                         Task {
                             var images: [UIImage] = []
                             for item in newItems {
-                                if let data = try? await item.loadTransferable(type: Data.self),
-                                   let image = UIImage(data: data) {
-                                    images.append(image)
+                                do {
+                                    if let data = try await item.loadTransferable(type: Data.self),
+                                       let image = UIImage(data: data) {
+                                        images.append(image)
+                                    }
+                                } catch {
+                                    logSilent("일기 사진 디코딩 실패", error: error, logger: AppLogger.firestore)
                                 }
                             }
                             diaryVM.selectedPhotos = images

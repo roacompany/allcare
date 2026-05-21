@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 
 // MARK: - SoundLibraryService
 // Firestore `sounds` 컬렉션에서 트랙 목록을 가져오고 로컬 캐시로 관리합니다.
@@ -27,7 +26,6 @@ final class SoundLibraryService {
 
     // MARK: - Private
 
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "SoundLibrary")
     private let firestore: SoundFirestoreProviding
 
     /// UserDefaults 캐시 키
@@ -51,24 +49,24 @@ final class SoundLibraryService {
             if !fetched.isEmpty {
                 tracks = fetched
                 saveCache(fetched)
-                Self.logger.info("Fetched \(fetched.count) tracks from Firestore")
+                AppLogger.sound.info("Fetched \(fetched.count) tracks from Firestore")
             } else {
                 // Firestore에 데이터 없음 → 기본값 사용
                 tracks = SoundTrack.fallbackTracks
-                Self.logger.info("Firestore empty — using fallback tracks")
+                AppLogger.sound.info("Firestore empty — using fallback tracks")
             }
         } catch {
-            Self.logger.error("Firestore fetch failed: \(error.localizedDescription)")
+            AppLogger.sound.error("Firestore fetch failed: \(error.localizedDescription)")
             errorMessage = "트랙 목록을 불러오지 못했습니다."
 
             // 2) 캐시 시도
             if let cached = loadCache(), !cached.isEmpty {
                 tracks = cached
-                Self.logger.info("Using cached \(cached.count) tracks")
+                AppLogger.sound.info("Using cached \(cached.count) tracks")
             } else {
                 // 3) 기본 폴백
                 tracks = SoundTrack.fallbackTracks
-                Self.logger.info("Using fallback tracks")
+                AppLogger.sound.info("Using fallback tracks")
             }
         }
 

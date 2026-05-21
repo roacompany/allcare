@@ -56,7 +56,11 @@ struct CryAnalysisView: View {
                 }
                 if !babyId.isEmpty {
                     Task {
-                        try? await vm.loadHistory(babyId: babyId, dataUserId: dataUserId)
+                        do {
+                            try await vm.loadHistory(babyId: babyId, dataUserId: dataUserId)
+                        } catch {
+                            logSilent("cry 분석 이력 로드 실패", error: error, logger: AppLogger.ml)
+                        }
                     }
                 }
             }
@@ -117,7 +121,11 @@ struct CryAnalysisView: View {
                         do {
                             try await vm.save(babyId: babyId, dataUserId: dataUserId, record: record)
                             withAnimation { saveMessage = "저장되었습니다" }
-                            try? await vm.loadHistory(babyId: babyId, dataUserId: dataUserId)
+                            do {
+                                try await vm.loadHistory(babyId: babyId, dataUserId: dataUserId)
+                            } catch {
+                                logSilent("cry 분석 저장 후 이력 갱신 실패", error: error, logger: AppLogger.ml)
+                            }
                         } catch {
                             withAnimation { saveMessage = "저장 실패: \(error.localizedDescription)" }
                         }

@@ -69,8 +69,13 @@ extension FirestoreService {
                     group.addTask {
                         // Obtain the Firestore singleton directly — avoids capturing a local
                         let ref = Firestore.firestore().collection(collectionPath).document(expectedId)
-                        let snap = try? await ref.getDocument()
-                        return (expectedId, snap?.exists ?? false)
+                        do {
+                            let snap = try await ref.getDocument()
+                            return (expectedId, snap.exists)
+                        } catch {
+                            logSilent("legacy 신형 존재 확인 실패: \(expectedId)", error: error, logger: AppLogger.firestore)
+                            return (expectedId, false)
+                        }
                     }
                 }
                 var map: [String: Bool] = [:]
@@ -86,14 +91,22 @@ extension FirestoreService {
                 let newRef = collectionRef.document(info.expectedId)
                 if existingMap[info.expectedId] == true {
                     // New document already present; delete stale legacy doc and skip
-                    try? await info.doc.reference.delete()
+                    do {
+                        try await info.doc.reference.delete()
+                    } catch {
+                        logSilent("legacy 중복 doc 삭제 실패: \(info.expectedId)", error: error, logger: AppLogger.firestore)
+                    }
                     continue
                 }
                 // Write new document first; only delete old if write succeeds
                 info.access.id = info.expectedId
                 do {
                     try newRef.setData(from: info.access)
-                    try? await info.doc.reference.delete()
+                    do {
+                        try await info.doc.reference.delete()
+                    } catch {
+                        logSilent("legacy doc 마이그레이션 후 삭제 실패: \(info.expectedId)", error: error, logger: AppLogger.firestore)
+                    }
                 } catch {
                     // Write failed — keep legacy doc and skip adding to results
                     continue

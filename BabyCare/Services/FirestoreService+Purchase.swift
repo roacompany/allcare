@@ -52,7 +52,7 @@ extension FirestoreService {
         do {
             return try doc.data(as: Baby.self)
         } catch {
-            Self.logger.warning("Baby \(babyId) decode failed: \(error.localizedDescription)")
+            AppLogger.firestore.warning("Baby \(babyId) decode failed: \(error.localizedDescription)")
             return nil
         }
     }
