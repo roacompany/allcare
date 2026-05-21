@@ -104,6 +104,34 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-05-22) — v2.8.3 출시 동기화 + Round 7
+
+### v2.8.3 App Store 출시 확인 (main `aebd137`)
+- ASC API 확인: v2.8.3 빌드 69 `appStoreState=READY_FOR_SALE` — AFTER_APPROVAL 자동 출시 완료
+- 로컬 stale 동기화: CHANGELOG / `.dev/release-notes/v2.8.3.md` / CLAUDE.md / MEMORY.md
+- **train closed** → 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
+
+### Round 7 (#16 `54473cb`): try? await silent sweep + 8 Service Logger 통일
+- `try? await` 40 → 15 (의도적 skip만): 25 call-site `do { try await op() } catch { logSilent(...) }`
+  - 카테고리: firestore 14 / pregnancy 3 / ml 3 / auth 2 / highlight 1 / analysis 1 / push 1
+  - 의도적 skip 잔류: Task.sleep 12 / FeatureFlag fetch 2 / AppLogger doc comment 1
+- 8 Service self-declared Logger → AppLogger 통일 (BadgeEvaluator / SoundLibrary / SoundPlayer / LiveActivity / Calendar / Analytics / Firestore + Catalog/Purchase/User extension)
+- `subsystem` 하드코딩 제거, `import OSLog` 7 Service 제거
+- AppLogger 카테고리 14 → 15 (`analytics` 신규, 알파벳 정렬)
+- 27 files +208/-108. `make verify` PASS.
+
+### 누적 (round 1~7)
+| 지표 | round 1 전 | round 7 후 |
+|---|---|---|
+| arch-test R3 violations | 10 | **0** |
+| narrow protocol | 3 | 11 |
+| Service self-declared Logger | 7 | **0** |
+| `import OSLog` (Service) | 7 | **0** |
+| AppLogger 카테고리 | — | 15 |
+| `print()` 잔존 | 7 | 0 |
+| `try? await` 잔존 | 40 | 15 (의도적 skip만) |
+| BabyCareTests.swift | 4,901 라인 | 2,518 라인 |
+
 ## Recent Session (2026-05-17) — 코드 품질 6 라운드 (PR #10~#15)
 
 ### 다각도 코드 작성 수준 점검 (75/100 B)
@@ -316,8 +344,8 @@ make dead-code   # 미사용 코드 탐지
 
 ### 리팩토링 잔여
 - [ ] 로컬라이제이션 (1,631개 한국어 하드코딩 → Localizable.strings 추출, 다국어 기반)
-- [ ] `try? await` silent 흘리기 잔여 sweep — `logSilent` 로 교체 (Round 5 에서 critical 2건만 처리, 잔여 ~38건)
-- [ ] `BadgeEvaluator` 등 5 Service 의 self-declared `Logger(...)` → `AppLogger` 통일 (subsystem 하드코딩 제거)
+- ✅ `try? await` silent sweep — Round 7 (#16 `54473cb`) 완료. 25 call-site `logSilent` 교체, 잔여 15건은 의도적 skip (Task.sleep / FeatureFlag fetch / doc comment).
+- ✅ 8 Service self-declared `Logger(...)` → `AppLogger` 통일 — Round 7 완료. BadgeEvaluator / SoundLibrary / SoundPlayer / LiveActivity / Calendar / Analytics / FirestoreService + Catalog/Purchase/User extension. `subsystem` 하드코딩 + `import OSLog` 0.
 - [ ] VM helper protocol 확장 — in-place mutation / append-or-replace 패턴 (RoutineVM toggleItem / HealthVM saveHospitalVisit)
 - [ ] `arch_test.sh` BASELINE 자동 갱신 (현재 수동, 잊으면 silent positive)
 - [ ] InsightService 525라인 v1+v3 공존 정리 (Provider 추가 분할)
