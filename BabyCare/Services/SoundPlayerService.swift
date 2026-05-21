@@ -1,5 +1,4 @@
 import AVFoundation
-import OSLog
 
 // MARK: - SoundPlayerService
 // 로컬(AVAudioPlayer) 및 스트리밍(AVPlayer) 재생을 모두 지원합니다.
@@ -25,8 +24,6 @@ final class SoundPlayerService {
     private var streamObserver: NSKeyValueObservation?
     private var timer: Timer?
 
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "SoundPlayer")
-
     /// 로컬 캐시 디렉터리 (다운로드한 트랙 저장)
     private static let cacheDirectory: URL = {
         let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -43,7 +40,7 @@ final class SoundPlayerService {
         stopAll()
 
         guard let url = sound.fileURL else {
-            Self.logger.warning("Sound file not found: \(sound.fileName)")
+            AppLogger.sound.warning("Sound file not found: \(sound.fileName)")
             return
         }
 
@@ -59,7 +56,7 @@ final class SoundPlayerService {
             currentTrack = nil
             isPlaying = true
         } catch {
-            Self.logger.error("Failed to play local sound: \(error.localizedDescription)")
+            AppLogger.sound.error("Failed to play local sound: \(error.localizedDescription)")
         }
     }
 
@@ -97,7 +94,7 @@ final class SoundPlayerService {
                 let url = try await resolveStreamURL(track: track)
                 playFromURL(url, track: track)
             } catch {
-                Self.logger.error("Stream URL resolve failed: \(error.localizedDescription)")
+                AppLogger.sound.error("Stream URL resolve failed: \(error.localizedDescription)")
                 isBuffering = false
             }
         }
@@ -121,7 +118,7 @@ final class SoundPlayerService {
                     self.isPlaying = true
                 case .failed:
                     self.isBuffering = false
-                    Self.logger.error("AVPlayerItem failed: \(item.error?.localizedDescription ?? "unknown")")
+                    AppLogger.sound.error("AVPlayerItem failed: \(item.error?.localizedDescription ?? "unknown")")
                 default:
                     break
                 }
@@ -167,9 +164,9 @@ final class SoundPlayerService {
             let dest = cacheFileURL(for: track)
             try data.write(to: dest)
             downloadProgress = 1.0
-            Self.logger.info("Downloaded track: \(track.name)")
+            AppLogger.sound.info("Downloaded track: \(track.name)")
         } catch {
-            Self.logger.error("Download failed for \(track.name): \(error.localizedDescription)")
+            AppLogger.sound.error("Download failed for \(track.name): \(error.localizedDescription)")
             downloadProgress = 0
         }
     }
@@ -282,7 +279,7 @@ final class SoundPlayerService {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            Self.logger.error("AVAudioSession activation failed: \(error.localizedDescription)")
+            AppLogger.sound.error("AVAudioSession activation failed: \(error.localizedDescription)")
         }
     }
 

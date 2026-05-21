@@ -10,7 +10,13 @@ extension DashboardView {
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
         // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
-        Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) }
+        Task {
+            do {
+                _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+            } catch {
+                logSilent("알림 권한 요청 실패", error: error, logger: AppLogger.push)
+            }
+        }
 
         // 아기 월령을 수유 예측에 반영
         let ageMonths = Calendar.current.dateComponents([.month], from: baby.birthDate, to: Date()).month ?? 3

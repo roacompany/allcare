@@ -1,11 +1,9 @@
 import Foundation
 import FirebaseFirestore
-import OSLog
 
 final class FirestoreService: Sendable {
     static let shared = FirestoreService()
     nonisolated(unsafe) let db = Firestore.firestore()
-    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "Firestore")
 
     private init() {}
 
@@ -15,7 +13,7 @@ final class FirestoreService: Sendable {
             do {
                 return try doc.data(as: T.self)
             } catch {
-                Self.logger.warning("Document \(doc.documentID) decode failed: \(error.localizedDescription)")
+                AppLogger.firestore.warning("Document \(doc.documentID) decode failed: \(error.localizedDescription)")
                 return nil
             }
         }

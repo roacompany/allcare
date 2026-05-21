@@ -1,11 +1,9 @@
 import Foundation
-import OSLog
 
 /// 모든 배지 판정의 단일 진입점.
 /// Phase 1: 수동 호출 API 제공 (Phase 2에서 기록 저장 훅 자동 연동)
 @MainActor
 final class BadgeEvaluator {
-    static let log = Logger(subsystem: "com.roacompany.allcare", category: "Badge")
     struct Event {
         enum Kind: Equatable {
             case feedingLogged
@@ -42,7 +40,7 @@ final class BadgeEvaluator {
                 do {
                     try await firestoreService.setFirstRecordIfMissing(userId: userId, at: event.at)
                 } catch {
-                    Self.log.error("setFirstRecordIfMissing failed: \(error.localizedDescription, privacy: .public)")
+                    AppLogger.badge.error("setFirstRecordIfMissing failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -52,12 +50,12 @@ final class BadgeEvaluator {
             do {
                 try await firestoreService.incrementStats(userId: userId, field: field, by: 1)
             } catch {
-                Self.log.error("incrementStats(\(field, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
+                AppLogger.badge.error("incrementStats(\(field, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             }
             do {
                 let stats = try await firestoreService.fetchStats(userId: userId)
                 let value = Self.statsValue(stats: stats ?? .empty(), field: field)
-                Self.log.debug("aggregate check field=\(field, privacy: .public) value=\(value)")
+                AppLogger.badge.debug("aggregate check field=\(field, privacy: .public) value=\(value)")
                 for badgeId in badgeIds {
                     guard let def = BadgeCatalog.definition(id: badgeId) else { continue }
                     guard value >= def.threshold else { continue }
@@ -66,7 +64,7 @@ final class BadgeEvaluator {
                     }
                 }
             } catch {
-                Self.log.error("fetchStats failed: \(error.localizedDescription, privacy: .public)")
+                AppLogger.badge.error("fetchStats failed: \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -107,17 +105,17 @@ final class BadgeEvaluator {
     ) async -> [Badge] {
         if await isAlreadyMigrated(userId: userId) { return [] }
         guard !ownedBabyIds.isEmpty else {
-            Self.log.debug("backfill skipped — no owned babies")
+            AppLogger.badge.debug("backfill skipped — no owned babies")
             return []
         }
 
         let counts = await aggregateCounts(userId: userId, ownedBabyIds: ownedBabyIds)
         let earliestStr = counts.earliest?.description ?? "nil"
-        Self.log.log("backfill counts — f=\(counts.feeding) s=\(counts.sleep) d=\(counts.diaper) g=\(counts.growth) earliest=\(earliestStr, privacy: .public) ok=\(counts.allSucceeded)")
+        AppLogger.badge.log("backfill counts — f=\(counts.feeding) s=\(counts.sleep) d=\(counts.diaper) g=\(counts.growth) earliest=\(earliestStr, privacy: .public) ok=\(counts.allSucceeded)")
 
         // 일부 아기 fetch 실패 시 backfill 중단 — 다음 런치에 재시도 (migratedAtV1 마킹 안 함)
         guard counts.allSucceeded else {
-            Self.log.error("backfill aborted — partial aggregation failure, retry next launch")
+            AppLogger.badge.error("backfill aborted — partial aggregation failure, retry next launch")
             return []
         }
 
@@ -131,12 +129,12 @@ final class BadgeEvaluator {
                 firstRecordAt: counts.earliest
             )
         } catch {
-            Self.log.error("backfill setStatsAbsolute failed: \(error.localizedDescription, privacy: .public)")
+            AppLogger.badge.error("backfill setStatsAbsolute failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
 
         let earned = await awardBackfilledBadges(userId: userId, counts: counts, routineMaxStreak: currentRoutineMaxStreak)
-        Self.log.log("backfill done — awarded=\(earned.count)")
+        AppLogger.badge.log("backfill done — awarded=\(earned.count)")
         return earned
     }
 
@@ -144,13 +142,13 @@ final class BadgeEvaluator {
         do {
             if let stats = try await firestoreService.fetchStats(userId: userId),
                stats.migratedAtV1 != nil {
-                Self.log.debug("backfill skipped — already migrated")
+                AppLogger.badge.debug("backfill skipped — already migrated")
                 return true
             }
         } catch {
             // 네트워크 오류 등으로 판정 실패 시 재시도 가능하도록 false 반환
             // (setStatsAbsolute는 절대값 덮어쓰기 + tryEarn은 badgeExists dedup이므로 재실행 안전)
-            Self.log.error("backfill fetchStats failed — will retry: \(error.localizedDescription, privacy: .public)")
+            AppLogger.badge.error("backfill fetchStats failed — will retry: \(error.localizedDescription, privacy: .public)")
             return false
         }
         return false
@@ -170,7 +168,7 @@ final class BadgeEvaluator {
                 counts.growth += try await firestoreService.countGrowthRecords(userId: userId, babyId: babyId)
             } catch {
                 counts.allSucceeded = false
-                Self.log.error("backfill count failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                AppLogger.badge.error("backfill count failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
             let (newEarliest, ok) = await updateEarliest(current: counts.earliest, userId: userId, babyId: babyId)
             counts.earliest = newEarliest
@@ -190,7 +188,7 @@ final class BadgeEvaluator {
             }
             return (earliest, true)
         } catch {
-            Self.log.error("backfill earliest failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            AppLogger.badge.error("backfill earliest failed baby=\(babyId, privacy: .public): \(error.localizedDescription, privacy: .public)")
             return (earliest, false)
         }
     }
@@ -267,14 +265,14 @@ final class BadgeEvaluator {
 
     private func tryEarn(id: String, userId: String, babyId: String?) async -> Badge? {
         guard let def = BadgeCatalog.definition(id: id) else {
-            Self.log.error("tryEarn: unknown badge id=\(id, privacy: .public)")
+            AppLogger.badge.error("tryEarn: unknown badge id=\(id, privacy: .public)")
             return nil
         }
         let exists: Bool
         do {
             exists = try await firestoreService.badgeExists(userId: userId, badgeId: id)
         } catch {
-            Self.log.error("badgeExists(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
+            AppLogger.badge.error("badgeExists(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
         guard !exists else { return nil }
@@ -290,10 +288,10 @@ final class BadgeEvaluator {
         )
         do {
             let saved = try await firestoreService.saveBadge(badge, userId: userId)
-            if saved { Self.log.log("badge earned: \(id, privacy: .public)") }
+            if saved { AppLogger.badge.log("badge earned: \(id, privacy: .public)") }
             return saved ? badge : nil
         } catch {
-            Self.log.error("saveBadge(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
+            AppLogger.badge.error("saveBadge(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

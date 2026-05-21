@@ -1,6 +1,5 @@
 import ActivityKit
 import Foundation
-import OSLog
 
 /// ActivityKit.Activity 타입 별칭 (BabyCare.Activity 모델과 이름 충돌 방지)
 private typealias LiveActivity = ActivityKit.Activity<FeedingTimerAttributes>
@@ -12,7 +11,6 @@ final class LiveActivityManager {
     static let shared = LiveActivityManager()
     private init() {}
 
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "LiveActivity")
     private var currentActivity: LiveActivity?
     private var updateTask: Task<Void, Never>?
 
@@ -40,7 +38,7 @@ final class LiveActivityManager {
         updateTask = nil
 
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            Self.logger.warning("Live Activities are not enabled")
+            AppLogger.liveActivity.warning("Live Activities are not enabled")
             return
         }
 
@@ -63,12 +61,12 @@ final class LiveActivityManager {
                 content: content,
                 pushType: nil
             )
-            Self.logger.info("Live Activity started for \(feedingType.displayName)")
+            AppLogger.liveActivity.info("Live Activity started for \(feedingType.displayName)")
 
             // 주기적 업데이트 시작 (30초마다)
             startPeriodicUpdate(startTime: Date())
         } catch {
-            Self.logger.error("Failed to start Live Activity: \(error.localizedDescription)")
+            AppLogger.liveActivity.error("Failed to start Live Activity: \(error.localizedDescription)")
         }
     }
 
@@ -91,7 +89,7 @@ final class LiveActivityManager {
                 )
                 let content = ActivityContent(state: finalState, staleDate: nil)
                 await activity.end(content, dismissalPolicy: .immediate)
-                Self.logger.info("Live Activity ended (immediate)")
+                AppLogger.liveActivity.info("Live Activity ended (immediate)")
             }
         }
     }
@@ -105,13 +103,13 @@ final class LiveActivityManager {
                 // 타이머가 진행 중이면 첫 번째 활성 Activity를 currentActivity에 재연결
                 if currentActivity == nil, let first = active.first {
                     currentActivity = first
-                    Self.logger.info("Reconnected to existing Live Activity")
+                    AppLogger.liveActivity.info("Reconnected to existing Live Activity")
                 }
             } else {
                 // 타이머가 없는데 leftover Activity가 있으면 모두 정리
                 for activity in active {
                     await activity.end(nil, dismissalPolicy: .immediate)
-                    Self.logger.info("Cleaned up leftover Live Activity on launch")
+                    AppLogger.liveActivity.info("Cleaned up leftover Live Activity on launch")
                 }
                 currentActivity = nil
             }

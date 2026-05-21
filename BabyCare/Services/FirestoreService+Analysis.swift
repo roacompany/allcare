@@ -23,12 +23,17 @@ extension FirestoreService {
 
     /// hospitalVisitId 로 가장 최근 1건 조회. 캐시 miss 시 nil.
     func fetchCachedAnalysisResult(babyId: String, visitId: String, userId: String) async -> AnalysisResult? {
-        let snapshot = try? await db.collection(FirestoreCollections.users).document(userId)
-            .collection(FirestoreCollections.babies).document(babyId)
-            .collection(FirestoreCollections.hospitalReports)
-            .whereField("hospitalVisitId", isEqualTo: visitId)
-            .limit(to: 1)
-            .getDocuments()
-        return snapshot?.documents.first.flatMap { try? $0.data(as: AnalysisResult.self) }
+        do {
+            let snapshot = try await db.collection(FirestoreCollections.users).document(userId)
+                .collection(FirestoreCollections.babies).document(babyId)
+                .collection(FirestoreCollections.hospitalReports)
+                .whereField("hospitalVisitId", isEqualTo: visitId)
+                .limit(to: 1)
+                .getDocuments()
+            return snapshot.documents.first.flatMap { try? $0.data(as: AnalysisResult.self) }
+        } catch {
+            logSilent("hospitalReport 캐시 조회 실패", error: error, logger: AppLogger.analysis)
+            return nil
+        }
     }
 }

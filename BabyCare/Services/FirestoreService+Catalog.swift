@@ -23,7 +23,7 @@ extension FirestoreService {
                 let brand = data["brand"] as? String,
                 let category = data["category"] as? String
             else {
-                Self.logger.warning("CatalogProduct SKIP \(doc.documentID): missing required field")
+                AppLogger.catalog.warning("CatalogProduct SKIP \(doc.documentID): missing required field")
                 return nil
             }
 

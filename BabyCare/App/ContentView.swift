@@ -165,7 +165,13 @@ struct ContentView: View {
         guard !ownedBabyIds.isEmpty else { return }
 
         // 현재 루틴 최대 streak — 백필된 연속 루틴 배지 판정용
-        let routines = (try? await FirestoreService.shared.fetchRoutines(userId: userId)) ?? []
+        let routines: [Routine]
+        do {
+            routines = try await FirestoreService.shared.fetchRoutines(userId: userId)
+        } catch {
+            logSilent("배지 백필용 routine 로드 실패", error: error, logger: AppLogger.firestore)
+            routines = []
+        }
         let maxStreak = routines.compactMap { $0.currentStreak }.max() ?? 0
 
         let earned = await BadgeEvaluator().backfillIfNeeded(

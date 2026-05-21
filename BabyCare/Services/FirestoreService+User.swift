@@ -78,8 +78,13 @@ extension FirestoreService {
                 for docId in docIds {
                     group.addTask {
                         let ref = Firestore.firestore().collection(newRefPath).document(docId)
-                        let snap = try? await ref.getDocument()
-                        return (docId, snap?.exists ?? false)
+                        do {
+                            let snap = try await ref.getDocument()
+                            return (docId, snap.exists)
+                        } catch {
+                            logSilent("familySharing 신형 존재 확인 실패: \(docId)", error: error, logger: AppLogger.firestore)
+                            return (docId, false)
+                        }
                     }
                 }
                 var map: [String: Bool] = [:]
@@ -117,7 +122,7 @@ extension FirestoreService {
                 .setData(["lastAccessedAt": FieldValue.serverTimestamp()], merge: true)
             UserDefaults.standard.set(now, forKey: Self.lastAccessedAtKey)
         } catch {
-            Self.logger.warning("updateLastAccessedAt failed: \(error.localizedDescription)")
+            AppLogger.firestore.warning("updateLastAccessedAt failed: \(error.localizedDescription)")
         }
     }
 }

@@ -26,9 +26,14 @@ extension FirestoreService {
             .document(babyId)
             .collection(FirestoreCollections.highlightCache)
             .document(docId)
-        guard let snapshot = try? await ref.getDocument(),
-              snapshot.exists else { return nil }
-        return try? snapshot.data(as: HighlightAICache.self)
+        do {
+            let snapshot = try await ref.getDocument()
+            guard snapshot.exists else { return nil }
+            return try? snapshot.data(as: HighlightAICache.self)
+        } catch {
+            logSilent("highlight cache 조회 실패", error: error, logger: AppLogger.highlight)
+            return nil
+        }
     }
 
     /// 캐시 문서 저장 (같은 docId면 overwrite — idempotent).

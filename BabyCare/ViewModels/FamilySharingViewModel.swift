@@ -13,7 +13,12 @@ final class FamilySharingViewModel {
     // MARK: - Fetch
 
     func fetchSharedAccess(userId: String) async {
-        sharedAccess = (try? await firestoreService.fetchSharedAccess(userId: userId)) ?? []
+        do {
+            sharedAccess = try await firestoreService.fetchSharedAccess(userId: userId)
+        } catch {
+            logSilent("공유 접근 로드 실패", error: error, logger: AppLogger.firestore)
+            sharedAccess = []
+        }
     }
 
     // MARK: - Generate Invite
@@ -63,7 +68,11 @@ final class FamilySharingViewModel {
             babyName: invite.babyName
         )
         try await firestoreService.saveSharedAccess(access, userId: userId)
-        try? await firestoreService.markInviteUsed(invite.id)
+        do {
+            try await firestoreService.markInviteUsed(invite.id)
+        } catch {
+            logSilent("초대 사용 표시 실패", error: error, logger: AppLogger.firestore)
+        }
         return access
     }
 

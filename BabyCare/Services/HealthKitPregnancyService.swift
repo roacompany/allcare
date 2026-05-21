@@ -43,14 +43,23 @@ final class HealthKitPregnancyService {
         // 기존 임신 데이터 삭제 후 재등록 (중복 방지).
         let pregnancyType = HKCategoryType(.pregnancy)
         let predicate = HKQuery.predicateForSamples(withStart: nil, end: nil)
-        if let existing = try? await withCheckedThrowingContinuation({ (cont: CheckedContinuation<[HKSample], Error>) in
-            let query = HKSampleQuery(sampleType: pregnancyType, predicate: predicate, limit: 10, sortDescriptors: nil) { _, results, error in
-                if let error { cont.resume(throwing: error) } else { cont.resume(returning: results ?? []) }
+        let existing: [HKSample]
+        do {
+            existing = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<[HKSample], Error>) in
+                let query = HKSampleQuery(sampleType: pregnancyType, predicate: predicate, limit: 10, sortDescriptors: nil) { _, results, error in
+                    if let error { cont.resume(throwing: error) } else { cont.resume(returning: results ?? []) }
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
-        }) {
-            for sample in existing {
-                try? await healthStore.delete(sample)
+        } catch {
+            logSilent("HealthKit 임신 샘플 조회 실패", error: error, logger: AppLogger.pregnancy)
+            existing = []
+        }
+        for sample in existing {
+            do {
+                try await healthStore.delete(sample)
+            } catch {
+                logSilent("HealthKit 임신 샘플 삭제 실패", error: error, logger: AppLogger.pregnancy)
             }
         }
 
@@ -62,7 +71,11 @@ final class HealthKitPregnancyService {
             start: lmpDate,
             end: dueDate
         )
-        try? await healthStore.save(sample)
+        do {
+            try await healthStore.save(sample)
+        } catch {
+            logSilent("HealthKit 임신 샘플 저장 실패", error: error, logger: AppLogger.pregnancy)
+        }
     }
 
     /// 권한 거부 시 graceful — 에러만 로깅, 앱 기능 차단 없음.

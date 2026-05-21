@@ -88,8 +88,10 @@ final class HospitalReportViewModel {
 
         // 성장 기록 로드 (체크리스트·PDF 백분위 섹션용)
         if growthRecords.isEmpty {
-            if let records = try? await FirestoreService.shared.fetchGrowthRecords(userId: userId, babyId: baby.id) {
-                growthRecords = records
+            do {
+                growthRecords = try await FirestoreService.shared.fetchGrowthRecords(userId: userId, babyId: baby.id)
+            } catch {
+                logSilent("hospital report용 성장 기록 로드 실패", error: error, logger: AppLogger.firestore)
             }
         }
 

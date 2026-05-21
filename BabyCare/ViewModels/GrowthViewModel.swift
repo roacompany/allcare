@@ -13,7 +13,12 @@ final class GrowthViewModel {
     func loadRecords(userId: String, babyId: String) async {
         isLoading = true
         defer { isLoading = false }
-        records = (try? await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)) ?? []
+        do {
+            records = try await firestoreService.fetchGrowthRecords(userId: userId, babyId: babyId)
+        } catch {
+            logSilent("성장 기록 로드 실패", error: error, logger: AppLogger.firestore)
+            records = []
+        }
     }
 
     // MARK: - Save

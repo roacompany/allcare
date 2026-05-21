@@ -128,7 +128,11 @@ final class AuthViewModel {
             // 2. Auth 삭제 성공 후 데이터 정리 (실패해도 계정은 이미 삭제됨)
             await FCMTokenService.shared.deleteToken()
             if let userId {
-                try? await deleteUserData(userId: userId)
+                do {
+                    try await deleteUserData(userId: userId)
+                } catch {
+                    logSilent("계정 데이터 정리 실패 (Auth는 이미 삭제됨)", error: error, logger: AppLogger.auth)
+                }
             }
             // Auth state listener가 isAuthenticated=false로 전환 → ContentView가 LoginView 표시
             // 하지만 싱글톤 ViewModel들의 상태는 남아있으므로 명시적 초기화
@@ -197,7 +201,11 @@ final class AuthViewModel {
                 if let fullName = appleIDCredential.fullName {
                     let name = [fullName.familyName, fullName.givenName].compactMap { $0 }.joined()
                     if !name.isEmpty {
-                        try? await authService.updateDisplayName(name)
+                        do {
+                            try await authService.updateDisplayName(name)
+                        } catch {
+                            logSilent("Apple 가입 표시명 저장 실패", error: error, logger: AppLogger.auth)
+                        }
                     }
                 }
                 _ = user

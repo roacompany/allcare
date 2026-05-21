@@ -1,11 +1,9 @@
 import EventKit
-import OSLog
 
 @MainActor
 final class CalendarService {
     static let shared = CalendarService()
     private let store = EKEventStore()
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "BabyCare", category: "Calendar")
 
     private init() {}
 
@@ -19,7 +17,7 @@ final class CalendarService {
         do {
             return try await store.requestFullAccessToEvents()
         } catch {
-            Self.logger.error("Calendar access request failed: \(error.localizedDescription)")
+            AppLogger.calendar.error("Calendar access request failed: \(error.localizedDescription)")
             return false
         }
     }
@@ -94,7 +92,7 @@ final class CalendarService {
             do {
                 try store.remove(event, span: .thisEvent)
             } catch {
-                Self.logger.warning("Failed to remove calendar event: \(error.localizedDescription)")
+                AppLogger.calendar.warning("Failed to remove calendar event: \(error.localizedDescription)")
             }
         }
     }
@@ -113,10 +111,10 @@ final class CalendarService {
 
         do {
             try store.save(event, span: .thisEvent)
-            Self.logger.info("Calendar event saved: \(id)")
+            AppLogger.calendar.info("Calendar event saved: \(id)")
             return true
         } catch {
-            Self.logger.error("Failed to save calendar event: \(error.localizedDescription)")
+            AppLogger.calendar.error("Failed to save calendar event: \(error.localizedDescription)")
             return false
         }
     }
