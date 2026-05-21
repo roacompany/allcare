@@ -2,7 +2,16 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.3] - 2026-05-12 (TestFlight 빌드 67/68)
+## [2.8.3] - 2026-05-17 (TestFlight 빌드 67/68/69, App Store 제출)
+
+### Fixed — Nested NavigationStack 일괄 제거 (빌드 69, PR #9 `d31cd06`)
+
+- **Root cause**: NavigationLink로 push되는 view가 body root에 NavigationStack 재중첩 → iOS 17/18 toolbar 결합 시 latent crash hotspot
+- **사용자 보고**: "통계 누르면 앱 종료" (StatsView) — 동일 패턴 8개 view 전수 수정
+- **수정 대상**: StatsView / AIAdviceView / CryAnalysisView / DiaryView / GrowthView / SoundPlayerView / TodoView / DashboardPregnancyView (dual-use는 DashboardView에서 wrap)
+- **Manual signing**: 빌드 69에서 signing 안정화
+- **QA evidence**: `.dev/qa-evidence/v2.8.3-build69-nav-regression.md` (13 navigation 경로 무회귀 체크리스트)
+- **학습**: SwiftUI 모든 프로젝트 공통 룰 — `.claude/rules/swift-conventions.md` 등재
 
 ### Added — Weekly Highlights v2 (Phase 1 ML 활용)
 

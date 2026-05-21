@@ -208,12 +208,12 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.3 (빌드 69) — TestFlight 만 (App Store 미제출, Weekly Highlights v2 + nested NavigationStack fix)
+- **Version**: v2.8.3 (빌드 69) — **App Store READY_FOR_SALE** (2026-05-17 제출 → AFTER_APPROVAL 자동 출시 완료, Weekly Highlights v2 + nested NavigationStack fix)
 - **App Store**:
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
-  - **v2.8.3 미제출** — TestFlight 만 (실기기 무회귀 검증 + AI 의료 감수 25 샘플 후 결정)
+  - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
 - **TestFlight**: v2.8.3 빌드 69 (`c040f15f-...`, 2026-05-17 — nested NavigationStack fix, 사용자 "통계 누르면 종료" 회귀 해소 검증 완료), 빌드 68 (`f61fed76-...`, 2026-05-12), 빌드 67 (`62cfb14c-...`)
   - 이전: 빌드 66 (v2.8.2 ML `101f6cb5-...`), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
@@ -328,7 +328,7 @@ make dead-code   # 미사용 코드 탐지
 - ✅ P0: 광고 제거 hotfix — v2.8.1 출시 완료 (2026-05-06)
 - ✅ P0: Phase 1 ML 인사이트 — v2.8.2 출시 완료 (2026-05-10)
 - ✅ P0: Weekly Highlights v2 — v2.8.3 TestFlight 67/68 (2026-05-12), PR #5 main merge (2026-05-14)
-- [ ] v2.8.3 빌드 69 추가 무회귀 검증 (다른 push view 8개 nav 경로) + AI 의료 감수 25 샘플 → App Store 제출 결정
+- ✅ P0: v2.8.3 App Store 출시 — 빌드 69 nested NavigationStack fix + Weekly Highlights v2 (2026-05-17 제출 → AFTER_APPROVAL 자동 출시, ASC `appStoreState=READY_FOR_SALE` 확인 2026-05-22)
 - ✅ CI Test 단계 인프라 fix — PR #7 머지 (`2c57c1f`, 2026-05-15). stub plist API_KEY 35→39자 + AppDelegate XCTest 가드 + iOS 18.x sim 강제. **부채**: CI에서 처음 실행된 테스트 5건 사전 실패 — 별도 PR 예정 (`-skip-testing`로 임시 우회 중).
 - [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
 - [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
@@ -341,9 +341,10 @@ make dead-code   # 미사용 코드 탐지
 
 ### 즉시 처리 필요 (사용자 액션)
 - ✅ TestFlight 빌드 69 (nested NavigationStack fix) — 사용자 "통계 누르면 종료" 회귀 해소 검증 완료 (2026-05-17)
-- [ ] TestFlight 빌드 69 (v2.8.3 Weekly Highlights + nav fix) 추가 무회귀 검증 (다른 push view 9개 navigation 경로)
-- [ ] Firebase Console RC `highlight_enabled=true` + `highlight_ticker_pct` 0→5→25→50→100% 단계 활성화
-- [ ] H-3 AI 의료 감수 25 샘플 (Admin batch Cron 결과 기반) → 통과 후 v2.8.3 App Store 제출 결정
+- ✅ v2.8.3 App Store 출시 — AFTER_APPROVAL 자동 출시 완료 (ASC API 확인 2026-05-22, `appStoreState=READY_FOR_SALE`)
+- [ ] **production 모니터링** — Crashlytics + Firebase Analytics + ASC 리뷰로 v2.8.3 무회귀 / nested NavigationStack fix 크래시 감소 / nav 9 경로 사용자 사용 패턴 확인
+- [ ] Firebase Console RC `highlight_enabled=true` + `highlight_ticker_pct` 0→5→25→50→100% 단계 활성화 (Crashlytics 무회귀 확인 후)
+- [ ] H-3 AI 의료 감수 25 샘플 (Admin batch Cron 결과 기반) — Phase 2 ML supervised label 수집 + 사후 검증
 - ✅ CI Test 사전 부채 5건 fix — PR #8 머지 (`c291e33`, 2026-05-15). root cause 4종: timezone(Diary 2건), 단일변수로 두 분기 검증(HighlightTicker), assertionFailure가 throw 전 SIGTRAP(AISummary), 직전 host crash 연쇄(stillbirth). 370/370 PASS, 0 skip. multi-model 리뷰(Gemini+Claude SHIP) + CR-001(testable helper 추출) 적용.
 - [ ] AdMob Console 차단 사유 확인 + 항소 (코드 폐기는 완료, 항소만 user action)
 - [ ] H-10 법무 검토 → `/Users/roque/allcare/privacy.html` §3 보강 (1주 external)
