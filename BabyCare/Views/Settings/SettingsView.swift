@@ -206,6 +206,14 @@ struct SettingsView: View {
                         } label: {
                             Label("관리자 패널", systemImage: "shield.fill")
                         }
+
+                        if FeatureFlags.designSystemV2Preview {
+                            NavigationLink {
+                                DS2PreviewView()
+                            } label: {
+                                Label("DS V2 미리보기", systemImage: "paintpalette.fill")
+                            }
+                        }
                     }
                 }
 
