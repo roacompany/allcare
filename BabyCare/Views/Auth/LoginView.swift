@@ -7,6 +7,7 @@ struct LoginView: View {
     @State private var showForgotPassword = false
     @State private var navigateToSignUp = false
 
+    // MARK: - V1 컬러 (기존)
     private var bgGradient: [Color] {
         colorScheme == .dark
             ? [Color(red: 0.12, green: 0.1, blue: 0.18), Color(red: 0.1, green: 0.12, blue: 0.2)]
@@ -25,7 +26,186 @@ struct LoginView: View {
             : Color(red: 0.85, green: 0.8, blue: 0.95)
     }
 
+    @ViewBuilder
     var body: some View {
+        if FeatureFlags.designSystemV2Preview {
+            loginV2
+        } else {
+            loginV1
+        }
+    }
+
+    // MARK: - V2 (DS2 토큰 기반)
+    private var loginV2: some View {
+        NavigationStack {
+            ZStack {
+                DS2.Color.surfacePrimary.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: DS2.Spacing.xl) {
+                        // Brand
+                        VStack(spacing: DS2.Spacing.md) {
+                            ZStack {
+                                Circle()
+                                    .fill(DS2.Color.accent.opacity(0.12))
+                                    .frame(width: 96, height: 96)
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(DS2.Color.accent)
+                            }
+                            .padding(.top, DS2.Spacing.xxl)
+
+                            VStack(spacing: DS2.Spacing.xs) {
+                                Text("BabyCare")
+                                    .font(DS2.Font.largeTitle)
+                                Text("우리 아이의 소중한 순간을 기록하세요")
+                                    .font(DS2.Font.subheadline)
+                                    .foregroundStyle(DS2.Color.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+
+                        // Form Card
+                        DS2Card {
+                            VStack(spacing: DS2.Spacing.lg) {
+                                if let error = authVM.errorMessage {
+                                    HStack(spacing: DS2.Spacing.sm) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .foregroundStyle(DS2.Color.danger)
+                                        Text(error)
+                                            .font(DS2.Font.caption)
+                                            .foregroundStyle(DS2.Color.danger)
+                                        Spacer()
+                                    }
+                                    .padding(DS2.Spacing.md)
+                                    .background(DS2.Color.danger.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.sm))
+                                }
+
+                                // Email
+                                ds2InputField(
+                                    label: "이메일",
+                                    icon: "envelope.fill",
+                                    placeholder: "이메일 주소를 입력하세요",
+                                    isSecure: false
+                                )
+
+                                // Password
+                                ds2InputField(
+                                    label: "비밀번호",
+                                    icon: "lock.fill",
+                                    placeholder: "비밀번호를 입력하세요",
+                                    isSecure: true
+                                )
+
+                                // Forgot password
+                                HStack {
+                                    Spacer()
+                                    Button("비밀번호를 잊으셨나요?") {
+                                        showForgotPassword = true
+                                    }
+                                    .font(DS2.Font.caption)
+                                    .foregroundStyle(DS2.Color.accent)
+                                }
+
+                                // Sign in button
+                                DS2Button(
+                                    authVM.isLoading ? "로그인 중..." : "로그인",
+                                    icon: authVM.isLoading ? nil : "arrow.right.circle.fill",
+                                    style: .primary
+                                ) {
+                                    Task { await authVM.signIn() }
+                                }
+                                .disabled(authVM.isLoading || authVM.email.isEmpty || authVM.password.isEmpty)
+                                .opacity(authVM.email.isEmpty || authVM.password.isEmpty ? 0.6 : 1.0)
+                                .animation(.easeInOut(duration: 0.2), value: authVM.isLoading)
+                            }
+                        }
+                        .padding(.horizontal, DS2.Spacing.lg)
+                        .ds2Shadow(.md)
+
+                        // Divider + Apple Sign In
+                        VStack(spacing: DS2.Spacing.md) {
+                            HStack(spacing: DS2.Spacing.md) {
+                                Rectangle().fill(.quaternary).frame(height: 0.5)
+                                Text("또는")
+                                    .font(DS2.Font.caption)
+                                    .foregroundStyle(DS2.Color.textSecondary)
+                                Rectangle().fill(.quaternary).frame(height: 0.5)
+                            }
+                            .padding(.horizontal, DS2.Spacing.xxl)
+
+                            SignInWithAppleButton(.signIn) { request in
+                                guard let hashedNonce = authVM.prepareAppleNonce() else { return }
+                                request.requestedScopes = [.fullName, .email]
+                                request.nonce = hashedNonce
+                            } onCompletion: { result in
+                                Task { await authVM.handleAppleSignIn(result: result) }
+                            }
+                            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                            .frame(height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.md, style: .continuous))
+                            .padding(.horizontal, DS2.Spacing.lg)
+                        }
+
+                        // Sign up link
+                        VStack(spacing: DS2.Spacing.xs) {
+                            Text("아직 계정이 없으신가요?")
+                                .font(DS2.Font.subheadline)
+                                .foregroundStyle(DS2.Color.textSecondary)
+                            NavigationLink(destination: SignUpView()) {
+                                Text("회원가입하기")
+                                    .font(DS2.Font.subheadline.weight(.semibold))
+                                    .foregroundStyle(DS2.Color.accent)
+                                    .padding(.vertical, DS2.Spacing.xs)
+                                    .padding(.horizontal, DS2.Spacing.md)
+                                    .background(DS2.Color.accent.opacity(0.1))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.bottom, DS2.Spacing.xxl)
+                    }
+                }
+            }
+            .navigationBarHidden(true)
+            .onDisappear { authVM.clearForm() }
+            .sheet(isPresented: $showForgotPassword) {
+                ForgotPasswordSheet(authVM: authVM)
+            }
+        }
+    }
+
+    /// DS2 토큰 기반 인풋 필드 (이메일/비밀번호 공통).
+    private func ds2InputField(label: String, icon: String, placeholder: String, isSecure: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DS2.Spacing.xs) {
+            Label(label, systemImage: icon)
+                .font(DS2.Font.caption.weight(.semibold))
+                .foregroundStyle(DS2.Color.textSecondary)
+
+            @Bindable var vm = authVM
+            Group {
+                if isSecure {
+                    SecureField(placeholder, text: $vm.password)
+                        .textContentType(.password)
+                } else {
+                    TextField(placeholder, text: $vm.email)
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                }
+            }
+            .padding(DS2.Spacing.md)
+            .background(DS2.Color.surfacePrimary, in: RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous)
+                    .stroke(.quaternary, lineWidth: 1)
+            )
+        }
+    }
+
+    // MARK: - V1 (기존, FeatureFlag off 시 fallback)
+    private var loginV1: some View {
         NavigationStack {
             ZStack {
                 LinearGradient(colors: bgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
