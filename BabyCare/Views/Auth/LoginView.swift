@@ -6,6 +6,11 @@ struct LoginView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showForgotPassword = false
     @State private var navigateToSignUp = false
+    @FocusState private var focusedField: AuthField?
+
+    enum AuthField: Hashable {
+        case email, password
+    }
 
     // MARK: - V1 컬러 (기존)
     private var bgGradient: [Color] {
@@ -35,6 +40,11 @@ struct LoginView: View {
         }
     }
 
+    /// 빈 화면 탭 또는 스크롤 시 키보드 dismiss — SwiftUI FocusState 기반.
+    private func dismissKeyboard() {
+        focusedField = nil
+    }
+
     // MARK: - V2 (Glassmorphism — gradient bg + ultraThinMaterial card)
     private var v2BgGradient: [Color] {
         colorScheme == .dark
@@ -51,12 +61,15 @@ struct LoginView: View {
             ZStack {
                 LinearGradient(colors: v2BgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
                     .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
 
                 // Subtle decorative orbs (glass blurred)
                 v2DecorativeOrbs
 
                 ScrollView {
                     VStack(spacing: DS2.Spacing.xxl) {
+                        // (V2 content)
                         // Brand
                         VStack(spacing: DS2.Spacing.md) {
                             Image(systemName: "heart.fill")
@@ -210,8 +223,15 @@ struct LoginView: View {
                         .padding(.bottom, DS2.Spacing.xxl)
                     }
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
             .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("완료") { focusedField = nil }
+                }
+            }
             .onDisappear { authVM.clearForm() }
             .sheet(isPresented: $showForgotPassword) {
                 ForgotPasswordSheet(authVM: authVM)
@@ -219,7 +239,7 @@ struct LoginView: View {
         }
     }
 
-    /// Glass 인풋 필드 — .thinMaterial 배경 + 미세 border.
+    /// Glass 인풋 필드 — .thinMaterial 배경 + 미세 border + FocusState.
     private func glassInputField(label: String, icon: String, placeholder: String, isSecure: Bool) -> some View {
         VStack(alignment: .leading, spacing: DS2.Spacing.xs + 2) {
             Label(label, systemImage: icon)
@@ -231,12 +251,23 @@ struct LoginView: View {
                 if isSecure {
                     SecureField(placeholder, text: $vm.password)
                         .textContentType(.password)
+                        .focused($focusedField, equals: .password)
+                        .submitLabel(.go)
+                        .onSubmit {
+                            if !vm.email.isEmpty && !vm.password.isEmpty {
+                                Task { await authVM.signIn() }
+                            }
+                            focusedField = nil
+                        }
                 } else {
                     TextField(placeholder, text: $vm.email)
                         .keyboardType(.emailAddress)
                         .textContentType(.emailAddress)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
+                        .focused($focusedField, equals: .email)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .password }
                 }
             }
             .padding(DS2.Spacing.md + 2)
