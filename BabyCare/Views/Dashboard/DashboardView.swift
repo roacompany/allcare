@@ -38,6 +38,55 @@ struct DashboardView: View {
 
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
+    // MARK: - V2 Dashboard Layout (P0-5: 정보 위계 — 매일 핵심 위, 부가 아래)
+    @ViewBuilder
+    private var dashboardV2Layout: some View {
+        AnnouncementBanner()
+        alertBannersSection
+        quickActionsSection
+        predictionSection
+        pregnancyHomeCardIfNeeded
+        summaryCardsSection
+        timelineSection
+        insightCardsSection
+        highlightTickerOrV1Card
+        highlightGridIfNeeded
+        BadgeHomeStrip()
+        reorderSummaryCard
+        moreDisclosureGroup
+    }
+
+    // MARK: - V1 Dashboard Layout (legacy)
+    @ViewBuilder
+    private var dashboardV1Layout: some View {
+        AnnouncementBanner()
+        alertBannersSection
+        BadgeHomeStrip()
+        quickActionsSection
+        highlightTickerOrV1Card
+        predictionSection
+        insightCardsSection
+        pregnancyHomeCardIfNeeded
+        summaryCardsSection
+        highlightGridIfNeeded
+        reorderSummaryCard
+        moreDisclosureGroup
+        timelineSection
+    }
+
+    private var moreDisclosureGroup: some View {
+        DisclosureGroup(isExpanded: $showMoreSection) {
+            VStack(spacing: 12) {
+                aiAdviceShortcut
+                soundShortcutCard
+            }
+        } label: {
+            Text("더보기")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         // 우선순위: AppContext 기반 4-state 분기.
         // .babyOnly / .both → baby 대시보드 우선. 카드는 additive.
@@ -59,28 +108,11 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    AnnouncementBanner()
-                    alertBannersSection
-                    BadgeHomeStrip()
-                    quickActionsSection
-                    highlightTickerOrV1Card
-                    predictionSection
-                    insightCardsSection
-                    pregnancyHomeCardIfNeeded
-                    summaryCardsSection
-                    highlightGridIfNeeded
-                    reorderSummaryCard
-                    DisclosureGroup(isExpanded: $showMoreSection) {
-                        VStack(spacing: 12) {
-                            aiAdviceShortcut
-                            soundShortcutCard
-                        }
-                    } label: {
-                        Text("더보기")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
+                    if FeatureFlags.designSystemV2Preview {
+                        dashboardV2Layout
+                    } else {
+                        dashboardV1Layout
                     }
-                    timelineSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)

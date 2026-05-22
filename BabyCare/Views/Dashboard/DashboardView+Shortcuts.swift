@@ -215,7 +215,7 @@ extension DashboardView {
                 }
             }
         }
-        .cardStyle()
+        .summaryCardStyle(tint: feedingColor)
         .accessibilityElement(children: .combine)
         .accessibilityLabel({
             let lastText = activityVM.lastFeeding.map { "마지막 수유 \($0.startTime.timeAgo())" } ?? "수유 기록 없음"
@@ -263,7 +263,7 @@ extension DashboardView {
                 .font(.title3.bold())
                 .foregroundStyle(.primary)
         }
-        .cardStyle()
+        .summaryCardStyle(tint: sleepColor)
         .accessibilityElement(children: .combine)
         .accessibilityLabel({
             let lastText = activityVM.lastSleep.map { "마지막 수면 \($0.startTime.timeAgo())" } ?? "수면 기록 없음"
@@ -309,7 +309,7 @@ extension DashboardView {
                 .font(.title3.bold())
                 .foregroundStyle(.primary)
         }
-        .cardStyle()
+        .summaryCardStyle(tint: diaperColor)
         .accessibilityElement(children: .combine)
         .accessibilityLabel({
             let lastText = activityVM.lastDiaper.map { "마지막 기저귀 \($0.startTime.timeAgo())" } ?? "기저귀 기록 없음"
@@ -317,4 +317,23 @@ extension DashboardView {
         }())
     }
 
+}
+
+// MARK: - Summary Card Style (DS2 dual-mode)
+
+extension View {
+    /// FeatureFlag 분기:
+    /// - V2 (designSystemV2Preview=true): 활동색 12% opacity tint 배경 (DS2 토큰)
+    /// - V1: 기존 `cardStyle()` (.regularMaterial)
+    @ViewBuilder
+    func summaryCardStyle(tint: Color) -> some View {
+        if FeatureFlags.designSystemV2Preview {
+            self
+                .padding()
+                .background(tint.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        } else {
+            self.cardStyle()
+        }
+    }
 }
