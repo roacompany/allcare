@@ -2,7 +2,8 @@ import Foundation
 
 enum AdminConfig {
     static let adminUIDs: Set<String> = [
-        "8EAUezvUyYTzhNVw9VO6GKKyhhx2"
+        "8EAUezvUyYTzhNVw9VO6GKKyhhx2",
+        "dDJZ8bfeYPM7FI2c3t0qQ1mdpB01"
     ]
 
     static func isAdmin(_ uid: String?) -> Bool {
