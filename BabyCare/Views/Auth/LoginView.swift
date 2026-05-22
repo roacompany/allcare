@@ -35,94 +35,133 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - V2 (DS2 토큰 기반)
+    // MARK: - V2 (Glassmorphism — gradient bg + ultraThinMaterial card)
+    private var v2BgGradient: [Color] {
+        colorScheme == .dark
+            ? [Color(red: 0.12, green: 0.10, blue: 0.22), Color(red: 0.18, green: 0.14, blue: 0.30)]
+            : [Color(red: 1.00, green: 0.88, blue: 0.92), Color(red: 0.90, green: 0.88, blue: 1.00)]
+    }
+
+    private var v2BrandGradient: [Color] {
+        [Color(red: 1.0, green: 0.55, blue: 0.70), Color(red: 0.65, green: 0.55, blue: 0.95)]
+    }
+
     private var loginV2: some View {
         NavigationStack {
             ZStack {
-                DS2.Color.surfacePrimary.ignoresSafeArea()
+                LinearGradient(colors: v2BgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
+
+                // Subtle decorative orbs (glass blurred)
+                v2DecorativeOrbs
 
                 ScrollView {
-                    VStack(spacing: DS2.Spacing.xl) {
+                    VStack(spacing: DS2.Spacing.xxl) {
                         // Brand
                         VStack(spacing: DS2.Spacing.md) {
-                            ZStack {
-                                Circle()
-                                    .fill(DS2.Color.accent.opacity(0.12))
-                                    .frame(width: 96, height: 96)
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(DS2.Color.accent)
-                            }
-                            .padding(.top, DS2.Spacing.xxl)
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: v2BrandGradient,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .padding(.top, DS2.Spacing.xxl + DS2.Spacing.xl)
 
                             VStack(spacing: DS2.Spacing.xs) {
                                 Text("BabyCare")
                                     .font(DS2.Font.largeTitle)
+                                    .foregroundStyle(.primary)
                                 Text("우리 아이의 소중한 순간을 기록하세요")
                                     .font(DS2.Font.subheadline)
-                                    .foregroundStyle(DS2.Color.textSecondary)
+                                    .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center)
                             }
                         }
 
-                        // Form Card
-                        DS2Card {
-                            VStack(spacing: DS2.Spacing.lg) {
-                                if let error = authVM.errorMessage {
-                                    HStack(spacing: DS2.Spacing.sm) {
-                                        Image(systemName: "exclamationmark.circle.fill")
-                                            .foregroundStyle(DS2.Color.danger)
-                                        Text(error)
-                                            .font(DS2.Font.caption)
-                                            .foregroundStyle(DS2.Color.danger)
-                                        Spacer()
-                                    }
-                                    .padding(DS2.Spacing.md)
-                                    .background(DS2.Color.danger.opacity(0.1))
-                                    .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.sm))
-                                }
-
-                                // Email
-                                ds2InputField(
-                                    label: "이메일",
-                                    icon: "envelope.fill",
-                                    placeholder: "이메일 주소를 입력하세요",
-                                    isSecure: false
-                                )
-
-                                // Password
-                                ds2InputField(
-                                    label: "비밀번호",
-                                    icon: "lock.fill",
-                                    placeholder: "비밀번호를 입력하세요",
-                                    isSecure: true
-                                )
-
-                                // Forgot password
-                                HStack {
+                        // Form Card — frosted glass
+                        VStack(spacing: DS2.Spacing.lg) {
+                            if let error = authVM.errorMessage {
+                                HStack(spacing: DS2.Spacing.sm) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundStyle(DS2.Color.danger)
+                                    Text(error)
+                                        .font(DS2.Font.caption)
+                                        .foregroundStyle(DS2.Color.danger)
                                     Spacer()
-                                    Button("비밀번호를 잊으셨나요?") {
-                                        showForgotPassword = true
-                                    }
-                                    .font(DS2.Font.caption)
-                                    .foregroundStyle(DS2.Color.accent)
                                 }
-
-                                // Sign in button
-                                DS2Button(
-                                    authVM.isLoading ? "로그인 중..." : "로그인",
-                                    icon: authVM.isLoading ? nil : "arrow.right.circle.fill",
-                                    style: .primary
-                                ) {
-                                    Task { await authVM.signIn() }
-                                }
-                                .disabled(authVM.isLoading || authVM.email.isEmpty || authVM.password.isEmpty)
-                                .opacity(authVM.email.isEmpty || authVM.password.isEmpty ? 0.6 : 1.0)
-                                .animation(.easeInOut(duration: 0.2), value: authVM.isLoading)
+                                .padding(DS2.Spacing.md)
+                                .background(
+                                    DS2.Color.danger.opacity(0.12),
+                                    in: RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous)
+                                )
                             }
+
+                            glassInputField(
+                                label: "이메일",
+                                icon: "envelope.fill",
+                                placeholder: "이메일 주소를 입력하세요",
+                                isSecure: false
+                            )
+                            glassInputField(
+                                label: "비밀번호",
+                                icon: "lock.fill",
+                                placeholder: "비밀번호를 입력하세요",
+                                isSecure: true
+                            )
+
+                            HStack {
+                                Spacer()
+                                Button("비밀번호를 잊으셨나요?") {
+                                    showForgotPassword = true
+                                }
+                                .font(DS2.Font.caption)
+                                .foregroundStyle(v2AccentColor)
+                            }
+
+                            Button {
+                                Task { await authVM.signIn() }
+                            } label: {
+                                HStack(spacing: DS2.Spacing.sm) {
+                                    if authVM.isLoading {
+                                        ProgressView()
+                                            .tint(.white)
+                                            .scaleEffect(0.85)
+                                    }
+                                    Text(authVM.isLoading ? "로그인 중..." : "로그인")
+                                        .font(DS2.Font.headline)
+                                        .foregroundStyle(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, DS2.Spacing.md + 2)
+                                .background(
+                                    LinearGradient(
+                                        colors: v2BrandGradient,
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.md, style: .continuous))
+                                .ds2Shadow(.md)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(authVM.isLoading || authVM.email.isEmpty || authVM.password.isEmpty)
+                            .opacity(authVM.email.isEmpty || authVM.password.isEmpty ? 0.6 : 1.0)
+                            .animation(.easeInOut(duration: 0.2), value: authVM.isLoading)
                         }
+                        .padding(DS2.Spacing.xl)
+                        .background(
+                            .ultraThinMaterial,
+                            in: RoundedRectangle(cornerRadius: DS2.Radius.lg, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DS2.Radius.lg, style: .continuous)
+                                .stroke(.white.opacity(colorScheme == .dark ? 0.10 : 0.50), lineWidth: 0.5)
+                        )
+                        .ds2Shadow(.lg)
                         .padding(.horizontal, DS2.Spacing.lg)
-                        .ds2Shadow(.md)
 
                         // Divider + Apple Sign In
                         VStack(spacing: DS2.Spacing.md) {
@@ -130,7 +169,7 @@ struct LoginView: View {
                                 Rectangle().fill(.quaternary).frame(height: 0.5)
                                 Text("또는")
                                     .font(DS2.Font.caption)
-                                    .foregroundStyle(DS2.Color.textSecondary)
+                                    .foregroundStyle(.secondary)
                                 Rectangle().fill(.quaternary).frame(height: 0.5)
                             }
                             .padding(.horizontal, DS2.Spacing.xxl)
@@ -143,24 +182,29 @@ struct LoginView: View {
                                 Task { await authVM.handleAppleSignIn(result: result) }
                             }
                             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                            .frame(height: 48)
+                            .frame(height: 50)
                             .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.md, style: .continuous))
                             .padding(.horizontal, DS2.Spacing.lg)
                         }
 
-                        // Sign up link
+                        // Sign up
                         VStack(spacing: DS2.Spacing.xs) {
                             Text("아직 계정이 없으신가요?")
                                 .font(DS2.Font.subheadline)
-                                .foregroundStyle(DS2.Color.textSecondary)
+                                .foregroundStyle(.secondary)
                             NavigationLink(destination: SignUpView()) {
                                 Text("회원가입하기")
                                     .font(DS2.Font.subheadline.weight(.semibold))
-                                    .foregroundStyle(DS2.Color.accent)
-                                    .padding(.vertical, DS2.Spacing.xs)
+                                    .foregroundStyle(v2AccentColor)
+                                    .padding(.vertical, DS2.Spacing.xs + 2)
                                     .padding(.horizontal, DS2.Spacing.md)
-                                    .background(DS2.Color.accent.opacity(0.1))
-                                    .clipShape(Capsule())
+                                    .background(
+                                        .ultraThinMaterial,
+                                        in: Capsule()
+                                    )
+                                    .overlay(
+                                        Capsule().stroke(v2AccentColor.opacity(0.3), lineWidth: 0.5)
+                                    )
                             }
                         }
                         .padding(.bottom, DS2.Spacing.xxl)
@@ -175,12 +219,12 @@ struct LoginView: View {
         }
     }
 
-    /// DS2 토큰 기반 인풋 필드 (이메일/비밀번호 공통).
-    private func ds2InputField(label: String, icon: String, placeholder: String, isSecure: Bool) -> some View {
-        VStack(alignment: .leading, spacing: DS2.Spacing.xs) {
+    /// Glass 인풋 필드 — .thinMaterial 배경 + 미세 border.
+    private func glassInputField(label: String, icon: String, placeholder: String, isSecure: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DS2.Spacing.xs + 2) {
             Label(label, systemImage: icon)
                 .font(DS2.Font.caption.weight(.semibold))
-                .foregroundStyle(DS2.Color.textSecondary)
+                .foregroundStyle(.secondary)
 
             @Bindable var vm = authVM
             Group {
@@ -195,13 +239,42 @@ struct LoginView: View {
                         .autocorrectionDisabled()
                 }
             }
-            .padding(DS2.Spacing.md)
-            .background(DS2.Color.surfacePrimary, in: RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous))
+            .padding(DS2.Spacing.md + 2)
+            .background(
+                .thinMaterial,
+                in: RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous)
-                    .stroke(.quaternary, lineWidth: 1)
+                    .stroke(.white.opacity(colorScheme == .dark ? 0.10 : 0.40), lineWidth: 0.5)
             )
         }
+    }
+
+    /// Glass 분위기 강조용 blurred orb (배경 장식). 다크모드 자동 대응.
+    private var v2DecorativeOrbs: some View {
+        ZStack {
+            Circle()
+                .fill(Color(red: 1.0, green: 0.55, blue: 0.75))
+                .frame(width: 240, height: 240)
+                .blur(radius: 80)
+                .opacity(colorScheme == .dark ? 0.30 : 0.55)
+                .offset(x: -120, y: -260)
+
+            Circle()
+                .fill(Color(red: 0.65, green: 0.55, blue: 0.95))
+                .frame(width: 280, height: 280)
+                .blur(radius: 100)
+                .opacity(colorScheme == .dark ? 0.30 : 0.50)
+                .offset(x: 140, y: 280)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var v2AccentColor: Color {
+        colorScheme == .dark
+            ? Color(red: 1.0, green: 0.65, blue: 0.80)
+            : Color(red: 0.80, green: 0.45, blue: 0.70)
     }
 
     // MARK: - V1 (기존, FeatureFlag off 시 fallback)
