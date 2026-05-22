@@ -140,6 +140,7 @@ extension DashboardView {
                     sleepDurationSeconds: activityVM.todaySleepDuration,
                     diaperCount: activityVM.todayDiaperCount
                 )
+                healthStyleFavorites
                 statsAndPatternLinks
             }
         } else {
@@ -152,6 +153,65 @@ extension DashboardView {
                 statsAndPatternLinks
             }
         }
+    }
+
+    // MARK: - V3 Apple Health Favorites Grid (1 wide + 2 column)
+    @ViewBuilder
+    private var healthStyleFavorites: some View {
+        // 수유 — wide hero card
+        HealthStyleFavoriteCard(
+            icon: "drop.fill",
+            title: "수유",
+            value: "\(activityVM.todayFeedingCount)",
+            unit: "회",
+            supporting: feedingSupportingText,
+            tint: AppColors.feedingColor
+        )
+        // 수면 + 기저귀 — 2 column
+        HStack(spacing: 10) {
+            HealthStyleFavoriteCard(
+                icon: "moon.zzz.fill",
+                title: "수면",
+                value: sleepValueText,
+                supporting: sleepSupportingText,
+                tint: AppColors.sleepColor
+            )
+            HealthStyleFavoriteCard(
+                icon: "humidity.fill",
+                title: "기저귀",
+                value: "\(activityVM.todayDiaperCount)",
+                unit: "회",
+                supporting: diaperSupportingText,
+                tint: AppColors.diaperColor
+            )
+        }
+    }
+
+    private var feedingSupportingText: String {
+        var parts: [String] = []
+        if let last = activityVM.lastFeeding {
+            parts.append("\(last.startTime.timeAgo())")
+        }
+        if activityVM.todayTotalMl > 0 {
+            parts.append("\(Int(activityVM.todayTotalMl))ml")
+        }
+        return parts.isEmpty ? "오늘 기록 없음" : parts.joined(separator: " · ")
+    }
+
+    private var sleepValueText: String {
+        let dur = activityVM.todaySleepDuration
+        if dur <= 0 { return "0분" }
+        return dur.shortDuration
+    }
+
+    private var sleepSupportingText: String {
+        guard let last = activityVM.lastSleep else { return "오늘 기록 없음" }
+        return "마지막 \(last.startTime.timeAgo())"
+    }
+
+    private var diaperSupportingText: String {
+        guard let last = activityVM.lastDiaper else { return "오늘 기록 없음" }
+        return "마지막 \(last.startTime.timeAgo())"
     }
 
     private var statsAndPatternLinks: some View {
