@@ -134,14 +134,23 @@ extension DashboardView {
     @ViewBuilder
     var summaryCardsSection: some View {
         if FeatureFlags.designSystemV2Preview {
-            VStack(spacing: 12) {
-                ActivityRingsCard(
-                    feedingCount: activityVM.todayFeedingCount,
-                    sleepDurationSeconds: activityVM.todaySleepDuration,
-                    diaperCount: activityVM.todayDiaperCount
-                )
+            VStack(alignment: .leading, spacing: 12) {
+                // Apple Health Summary "Favorites" section
+                HStack {
+                    Text("관심 항목")
+                        .font(.title3.weight(.bold))
+                    Spacer()
+                    NavigationLink {
+                        StatsView()
+                    } label: {
+                        Text("전체 보기")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .padding(.top, 4)
+
                 healthStyleFavorites
-                statsAndPatternLinks
             }
         } else {
             VStack(spacing: 12) {
@@ -155,35 +164,50 @@ extension DashboardView {
         }
     }
 
-    // MARK: - V3 Apple Health Favorites Grid (1 wide + 2 column)
+    // MARK: - V3 Apple Health Favorites (list-stack 1 column)
     @ViewBuilder
     private var healthStyleFavorites: some View {
-        // 수유 — wide hero card
-        HealthStyleFavoriteCard(
-            icon: "drop.fill",
-            title: "수유",
-            value: "\(activityVM.todayFeedingCount)",
-            unit: "회",
-            supporting: feedingSupportingText,
-            tint: AppColors.feedingColor
-        )
-        // 수면 + 기저귀 — 2 column
-        HStack(spacing: 10) {
-            HealthStyleFavoriteCard(
-                icon: "moon.zzz.fill",
-                title: "수면",
-                value: sleepValueText,
-                supporting: sleepSupportingText,
-                tint: AppColors.sleepColor
-            )
-            HealthStyleFavoriteCard(
-                icon: "humidity.fill",
-                title: "기저귀",
-                value: "\(activityVM.todayDiaperCount)",
-                unit: "회",
-                supporting: diaperSupportingText,
-                tint: AppColors.diaperColor
-            )
+        VStack(spacing: 12) {
+            NavigationLink {
+                StatsView()
+            } label: {
+                HealthStyleFavoriteCard(
+                    icon: "drop.fill",
+                    title: "수유",
+                    value: "\(activityVM.todayFeedingCount)",
+                    unit: "회",
+                    supporting: feedingSupportingText,
+                    tint: AppColors.feedingColor
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                StatsView()
+            } label: {
+                HealthStyleFavoriteCard(
+                    icon: "moon.zzz.fill",
+                    title: "수면",
+                    value: sleepValueText,
+                    supporting: sleepSupportingText,
+                    tint: AppColors.sleepColor
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                StatsView()
+            } label: {
+                HealthStyleFavoriteCard(
+                    icon: "humidity.fill",
+                    title: "기저귀",
+                    value: "\(activityVM.todayDiaperCount)",
+                    unit: "회",
+                    supporting: diaperSupportingText,
+                    tint: AppColors.diaperColor
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
