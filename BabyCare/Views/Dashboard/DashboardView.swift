@@ -38,19 +38,22 @@ struct DashboardView: View {
 
     let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
-    // MARK: - V2 Dashboard Layout (P0-5: 정보 위계 — 매일 핵심 위, 부가 아래)
+    // MARK: - V2 Dashboard Layout
+    // V2.1 정보 위계: highlightTicker 상단 (매일 새 정보) — alertBanners 직후
+    // highlightGrid는 summary 후 (weekly 단위, 한 번 보면 충분)
+    // spacing 14 (V1 20 대비 -30%) + summary 카드 padding 컴팩트
     @ViewBuilder
     private var dashboardV2Layout: some View {
         AnnouncementBanner()
         alertBannersSection
+        highlightTickerOrV1Card
         quickActionsSection
         predictionSection
         pregnancyHomeCardIfNeeded
         summaryCardsSection
         timelineSection
-        insightCardsSection
-        highlightTickerOrV1Card
         highlightGridIfNeeded
+        insightCardsSection
         BadgeHomeStrip()
         reorderSummaryCard
         moreDisclosureGroup
@@ -107,7 +110,7 @@ struct DashboardView: View {
     private var babyDashboard: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: FeatureFlags.designSystemV2Preview ? 14 : 20) {
                     if FeatureFlags.designSystemV2Preview {
                         dashboardV2Layout
                     } else {

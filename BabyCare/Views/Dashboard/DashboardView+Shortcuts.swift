@@ -329,9 +329,10 @@ extension View {
     func summaryCardStyle(tint: Color) -> some View {
         if FeatureFlags.designSystemV2Preview {
             self
-                .padding()
+                .padding(.vertical, 12)
+                .padding(.horizontal, 14)
                 .background(tint.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
         } else {
             self.cardStyle()
         }
