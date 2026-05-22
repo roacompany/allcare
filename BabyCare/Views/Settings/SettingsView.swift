@@ -206,14 +206,21 @@ struct SettingsView: View {
                         } label: {
                             Label("관리자 패널", systemImage: "shield.fill")
                         }
+                    }
+                }
 
-                        if FeatureFlags.designSystemV2Preview {
-                            NavigationLink {
-                                DS2PreviewView()
-                            } label: {
-                                Label("DS V2 미리보기", systemImage: "paintpalette.fill")
-                            }
+                // Lab (FeatureFlag 게이트만 — TestFlight 평가 단계, App Store 출시 전 비활성화)
+                if FeatureFlags.designSystemV2Preview {
+                    Section {
+                        NavigationLink {
+                            DS2PreviewView()
+                        } label: {
+                            Label("DS V2 미리보기", systemImage: "paintpalette.fill")
                         }
+                    } header: {
+                        Text("실험실")
+                    } footer: {
+                        Text("디자인 시스템 V2 평가용. App Store 출시 전 비활성화 예정.")
                     }
                 }
 
