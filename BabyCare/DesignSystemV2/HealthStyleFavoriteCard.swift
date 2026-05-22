@@ -34,48 +34,49 @@ struct HealthStyleFavoriteCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(tint)
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(tint)
                 }
 
-                Spacer(minLength: 6)
+                Spacer(minLength: 4)
 
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     if let unit = unit {
                         Text(unit)
-                            .font(.subheadline)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
 
                 if let supporting = supporting {
                     Text(supporting)
-                        .font(.footnote)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .padding(.top, 1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.tertiary)
                 .padding(.top, 2)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
