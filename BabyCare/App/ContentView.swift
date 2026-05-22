@@ -253,7 +253,16 @@ struct ContentView: View {
 
     // MARK: - Onboarding
 
+    @ViewBuilder
     private var onboardingView: some View {
+        if FeatureFlags.designSystemV2Preview {
+            onboardingViewV2
+        } else {
+            onboardingViewV1
+        }
+    }
+
+    private var onboardingViewV1: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
@@ -300,6 +309,59 @@ struct ContentView: View {
 
                 Spacer()
             }
+            .sheet(isPresented: Bindable(babyVM).showAddBaby) {
+                AddBabyView()
+            }
+            .sheet(isPresented: $showPregnancyOnboarding) {
+                PregnancyRegistrationView()
+            }
+        }
+    }
+
+    /// DS2 V2: 위계 명확 (primary CTA + secondary) + brand wordmark + 8pt grid spacing.
+    private var onboardingViewV2: some View {
+        NavigationStack {
+            VStack(spacing: DS2.Spacing.xl) {
+                Spacer()
+
+                // Brand
+                VStack(spacing: DS2.Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(DS2.Color.accent.opacity(0.12))
+                            .frame(width: 120, height: 120)
+                        Image(systemName: "heart.circle.fill")
+                            .font(.system(size: 72))
+                            .foregroundStyle(DS2.Color.accent)
+                    }
+                    VStack(spacing: DS2.Spacing.xs) {
+                        Text("BabyCare")
+                            .font(DS2.Font.largeTitle)
+                        Text("우리 아이의 소중한 순간을 기록하세요")
+                            .font(DS2.Font.body)
+                            .foregroundStyle(DS2.Color.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+
+                Spacer()
+
+                // CTA (primary + secondary 위계)
+                VStack(spacing: DS2.Spacing.md) {
+                    DS2Button("아기 등록하기", icon: "plus.circle.fill", style: .primary) {
+                        babyVM.showAddBaby = true
+                    }
+                    if FeatureFlags.pregnancyModeEnabled {
+                        DS2Button("임신 중이에요", icon: "figure.and.child.holdinghands", style: .secondary) {
+                            showPregnancyOnboarding = true
+                        }
+                    }
+                }
+                .padding(.horizontal, DS2.Spacing.xl)
+                .padding(.bottom, DS2.Spacing.xxl)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(DS2.Color.surfacePrimary.ignoresSafeArea())
             .sheet(isPresented: Bindable(babyVM).showAddBaby) {
                 AddBabyView()
             }
