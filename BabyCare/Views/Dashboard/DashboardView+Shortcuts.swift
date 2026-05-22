@@ -131,42 +131,57 @@ extension DashboardView {
 
     // MARK: - Summary Cards
 
+    @ViewBuilder
     var summaryCardsSection: some View {
-        VStack(spacing: 12) {
-            feedingSummaryCard
-            HStack(spacing: 12) {
-                sleepSummaryCard
-                diaperSummaryCard
+        if FeatureFlags.designSystemV2Preview {
+            VStack(spacing: 12) {
+                ActivityRingsCard(
+                    feedingCount: activityVM.todayFeedingCount,
+                    sleepDurationSeconds: activityVM.todaySleepDuration,
+                    diaperCount: activityVM.todayDiaperCount
+                )
+                statsAndPatternLinks
+            }
+        } else {
+            VStack(spacing: 12) {
+                feedingSummaryCard
+                HStack(spacing: 12) {
+                    sleepSummaryCard
+                    diaperSummaryCard
+                }
+                statsAndPatternLinks
+            }
+        }
+    }
+
+    private var statsAndPatternLinks: some View {
+        HStack {
+            NavigationLink {
+                StatsView()
+            } label: {
+                HStack(spacing: 4) {
+                    Text("통계")
+                        .font(.caption.weight(.medium))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
             }
 
-            HStack {
-                NavigationLink {
-                    StatsView()
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("통계")
-                            .font(.caption.weight(.medium))
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.secondary)
-                }
+            Spacer()
 
-                Spacer()
-
-                NavigationLink {
-                    PatternReportView()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "waveform.path.ecg")
-                            .font(.caption2)
-                        Text("패턴 분석")
-                            .font(.caption.weight(.medium))
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.purple)
+            NavigationLink {
+                PatternReportView()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.caption2)
+                    Text("패턴 분석")
+                        .font(.caption.weight(.medium))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
                 }
+                .foregroundStyle(.purple)
             }
         }
     }
