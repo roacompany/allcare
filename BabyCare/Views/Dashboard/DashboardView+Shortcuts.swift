@@ -138,13 +138,13 @@ extension DashboardView {
                 // Apple Health Summary "Favorites" section
                 HStack {
                     Text("관심 항목")
-                        .font(.headline)
+                        .font(.title3.weight(.bold))
                     Spacer()
                     NavigationLink {
                         StatsView()
                     } label: {
                         Text("전체 보기")
-                            .font(.footnote)
+                            .font(.footnote.weight(.semibold))
                             .foregroundStyle(.blue)
                     }
                 }

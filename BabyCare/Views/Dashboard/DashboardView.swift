@@ -121,6 +121,12 @@ struct DashboardView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
+            .scrollContentBackground(FeatureFlags.designSystemV2Preview ? .hidden : .visible)
+            .background(
+                FeatureFlags.designSystemV2Preview
+                    ? Color(.systemGroupedBackground)
+                    : Color.clear
+            )
             .refreshable {
                 await loadData()
                 // 주: AI 요약 캐시는 babycare-admin Vercel Cron + Mac worker가 처리
