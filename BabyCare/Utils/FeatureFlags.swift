@@ -21,4 +21,10 @@ enum FeatureFlags {
     /// NOTE: 이 값은 FeatureFlagService.isHighlightV2Enabled에서 Layer 1 guard로 읽힌다.
     ///       FirebaseRemoteConfig 직접 import 금지 (FeatureFlagService 단독 게이트웨이).
     static let highlightsEnabled: Bool = true
+
+    /// 디자인 시스템 V2 미리보기 노출 게이트.
+    /// true 시 Settings → 관리자 섹션에 "DS V2 미리보기" 진입점 노출.
+    /// 폐기 가능 namespace (`BabyCare/DesignSystemV2/`) 이므로 compile-time 단독 게이트.
+    /// RemoteConfig 미연결 — Lab/실험실 성격 (PO 직접 편집 UI 없이 코드로만 평가).
+    static let designSystemV2Preview: Bool = true
 }

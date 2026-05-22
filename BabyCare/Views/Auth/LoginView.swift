@@ -47,7 +47,7 @@ struct LoginView: View {
                                 .padding(.top, 48)
 
                             Text("BabyCare")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .font(.largeTitle.weight(.bold))
                                 .foregroundStyle(.primary)
 
                             Text("우리 아이의 소중한 순간을 기록하세요")
