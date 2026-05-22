@@ -146,7 +146,7 @@ final class BabyViewModel {
                 let url = try await storageService.uploadBabyPhoto(photo, userId: userId, babyId: baby.id)
                 baby.photoURL = url
             }
-            try await firestoreService.saveBaby(baby, userId: userId)
+            try await firestoreService.createBaby(baby, userId: userId)
             babies.append(baby)
             if selectedBaby == nil {
                 selectedBaby = baby
@@ -167,7 +167,7 @@ final class BabyViewModel {
         babies[index] = updated
 
         do {
-            try await firestoreService.saveBaby(updated, userId: userId)
+            try await firestoreService.updateBaby(updated, userId: userId)
             if selectedBaby?.id == baby.id {
                 selectedBaby = updated
             }

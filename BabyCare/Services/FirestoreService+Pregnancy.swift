@@ -176,11 +176,18 @@ extension FirestoreService {
         try batch.setData(from: archived, forDocument: pRef, merge: true)
 
         // 2. Baby 생성
-        let bRef = db.collection(FirestoreCollections.users)
-            .document(userId)
+        let userRef = db.collection(FirestoreCollections.users).document(userId)
+        let bRef = userRef
             .collection(FirestoreCollections.babies)
             .document(newBaby.id)
         try batch.setData(from: newBaby, forDocument: bRef, merge: false)
+
+        // 3. babyCount +1 (denormalized counter for admin N+1 회피)
+        batch.setData(
+            ["babyCount": FieldValue.increment(Int64(1))],
+            forDocument: userRef,
+            merge: true
+        )
 
         try await batch.commit()
     }
