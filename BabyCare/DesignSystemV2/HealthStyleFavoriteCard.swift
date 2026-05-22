@@ -75,10 +75,17 @@ struct HealthStyleFavoriteCard: View {
                 .foregroundStyle(.tertiary)
                 .padding(.top, 2)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .background(
+            .regularMaterial,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.white.opacity(0.35), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
     }
 }
 
