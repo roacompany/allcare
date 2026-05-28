@@ -1,6 +1,9 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseFirestore
+#if !DEBUG
+import Sentry
+#endif
 
 @main
 struct BabyCareApp: App {
@@ -18,6 +21,7 @@ struct BabyCareApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+        Self.bootstrapSentry()
         // Firestore 오프라인 영속성: 200MB 캐시
         let firestoreSettings = Firestore.firestore().settings
         firestoreSettings.cacheSettings = PersistentCacheSettings(sizeBytes: 200 * 1024 * 1024 as NSNumber)
@@ -65,4 +69,35 @@ struct BabyCareApp: App {
                 // iOS는 별도 launch hook 없이 HighlightAISummaryService.fetchCachedSummary로 read만 수행.
         }
     }
+
+    /// Release 빌드에서만 Sentry 초기화. PII 차단 + 임신 데이터 redact (safety.md).
+    private static func bootstrapSentry() {
+        #if !DEBUG
+        SentrySDK.start { options in
+            options.dsn = "https://1cfdde9c49b2b39909667b2227c7b601@o4511464474607616.ingest.us.sentry.io/4511464483127296"
+            options.tracesSampleRate = 0.1
+            options.sendDefaultPii = false
+            options.diagnosticLevel = .warning
+            options.beforeBreadcrumb = { Self.redactPregnancyBreadcrumb($0) }
+            options.beforeSend = { Self.redactPregnancyEvent($0) }
+        }
+        #endif
+    }
+
+    #if !DEBUG
+    private static let pregnancyKeywords = ["pregnancy", "임신", "kick", "태동", "edd", "lmp", "prenatal"]
+
+    private static func redactPregnancyBreadcrumb(_ crumb: Breadcrumb) -> Breadcrumb? {
+        guard let msg = crumb.message?.lowercased() else { return crumb }
+        return pregnancyKeywords.contains(where: msg.contains) ? nil : crumb
+    }
+
+    private static func redactPregnancyEvent(_ event: Event) -> Event? {
+        guard let text = event.message?.formatted.lowercased() else { return event }
+        if pregnancyKeywords.contains(where: text.contains) {
+            event.message = SentryMessage(formatted: "[redacted: pregnancy context]")
+        }
+        return event
+    }
+    #endif
 }

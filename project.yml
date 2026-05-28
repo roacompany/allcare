@@ -23,6 +23,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     version: "11.9.0"
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: "9.15.0"
 
 targets:
   BabyCare:
@@ -43,6 +46,8 @@ targets:
         product: FirebaseAnalytics
       - package: Firebase
         product: FirebaseRemoteConfig
+      - package: Sentry
+        product: Sentry
       - sdk: WidgetKit.framework
       - target: BabyCareWidgetExtension
     entitlements:
