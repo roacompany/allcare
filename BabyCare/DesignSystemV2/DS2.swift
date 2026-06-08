@@ -33,6 +33,7 @@ enum DS2 {
         static let bath = AppColors.bathColor
         static let temperature = AppColors.temperatureColor
         static let medication = AppColors.medicationColor
+        static let pumping = AppColors.pumpingColor   // 유축 — 보라/자두 #B56FD1 (DESIGN.md §1)
 
         // Semantic
         static let success = AppColors.successColor
