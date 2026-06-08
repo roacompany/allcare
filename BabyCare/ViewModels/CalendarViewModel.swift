@@ -135,6 +135,17 @@ final class CalendarViewModel {
         selectedDate = Date()
     }
 
+    // MARK: - Event Dots Builder
+
+    /// 활동 → 캘린더 dot Set. 유축(.pumping)은 dot도, eventDots orphan Set 멤버도 만들지 않는다 (spec §5.3/§6).
+    static func eventDots(forActivities activities: [Activity]) -> [Date: Set<CalendarEventType>] {
+        var dots: [Date: Set<CalendarEventType>] = [:]
+        for activity in activities where activity.type.category != .pumping {
+            dots[activity.startTime.startOfDay, default: []].insert(.activity(activity.type.category))
+        }
+        return dots
+    }
+
     // MARK: - Week Data Loading
 
     func loadWeekActivities(userId: String, babyId: String) async {
@@ -160,12 +171,8 @@ final class CalendarViewModel {
             allMonthVaccinations = vaccinations
             allTodos = todos
 
-            var dots: [Date: Set<CalendarEventType>] = [:]
+            var dots = Self.eventDots(forActivities: activities)
 
-            for activity in activities {
-                let day = activity.startTime.startOfDay
-                dots[day, default: []].insert(.activity(activity.type.category))
-            }
             for visit in visits where visit.visitDate >= start.startOfDay && visit.visitDate <= end.endOfDay {
                 dots[visit.visitDate.startOfDay, default: []].insert(.hospitalVisit)
             }
@@ -214,12 +221,7 @@ final class CalendarViewModel {
             allMonthVaccinations = vaccinations
             allTodos = todos
 
-            var dots: [Date: Set<CalendarEventType>] = [:]
-
-            for activity in activities {
-                let day = activity.startTime.startOfDay
-                dots[day, default: []].insert(.activity(activity.type.category))
-            }
+            var dots = Self.eventDots(forActivities: activities)
 
             for visit in visits {
                 let day = visit.visitDate.startOfDay

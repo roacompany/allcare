@@ -7,6 +7,8 @@ struct Activity: Identifiable, Codable, Hashable {
     var startTime: Date
     var endTime: Date?
     var duration: TimeInterval?
+    /// feeding류 = 섭취 mL / feedingPumping = 생산(짜낸) mL.
+    /// 합산 시 반드시 type/category 필터 필요 (섭취 ≠ 생산, 의료 정합 — spec §2/§4).
     var amount: Double?
     var side: BreastSide?
     var note: String?
@@ -39,6 +41,7 @@ struct Activity: Identifiable, Codable, Hashable {
         case bath = "bath"
         case temperature = "temperature"
         case medication = "medication"
+        case feedingPumping = "feeding_pumping"
 
         var displayName: String {
             switch self {
@@ -53,6 +56,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "목욕"
             case .temperature: "체온"
             case .medication: "투약"
+            case .feedingPumping: "유축"
             }
         }
 
@@ -67,6 +71,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "bathtub.fill"
             case .temperature: "thermometer.medium"
             case .medication: "pills.fill"
+            case .feedingPumping: "drop.fill"
             }
         }
 
@@ -79,6 +84,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "bathColor"
             case .temperature: "temperatureColor"
             case .medication: "medicationColor"
+            case .feedingPumping: "pumpingColor"
             }
         }
 
@@ -92,32 +98,41 @@ struct Activity: Identifiable, Codable, Hashable {
                 return .diaper
             case .bath, .temperature, .medication:
                 return .health
+            case .feedingPumping:
+                return .pumping
             }
         }
 
+        // needs* 3종은 default: 없이 exhaustive 유지 (spec §4.1).
+        // default:를 두면 신규 ActivityType이 silent false로 떨어져 입력 UX가 조용히 깨진다.
         var needsTimer: Bool {
             switch self {
             case .feedingBreast, .feedingBottle, .sleep:
                 return true
-            default:
+            case .feedingSolid, .feedingSnack, .feedingPumping,
+                 .diaperWet, .diaperDirty, .diaperBoth,
+                 .bath, .temperature, .medication:
                 return false
             }
         }
 
         var needsAmount: Bool {
             switch self {
-            case .feedingBottle:
+            case .feedingBottle, .feedingPumping:
                 return true
-            default:
+            case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
+                 .diaperWet, .diaperDirty, .diaperBoth,
+                 .bath, .temperature, .medication:
                 return false
             }
         }
 
         var needsQuickInput: Bool {
             switch self {
-            case .temperature, .medication, .feedingBottle:
+            case .temperature, .medication, .feedingBottle, .feedingPumping:
                 return true
-            default:
+            case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
+                 .diaperWet, .diaperDirty, .diaperBoth, .bath:
                 return false
             }
         }
@@ -138,7 +153,7 @@ struct Activity: Identifiable, Codable, Hashable {
     }
 
     enum ActivityCategory: String, CaseIterable {
-        case feeding, sleep, diaper, health
+        case feeding, sleep, diaper, health, pumping
 
         var displayName: String {
             switch self {
@@ -146,6 +161,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .sleep: "수면"
             case .diaper: "기저귀"
             case .health: "건강"
+            case .pumping: "유축"
             }
         }
     }

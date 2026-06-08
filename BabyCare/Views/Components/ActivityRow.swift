@@ -113,6 +113,7 @@ struct ActivityRow: View {
         case .sleep: AppColors.sleepColor
         case .diaper: AppColors.diaperColor
         case .health: AppColors.medicationColor
+        case .pumping: AppColors.pumpingColor
         }
     }
 }

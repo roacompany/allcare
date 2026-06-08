@@ -34,6 +34,7 @@ extension ActivityViewModel {
 
         // 최근 5개 활동 → WidgetActivity 변환
         let recent = todayActivities
+            .filter { $0.type.category != .pumping }   // 유축은 위젯 최근활동 strip 제외 (완전유축모 도배 방지, spec §5.3#1)
             .sorted { $0.startTime > $1.startTime }
             .prefix(5)
             .map { activity -> WidgetActivity in
@@ -44,6 +45,7 @@ extension ActivityViewModel {
                 case .sleep:   colorHex = "#7B9FE8"
                 case .diaper:  colorHex = "#85C1A3"
                 case .health:  colorHex = "#F4845F"
+                case .pumping: colorHex = "#B56FD1"   // 보라/자두 — pumpingColor asset(light)과 일치
                 }
                 return WidgetActivity(
                     typeRaw: activity.type.rawValue,

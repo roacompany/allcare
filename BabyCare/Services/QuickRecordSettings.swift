@@ -7,7 +7,7 @@ enum QuickRecordSettings {
     static let allAvailableTypes: [Activity.ActivityType] = Activity.ActivityType.allCases
 
     static let defaultTypes: [Activity.ActivityType] = [
-        .feedingBreast, .feedingSolid, .feedingSnack,
+        .feedingBreast, .feedingSolid, .feedingSnack, .feedingPumping,
         .diaperWet, .diaperDirty, .diaperBoth,
         .bath, .medication
     ]

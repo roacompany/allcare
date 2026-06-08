@@ -30,6 +30,11 @@ struct StatsView: View {
                         // Feeding Chart
                         feedingChart
 
+                        // Pumping Chart (유축 기록 있을 때만 — 기본노출 그리드라 0건 시 빈 카드 방지, spec §5.2)
+                        if !statsVM.dailyPumpingAmounts.isEmpty {
+                            pumpingChart
+                        }
+
                         // Sleep Chart
                         sleepChart
 
@@ -140,6 +145,31 @@ struct StatsView: View {
                         .font(.caption.weight(.medium))
                 }
             }
+        }
+        .padding()
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+    }
+
+    // MARK: - Pumping Chart
+
+    private var pumpingChart: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("유축량", systemImage: "drop.fill")
+                .font(.headline)
+                .foregroundStyle(AppColors.pumpingColor)
+
+            Chart(statsVM.dailyPumpingAmounts, id: \.date) { item in
+                BarMark(
+                    x: .value("날짜", item.date, unit: .day),
+                    y: .value("유축량", item.amount)
+                )
+                .foregroundStyle(AppColors.pumpingColor.gradient)
+                .cornerRadius(4)
+            }
+            .chartYAxisLabel("ml")
+            .frame(height: 160)
         }
         .padding()
         .background(.regularMaterial)

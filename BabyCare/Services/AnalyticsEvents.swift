@@ -32,6 +32,9 @@ enum AnalyticsEvents {
     static let feedRecordSave = "feed_record_save"
     static let sleepRecordSave = "sleep_record_save"
     static let diaperRecordSave = "diaper_record_save"
+    /// 유축 기록 telemetry — default-on 그리드 효과/Phase 2 우선순위 판단용 (spec §10).
+    /// raw mL 금지: amount는 coarse bucket으로만 전송.
+    static let pumpingRecorded = "pumping_recorded"
 
     // Health
     static let healthDataView = "health_data_view"
@@ -73,11 +76,30 @@ enum AnalyticsParams {
     static let category = "category"
     static let source = "source"
 
+    // Pumping (유축)
+    static let amountBucket = "amount_bucket"
+    static let side = "side"
+
     // Insights
     static let metricKey = "metric_key"
     static let position = "position"
     static let scorerMode = "scorer_mode"
     static let historyWeeks = "history_weeks"
+}
+
+// MARK: - Pumping Analytics
+
+enum PumpingAnalytics {
+    /// 유축량 coarse bucket — raw mL 노출 금지 (민감 건강정보 granularity 회피, spec §10).
+    static func bucket(_ amount: Double?) -> String {
+        guard let amount else { return "unknown" }
+        switch amount {
+        case ..<60: return "0-59"
+        case ..<120: return "60-119"
+        case ..<180: return "120-179"
+        default: return "180+"
+        }
+    }
 }
 
 // MARK: - User Properties

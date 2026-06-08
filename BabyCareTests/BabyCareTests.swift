@@ -65,6 +65,113 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(Activity.ActivityType.temperature.needsTimer)
     }
 
+    // MARK: - 유축(Pumping) Tests (Phase 1, spec §7)
+
+    /// §7-1: needs* 플래그 — needsTimer/needsAmount/needsQuickInput는 default: 보유 switch라
+    /// case만 추가하면 silent false가 되는 트랩(spec §4.1). 이 테스트가 유일한 가드.
+    func testActivityType_feedingPumping_inputFlags() {
+        XCTAssertEqual(Activity.ActivityType.feedingPumping.category, .pumping,
+                       "유축은 절대 .feeding이 아니라 신규 .pumping 카테고리")
+        XCTAssertTrue(Activity.ActivityType.feedingPumping.needsAmount,
+                      "유축은 양 입력 필요 — default:false 트랩 가드")
+        XCTAssertTrue(Activity.ActivityType.feedingPumping.needsQuickInput,
+                      "유축은 빠른기록 미니시트 경로 — default:false 트랩 가드")
+        XCTAssertFalse(Activity.ActivityType.feedingPumping.needsTimer,
+                       "유축은 양이 ground-truth라 타이머 불필요")
+        XCTAssertEqual(Activity.ActivityType.feedingPumping.color, "pumpingColor")
+    }
+
+    /// §7-2: QuickInputSheet 빌더가 유축 양 + side를 영속 (QuickInputSheet에 side 플러밍이 없던 갭)
+    func testQuickInput_pumping_persistsAmountAndSide() {
+        let activity = QuickInputSheet.buildActivity(
+            babyId: "b1",
+            type: .feedingPumping,
+            recordTime: Date(),
+            amount: "120",
+            side: .both,
+            temperature: "",
+            medicationName: "",
+            medicationDosage: "",
+            note: ""
+        )
+        XCTAssertEqual(activity.type, .feedingPumping)
+        XCTAssertEqual(activity.amount, 120)
+        XCTAssertEqual(activity.side, .both, "유축 방향이 저장되어야 한다 (side 플러밍)")
+    }
+
+    /// §7-3a: 유축이 섭취 집계(todayTotalMl/todayFeedingCount)에서 자동 배제 (의료 정합)
+    @MainActor
+    func testPumping_excludedFromTodayFeedingTotals() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        vm.todayActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100),
+            Activity(babyId: "b1", type: .feedingPumping, startTime: now, amount: 200, side: .both)
+        ]
+        XCTAssertEqual(vm.todayFeedingCount, 1, "유축은 수유 횟수에 포함되면 안 된다")
+        XCTAssertEqual(vm.todayTotalMl, 100, "유축 생산량은 섭취 총량에 합산되면 안 된다")
+    }
+
+    /// §7-3b: StatsViewModel — feeding 제외 + pumping 신규 집계
+    @MainActor
+    func testStats_pumpingSeparatedFromFeeding() {
+        let vm = StatsViewModel()
+        let now = Date()
+        vm.weeklyActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100),
+            Activity(babyId: "b1", type: .feedingPumping, startTime: now, amount: 200)
+        ]
+        XCTAssertEqual(vm.feedingActivities.count, 1)
+        XCTAssertEqual(vm.dailyFeedingAmounts.reduce(0) { $0 + $1.amount }, 100, accuracy: 0.001)
+        XCTAssertEqual(vm.pumpingActivities.count, 1)
+        XCTAssertEqual(vm.dailyPumpingAmounts.reduce(0) { $0 + $1.amount }, 200, accuracy: 0.001)
+    }
+
+    /// §7-6: 유축 0건이면 유축량 차트 데이터가 비어 empty-state로 처리
+    @MainActor
+    func testStats_noPumping_emptyAmounts() {
+        let vm = StatsViewModel()
+        vm.weeklyActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        ]
+        XCTAssertTrue(vm.dailyPumpingAmounts.isEmpty, "유축 기록이 없으면 차트는 empty-state여야 한다")
+    }
+
+    /// §7-4: CSV가 유축량을 별도 컬럼에 분리, 섭취 양(ml)은 공란 (생산≠섭취)
+    func testCSV_pumpingHasSeparateColumn() {
+        let now = Date()
+        let feeding = Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100)
+        let pumping = Activity(babyId: "b1", type: .feedingPumping, startTime: now, amount: 200, side: .both)
+        let csv = ExportService.makeCSVString(activities: [feeding, pumping])
+        let lines = csv.split(separator: "\n").map(String.init)
+        let header = lines[0].split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        XCTAssertTrue(header.contains("유축량(ml)"), "헤더에 유축량(ml) 컬럼이 있어야 한다")
+        XCTAssertTrue(header.contains("양(ml)"), "섭취 양(ml) 컬럼은 유지")
+
+        // 헤더("유축량(ml)")도 "유축"을 포함하므로 데이터 행만 탐색 (dropFirst)
+        let pumpRow = lines.dropFirst().first { $0.contains("유축") }
+        XCTAssertNotNil(pumpRow, "유축 row가 있어야 한다")
+        let cols = pumpRow!.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        let intakeIdx = header.firstIndex(of: "양(ml)")!
+        let pumpIdx = header.firstIndex(of: "유축량(ml)")!
+        XCTAssertEqual(cols[pumpIdx], "200", "유축량은 유축량(ml) 컬럼에 들어가야 한다")
+        XCTAssertEqual(cols[intakeIdx], "", "유축 row의 섭취 양(ml)은 공란이어야 한다")
+    }
+
+    /// §7-5: 유축은 캘린더 dot도, eventDots Set의 orphan 멤버도 만들지 않는다
+    @MainActor
+    func testCalendar_pumpingProducesNoDot() {
+        let day = Date()
+        let dots = CalendarViewModel.eventDots(forActivities: [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: day),
+            Activity(babyId: "b1", type: .feedingPumping, startTime: day)
+        ])
+        let set = dots[day.startOfDay] ?? []
+        XCTAssertTrue(set.contains(.activity(.feeding)))
+        XCTAssertFalse(set.contains(.activity(.pumping)),
+                       "유축은 캘린더 dot를 만들지 않고 orphan Set 멤버도 남기지 않아야 한다")
+    }
+
     // MARK: - TimeInterval Extension Tests
 
     func testFormattedDuration() {

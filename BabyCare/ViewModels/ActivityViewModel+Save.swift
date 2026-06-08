@@ -116,6 +116,11 @@ extension ActivityViewModel {
 
         case .bath:
             applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
+
+        case .feedingPumping:
+            // 유축은 빠른기록 미니시트(QuickInputSheet) 전용 경로 — 풀폼 미진입이나 exhaustive 만족.
+            activity.amount = Double(amount)
+            activity.side = selectedSide
         }
         return true
     }
