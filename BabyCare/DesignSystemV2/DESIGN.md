@@ -22,7 +22,7 @@
 DS2는 ROA 토큰 JSON의 **실용 8pt-grid subset**이며 통일하지 **않는다**(전역 교체+CLI 리스크 회피). **알려진 해저드**:
 - **Radius `sm` 네이밍 충돌**: JSON `sm`=8 vs **DS2 `sm`=12**. (DS2는 12/16/24 3-step.)
 - Spacing: DS2 `lg`=16 vs JSON `lg`=20. DS2는 JSON의 base16→lg16 rename + 20/40 drop.
-- DS2.Color는 AppColors 일부 미노출: **`pumpingColor`(아래 §3 TODO)**, sageColor, indigoColor, healthColor, softPurpleColor. coral→danger / skyBlue→info rename.
+- DS2.Color는 AppColors 일부 미노출: sageColor, indigoColor, healthColor, softPurpleColor. coral→danger / skyBlue→info rename. (`pumpingColor`는 `DS2.Color.pumping`으로 노출됨 — Phase 3b.)
 
 ## 2. 컴포넌트 인벤토리 (DS2Components.swift)
 
@@ -42,7 +42,7 @@ DS2는 ROA 토큰 JSON의 **실용 8pt-grid subset**이며 통일하지 **않는
 
 ## 4. 알려진 부채 / TODO (Track A)
 
-- **`pumpingColor` #B56FD1**(유축, PR1에서 `babycare-tokens.json` + `Activity`에 추가)이 **`DS2.Color`에 미노출** → Track A Phase 3b에서 `DS2.Color.pumping` 추가(PR1 머지 후).
+- ✅ **`pumpingColor` #B56FD1** → `DS2.Color.pumping` 노출 완료(Phase 3b, PR #20 유축 머지 후). 유축 보라/자두가 DS2 네임스페이스에서도 사용 가능.
 - DS2.swift 헤더 doc-comment의 "Preview / 폐기 가능" 표현 → 정본으로 교정됨(이 문서 §0).
 - 거버넌스 가드: `arch_test.sh` Rule 4(designSystemV2Preview 9→0 래칫) + `BabyCareTests+DesignSystemV2.swift`(토큰값 단언 + 컴포넌트 render-smoke). `make design-verify`는 JSON만 검사(Swift 미스캔)라 Swift측은 arch-test가 가드.
 
