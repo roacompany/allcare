@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// 디자인 시스템 V2 (Preview)
+/// 디자인 시스템 V2 (DS2) — **정본**(2026-06-08~).
 ///
-/// 기존 `AppColors` / `DesignSystem.generated` 와 독립한 폐기 가능 namespace.
-/// FeatureFlag `designSystemV2Preview` 가 ON 일 때만 Showcase 화면 노출.
+/// 단일 진실 출처 문서: `DesignSystemV2/DESIGN.md`.
+/// 기존 `AppColors` Dynamic Color를 wrapping(브랜드 자산 보존) — 자체 hex 없음(색값 drift 0).
 ///
 /// 정책:
-/// - 기존 AppColors 18 Dynamic Color를 wrapping (브랜드 자산 보존)
-/// - Spacing 8pt grid, Radius 3-step, Font 10-step
-/// - 채택 시 점진 마이그레이션, 폐기 시 namespace 전체 삭제 (영향 0)
+/// - Spacing 8pt grid(6-step), Radius 3-step, Font 10-step. JSON 토큰의 의도적 subset(DESIGN.md §1.1 참조).
+/// - 시스템 시맨틱 색(systemGroupedBackground 등)은 의도적 비-토큰(DESIGN.md §3).
+/// - `FeatureFlags.designSystemV2Preview`(컴파일타임 영구 true)의 V1 분기는 Track A에서 점진 제거(arch_test Rule 4).
 enum DS2 {
 
     // MARK: - Color
