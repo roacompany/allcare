@@ -253,70 +253,10 @@ struct ContentView: View {
 
     // MARK: - Onboarding
 
-    @ViewBuilder
     private var onboardingView: some View {
-        if FeatureFlags.designSystemV2Preview {
-            onboardingViewV2
-        } else {
-            onboardingViewV1
-        }
+        onboardingViewV2
     }
 
-    private var onboardingViewV1: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
-
-                Image(systemName: "heart.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(AppColors.primaryAccent)
-
-                Text("환영합니다!")
-                    .font(.title.weight(.bold))
-
-                Text("아기 정보를 등록하고\n올케어를 시작해보세요")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                Button {
-                    babyVM.showAddBaby = true
-                } label: {
-                    Text("아기 등록하기")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppColors.primaryAccent)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .padding(.horizontal, 40)
-
-                if FeatureFlags.pregnancyModeEnabled {
-                    Button {
-                        showPregnancyOnboarding = true
-                    } label: {
-                        Text("임신 중이에요")
-                            .font(.headline)
-                            .foregroundStyle(AppColors.primaryAccent)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(AppColors.primaryAccent.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .padding(.horizontal, 40)
-                }
-
-                Spacer()
-            }
-            .sheet(isPresented: Bindable(babyVM).showAddBaby) {
-                AddBabyView()
-            }
-            .sheet(isPresented: $showPregnancyOnboarding) {
-                PregnancyRegistrationView()
-            }
-        }
-    }
 
     /// DS2 V2: 위계 명확 (primary CTA + secondary) + brand wordmark + 8pt grid spacing.
     private var onboardingViewV2: some View {

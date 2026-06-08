@@ -209,20 +209,20 @@ struct SettingsView: View {
                     }
                 }
 
-                // Lab (FeatureFlag 게이트만 — TestFlight 평가 단계, App Store 출시 전 비활성화)
-                if FeatureFlags.designSystemV2Preview {
-                    Section {
-                        NavigationLink {
-                            DS2PreviewView()
-                        } label: {
-                            Label("DS V2 미리보기", systemImage: "paintpalette.fill")
-                        }
-                    } header: {
-                        Text("실험실")
-                    } footer: {
-                        Text("디자인 시스템 V2 평가용. App Store 출시 전 비활성화 예정.")
+                // Lab — DS2 컴포넌트 showcase. #if DEBUG로 출시 빌드 제외 (Track A 결정, DESIGN.md §2).
+                #if DEBUG
+                Section {
+                    NavigationLink {
+                        DS2PreviewView()
+                    } label: {
+                        Label("DS V2 미리보기", systemImage: "paintpalette.fill")
                     }
+                } header: {
+                    Text("실험실")
+                } footer: {
+                    Text("디자인 시스템 V2 컴포넌트 showcase (개발 빌드 전용).")
                 }
+                #endif
 
                 // Account
                 Section("계정") {

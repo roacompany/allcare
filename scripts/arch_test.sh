@@ -84,11 +84,10 @@ BASELINE_R2=0
 # 신규 컬렉션 추가 시: FirestoreCollections.X 상수 + FirestoreService+X.swift + XFirestoreProviding + MockX 패턴 적용
 BASELINE_R3=0
 # Rule 4 (designSystemV2Preview 분기): Track A 점진 제거. 9 → 0 목표.
-# 이력: 9 (2026-06-09 Track A 가드 설치 시점 — ContentView:258 / SettingsView:213 / LoginView:36 /
-#        DashboardView:113·114·124·126 / DashboardView+Shortcuts:136·429)
+# 이력: 9 (2026-06-09 가드 설치) → 6 (Phase 2a: ContentView/LoginView 인라인 + SettingsView #if DEBUG 전환)
 # 각 사이트 인라인 시 BASELINE_R4 를 새 카운트로 갱신해 같은 PR 에 커밋(아래 ratchet nudge 참조).
-# 종착: SettingsView:213 은 #if DEBUG 로 전환(PO 결정), 나머지는 V2 인라인 → 0.
-BASELINE_R4=9
+# 잔여 6 = DashboardView:113·114·124·126 + DashboardView+Shortcuts:136·429 (Phase 2b cascade).
+BASELINE_R4=6
 
 TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS + RULE4_VIOLATIONS))
 TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3 + BASELINE_R4))
