@@ -4,6 +4,8 @@
 # - Rule 2: Models → Views 참조 금지
 # - Rule 3: Firestore.firestore() 직접 호출은 FirestoreService(+extensions)에서만
 #   → narrow protocol(BadgeFirestoreProviding 등) 패턴으로 mock 가능하도록 강제
+# - Rule 4: designSystemV2Preview dual-mode 분기 점진 제거 (DS2 정본화 → V1 dead, 9→0 ratchet)
+#   → 컴파일타임 static let=true 플래그라 런타임 테스트 불가, dead V1 재유입을 grep으로 차단
 # Usage: bash scripts/arch_test.sh
 
 set -euo pipefail
@@ -13,6 +15,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 RULE1_VIOLATIONS=0
 RULE2_VIOLATIONS=0
 RULE3_VIOLATIONS=0
+RULE4_VIOLATIONS=0
 
 echo "▸ Checking architecture boundaries..."
 
@@ -63,6 +66,16 @@ while IFS= read -r file; do
     fi
 done < <(find "$PROJECT_DIR/BabyCare" -name '*.swift' 2>/dev/null)
 
+# Rule 4: FeatureFlags.designSystemV2Preview 분기 점진 제거 (Track A)
+# DS2가 정본(2026-06-08)이고 플래그는 컴파일타임 static let=true → 모든 V1 else 분기가 dead.
+# 제외: FeatureFlags.swift(선언), /DesignSystemV2/(doc-comment), 주석 라인.
+# 각 dual-mode 사이트를 인라인(V2 고정)할 때마다 카운트가 baseline 미만 → ratchet 갱신.
+RULE4_VIOLATIONS=$(grep -rn 'designSystemV2Preview' "$PROJECT_DIR/BabyCare" --include='*.swift' 2>/dev/null \
+    | { grep -v 'FeatureFlags.swift' || true; } \
+    | { grep -v '/DesignSystemV2/' || true; } \
+    | { grep -v '//' || true; } \
+    | wc -l | tr -d ' ')
+
 # 베이스라인 (점진적 감축 — 새 위반만 차단)
 BASELINE_R1=0
 BASELINE_R2=0
@@ -70,9 +83,14 @@ BASELINE_R2=0
 # 이력: 10 → 8 (Cry, 2026-05-17) → 5 (AuthMigration, 2026-05-17) → 0 (FCMToken/Catalog/Sound/Analysis/OfflineQueue, 2026-05-17)
 # 신규 컬렉션 추가 시: FirestoreCollections.X 상수 + FirestoreService+X.swift + XFirestoreProviding + MockX 패턴 적용
 BASELINE_R3=0
+# Rule 4 (designSystemV2Preview 분기): Track A 완료. 9 → 0 달성.
+# 이력: 9 (2026-06-09 가드 설치) → 6 (Phase 2a: ContentView/LoginView 인라인 + SettingsView #if DEBUG)
+#       → 0 (Phase 2b: DashboardView 인라인 + DashboardView+Shortcuts cascade 삭제)
+# BASELINE_R4=0: 모든 dead V1 dual-mode 분기 제거 완료. 재유입 시 Rule 4 FAIL.
+BASELINE_R4=0
 
-TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS))
-TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3))
+TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS + RULE4_VIOLATIONS))
+TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3 + BASELINE_R4))
 
 FAIL=0
 if [ "$RULE1_VIOLATIONS" -gt "$BASELINE_R1" ]; then
@@ -88,19 +106,30 @@ if [ "$RULE3_VIOLATIONS" -gt "$BASELINE_R3" ]; then
     echo "   새 위반 추가됨. narrow protocol 패턴(BadgeFirestoreProviding 등)을 사용하세요."
     FAIL=1
 fi
+if [ "$RULE4_VIOLATIONS" -gt "$BASELINE_R4" ]; then
+    echo "❌ Rule 4 (designSystemV2Preview 분기) FAIL: $RULE4_VIOLATIONS > baseline $BASELINE_R4"
+    echo "   dead V1 dual-mode 분기가 재유입됨. DS2(V2)가 정본 — V1 경로를 추가하지 마세요."
+    FAIL=1
+fi
 
 if [ "$FAIL" -eq 1 ]; then
     exit 1
 fi
 
+# Ratchet nudge: 위반이 baseline 미만이면 같은 PR 에서 baseline 을 갱신해야 silent 회귀 방지
 if [ "$RULE3_VIOLATIONS" -lt "$BASELINE_R3" ]; then
     echo "🎉 Rule 3 위반 감소: $RULE3_VIOLATIONS < baseline $BASELINE_R3"
     echo "   ⚠️  scripts/arch_test.sh 의 BASELINE_R3 을 $RULE3_VIOLATIONS 로 갱신해 같은 PR 에 함께 커밋하세요"
     echo "   (갱신 안 하면 다음 회귀가 silent 통과)"
 fi
+if [ "$RULE4_VIOLATIONS" -lt "$BASELINE_R4" ]; then
+    echo "🎉 Rule 4 분기 감소: $RULE4_VIOLATIONS < baseline $BASELINE_R4"
+    echo "   ⚠️  scripts/arch_test.sh 의 BASELINE_R4 를 $RULE4_VIOLATIONS 로 갱신해 같은 PR 에 함께 커밋하세요"
+    echo "   (갱신 안 하면 dead V1 재유입이 silent 통과)"
+fi
 
 if [ "$TOTAL_VIOLATIONS" -eq 0 ]; then
-    echo "✅ Architecture test PASSED (R1=0 R2=0 R3=0)"
+    echo "✅ Architecture test PASSED (R1=0 R2=0 R3=0 R4=0)"
 else
-    echo "⚠️  Architecture: R1=$RULE1_VIOLATIONS/$BASELINE_R1 R2=$RULE2_VIOLATIONS/$BASELINE_R2 R3=$RULE3_VIOLATIONS/$BASELINE_R3 (within baseline)"
+    echo "⚠️  Architecture: R1=$RULE1_VIOLATIONS/$BASELINE_R1 R2=$RULE2_VIOLATIONS/$BASELINE_R2 R3=$RULE3_VIOLATIONS/$BASELINE_R3 R4=$RULE4_VIOLATIONS/$BASELINE_R4 (within baseline)"
 fi

@@ -39,10 +39,10 @@ struct HealthStyleFavoriteCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .top, spacing: DS2.Spacing.md) {
+            VStack(alignment: .leading, spacing: DS2.Spacing.xs) {
                 // Title row
-                HStack(spacing: 5) {
+                HStack(spacing: 5) {  // Apple Health spec: 5pt off-grid (icon-title), 의도적 비-토큰 (DESIGN.md §3)
                     Image(systemName: icon)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(tint)
@@ -52,7 +52,7 @@ struct HealthStyleFavoriteCard: View {
                 }
 
                 // Big value
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {  // Apple Health spec: 3pt off-grid baseline gap, 의도적 비-토큰
                     Text(value)
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
@@ -79,10 +79,10 @@ struct HealthStyleFavoriteCard: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(DS2.Spacing.lg)
+        .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)  // 84: Apple Health 카드 높이 spec
+        .background(Color(.secondarySystemGroupedBackground))  // Apple HIG inset-grouped 강제 (DESIGN.md §3)
+        .clipShape(RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous))
     }
 }
 
