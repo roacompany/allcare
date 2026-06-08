@@ -131,36 +131,24 @@ extension DashboardView {
 
     // MARK: - Summary Cards
 
-    @ViewBuilder
     var summaryCardsSection: some View {
-        if FeatureFlags.designSystemV2Preview {
-            VStack(alignment: .leading, spacing: 12) {
-                // Apple Health Summary "Favorites" section
-                HStack {
-                    Text("관심 항목")
-                        .font(.title3.weight(.bold))
-                    Spacer()
-                    NavigationLink {
-                        StatsView()
-                    } label: {
-                        Text("전체 보기")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.blue)
-                    }
+        VStack(alignment: .leading, spacing: 12) {
+            // Apple Health Summary "Favorites" section
+            HStack {
+                Text("관심 항목")
+                    .font(.title3.weight(.bold))
+                Spacer()
+                NavigationLink {
+                    StatsView()
+                } label: {
+                    Text("전체 보기")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.blue)
                 }
-                .padding(.top, 4)
+            }
+            .padding(.top, 4)
 
-                healthStyleFavorites
-            }
-        } else {
-            VStack(spacing: 12) {
-                feedingSummaryCard
-                HStack(spacing: 12) {
-                    sleepSummaryCard
-                    diaperSummaryCard
-                }
-                statsAndPatternLinks
-            }
+            healthStyleFavorites
         }
     }
 
@@ -238,202 +226,6 @@ extension DashboardView {
         return "마지막 \(last.startTime.timeAgo())"
     }
 
-    private var statsAndPatternLinks: some View {
-        HStack {
-            NavigationLink {
-                StatsView()
-            } label: {
-                HStack(spacing: 4) {
-                    Text("통계")
-                        .font(.caption.weight(.medium))
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                }
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            NavigationLink {
-                PatternReportView()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.caption2)
-                    Text("패턴 분석")
-                        .font(.caption.weight(.medium))
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                }
-                .foregroundStyle(.purple)
-            }
-        }
-    }
-
-    var feedingSummaryCard: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(feedingColor.opacity(0.2))
-                    .frame(width: 48, height: 48)
-                Image(systemName: "cup.and.saucer.fill")
-                    .font(.title3)
-                    .foregroundStyle(feedingColor)
-                    .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("수유")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                if let last = activityVM.lastFeeding {
-                    Text(last.startTime.timeAgo())
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                } else {
-                    Text("기록 없음")
-                        .font(.headline)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("오늘")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(activityVM.todayFeedingCount)회")
-                    .font(.title3.bold())
-                    .foregroundStyle(.primary)
-                if activityVM.todayTotalMl > 0 {
-                    Text("\(Int(activityVM.todayTotalMl))ml")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .summaryCardStyle(tint: feedingColor)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel({
-            let lastText = activityVM.lastFeeding.map { "마지막 수유 \($0.startTime.timeAgo())" } ?? "수유 기록 없음"
-            let mlText = activityVM.todayTotalMl > 0 ? ", \(Int(activityVM.todayTotalMl))ml" : ""
-            return "수유 요약. \(lastText). 오늘 \(activityVM.todayFeedingCount)회\(mlText)"
-        }())
-    }
-
-    var sleepSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(sleepColor.opacity(0.2))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "moon.zzz.fill")
-                        .font(.body)
-                        .foregroundStyle(sleepColor)
-                        .accessibilityHidden(true)
-                }
-                Spacer()
-                Text("오늘")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text("수면")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            if let last = activityVM.lastSleep {
-                Text(last.startTime.timeAgo())
-                    .font(.callout.bold())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            } else {
-                Text("기록 없음")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text(activityVM.todaySleepDuration > 0
-                 ? activityVM.todaySleepDuration.shortDuration
-                 : "0분")
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-        }
-        .summaryCardStyle(tint: sleepColor)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel({
-            let lastText = activityVM.lastSleep.map { "마지막 수면 \($0.startTime.timeAgo())" } ?? "수면 기록 없음"
-            let durText = activityVM.todaySleepDuration > 0 ? activityVM.todaySleepDuration.shortDuration : "0분"
-            return "수면 요약. \(lastText). 오늘 \(durText)"
-        }())
-    }
-
-    var diaperSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                ZStack {
-                    Circle()
-                        .fill(diaperColor.opacity(0.2))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "humidity.fill")
-                        .font(.body)
-                        .foregroundStyle(diaperColor)
-                        .accessibilityHidden(true)
-                }
-                Spacer()
-                Text("오늘")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text("기저귀")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            if let last = activityVM.lastDiaper {
-                Text(last.startTime.timeAgo())
-                    .font(.callout.bold())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            } else {
-                Text("기록 없음")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text("\(activityVM.todayDiaperCount)회")
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-        }
-        .summaryCardStyle(tint: diaperColor)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel({
-            let lastText = activityVM.lastDiaper.map { "마지막 기저귀 \($0.startTime.timeAgo())" } ?? "기저귀 기록 없음"
-            return "기저귀 요약. \(lastText). 오늘 \(activityVM.todayDiaperCount)회"
-        }())
-    }
 
 }
 
-// MARK: - Summary Card Style (DS2 dual-mode)
-
-extension View {
-    /// FeatureFlag 분기:
-    /// - V2 (designSystemV2Preview=true): 활동색 12% opacity tint 배경 (DS2 토큰)
-    /// - V1: 기존 `cardStyle()` (.regularMaterial)
-    @ViewBuilder
-    func summaryCardStyle(tint: Color) -> some View {
-        if FeatureFlags.designSystemV2Preview {
-            self
-                .padding(.vertical, 12)
-                .padding(.horizontal, 14)
-                .background(tint.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-        } else {
-            self.cardStyle()
-        }
-    }
-}

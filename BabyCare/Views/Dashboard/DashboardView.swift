@@ -59,24 +59,6 @@ struct DashboardView: View {
         moreDisclosureGroup
     }
 
-    // MARK: - V1 Dashboard Layout (legacy)
-    @ViewBuilder
-    private var dashboardV1Layout: some View {
-        AnnouncementBanner()
-        alertBannersSection
-        BadgeHomeStrip()
-        quickActionsSection
-        highlightTickerOrV1Card
-        predictionSection
-        insightCardsSection
-        pregnancyHomeCardIfNeeded
-        summaryCardsSection
-        highlightGridIfNeeded
-        reorderSummaryCard
-        moreDisclosureGroup
-        timelineSection
-    }
-
     private var moreDisclosureGroup: some View {
         DisclosureGroup(isExpanded: $showMoreSection) {
             VStack(spacing: 12) {
@@ -110,23 +92,15 @@ struct DashboardView: View {
     private var babyDashboard: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: FeatureFlags.designSystemV2Preview ? 14 : 20) {
-                    if FeatureFlags.designSystemV2Preview {
-                        dashboardV2Layout
-                    } else {
-                        dashboardV1Layout
-                    }
+                VStack(spacing: 14) {
+                    dashboardV2Layout
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            .scrollContentBackground(FeatureFlags.designSystemV2Preview ? .hidden : .visible)
-            .background(
-                FeatureFlags.designSystemV2Preview
-                    ? Color(.systemGroupedBackground)
-                    : Color.clear
-            )
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
             .refreshable {
                 await loadData()
                 // 주: AI 요약 캐시는 babycare-admin Vercel Cron + Mac worker가 처리

@@ -83,11 +83,11 @@ BASELINE_R2=0
 # 이력: 10 → 8 (Cry, 2026-05-17) → 5 (AuthMigration, 2026-05-17) → 0 (FCMToken/Catalog/Sound/Analysis/OfflineQueue, 2026-05-17)
 # 신규 컬렉션 추가 시: FirestoreCollections.X 상수 + FirestoreService+X.swift + XFirestoreProviding + MockX 패턴 적용
 BASELINE_R3=0
-# Rule 4 (designSystemV2Preview 분기): Track A 점진 제거. 9 → 0 목표.
-# 이력: 9 (2026-06-09 가드 설치) → 6 (Phase 2a: ContentView/LoginView 인라인 + SettingsView #if DEBUG 전환)
-# 각 사이트 인라인 시 BASELINE_R4 를 새 카운트로 갱신해 같은 PR 에 커밋(아래 ratchet nudge 참조).
-# 잔여 6 = DashboardView:113·114·124·126 + DashboardView+Shortcuts:136·429 (Phase 2b cascade).
-BASELINE_R4=6
+# Rule 4 (designSystemV2Preview 분기): Track A 완료. 9 → 0 달성.
+# 이력: 9 (2026-06-09 가드 설치) → 6 (Phase 2a: ContentView/LoginView 인라인 + SettingsView #if DEBUG)
+#       → 0 (Phase 2b: DashboardView 인라인 + DashboardView+Shortcuts cascade 삭제)
+# BASELINE_R4=0: 모든 dead V1 dual-mode 분기 제거 완료. 재유입 시 Rule 4 FAIL.
+BASELINE_R4=0
 
 TOTAL_VIOLATIONS=$((RULE1_VIOLATIONS + RULE2_VIOLATIONS + RULE3_VIOLATIONS + RULE4_VIOLATIONS))
 TOTAL_BASELINE=$((BASELINE_R1 + BASELINE_R2 + BASELINE_R3 + BASELINE_R4))
