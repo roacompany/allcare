@@ -47,6 +47,19 @@ final class StatsViewModel {
         return intervals.reduce(0, +) / Double(intervals.count)
     }
 
+    // MARK: - Computed Pumping Stats (유축 — 섭취와 분리, spec §5.2)
+
+    var pumpingActivities: [Activity] {
+        weeklyActivities.filter { $0.type.category == .pumping }
+    }
+
+    var dailyPumpingAmounts: [(date: Date, amount: Double)] {
+        groupByDay(pumpingActivities).map { date, activities in
+            (date, activities.compactMap(\.amount).reduce(0, +))
+        }
+        .sorted { $0.date < $1.date }
+    }
+
     // MARK: - Computed Sleep Stats
 
     var sleepActivities: [Activity] {

@@ -6,9 +6,13 @@ struct CategoryTabBar: View {
     @Binding var selected: Activity.ActivityCategory
     var onChange: ((Activity.ActivityCategory) -> Void)? = nil
 
+    // 유축(.pumping)은 빠른기록 그리드 미니시트 전용 — 풀폼 탭바엔 미노출 (spec §3/§6).
+    // allCases가 아닌 4-리터럴 상수라 신규 .pumping 카테고리가 탭으로 자동 노출되지 않음.
+    private static let tabs: [Activity.ActivityCategory] = [.feeding, .sleep, .diaper, .health]
+
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(Activity.ActivityCategory.allCases, id: \.self) { category in
+            ForEach(Self.tabs, id: \.self) { category in
                 Button {
                     guard selected != category else { return }
                     withAnimation(.spring(duration: 0.3)) {
@@ -46,6 +50,7 @@ struct CategoryTabBar: View {
         case .sleep:   "moon.zzz.fill"
         case .diaper:  "humidity.fill"
         case .health:  "heart.fill"
+        case .pumping: "drop.fill"
         }
     }
 
@@ -55,6 +60,7 @@ struct CategoryTabBar: View {
         case .sleep:   AppColors.indigoColor
         case .diaper:  AppColors.sageColor
         case .health:  AppColors.coralColor
+        case .pumping: AppColors.pumpingColor
         }
     }
 }

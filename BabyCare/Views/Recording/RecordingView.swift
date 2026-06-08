@@ -280,6 +280,8 @@ struct RecordingView: View {
                         DiaperRecordView(onSaved: { handleSaved() })
                     case .health:
                         HealthRecordView(onSaved: { handleSaved() })
+                    case .pumping:
+                        EmptyView()   // 유축은 풀폼 미진입(탭바 4-리터럴), exhaustive 컴파일 만족용
                     }
                 }
                 .id(selectedCategory) // re-render on tab switch

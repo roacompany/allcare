@@ -10,8 +10,8 @@ extension BadgeEvaluator {
             return .sleepLogged
         case .diaperWet, .diaperDirty, .diaperBoth:
             return .diaperLogged
-        case .temperature, .medication, .bath:
-            return nil
+        case .temperature, .medication, .bath, .feedingPumping:
+            return nil   // 유축은 배지 대상 아님 (명시 — default 의존 금지, spec §5.1/§6)
         @unknown default:
             return nil
         }

@@ -18,8 +18,11 @@ struct QuickInputSheet: View {
     @State private var medicationName = ""
     @State private var medicationDosage = ""
 
-    // 분유
+    // 분유 / 유축량
     @State private var amount = ""
+
+    // 유축 방향 (좌/우/양쪽)
+    @State private var selectedSide: Activity.BreastSide = .both
 
     // 메모
     @State private var note = ""
@@ -30,7 +33,7 @@ struct QuickInputSheet: View {
             return Double(temperature) != nil
         case .medication:
             return !medicationName.trimmingCharacters(in: .whitespaces).isEmpty
-        case .feedingBottle:
+        case .feedingBottle, .feedingPumping:
             return Double(amount) != nil && (Double(amount) ?? 0) > 0
         default:
             return true
@@ -115,6 +118,8 @@ struct QuickInputSheet: View {
                         medicationInput
                     case .feedingBottle:
                         bottleInput
+                    case .feedingPumping:
+                        pumpInput
                     default:
                         EmptyView()
                     }
@@ -219,11 +224,49 @@ struct QuickInputSheet: View {
         }
     }
 
+    // MARK: - Pump Input
+
+    private var pumpInput: some View {
+        Section {
+            HStack {
+                Text("유축량")
+                Spacer()
+                TextField("0", text: $amount)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+                Text("ml")
+                    .foregroundStyle(.secondary)
+            }
+
+            Picker("방향", selection: $selectedSide) {
+                ForEach(Activity.BreastSide.allCases, id: \.self) { side in
+                    Text(side.displayName).tag(side)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("유축 방향")
+        } footer: {
+            // 온보딩 카피 (spec §9) — 완전유축 사용자가 섭취총량 혼란을 겪지 않도록 안내
+            Text("유축 기록은 ‘짜낸 양’이에요. 아기가 실제로 먹은 양은 분유/모유 수유로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+        }
+    }
+
     // MARK: - Save
 
-    private func save() {
-        guard let babyId = babyVM.selectedBaby?.id else { return }
-
+    /// 저장 활동 구성 — 순수 함수로 분리하여 단위 테스트 가능 (side 플러밍 가드, spec §7-2).
+    /// nonisolated: View(@MainActor)에 속하지만 순수 값 변환이라 actor 격리 불필요 (테스트 MainActor 호핑 회피).
+    nonisolated static func buildActivity(
+        babyId: String,
+        type: Activity.ActivityType,
+        recordTime: Date,
+        amount: String,
+        side: Activity.BreastSide?,
+        temperature: String,
+        medicationName: String,
+        medicationDosage: String,
+        note: String
+    ) -> Activity {
         var activity = Activity(babyId: babyId, type: type)
         activity.startTime = recordTime
 
@@ -233,9 +276,11 @@ struct QuickInputSheet: View {
         case .medication:
             activity.medicationName = medicationName.trimmingCharacters(in: .whitespaces)
             activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
-            RecentMedications.add(activity.medicationName ?? "")
         case .feedingBottle:
             activity.amount = Double(amount)
+        case .feedingPumping:
+            activity.amount = Double(amount)
+            activity.side = side
         default:
             break
         }
@@ -243,6 +288,27 @@ struct QuickInputSheet: View {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedNote.isEmpty {
             activity.note = trimmedNote
+        }
+        return activity
+    }
+
+    private func save() {
+        guard let babyId = babyVM.selectedBaby?.id else { return }
+
+        let activity = Self.buildActivity(
+            babyId: babyId,
+            type: type,
+            recordTime: recordTime,
+            amount: amount,
+            side: type == .feedingPumping ? selectedSide : nil,
+            temperature: temperature,
+            medicationName: medicationName,
+            medicationDosage: medicationDosage,
+            note: note
+        )
+
+        if type == .medication {
+            RecentMedications.add(activity.medicationName ?? "")
         }
 
         onSave(activity)

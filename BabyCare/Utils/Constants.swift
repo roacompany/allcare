@@ -9,6 +9,7 @@ enum AppColors {
     static let bathColor = Color("bathColor")
     static let temperatureColor = Color("temperatureColor")
     static let medicationColor = Color("medicationColor")
+    static let pumpingColor = Color("pumpingColor")        // 유축 — 보라/자두 (mint/teal palette collision 회피, spec §8)
 
     // MARK: - Semantic Colors (Asset Catalog, 다크 모드 대응)
     static let background = Color("backgroundColor")

@@ -88,6 +88,14 @@ extension DashboardView {
               let currentUserId = authVM.currentUserId else { return }
         await activityVM.savePrebuiltActivity(activity, userId: userId, currentUserId: currentUserId)
 
+        if activity.type == .feedingPumping {
+            // 유축 telemetry — raw mL 금지, coarse bucket만 (spec §10)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
+                AnalyticsParams.amountBucket: PumpingAnalytics.bucket(activity.amount),
+                AnalyticsParams.side: activity.side?.rawValue ?? "none"
+            ])
+        }
+
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         lastSavedActivity = activityVM.todayActivities.first

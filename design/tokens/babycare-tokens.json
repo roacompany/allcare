@@ -60,6 +60,12 @@
       "$valueDark": "#E0B2FF",
       "$source": "medicationColor.colorset",
       "$description": "Medication activity — lavender"
+    },
+    "pumping": {
+      "$value": "#B56FD1",
+      "$valueDark": "#C98FE0",
+      "$source": "pumpingColor.colorset",
+      "$description": "Pumping activity — violet/plum (mint/teal palette collision 회피)"
     }
   },
 
