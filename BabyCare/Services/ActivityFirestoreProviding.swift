@@ -9,6 +9,7 @@ protocol ActivityFirestoreProviding: Sendable {
     func fetchActivities(userId: String, babyId: String, from startDate: Date, to endDate: Date) async throws -> [Activity]
     func fetchWeeklyMetricSnapshots(userId: String, babyId: String, limit: Int) async throws -> [WeeklyMetricSnapshot]
     func saveWeeklyMetricSnapshot(_ snapshot: WeeklyMetricSnapshot, userId: String, babyId: String) async throws
+    func fetchStats(userId: String) async throws -> UserStats?
 }
 
 extension FirestoreService: ActivityFirestoreProviding {}
