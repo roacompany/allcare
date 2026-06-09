@@ -172,6 +172,79 @@ final class BabyCareTests: XCTestCase {
                        "유축은 캘린더 dot를 만들지 않고 orphan Set 멤버도 남기지 않아야 한다")
     }
 
+    // MARK: - 병수유 내용물 (분유/모유) — 2026-06-09
+
+    func testFeedingContent_displayNameAndRawValue() {
+        XCTAssertEqual(Activity.FeedingContent.formula.displayName, "분유")
+        XCTAssertEqual(Activity.FeedingContent.breastMilk.displayName, "모유")
+        XCTAssertEqual(Activity.FeedingContent.formula.rawValue, "formula")
+        XCTAssertEqual(Activity.FeedingContent.breastMilk.rawValue, "breast_milk")
+    }
+
+    func testActivity_feedingContentDefaultsNil() {
+        let a = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        XCTAssertNil(a.feedingContent, "기존 분유 레코드 하위호환 — 미지정은 nil(=분유)")
+    }
+
+    func testActivity_isFormulaBottle_andBreastMilkBottle() {
+        let formulaNil = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        XCTAssertTrue(formulaNil.isFormulaBottle, "content nil = 분유 병수유로 취급")
+        XCTAssertFalse(formulaNil.isBreastMilkBottle)
+
+        var breast = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        breast.feedingContent = .breastMilk
+        XCTAssertTrue(breast.isBreastMilkBottle, "유축한 모유 병수유")
+        XCTAssertFalse(breast.isFormulaBottle, "모유 병수유는 분유(formula)로 세면 안 된다")
+
+        let pump = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 200)
+        XCTAssertFalse(pump.isFormulaBottle)
+        XCTAssertFalse(pump.isBreastMilkBottle)
+    }
+
+    func testActivity_displayLabel_contentAware() {
+        var breast = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        breast.feedingContent = .breastMilk
+        XCTAssertEqual(breast.displayLabel, "모유(병)")
+        let formula = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
+        XCTAssertEqual(formula.displayLabel, "분유")
+        let pump = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 200)
+        XCTAssertEqual(pump.displayLabel, "유축")
+    }
+
+    @MainActor
+    func testBottle_breastMilkCountsAsIntake_pumpingDoesNot() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        var breastBottle = Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 50)
+        breastBottle.feedingContent = .breastMilk
+        vm.todayActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100), // 분유
+            breastBottle,                                                              // 유축한 모유 병수유
+            Activity(babyId: "b1", type: .feedingPumping, startTime: now, amount: 200) // 유축(생산)
+        ]
+        XCTAssertEqual(vm.todayTotalMl, 150, "병수유는 분유·모유 모두 섭취. 유축(생산)만 제외")
+        XCTAssertEqual(vm.todayFeedingCount, 2, "병수유 2건은 섭취 횟수. 유축은 미포함")
+    }
+
+    func testQuickInput_bottle_persistsFeedingContent() {
+        let breast = QuickInputSheet.buildActivity(
+            babyId: "b1", type: .feedingBottle, recordTime: Date(),
+            amount: "100", side: nil, feedingContent: .breastMilk,
+            temperature: "", medicationName: "", medicationDosage: "", note: ""
+        )
+        XCTAssertEqual(breast.amount, 100)
+        XCTAssertEqual(breast.feedingContent, .breastMilk, "병수유 내용물(모유) 영속")
+        XCTAssertTrue(breast.isBreastMilkBottle)
+
+        let formula = QuickInputSheet.buildActivity(
+            babyId: "b1", type: .feedingBottle, recordTime: Date(),
+            amount: "100", side: nil, feedingContent: .formula,
+            temperature: "", medicationName: "", medicationDosage: "", note: ""
+        )
+        XCTAssertEqual(formula.feedingContent, .formula)
+        XCTAssertTrue(formula.isFormulaBottle)
+    }
+
     // MARK: - TimeInterval Extension Tests
 
     func testFormattedDuration() {

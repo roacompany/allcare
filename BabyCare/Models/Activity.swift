@@ -11,6 +11,7 @@ struct Activity: Identifiable, Codable, Hashable {
     /// 합산 시 반드시 type/category 필터 필요 (섭취 ≠ 생산, 의료 정합 — spec §2/§4).
     var amount: Double?
     var side: BreastSide?
+    var feedingContent: FeedingContent?   // 병수유 내용물(분유/유축한 모유). nil=분유(하위호환). feedingBottle에서만 의미.
     var note: String?
     var photoURL: String?
     var temperature: Double?
@@ -27,6 +28,13 @@ struct Activity: Identifiable, Codable, Hashable {
     var sleepQuality: SleepQualityType?
     var sleepMethod: SleepMethodType?
     var medicationDosage: String?
+
+    /// 유축한 모유 병수유 — 섭취(.feeding)지만 'formula' 아님. 분유재고·분유량 집계서 제외용.
+    var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
+    /// 진짜 분유(formula) 병수유 — 분유재고 차감·병원리포트 '분유량' 집계 대상(nil=분유).
+    var isFormulaBottle: Bool { type == .feedingBottle && feedingContent != .breastMilk }
+    /// 타임라인/표시용 라벨 — 모유 병수유는 '모유(병)'로 구분.
+    var displayLabel: String { isBreastMilkBottle ? "모유(병)" : type.displayName }
 
     enum ActivityType: String, Codable, CaseIterable, Identifiable {
         var id: String { rawValue }
@@ -138,6 +146,17 @@ struct Activity: Identifiable, Codable, Hashable {
         }
     }
 
+    enum FeedingContent: String, Codable, CaseIterable {
+        case formula = "formula"          // 분유 (rawValue = Firestore 영구계약)
+        case breastMilk = "breast_milk"   // 유축한 모유
+        var displayName: String {
+            switch self {
+            case .formula: "분유"
+            case .breastMilk: "모유"
+            }
+        }
+    }
+
     enum BreastSide: String, Codable, CaseIterable {
         case left = "L"
         case right = "R"
@@ -177,6 +196,7 @@ struct Activity: Identifiable, Codable, Hashable {
         duration: TimeInterval? = nil,
         amount: Double? = nil,
         side: BreastSide? = nil,
+        feedingContent: FeedingContent? = nil,
         note: String? = nil,
         photoURL: String? = nil,
         temperature: Double? = nil,
@@ -200,6 +220,7 @@ struct Activity: Identifiable, Codable, Hashable {
         self.duration = duration
         self.amount = amount
         self.side = side
+        self.feedingContent = feedingContent
         self.note = note
         self.photoURL = photoURL
         self.temperature = temperature
