@@ -21,6 +21,9 @@ struct QuickInputSheet: View {
     // 분유 / 유축량
     @State private var amount = ""
 
+    // 병수유 내용물 (분유/모유)
+    @State private var selectedFeedingContent: Activity.FeedingContent = .formula
+
     // 유축 방향 (좌/우/양쪽)
     @State private var selectedSide: Activity.BreastSide = .both
 
@@ -209,6 +212,13 @@ struct QuickInputSheet: View {
 
     private var bottleInput: some View {
         Section {
+            Picker("내용물", selection: $selectedFeedingContent) {
+                Text("분유").tag(Activity.FeedingContent.formula)
+                Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("병수유 내용물")
+
             HStack {
                 Text("수유량")
                 Spacer()
@@ -262,6 +272,7 @@ struct QuickInputSheet: View {
         recordTime: Date,
         amount: String,
         side: Activity.BreastSide?,
+        feedingContent: Activity.FeedingContent = .formula,
         temperature: String,
         medicationName: String,
         medicationDosage: String,
@@ -278,6 +289,7 @@ struct QuickInputSheet: View {
             activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
         case .feedingBottle:
             activity.amount = Double(amount)
+            activity.feedingContent = feedingContent
         case .feedingPumping:
             activity.amount = Double(amount)
             activity.side = side
@@ -301,6 +313,7 @@ struct QuickInputSheet: View {
             recordTime: recordTime,
             amount: amount,
             side: type == .feedingPumping ? selectedSide : nil,
+            feedingContent: selectedFeedingContent,
             temperature: temperature,
             medicationName: medicationName,
             medicationDosage: medicationDosage,
