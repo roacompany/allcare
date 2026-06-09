@@ -7,12 +7,30 @@ struct FamilySharingView: View {
     @State private var vm = FamilySharingViewModel()
     @State private var showJoinSheet = false
     @State private var accessToDelete: SharedBabyAccess?
+    @State private var ownerRelationship: CaregiverRelationship = .mother
 
     var body: some View {
         List {
             // Generate invite
             Section {
                 if let baby = babyVM.selectedBaby {
+                    // "내 역할" picker — only for babies the current user owns
+                    if baby.ownerUserId == authVM.currentUserId {
+                        Picker("내 역할", selection: $ownerRelationship) {
+                            ForEach(CaregiverRelationship.selectable, id: \.self) { rel in
+                                Text(rel.displayName).tag(rel)
+                            }
+                        }
+                        .onChange(of: ownerRelationship) { _, selected in
+                            guard let userId = authVM.currentUserId else { return }
+                            var updated = baby
+                            updated.ownerRelationship = selected.rawValue
+                            Task {
+                                await babyVM.updateBaby(updated, userId: userId)
+                            }
+                        }
+                    }
+
                     Button {
                         Task {
                             guard let userId = authVM.currentUserId else { return }
@@ -106,6 +124,10 @@ struct FamilySharingView: View {
         .task {
             guard let userId = authVM.currentUserId else { return }
             await vm.fetchSharedAccess(userId: userId)
+            // 소유자 역할 초기화: 기존 저장값 반영
+            if let raw = babyVM.selectedBaby?.ownerRelationship {
+                ownerRelationship = CaregiverRelationship.known(rawValue: raw)
+            }
         }
         .sheet(isPresented: $showJoinSheet) {
             JoinFamilySheet(onJoin: { access in
@@ -154,6 +176,7 @@ private struct JoinFamilySheet: View {
     @State private var code = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var relationship: CaregiverRelationship = .mother
 
     var body: some View {
         NavigationStack {
@@ -176,6 +199,24 @@ private struct JoinFamilySheet: View {
                     .onChange(of: code) { _, newValue in
                         code = String(newValue.uppercased().prefix(6))
                     }
+
+                ViewThatFits(in: .horizontal) {
+                    Picker("나의 역할", selection: $relationship) {
+                        ForEach(CaregiverRelationship.selectable, id: \.self) { rel in
+                            Text(rel.displayName).tag(rel)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 40)
+
+                    Picker("나의 역할", selection: $relationship) {
+                        ForEach(CaregiverRelationship.selectable, id: \.self) { rel in
+                            Text(rel.displayName).tag(rel)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.horizontal, 40)
+                }
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -215,7 +256,7 @@ private struct JoinFamilySheet: View {
         errorMessage = nil
 
         do {
-            let access = try await vm.joinFamily(code: code, userId: userId)
+            let access = try await vm.joinFamily(code: code, userId: userId, relationship: relationship)
             onJoin(access)
             dismiss()
         } catch let error as FamilySharingError {

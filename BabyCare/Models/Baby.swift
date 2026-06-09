@@ -12,9 +12,12 @@ struct Baby: Identifiable, Codable, Hashable {
     /// The Firebase UID of the user who owns this baby's data.
     /// Runtime-only — NOT stored in Firestore (excluded from CodingKeys).
     var ownerUserId: String?
+    /// 소유자의 아기 관계 라벨 (CaregiverRelationship.rawValue). nil = 미설정(하위호환 optional).
+    var ownerRelationship: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, birthDate, gender, bloodType, photoURL, createdAt, updatedAt
+        case ownerRelationship
         // ownerUserId intentionally excluded — runtime-only tag set by BabyViewModel.loadBabies()
     }
 

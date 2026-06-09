@@ -43,6 +43,8 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
     var babyName: String
     var role: String // "viewer" or "editor"
     var joinedAt: Date
+    /// 공유 멤버의 아기 관계 라벨 (CaregiverRelationship.rawValue). nil = 미설정(하위호환 optional).
+    var relationship: String?
 
     init(
         id: String? = nil,
@@ -50,7 +52,8 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
         babyId: String,
         babyName: String,
         role: String = "editor",
-        joinedAt: Date = Date()
+        joinedAt: Date = Date(),
+        relationship: String? = nil
     ) {
         self.id = id ?? "\(ownerUserId)_\(babyId)"
         self.ownerUserId = ownerUserId
@@ -58,5 +61,6 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
         self.babyName = babyName
         self.role = role
         self.joinedAt = joinedAt
+        self.relationship = relationship
     }
 }

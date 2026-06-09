@@ -28,6 +28,8 @@ struct Activity: Identifiable, Codable, Hashable {
     var sleepQuality: SleepQualityType?
     var sleepMethod: SleepMethodType?
     var medicationDosage: String?
+    /// 활동을 기록한 보호자의 Firebase UID. nil = 과거 기록(소급 없음, 하위호환 optional).
+    var createdBy: String?
 
     /// 유축한 모유 병수유 — 섭취(.feeding)지만 'formula' 아님. 분유재고·분유량 집계서 제외용.
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
