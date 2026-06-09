@@ -29,6 +29,7 @@ extension ActivityViewModel {
     func performSaveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         guard type != .unknown else { return logUnknownSaveBlocked() }
         var activity = Activity(babyId: babyId, type: type)
+        activity.createdBy = currentUserId
 
         let timerBelongsToMe = isTimerRunning && activeTimerType == type
         // stopTimer() 호출 전 수동 조정 여부 캡처 (stopTimer가 isTimeAdjusted를 덮어쓰기 전)
@@ -192,6 +193,8 @@ extension ActivityViewModel {
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
     func savePrebuiltActivity(_ activity: Activity, userId: String, currentUserId: String) async {
         guard activity.type != .unknown else { return logUnknownSaveBlocked() }
+        var activity = activity
+        activity.createdBy = currentUserId
         todayActivities.insert(activity, at: 0)
 
         do {
@@ -208,6 +211,7 @@ extension ActivityViewModel {
     func quickSave(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         guard type != .unknown else { return logUnknownSaveBlocked() }
         var activity = Activity(babyId: babyId, type: type)
+        activity.createdBy = currentUserId
 
         // 빠른 기록에서도 최소한의 기본값 설정
         if type == .feedingBreast {
