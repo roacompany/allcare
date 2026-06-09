@@ -246,14 +246,24 @@ extension ActivityViewModel {
         // .unknown(forward-compat 센티넬)은 편집/영속 불가 — optimisticReplace 진입 전 차단해
         // 팬텀 에딧(저장 실패가 성공처럼 보이는 in-memory 발산) + 오프라인 큐 우회 방지.
         guard activity.type != .unknown else { return logUnknownSaveBlocked() }
-        guard let original = todayActivities.first(where: { $0.id == activity.id }) else { return }
 
-        if let error = await optimisticReplace(
-            in: \.todayActivities, original: original, with: activity,
-            save: { try await self.firestoreService.saveActivity(activity, userId: userId) }
-        ) {
-            errorMessage = "기록 수정에 실패했습니다."
-            _ = error
+        if let original = todayActivities.first(where: { $0.id == activity.id }) {
+            // 대시보드(오늘) 경로: 낙관적 in-memory 교체 + 저장 + 실패 시 롤백.
+            if let error = await optimisticReplace(
+                in: \.todayActivities, original: original, with: activity,
+                save: { try await self.firestoreService.saveActivity(activity, userId: userId) }
+            ) {
+                errorMessage = "기록 수정에 실패했습니다."
+                _ = error
+            }
+        } else {
+            // 캘린더(다른 날짜) 경로: todayActivities 에 없는 과거/타 날짜 기록도 Firestore 에 반드시 저장.
+            // (기존엔 여기서 early-return 해 저장이 통째 누락 → 종료시간 등 수정이 reload 시 원복됐다.)
+            do {
+                try await firestoreService.saveActivity(activity, userId: userId)
+            } catch {
+                errorMessage = "기록 수정에 실패했습니다."
+            }
         }
     }
 
