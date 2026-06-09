@@ -234,6 +234,32 @@ final class BabyCareTests: XCTestCase {
                        ".unknown 의 양은 수유 차트에 합산되면 안 된다")
     }
 
+    /// 불변 3(병원 체크리스트): .unknown 의 note/체온은 소아과 증상 스캔에 주입되면 안 된다 (적대검토 4번 누수)
+    func testUnknown_excludedFromHospitalChecklistSymptoms() {
+        var unknown = Activity(babyId: "b1", type: .feedingBottle, startTime: Date())
+        unknown.temperature = 39.0
+        unknown.note = "기침"
+        unknown.type = .unknown
+        XCTAssertTrue(HospitalChecklistService.symptomItems(from: [unknown]).isEmpty,
+                      ".unknown 의 발열/증상이 병원 체크리스트에 잡히면 안 된다")
+
+        // 대조군: 정상 type의 발열은 체크리스트에 잡힌다 (테스트 비공허 보장)
+        var real = Activity(babyId: "b1", type: .temperature, startTime: Date())
+        real.temperature = 39.0
+        XCTAssertFalse(HospitalChecklistService.symptomItems(from: [real]).isEmpty,
+                       "정상 발열은 체크리스트에 잡혀야 한다")
+    }
+
+    /// 불변 3(CSV): .unknown 은 CSV 데이터 행/양(ml) 컬럼에 새면 안 된다 (적대검토 5번 누수)
+    func testUnknown_excludedFromCSVExport() {
+        var unknown = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 999)
+        unknown.type = .unknown
+        let csv = ExportService.makeCSVString(activities: [unknown])
+        XCTAssertEqual(csv.split(separator: "\n", omittingEmptySubsequences: true).count, 1,
+                       ".unknown 은 CSV 데이터 행을 만들면 안 된다 (헤더만)")
+        XCTAssertFalse(csv.contains("999"), ".unknown 의 양이 CSV 양(ml) 컬럼에 새면 안 된다")
+    }
+
     /// §7-4: CSV가 유축량을 별도 컬럼에 분리, 섭취 양(ml)은 공란 (생산≠섭취)
     func testCSV_pumpingHasSeparateColumn() {
         let now = Date()

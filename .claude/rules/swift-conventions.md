@@ -6,6 +6,13 @@ globs: "**/*.swift"
 
 - Swift 6.0, iOS 17+, 100% SF Symbols
 - 모델: `Identifiable, Codable, Hashable` 채택, 신규 필드 optional
+
+## Forward-compat: `Activity.ActivityType.unknown` 센티넬 (2026-06-09)
+
+- **`"unknown"` rawValue는 영구 예약** — 실제 ActivityType에 절대 재사용 금지. 미지의(신버전이 추가한) type rawValue를 디코드하는 read-only 센티넬 (`init(from:)` 폴백). `FeedingContent`/`outcomeType` rawValue 영구계약과 동일 성격.
+- `.unknown` 은 **영속 불가** — `encode(to:)`가 throw (데이터 손실 봉쇄). 새 쓰기 경로 추가 시 `.unknown` 가드 불필요(encode가 구조적으로 차단)하나, 저장 진입점은 early-guard로 팬텀에딧 방지.
+- **`.unknown.category == .unknown`** (중립 버킷) → `category == .feeding/.diaper/...` 양수 필터는 자동 배제. **위험: 활동을 type/category 필터 없이 전수 순회(`for x in activities`)하거나 음수 필터(`!= .pumping`)하는 집계/내보내기는 `.unknown`을 포함시킨다.** `.unknown`은 amount/temperature/note 등 형제 필드를 보존하므로(커스텀 Codable은 `type`만 관할) 의료 수치가 샌다. 신규 전수-순회 사이트는 `filter { $0.type.category != .unknown }` 필수 (선례: `analyzeSummary`/`HospitalChecklistService.symptomItems`/`ExportService`). 타임라인 렌더만 `.unknown`을 보여준다.
+- raw String → enum 재구성은 `ActivityType.known(rawValue:)` 사용 (`init?(rawValue:)`는 센티넬 부활 우회).
 - 색상: `AppColors` enum (Asset Catalog 18개 Dynamic Color)
 - 위젯 다크모드: `WidgetColors` adaptive enum
 - 의학 데이터: 면책 문구 필수

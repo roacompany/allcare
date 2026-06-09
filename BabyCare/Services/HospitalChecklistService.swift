@@ -145,7 +145,9 @@ enum HospitalChecklistService {
     /// 최근 7일 활동 note에서 증상 키워드를 추출하여 체크리스트 생성
     static func symptomItems(from activities: [Activity]) -> [HospitalChecklistItem] {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        let recentActivities = activities.filter { $0.startTime >= sevenDaysAgo }
+        // .unknown(forward-compat 센티넬)은 증상/발열/투약 스캔에서 제외 — 미지 기록의 note/temperature가
+        // 소아과 체크리스트·병원 PDF에 가짜 증상으로 주입되는 의료 정합 누수 방지.
+        let recentActivities = activities.filter { $0.startTime >= sevenDaysAgo && $0.type.category != .unknown }
 
         // 노트 및 투약 기록 수집
         var foundKeywords: Set<String> = []

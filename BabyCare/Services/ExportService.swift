@@ -10,7 +10,9 @@ enum ExportService {
 
         var csv = "날짜,시간,유형,상세,기간(분),양(ml),유축량(ml),체온,메모\n"
 
-        let sorted = activities.sorted { $0.startTime < $1.startTime }
+        // .unknown(forward-compat 센티넬)은 CSV에서 제외 — 미지 기록의 amount가 섭취 양(ml) 컬럼에
+        // 새어 의사에게 건네는 리포트의 의료 수치를 오염시키는 것 방지.
+        let sorted = activities.filter { $0.type.category != .unknown }.sorted { $0.startTime < $1.startTime }
         for a in sorted {
             let date = dateFormatter.string(from: a.startTime)
             let dateParts = date.split(separator: " ")
