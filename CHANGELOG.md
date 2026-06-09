@@ -2,6 +2,36 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.8.6] - 2026-06-09 (TestFlight 빌드 87/88, App Store 제출 WAITING_FOR_REVIEW)
+
+> v2.8.4/v2.8.5는 TestFlight 전용(미릴리즈) — v2.8.5(BCDS) 라인은 폐기. v2.8.6이 DS2 대시보드·Sentry·유축의 첫 App Store 릴리즈.
+
+### Added — 유축(Pumping) 기록 (#20, #23)
+
+- **기록하기 > 수유**에 '유축' 칩 추가(보라, ViewThatFits a11y) + 홈 빠른기록 그리드 기본 노출 — 두 진입점
+- 유축량(짜낸 양) + 방향(왼쪽/오른쪽/양쪽) 기록. 온보딩 카피로 "짜낸 양 ≠ 먹은 양" 안내
+- **신규 `.pumping` 카테고리** — 섭취량(`todayTotalMl`)·수유 횟수·병원리포트 총분유량에서 자동 분리 집계 (생산 ≠ 섭취, 의료 정합·환자안전)
+- 유축량 통계 mL 차트(empty-state 가드) + CSV `유축량(ml)` 별도 컬럼
+
+### Added — 병수유 내용물 구분 (#23)
+
+- 분유 기록(기록하기/빠른기록/편집)에 **[분유 / 유축한 모유] 토글** (`Activity.feedingContent`, nil=분유 하위호환)
+- 유축한 모유 병수유도 **섭취량에 정확히 반영**(먹은 양). 단 분유 재고 차감·병원리포트 '분유량'은 진짜 분유(formula)만 — `isFormulaBottle` predicate
+- 타임라인 라벨: 모유 병수유 → "모유(병)"
+
+### Added — Sentry 크래시/성능 모니터링 (#19)
+
+- Sentry-Cocoa 9.x, Release 빌드 한정, `sendDefaultPii=false`/tracesSampleRate=0.1/임신 키워드 redact
+
+### Changed
+
+- **대시보드 DesignSystemV2(Apple Health 스타일) 정본화** — dead V1 dual-mode 전 제거 + arch-test Rule 4 가드(BASELINE=0)로 재유입 차단 (Track A, #21/#22)
+
+### Tests
+
+- 단위 테스트: FeedingContent displayName/rawValue, isFormulaBottle/isBreastMilkBottle/displayLabel, 모유 병수유 섭취집계(유축은 제외), 유축 격리 회귀, QuickInputSheet.buildActivity content 영속
+- `make verify` green — arch R1=R2=R3=R4=0, design 100%, CI Verify pass
+
 ## [2.8.3] - 2026-05-17 (TestFlight 빌드 67/68/69, App Store 제출)
 
 ### Fixed — Nested NavigationStack 일괄 제거 (빌드 69, PR #9 `d31cd06`)

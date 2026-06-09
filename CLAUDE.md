@@ -104,6 +104,24 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-06-09) — 유축 기록하기 통합 + 병수유 내용물 + v2.8.6 출시
+
+### 릴리즈 트레인 꼬임 해소 (DS2 정본화 부작용)
+- TestFlight 빌드 86 = 폐기된 BCDS v2.8.5 (6/8 `git reset --hard` 시 이미 업로드돼 있었음 — 빌드번호 monotonic). ASC 실조회 + 적대검증 워크플로우로 확정
+- **BCDS 빌드 86 expire** (ASC API, 테스터 보호) + 로컬 빌드카운터(84) < TF 소비최대(86) 불일치 → v2.8.6 빌드 87로 점프
+- **교훈**: `make bump` 맹신 금지 — reset 후 committed 버전이 TF 실제와 어긋날 수 있음. ASC API로 ground truth 확인 후 수동 세팅
+
+### 유축 기록하기 통합 + 병수유 내용물 (PR #23 `2e98198`)
+- PO QA 발견: ①유축이 "기록하기"에 없음(그리드 전용) ②유축한 모유 먹인 섭취 담을 타입 없음(분유=formula/모유수유=직수)
+- **brainstorming → spec → writing-plans → executing-plans** 풀 워크플로우 (스펙·플랜 = `docs/superpowers/{specs,plans}/2026-06-09-feeding-flow-pumping-and-bottle-content*`)
+- 유축: `FeedingSubPicker` 5번째 칩(보라·ViewThatFits) + `FeedingRecordView` 유축 폼. 병수유: `Activity.feedingContent`(분유/모유) + 토글(기록/빠른기록/편집)
+- 불변: 유축=생산(.pumping 제외) / 병수유=섭취(.feeding 포함). formula-특정(분유재고·PDF 분유량)은 `isFormulaBottle`로 분리
+- `make verify` green (arch R1~R4=0, 신규 단위테스트, design 100%), CI Verify pass
+
+### v2.8.6 빌드 88 출시
+- 빌드 88 (유축 기록하기 + 병수유) archive+upload → VALID → **App Store 제출 WAITING_FOR_REVIEW (AFTER_APPROVAL)**
+- v2.8.6 = DS2 대시보드(Apple Health) + Sentry + 유축 + 병수유의 첫 App Store 릴리즈 (v2.8.4/2.8.5는 TF 전용 미릴리즈, v2.8.5 BCDS 폐기)
+
 ## Recent Session (2026-05-22) — v2.8.3 출시 동기화 + Round 7
 
 ### v2.8.3 App Store 출시 확인 (main `aebd137`)
@@ -236,14 +254,15 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.3 (빌드 69) — **App Store READY_FOR_SALE** (2026-05-17 제출 → AFTER_APPROVAL 자동 출시 완료, Weekly Highlights v2 + nested NavigationStack fix)
+- **Version**: v2.8.6 (빌드 88) — **App Store WAITING_FOR_REVIEW** (2026-06-09 제출, AFTER_APPROVAL. 유축 기록 + 병수유 내용물 + DS2 대시보드 + Sentry. versionId `a61a4dc9-8ecf-4bc4-a6e6-2910ce447db7`, buildId `08c69b5a-...`)
 - **App Store**:
+  - **v2.8.6 WAITING_FOR_REVIEW** (유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry, 2026-06-09 제출 AFTER_APPROVAL. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
   - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
-- **TestFlight**: v2.8.3 빌드 69 (`c040f15f-...`, 2026-05-17 — nested NavigationStack fix, 사용자 "통계 누르면 종료" 회귀 해소 검증 완료), 빌드 68 (`f61fed76-...`, 2026-05-12), 빌드 67 (`62cfb14c-...`)
-  - 이전: 빌드 66 (v2.8.2 ML `101f6cb5-...`), 65 (v2.8.1), 64 (v2.8.0)
+- **TestFlight**: **v2.8.6 빌드 88** (`08c69b5a-...`, 2026-06-09 — 유축 기록하기 통합 + 병수유 내용물, VALID), 빌드 87 (`f4371a83-...`, 유축 그리드 전용, VALID·superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
+  - 이전: v2.8.3 빌드 69 (`c040f15f-...`, nested NavigationStack fix), 68/67, 66 (v2.8.2 ML), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
 - **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
 - **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
