@@ -179,7 +179,10 @@ final class ActivityViewModel: OptimisticReplaceable {
                 logSilent("weekly metric snapshot 로드 실패", error: error, logger: AppLogger.ml)
                 snapshots = []
             }
-            let metricHistory = WeeklyInsightService.metricHistory(from: snapshots)
+            // 이번 분석 주차 스냅샷이 이전 오픈에서 저장돼 history 에 섞이면 Z-score 가 자기 자신과
+            // 비교돼 이상치 점수가 깎인다 (#11). 기준선에서 현재 주차를 제외한다.
+            let currentWeekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
+            let metricHistory = WeeklyInsightService.metricHistory(from: snapshots.excludingWeek(currentWeekKey))
 
             weeklyInsights = WeeklyInsightService.generateInsights(
                 from: comparisonReport,
@@ -208,7 +211,7 @@ final class ActivityViewModel: OptimisticReplaceable {
                 previousDays: 7,
                 currentDays: 7
             )
-            let weekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
+            let weekKey = currentWeekKey
             let snapshot = WeeklyMetricSnapshot(weekKey: weekKey, weekStartDate: weekAgo, metrics: metrics)
             do {
                 try await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
@@ -348,5 +351,13 @@ final class ActivityViewModel: OptimisticReplaceable {
     /// 24시간 내 38.0°C 이상 체온이 2회 이상 기록된 경우 true
     var isFeverTrendDetected: Bool {
         recentHighTemperatureCount >= 2
+    }
+
+    /// 방금 저장한 체온을 48h 발열 추세 윈도우에 반영하고 추세 여부 반환 (#18).
+    /// performSaveActivity 의 발열 알림 판정이 방금 저장한 기록을 빠뜨리지 않도록 — stale window 방지.
+    @discardableResult
+    func registerTemperature(_ activity: Activity) -> Bool {
+        recentTemperatureActivities.append(activity)
+        return isFeverTrendDetected
     }
 }
