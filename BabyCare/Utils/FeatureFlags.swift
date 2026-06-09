@@ -27,4 +27,10 @@ enum FeatureFlags {
     /// 폐기 가능 namespace (`BabyCare/DesignSystemV2/`) 이므로 compile-time 단독 게이트.
     /// RemoteConfig 미연결 — Lab/실험실 성격 (PO 직접 편집 UI 없이 코드로만 평가).
     static let designSystemV2Preview: Bool = true
+
+    /// 앱 평가(App Store 리뷰) 팝업 compile-time kill switch.
+    /// true = 활성. 긍정적 성취(기록 20개 / 병원리포트 완료) 중 먼저 도달한 1개에서
+    /// 시스템 평가 시트를 생애 1회 호출(AppReviewPromptService). RemoteConfig 미연결
+    /// (FirebaseRemoteConfig import 금지, A-18). false 시 자동 팝업 + 설정 "리뷰 남기기" 행 모두 비활성.
+    static let appReviewPromptEnabled: Bool = true
 }

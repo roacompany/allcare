@@ -2817,5 +2817,80 @@ final class BadgeEvaluatorIntegrationTests: XCTestCase {
         }
         wait(for: [expectation], timeout: 5)
     }
+
+    // MARK: - App Review Prompt Tests
+
+    private func makeEphemeralReviewDefaults() -> UserDefaults {
+        let name = "test.appReview.\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: name)!
+        d.removePersistentDomain(forName: name)
+        return d
+    }
+
+    @MainActor
+    func testReviewPrompt_firstTrigger_setsPending() {
+        let svc = AppReviewPromptService(defaults: makeEphemeralReviewDefaults(), isEnabled: true)
+        svc.noteTrigger(.recordsMilestone)
+        XCTAssertEqual(svc.pendingTrigger, .recordsMilestone)
+        XCTAssertFalse(svc.isConsumed)
+    }
+
+    @MainActor
+    func testReviewPrompt_consume_marksConsumedAndClears() {
+        let svc = AppReviewPromptService(defaults: makeEphemeralReviewDefaults(), isEnabled: true)
+        svc.noteTrigger(.hospitalReport)
+        let consumed = svc.consumePending()
+        XCTAssertEqual(consumed, .hospitalReport)
+        XCTAssertTrue(svc.isConsumed)
+        XCTAssertNil(svc.pendingTrigger)
+    }
+
+    @MainActor
+    func testReviewPrompt_afterConsume_noRearm() {
+        let defaults = makeEphemeralReviewDefaults()
+        let svc = AppReviewPromptService(defaults: defaults, isEnabled: true)
+        svc.noteTrigger(.recordsMilestone)
+        _ = svc.consumePending()
+        svc.noteTrigger(.hospitalReport)
+        XCTAssertNil(svc.pendingTrigger)
+    }
+
+    @MainActor
+    func testReviewPrompt_secondTriggerIgnoredWhilePending() {
+        let svc = AppReviewPromptService(defaults: makeEphemeralReviewDefaults(), isEnabled: true)
+        svc.noteTrigger(.recordsMilestone)
+        svc.noteTrigger(.hospitalReport)
+        XCTAssertEqual(svc.pendingTrigger, .recordsMilestone)
+    }
+
+    @MainActor
+    func testReviewPrompt_disabled_noPending() {
+        let svc = AppReviewPromptService(defaults: makeEphemeralReviewDefaults(), isEnabled: false)
+        svc.noteTrigger(.recordsMilestone)
+        XCTAssertNil(svc.pendingTrigger)
+    }
+
+    @MainActor
+    func testReviewPrompt_consumedFlagPersistsAcrossInstances() {
+        let defaults = makeEphemeralReviewDefaults()
+        let first = AppReviewPromptService(defaults: defaults, isEnabled: true)
+        first.noteTrigger(.recordsMilestone)
+        _ = first.consumePending()
+
+        let second = AppReviewPromptService(defaults: defaults, isEnabled: true)
+        second.noteTrigger(.hospitalReport)
+        XCTAssertTrue(second.isConsumed)
+        XCTAssertNil(second.pendingTrigger)
+    }
+
+    func testReviewPrompt_coreActivityTotal() {
+        XCTAssertEqual(AppReviewPromptService.coreActivityTotal(nil), 0)
+        var stats = UserStats.empty()
+        stats.feedingCount = 7
+        stats.sleepCount = 5
+        stats.diaperCount = 6
+        stats.growthRecordCount = 2
+        XCTAssertEqual(AppReviewPromptService.coreActivityTotal(stats), 20)
+    }
 }
 
