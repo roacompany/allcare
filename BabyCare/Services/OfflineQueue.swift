@@ -38,23 +38,32 @@ final class OfflineQueue {
     func flush() async {
         guard !isFlushing, !operations.isEmpty else { return }
         isFlushing = true
+        defer { isFlushing = false }
 
-        var failed: [PendingOperation] = []
-        for op in operations {
+        // 이번 flush 대상 스냅샷. flush 의 await 도중 enqueue 된 신규 op 은 batch 밖이라 보존된다.
+        let batch = operations
+        var failedByID: [String: PendingOperation] = [:]
+        for op in batch {
             do {
                 try await execute(op)
             } catch {
                 var failedOp = op
                 failedOp.retryCount += 1
                 if failedOp.retryCount < 5 { // max 5 retries
-                    failed.append(failedOp)
+                    failedByID[op.id] = failedOp
                 }
                 // Drop after 5 failures
             }
         }
-        operations = failed
+
+        // 성공한 batch op 만 제거. 실패분은 retry++ 로 교체, flush 도중 새로 들어온 op 은 그대로 보존
+        // (operations 통째 덮어쓰기 시 동시 enqueue 가 유실되는 #5 버그 방지).
+        let batchIDs = Set(batch.map(\.id))
+        operations = operations.compactMap { op in
+            guard batchIDs.contains(op.id) else { return op }   // flush 도중 추가됨 → 보존
+            return failedByID[op.id]                              // 성공/소진 → 제거, 실패 → retry++ 교체
+        }
         save()
-        isFlushing = false
     }
 
     private func execute(_ op: PendingOperation) async throws {
