@@ -154,6 +154,7 @@ private struct JoinFamilySheet: View {
     @State private var code = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var relationship: CaregiverRelationship = .mother
 
     var body: some View {
         NavigationStack {
@@ -176,6 +177,24 @@ private struct JoinFamilySheet: View {
                     .onChange(of: code) { _, newValue in
                         code = String(newValue.uppercased().prefix(6))
                     }
+
+                ViewThatFits(in: .horizontal) {
+                    Picker("나의 역할", selection: $relationship) {
+                        ForEach(CaregiverRelationship.selectable, id: \.self) { rel in
+                            Text(rel.displayName).tag(rel)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 40)
+
+                    Picker("나의 역할", selection: $relationship) {
+                        ForEach(CaregiverRelationship.selectable, id: \.self) { rel in
+                            Text(rel.displayName).tag(rel)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.horizontal, 40)
+                }
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -215,7 +234,7 @@ private struct JoinFamilySheet: View {
         errorMessage = nil
 
         do {
-            let access = try await vm.joinFamily(code: code, userId: userId)
+            let access = try await vm.joinFamily(code: code, userId: userId, relationship: relationship)
             onJoin(access)
             dismiss()
         } catch let error as FamilySharingError {

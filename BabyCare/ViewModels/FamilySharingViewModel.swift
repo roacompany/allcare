@@ -42,7 +42,7 @@ final class FamilySharingViewModel {
 
     // MARK: - Join Family
 
-    func joinFamily(code: String, userId: String) async throws -> SharedBabyAccess {
+    func joinFamily(code: String, userId: String, relationship: CaregiverRelationship) async throws -> SharedBabyAccess {
         guard let invite = try await firestoreService.findInviteByCode(code) else {
             throw FamilySharingError.invalidCode
         }
@@ -65,7 +65,8 @@ final class FamilySharingViewModel {
         let access = SharedBabyAccess(
             ownerUserId: invite.ownerUserId,
             babyId: invite.babyId,
-            babyName: invite.babyName
+            babyName: invite.babyName,
+            relationship: relationship.rawValue
         )
         try await firestoreService.saveSharedAccess(access, userId: userId)
         do {
