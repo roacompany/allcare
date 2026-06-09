@@ -138,9 +138,10 @@ final class CalendarViewModel {
     // MARK: - Event Dots Builder
 
     /// 활동 → 캘린더 dot Set. 유축(.pumping)은 dot도, eventDots orphan Set 멤버도 만들지 않는다 (spec §5.3/§6).
+    /// .unknown(forward-compat 센티넬)도 dot 생성 금지 — 없는 기록인 양 점이 찍히는 오해 방지.
     static func eventDots(forActivities activities: [Activity]) -> [Date: Set<CalendarEventType>] {
         var dots: [Date: Set<CalendarEventType>] = [:]
-        for activity in activities where activity.type.category != .pumping {
+        for activity in activities where activity.type.category != .pumping && activity.type.category != .unknown {
             dots[activity.startTime.startOfDay, default: []].insert(.activity(activity.type.category))
         }
         return dots

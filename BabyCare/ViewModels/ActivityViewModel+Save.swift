@@ -27,6 +27,7 @@ extension ActivityViewModel {
     }
 
     func performSaveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
+        guard type != .unknown else { return logUnknownSaveBlocked() }
         var activity = Activity(babyId: babyId, type: type)
 
         let timerBelongsToMe = isTimerRunning && activeTimerType == type
@@ -126,6 +127,10 @@ extension ActivityViewModel {
             }
             activity.amount = Double(amount)
             activity.side = selectedSide
+
+        case .unknown:
+            // forward-compat 센티넬은 영속 불가 — 진입점 가드로 도달 불가하나 exhaustive 보장 + 방어.
+            return false
         }
         return true
     }
@@ -162,8 +167,15 @@ extension ActivityViewModel {
         return true
     }
 
+    /// .unknown 저장 시도 진단 로깅 (forward-compat 센티넬은 정상 흐름에서 도달 불가 — 도달 시 버그 신호)
+    private func logUnknownSaveBlocked() {
+        AppLogger.firestore.warning("ActivityType.unknown 저장 차단 — read-only 센티넬은 영속 불가 (forward-compat)")
+    }
+
     /// 오프라인 큐에 activity 저장
     private func enqueueOfflineActivity(_ activity: Activity, userId: String, babyId: String) {
+        // 오프라인 큐는 saveActivity 가드를 우회하는 별도 쓰기 경로 → .unknown 차단 (데이터 손실 방지)
+        guard activity.type != .unknown else { return logUnknownSaveBlocked() }
         let collectionPath = "\(FirestoreCollections.users)/\(userId)/\(FirestoreCollections.babies)/\(babyId)/\(FirestoreCollections.activities)"
         let jsonData = try? JSONEncoder().encode(activity)
         let pendingOp = PendingOperation(
@@ -179,6 +191,7 @@ extension ActivityViewModel {
 
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
     func savePrebuiltActivity(_ activity: Activity, userId: String, currentUserId: String) async {
+        guard activity.type != .unknown else { return logUnknownSaveBlocked() }
         todayActivities.insert(activity, at: 0)
 
         do {
@@ -193,6 +206,7 @@ extension ActivityViewModel {
     }
 
     func quickSave(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
+        guard type != .unknown else { return logUnknownSaveBlocked() }
         var activity = Activity(babyId: babyId, type: type)
 
         // 빠른 기록에서도 최소한의 기본값 설정
@@ -225,6 +239,9 @@ extension ActivityViewModel {
     }
 
     func updateActivity(_ activity: Activity, userId: String) async {
+        // .unknown(forward-compat 센티넬)은 편집/영속 불가 — optimisticReplace 진입 전 차단해
+        // 팬텀 에딧(저장 실패가 성공처럼 보이는 in-memory 발산) + 오프라인 큐 우회 방지.
+        guard activity.type != .unknown else { return logUnknownSaveBlocked() }
         guard let original = todayActivities.first(where: { $0.id == activity.id }) else { return }
 
         if let error = await optimisticReplace(

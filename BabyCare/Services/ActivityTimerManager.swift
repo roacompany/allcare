@@ -25,6 +25,8 @@ final class ActivityTimerManager {
     // MARK: - Timer Control
 
     func startTimer(type: Activity.ActivityType) {
+        // .unknown(forward-compat 센티넬)은 타이머 대상 아님 (needsTimer=false) — 진입 차단
+        guard type != .unknown else { return }
         isTimerRunning = true
         let startTime = Date()
         timerStartTime = startTime
@@ -83,7 +85,7 @@ final class ActivityTimerManager {
         let startInterval = UserDefaults.standard.double(forKey: Self.timerStartKey)
         guard startInterval > 0,
               let typeRaw = UserDefaults.standard.string(forKey: Self.timerTypeKey),
-              let type = Activity.ActivityType(rawValue: typeRaw) else {
+              let type = Activity.ActivityType.known(rawValue: typeRaw) else {
             // 복구할 타이머 없음 — 시스템에 leftover Live Activity가 있으면 정리
             LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)
             return nil

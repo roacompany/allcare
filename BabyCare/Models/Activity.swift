@@ -50,6 +50,35 @@ struct Activity: Identifiable, Codable, Hashable {
         case temperature = "temperature"
         case medication = "medication"
         case feedingPumping = "feeding_pumping"
+        /// 신버전이 추가한 미지의 type rawValue를 디코드한 read-only 센티넬 (forward-compat, 2026-06-09 spec).
+        /// 구버전 가족기기가 모르는 종류를 만나도 문서 drop을 막기 위함. 절대 영속/picker/타이머/집계 노출 금지.
+        case unknown = "unknown"
+
+        /// init?(rawValue:)를 우회하는 raw-String 재구성 경로용 — 센티넬/미지 raw를 거부(드롭).
+        /// (커스텀 init(from:)은 Decoder 경로만 관할하므로 rawValue 부활을 별도 차단)
+        static func known(rawValue: String) -> ActivityType? {
+            guard let type = ActivityType(rawValue: rawValue), type != .unknown else { return nil }
+            return type
+        }
+
+        /// 미지의 rawValue를 .unknown으로 폴백 (throw 대신) → decodeDocuments compactMap이 문서를 살린다.
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = ActivityType(rawValue: raw) ?? .unknown
+        }
+
+        /// .unknown 은 read-only 센티넬 — 인코딩(=영속) 시 fail-loud. 실제 rawValue 덮어쓰기(데이터 손실) 봉쇄.
+        /// 정상 type은 기존 synthesized와 동일하게 rawValue 단일값 인코딩.
+        func encode(to encoder: Encoder) throws {
+            guard self != .unknown else {
+                throw EncodingError.invalidValue(self, EncodingError.Context(
+                    codingPath: encoder.codingPath,
+                    debugDescription: "ActivityType.unknown은 read-only 센티넬이라 영속될 수 없다."
+                ))
+            }
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
 
         var displayName: String {
             switch self {
@@ -65,6 +94,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .temperature: "체온"
             case .medication: "투약"
             case .feedingPumping: "유축"
+            case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
 
@@ -80,6 +110,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .temperature: "thermometer.medium"
             case .medication: "pills.fill"
             case .feedingPumping: "drop.fill"
+            case .unknown: "questionmark.circle"
             }
         }
 
@@ -93,6 +124,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .temperature: "temperatureColor"
             case .medication: "medicationColor"
             case .feedingPumping: "pumpingColor"
+            case .unknown: "neutralGrayColor"
             }
         }
 
@@ -108,6 +140,8 @@ struct Activity: Identifiable, Codable, Hashable {
                 return .health
             case .feedingPumping:
                 return .pumping
+            case .unknown:
+                return .unknown
             }
         }
 
@@ -119,7 +153,7 @@ struct Activity: Identifiable, Codable, Hashable {
                 return true
             case .feedingSolid, .feedingSnack, .feedingPumping,
                  .diaperWet, .diaperDirty, .diaperBoth,
-                 .bath, .temperature, .medication:
+                 .bath, .temperature, .medication, .unknown:
                 return false
             }
         }
@@ -130,7 +164,7 @@ struct Activity: Identifiable, Codable, Hashable {
                 return true
             case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
                  .diaperWet, .diaperDirty, .diaperBoth,
-                 .bath, .temperature, .medication:
+                 .bath, .temperature, .medication, .unknown:
                 return false
             }
         }
@@ -140,7 +174,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .temperature, .medication, .feedingBottle, .feedingPumping:
                 return true
             case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
-                 .diaperWet, .diaperDirty, .diaperBoth, .bath:
+                 .diaperWet, .diaperDirty, .diaperBoth, .bath, .unknown:
                 return false
             }
         }
@@ -173,6 +207,8 @@ struct Activity: Identifiable, Codable, Hashable {
 
     enum ActivityCategory: String, CaseIterable {
         case feeding, sleep, diaper, health, pumping
+        /// .unknown ActivityType의 중립 버킷 — 모든 집계(category == .feeding 등)에서 자동 배제.
+        case unknown
 
         var displayName: String {
             switch self {
@@ -181,6 +217,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .diaper: "기저귀"
             case .health: "건강"
             case .pumping: "유축"
+            case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
     }

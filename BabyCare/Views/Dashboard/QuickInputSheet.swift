@@ -38,6 +38,8 @@ struct QuickInputSheet: View {
             return !medicationName.trimmingCharacters(in: .whitespaces).isEmpty
         case .feedingBottle, .feedingPumping:
             return Double(amount) != nil && (Double(amount) ?? 0) > 0
+        case .unknown:
+            return false   // forward-compat 센티넬은 저장 불가 (진입 불가하나 default:true 트랩 방어)
         default:
             return true
         }

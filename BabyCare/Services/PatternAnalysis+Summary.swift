@@ -4,21 +4,24 @@ extension PatternAnalysisService {
         // MARK: - Summary
 
     static func analyzeSummary(activities: [Activity], startDate: Date, endDate: Date) -> SummaryPattern {
-        let totalRecords = activities.count
-        let grouped = groupByDay(activities)
+        // .unknown(forward-compat 센티넬)은 실제 기록이 아니므로 '총 기록'·도넛 분포에서 제외.
+        // (pumping 등 실제 type은 기존 동작 유지 — 미래 신규 type도 .unknown이 아니면 정상 집계)
+        let realActivities = activities.filter { $0.type.category != .unknown }
+        let totalRecords = realActivities.count
+        let grouped = groupByDay(realActivities)
 
         let dayCounts = grouped.map { (date: $0.key, count: $0.value.count) }
         let mostActive = dayCounts.max(by: { $0.count < $1.count })
         let leastActive = dayCounts.min(by: { $0.count < $1.count })
 
         var categoryDist: [Activity.ActivityCategory: Int] = [:]
-        for act in activities {
+        for act in realActivities {
             categoryDist[act.type.category, default: 0] += 1
         }
 
         // Missing days
         let totalDays = Calendar.current.dateComponents([.day], from: startDate.startOfDay, to: endDate.startOfDay).day ?? 0
-        let recordedDays = Set(activities.map { Calendar.current.startOfDay(for: $0.startTime) }).count
+        let recordedDays = Set(realActivities.map { Calendar.current.startOfDay(for: $0.startTime) }).count
         let missingDays = max(0, totalDays - recordedDays)
 
         return SummaryPattern(
