@@ -85,20 +85,24 @@ enum Preprocessor {
         for date in dates {
             let dayActivities = grouped[date] ?? []
 
-            if dayActivities.isEmpty, let prev = previousAggregate {
-                // LOCF: 이전 값으로 채움
-                var filled = prev
-                filled.date = date
-                filled.isMissingData = true
-                aggregates.append(filled)
-                previousAggregate = filled
+            if dayActivities.isEmpty {
+                if let prev = previousAggregate {
+                    // LOCF: 이전 값으로 채움
+                    var filled = prev
+                    filled.date = date
+                    filled.isMissingData = true
+                    aggregates.append(filled)
+                    previousAggregate = filled
+                }
+                // else: 데이터 시작 전 선행 결측일 — 0으로 박제하면 baseline(μ/σ) 오염 (#10) → skip
                 continue
             }
 
             let feeding = dayActivities.filter { $0.type.category == .feeding }
             let sleep = dayActivities.filter { $0.type == .sleep }
             let diaper = dayActivities.filter { $0.type.category == .diaper }
-            let temps = dayActivities.compactMap { $0.temperature }
+            // 체온은 .temperature 타입만 — forward-compat .unknown 형제 온도 누수 차단 (#1).
+            let temps = dayActivities.temperatureActivities.compactMap { $0.temperature }
 
             let feedingCount = feeding.count
             let feedingAmount = feeding.compactMap { $0.amount }.reduce(0, +)

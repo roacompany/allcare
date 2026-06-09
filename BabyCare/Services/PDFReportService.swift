@@ -89,7 +89,7 @@ enum PDFReportService {
         let feedings = ctx.filtered.filter { $0.type.category == .feeding }
         let sleeps = ctx.filtered.filter { $0.type == .sleep }
         let diapers = ctx.filtered.filter { $0.type.category == .diaper }
-        let temperatures = ctx.filtered.filter { $0.temperature != nil }
+        let temperatures = ctx.filtered.temperatureActivities
         let totalDays = max(1, ctx.periodDays)
 
         currentY = drawSummarySection(
@@ -468,7 +468,7 @@ enum PDFReportService {
 
         let feedings = activities.filter { $0.type.category == .feeding }
         let sleeps = activities.filter { $0.type == .sleep }
-        let temperatures = activities.compactMap { $0.temperature }
+        let temperatures = activities.temperatureActivities.compactMap { $0.temperature }
         let days = max(1, totalDays)
 
         // 수유 일평균
