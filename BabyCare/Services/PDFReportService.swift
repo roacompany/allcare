@@ -191,7 +191,7 @@ enum PDFReportService {
         y += 8
         let summaryItems: [(String, String)] = [
             ("총 수유 횟수", "\(feedings.count)회 (일평균 \(String(format: "%.1f", Double(feedings.count) / Double(totalDays)))회)"),
-            ("총 분유량", "\(Int(feedings.compactMap(\.amount).reduce(0, +)))ml"),
+            ("총 분유량", "\(Int(feedings.filter { $0.isFormulaBottle }.compactMap(\.amount).reduce(0, +)))ml"),
             ("총 수면 횟수", "\(sleeps.count)회"),
             ("총 수면 시간", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600)),
             ("일평균 수면", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600 / Double(totalDays))),
@@ -220,7 +220,7 @@ enum PDFReportService {
             context: context, title: "일자",
             headers: ["날짜", "횟수", "분유량(ml)", "모유(분)"],
             rows: feedingByDay.map { day in
-                let bottleMl = Int(day.activities.filter { $0.type == .feedingBottle }.compactMap(\.amount).reduce(0, +))
+                let bottleMl = Int(day.activities.filter { $0.isFormulaBottle }.compactMap(\.amount).reduce(0, +))
                 let breastMin = Int(day.activities.filter { $0.type == .feedingBreast }.compactMap(\.duration).reduce(0, +) / 60)
                 return [day.dateLabel, "\(day.activities.count)", "\(bottleMl)", "\(breastMin)"]
             },

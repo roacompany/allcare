@@ -15,7 +15,7 @@ struct ActivityRow: View {
 
             // Details
             VStack(alignment: .leading, spacing: 2) {
-                Text(activity.type.displayName)
+                Text(activity.displayLabel)
                     .font(.subheadline.weight(.medium))
 
                 HStack(spacing: 8) {
