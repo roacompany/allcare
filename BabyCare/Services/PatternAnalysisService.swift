@@ -140,9 +140,10 @@ enum PatternAnalysisService {
         let totalMl = feedingActivities.compactMap(\.amount).reduce(0, +)
         let dailyMlAverage = totalMl / Double(days)
 
-        // Breast vs Bottle
-        let breast = feedingActivities.filter { $0.type == .feedingBreast }.count
-        let bottle = feedingActivities.filter { $0.type == .feedingBottle }.count
+        // Breast vs Bottle — 모유 = 직수 + 유축 모유 병수유(둘 다 모유), 분유 = isFormulaBottle 만.
+        // 유축 모유 병수유를 '분유'로 세지 않는다 (병원 프롬프트 "모유:x 분유:y" 오정보 방지 #14).
+        let breast = feedingActivities.filter { $0.type == .feedingBreast || $0.isBreastMilkBottle }.count
+        let bottle = feedingActivities.filter { $0.isFormulaBottle }.count
 
         // Peak hours
         let peakHours = computePeakHours(activities: feedingActivities, topN: 3)

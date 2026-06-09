@@ -127,6 +127,12 @@ final class PatternReportViewModel {
 
             // 기간 변경 시 이전 AI 분석 초기화
             aiInsight = nil
+
+            // 비교 모드가 켜진 상태로 리포트를 다시 불러오면 새 report 엔 비교가 빠진다.
+            // showComparison 값은 그대로라 didSet 가 재발화하지 않으므로 여기서 재적용 (#17).
+            if showComparison {
+                await loadComparison()
+            }
         } catch {
             errorMessage = "데이터를 불러오지 못했습니다."
             report = nil
