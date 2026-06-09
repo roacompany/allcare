@@ -17,9 +17,8 @@ struct FeedingRecordView: View {
 
     // Save is allowed unless bottle feeding with no amount entered
     private var canSave: Bool {
-        if type == .feedingBottle {
-            return (Int(activityVM.amount) ?? 0) > 0
-        }
+        if type == .feedingBottle { return (Int(activityVM.amount) ?? 0) > 0 }
+        if type == .feedingPumping { return (Int(activityVM.amount) ?? 0) > 0 }
         return true
     }
 
@@ -30,6 +29,7 @@ struct FeedingRecordView: View {
         case .feedingBottle:  AppColors.indigoColor
         case .feedingSolid:   AppColors.warmOrangeColor
         case .feedingSnack:   AppColors.sageColor
+        case .feedingPumping: AppColors.pumpingColor
         default:              .pink
         }
     }
@@ -49,6 +49,7 @@ struct FeedingRecordView: View {
                 breastSideSection
                 foodSections
                 bottleAmountSection(vm: vm)
+                pumpingSection(vm: vm)
 
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
@@ -69,6 +70,8 @@ struct FeedingRecordView: View {
                     case .both:  break
                     }
                 }
+            } else if type == .feedingPumping {
+                activityVM.selectedSide = .both   // 유축 기본 방향
             }
         }
         .sheet(isPresented: Binding(
@@ -163,6 +166,14 @@ struct FeedingRecordView: View {
     private func bottleAmountSection(vm: ActivityViewModel) -> some View {
         if type == .feedingBottle {
             VStack(alignment: .leading, spacing: 10) {
+                Picker("내용물", selection: Bindable(vm).selectedFeedingContent) {
+                    Text("분유").tag(Activity.FeedingContent.formula)
+                    Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel("병수유 내용물")
+                .padding(.bottom, 4)
+
                 Label("섭취량 (ml)", systemImage: "drop.fill")
                     .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
@@ -184,6 +195,58 @@ struct FeedingRecordView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 quickFillButtons
+            }
+            .padding()
+            .background(accentColor.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private func pumpingSection(vm: ActivityViewModel) -> some View {
+        if type == .feedingPumping {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("유축량 (ml)", systemImage: "drop.fill")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        TextField("0", text: Bindable(vm).amount)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 28, weight: .semibold, design: .rounded))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                        Text("ml")
+                            .font(.title3.bold())
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    quickFillButtons
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("유축 방향", systemImage: "arrow.left.arrow.right")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        ForEach(Activity.BreastSide.allCases, id: \.self) { side in
+                            SideButton(
+                                side: side,
+                                isSelected: activityVM.selectedSide == side,
+                                color: accentColor
+                            ) {
+                                activityVM.selectedSide = side
+                            }
+                        }
+                    }
+                }
+                Text("유축 기록은 ‘짜낸 양’이에요. 아기가 실제로 먹은 양은 분유/모유 수유로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding()
             .background(accentColor.opacity(0.06))
@@ -229,7 +292,10 @@ struct FeedingRecordView: View {
                 return
             }
             let feedAmount = Int(activityVM.amount)
-            if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
+            // 유축한 모유 병수유는 분유 재고를 차감하지 않는다 (모유 ≠ formula)
+            let skipFormulaDeduction = (type == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
+            if !skipFormulaDeduction,
+               let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
                 productCandidates = candidates
             } else {
                 isSaving = false
