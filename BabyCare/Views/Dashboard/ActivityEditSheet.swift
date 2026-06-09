@@ -18,6 +18,8 @@ struct ActivityEditSheet: View {
     @State private var editedMedicationDosage: String
     // 모유수유
     @State private var editedSide: Activity.BreastSide
+    // 병수유 내용물 (분유/모유)
+    @State private var editedFeedingContent: Activity.FeedingContent
     // 수면
     @State private var editedSleepQuality: Activity.SleepQualityType?
     @State private var editedSleepMethod: Activity.SleepMethodType?
@@ -38,6 +40,7 @@ struct ActivityEditSheet: View {
         _editedMedicationName = State(initialValue: activity.medicationName ?? "")
         _editedMedicationDosage = State(initialValue: activity.medicationDosage ?? "")
         _editedSide = State(initialValue: activity.side ?? .left)
+        _editedFeedingContent = State(initialValue: activity.feedingContent ?? .formula)
         _editedSleepQuality = State(initialValue: activity.sleepQuality)
         _editedSleepMethod = State(initialValue: activity.sleepMethod)
         _editedStoolColor = State(initialValue: activity.stoolColor)
@@ -93,6 +96,13 @@ struct ActivityEditSheet: View {
                 // 분유 수유량 (ml)
                 if activity.type == .feedingBottle {
                     Section("수유량 (ml)") {
+                        Picker("내용물", selection: $editedFeedingContent) {
+                            Text("분유").tag(Activity.FeedingContent.formula)
+                            Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityLabel("병수유 내용물")
+
                         HStack {
                             TextField("0", text: $editedAmount)
                                 .keyboardType(.numberPad)
@@ -230,6 +240,7 @@ struct ActivityEditSheet: View {
                         // 수유량
                         if activity.type == .feedingBottle {
                             updated.amount = Double(editedAmount)
+                            updated.feedingContent = editedFeedingContent
                         }
 
                         // 모유수유 방향

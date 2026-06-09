@@ -81,6 +81,7 @@ extension ActivityViewModel {
             }
             applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
             activity.amount = Double(amount)
+            activity.feedingContent = selectedFeedingContent
 
         case .feedingSolid:
             activity.foodName = foodName.isEmpty ? nil : foodName
@@ -118,7 +119,11 @@ extension ActivityViewModel {
             applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
 
         case .feedingPumping:
-            // 유축은 빠른기록 미니시트(QuickInputSheet) 전용 경로 — 풀폼 미진입이나 exhaustive 만족.
+            // 유축 = 생산(.pumping). 빠른기록 미니시트 + 기록하기 양 경로 공용.
+            guard isAmountValid else {
+                errorMessage = "유축량을 올바르게 입력해주세요. (1~500ml)"
+                return false
+            }
             activity.amount = Double(amount)
             activity.side = selectedSide
         }
@@ -247,6 +252,7 @@ extension ActivityViewModel {
 
     func resetForm() {
         selectedSide = .left
+        selectedFeedingContent = .formula
         amount = ""
         temperatureInput = ""
         medicationName = ""
