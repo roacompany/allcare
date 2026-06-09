@@ -15,6 +15,7 @@ final class ActivityViewModel: OptimisticReplaceable {
     var selectedType: Activity.ActivityType = .feedingBreast
     var selectedSide: Activity.BreastSide = .left
     var amount: String = ""
+    var selectedFeedingContent: Activity.FeedingContent = .formula   // 병수유 내용물(분유 기본)
     var temperatureInput: String = ""
     var medicationName: String = ""
     var note: String = ""
