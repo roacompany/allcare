@@ -45,8 +45,12 @@ final class ActivityViewModel: OptimisticReplaceable {
     var showDuplicateWarning = false
     var pendingDuplicateSave: (() async -> Void)?
 
-    let firestoreService = FirestoreService.shared
+    let firestoreService: ActivityFirestoreProviding
     let timerManager = ActivityTimerManager()
+
+    init(firestoreService: ActivityFirestoreProviding = FirestoreService.shared) {
+        self.firestoreService = firestoreService
+    }
 
     // MARK: - Computed Summaries (중복 상태 제거)
 
