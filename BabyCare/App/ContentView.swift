@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 import UIKit
 
@@ -20,6 +21,8 @@ struct ContentView: View {
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.requestReview) private var requestReview
+    private let reviewService = AppReviewPromptService.shared
 
     private let networkMonitor = NetworkMonitor.shared
     private let offlineQueue = OfflineQueue.shared
@@ -128,6 +131,7 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                presentAutoReviewIfClean()
                 scheduleWeeklyInsightIfNeeded()
                 // 백그라운드에서 돌아올 때 pending orphan 재체크 (PLAN P2-2)
                 if babyVM.hasInitialLoad {
@@ -137,6 +141,12 @@ struct ContentView: View {
                     Task { await FirestoreService.shared.updateLastAccessedAt(userId: userId) }
                 }
             }
+        }
+        .onChange(of: reviewService.pendingTrigger) { _, _ in
+            presentAutoReviewIfClean()
+        }
+        .onChange(of: AppState.shared.badgePresenter.current == nil) { _, _ in
+            presentAutoReviewIfClean()
         }
         .onChange(of: deepLinkDestination) { _, destination in
             guard let destination else { return }
@@ -152,6 +162,27 @@ struct ContentView: View {
             NavigationStack {
                 ProductDetailView(product: product)
             }
+        }
+    }
+
+    // MARK: - App Review Prompt (초크포인트)
+
+    /// 대기 트리거가 있고 scene 활성 + 배지 스낵바 없음일 때만, 정착 지연 후 시스템 평가 시트 1회.
+    /// scene 비활성/스낵바 표시 중에는 소진하지 않고 대기(그 1샷을 허공에 날리지 않음).
+    private func presentAutoReviewIfClean() {
+        guard reviewService.pendingTrigger != nil else { return }
+        guard scenePhase == .active else { return }
+        let presenter = AppState.shared.badgePresenter
+        guard presenter.current == nil, presenter.pending.isEmpty else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700)) // 스낵바 트랜지션 정착
+            guard presenter.current == nil, presenter.pending.isEmpty else { return }
+            guard let trigger = reviewService.consumePending() else { return }
+            requestReview()
+            AnalyticsService.shared.trackEvent(
+                AnalyticsEvents.reviewPromptRequested,
+                parameters: [AnalyticsParams.trigger: trigger.rawValue, AnalyticsParams.source: "auto"]
+            )
         }
     }
 
