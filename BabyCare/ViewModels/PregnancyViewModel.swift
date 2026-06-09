@@ -239,10 +239,11 @@ final class PregnancyViewModel {
 
     func startKickSession(userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#19)
         let session = KickSession(pregnancyId: pid)
         currentKickSession = session
         do {
-            try await firestoreService.saveKickSession(session, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveKickSession(session, userId: owner, pregnancyId: pid)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -250,16 +251,22 @@ final class PregnancyViewModel {
 
     func recordKick(userId: String) async {
         guard var session = currentKickSession, let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId
         session.kicks.append(KickEvent())
         // ACOG 2시간 초과 시 자동 종료.
-        if session.exceededTwoHours {
+        let didAutoEnd = session.exceededTwoHours
+        if didAutoEnd {
             session.endedAt = session.startedAt.addingTimeInterval(AppConstants.kickSessionMaxSeconds)
             currentKickSession = nil
         } else {
             currentKickSession = session
         }
         do {
-            try await firestoreService.saveKickSession(session, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveKickSession(session, userId: owner, pregnancyId: pid)
+            // 자동 종료된 세션도 히스토리에 즉시 반영 (수동 endKickSession 과 동일 — 누락 시 완료 세션이 UI 에서 사라짐 #16)
+            if didAutoEnd {
+                kickSessions = try await firestoreService.fetchKickSessions(userId: owner, pregnancyId: pid)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -267,11 +274,12 @@ final class PregnancyViewModel {
 
     func endKickSession(userId: String) async {
         guard var session = currentKickSession, let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId
         session.endedAt = Date()
         currentKickSession = nil
         do {
-            try await firestoreService.saveKickSession(session, userId: userId, pregnancyId: pid)
-            kickSessions = try await firestoreService.fetchKickSessions(userId: userId, pregnancyId: pid)
+            try await firestoreService.saveKickSession(session, userId: owner, pregnancyId: pid)
+            kickSessions = try await firestoreService.fetchKickSessions(userId: owner, pregnancyId: pid)
         } catch {
             errorMessage = error.localizedDescription
         }

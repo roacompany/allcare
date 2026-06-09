@@ -39,6 +39,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var markTransitionPendingCalls: [String] = []
     private(set) var rollbackTransitionPendingCalls: [String] = []
     private(set) var saveKickSessionCalls: [KickSession] = []
+    private(set) var saveKickSessionUserIds: [String] = []
     private(set) var savePrenatalVisitCalls: [PrenatalVisit] = []
     private(set) var saveChecklistItemCalls: [PregnancyChecklistItem] = []
     private(set) var saveWeightEntryCalls: [PregnancyWeightEntry] = []
@@ -81,6 +82,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func saveKickSession(_ session: KickSession, userId: String, pregnancyId: String) async throws {
         saveKickSessionCalls.append(session)
+        saveKickSessionUserIds.append(userId)
     }
 
     func fetchKickSessions(userId: String, pregnancyId: String, limit: Int) async throws -> [KickSession] {
