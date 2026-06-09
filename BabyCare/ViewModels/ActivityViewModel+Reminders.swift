@@ -34,7 +34,8 @@ extension ActivityViewModel {
 
         // 최근 5개 활동 → WidgetActivity 변환
         let recent = todayActivities
-            .filter { $0.type.category != .pumping }   // 유축은 위젯 최근활동 strip 제외 (완전유축모 도배 방지, spec §5.3#1)
+            // 유축(strip 도배 방지) + .unknown(forward-compat 센티넬, 구버전엔 표시 불가)은 위젯 최근활동 strip 제외
+            .filter { $0.type.category != .pumping && $0.type.category != .unknown }
             .sorted { $0.startTime > $1.startTime }
             .prefix(5)
             .map { activity -> WidgetActivity in
@@ -46,6 +47,7 @@ extension ActivityViewModel {
                 case .diaper:  colorHex = "#85C1A3"
                 case .health:  colorHex = "#F4845F"
                 case .pumping: colorHex = "#B56FD1"   // 보라/자두 — pumpingColor asset(light)과 일치
+                case .unknown: colorHex = "#8E8E93"   // 중립 회색 (filter로 도달 불가하나 exhaustive 보장)
                 }
                 return WidgetActivity(
                     typeRaw: activity.type.rawValue,

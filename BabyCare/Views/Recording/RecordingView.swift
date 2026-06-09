@@ -282,6 +282,8 @@ struct RecordingView: View {
                         HealthRecordView(onSaved: { handleSaved() })
                     case .pumping:
                         EmptyView()   // 유축은 풀폼 미진입(탭바 4-리터럴), exhaustive 컴파일 만족용
+                    case .unknown:
+                        EmptyView()   // .unknown(forward-compat 센티넬)은 기록 폼 미진입
                     }
                 }
                 .id(selectedCategory) // re-render on tab switch

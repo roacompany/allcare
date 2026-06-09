@@ -64,7 +64,7 @@ struct ActivityReminderRule: Codable, Identifiable {
     var intervalMinutes: Int  // 기록 후 N분 뒤 알림
 
     var type: Activity.ActivityType? {
-        Activity.ActivityType(rawValue: activityType)
+        Activity.ActivityType.known(rawValue: activityType)
     }
 
     var displayName: String { type?.displayName ?? activityType }

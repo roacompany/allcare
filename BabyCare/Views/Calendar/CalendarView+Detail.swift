@@ -136,6 +136,7 @@ extension CalendarView {
                                 ActivityRow(activity: activity)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
+                                        guard activity.type != .unknown else { return }   // .unknown은 read-only — 편집 차단
                                         editingActivity = activity
                                     }
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -151,12 +152,14 @@ extension CalendarView {
                                         }
                                     }
                                     .swipeActions(edge: .leading) {
-                                        Button {
-                                            editingActivity = activity
-                                        } label: {
-                                            Label("수정", systemImage: "pencil")
+                                        if activity.type != .unknown {
+                                            Button {
+                                                editingActivity = activity
+                                            } label: {
+                                                Label("수정", systemImage: "pencil")
+                                            }
+                                            .tint(.blue)
                                         }
-                                        .tint(.blue)
                                     }
                             }
                         }

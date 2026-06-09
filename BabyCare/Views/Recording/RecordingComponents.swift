@@ -51,6 +51,7 @@ struct CategoryTabBar: View {
         case .diaper:  "humidity.fill"
         case .health:  "heart.fill"
         case .pumping: "drop.fill"
+        case .unknown: "questionmark.circle"
         }
     }
 
@@ -61,6 +62,7 @@ struct CategoryTabBar: View {
         case .diaper:  AppColors.sageColor
         case .health:  AppColors.coralColor
         case .pumping: AppColors.pumpingColor
+        case .unknown: AppColors.neutralGray
         }
     }
 }

@@ -4,7 +4,8 @@ enum QuickRecordSettings {
     nonisolated(unsafe) private static let defaults = UserDefaults.standard
     private static let key = "quickRecordEnabledTypes"
 
-    static let allAvailableTypes: [Activity.ActivityType] = Activity.ActivityType.allCases
+    // .unknown(forward-compat 센티넬)은 사용자 기록 picker에 노출 금지
+    static let allAvailableTypes: [Activity.ActivityType] = Activity.ActivityType.allCases.filter { $0 != .unknown }
 
     static let defaultTypes: [Activity.ActivityType] = [
         .feedingBreast, .feedingSolid, .feedingSnack, .feedingPumping,
@@ -18,7 +19,8 @@ enum QuickRecordSettings {
                   let rawValues = try? JSONDecoder().decode([String].self, from: data) else {
                 return defaultTypes
             }
-            let types = rawValues.compactMap { Activity.ActivityType(rawValue: $0) }
+            // known(rawValue:)로 센티넬 "unknown" 부활 차단 (init?(rawValue:)는 커스텀 decoder 우회)
+            let types = rawValues.compactMap { Activity.ActivityType.known(rawValue: $0) }
             return types.isEmpty ? defaultTypes : types
         }
         set {

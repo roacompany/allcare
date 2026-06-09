@@ -137,6 +137,103 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(vm.dailyPumpingAmounts.isEmpty, "유축 기록이 없으면 차트는 empty-state여야 한다")
     }
 
+    // MARK: - Forward-compat unknown decode (2026-06-09 spec)
+    // 구버전 앱이 신버전이 만든 미지의 ActivityType을 만나도 문서를 drop하지 않고
+    // .unknown 으로 디코드 → 중립 read-only row. 쓰기/편집/집계/타이머/picker에서 격리.
+
+    /// 불변 1: 미지의 type rawValue → .unknown 폴백 (문서 drop 방지)
+    func testActivityType_decode_unknownRawValue_fallsBackToUnknown() throws {
+        let known = Activity(babyId: "b1", type: .bath)
+        let data = try JSONEncoder().encode(known)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+            .replacingOccurrences(of: "\"bath\"", with: "\"future_type_xyz\"")
+        let mutated = try XCTUnwrap(json.data(using: .utf8))
+        let decoded = try JSONDecoder().decode(Activity.self, from: mutated)
+        XCTAssertEqual(decoded.type, .unknown, "미지의 rawValue는 .unknown으로 폴백되어 문서가 살아남아야 한다")
+    }
+
+    /// 불변 2: 알려진 type(유축)은 폴백 없이 정확히 디코드 (over-eager 폴백 방지)
+    func testActivityType_decode_knownRawValue_stillDecodes() throws {
+        let original = Activity(babyId: "b1", type: .feedingPumping, amount: 120)
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Activity.self, from: data)
+        XCTAssertEqual(decoded.type, .feedingPumping, "알려진 type은 .unknown으로 떨어지면 안 된다")
+    }
+
+    /// 불변 4(구조적): .unknown 활동은 인코딩 불가 → 어떤 쓰기 경로(Firestore setData /
+    /// 오프라인 큐 JSONEncoder)로도 영속될 수 없다 = 실제 rawValue 덮어쓰기(데이터 손실) 봉쇄.
+    func testActivity_encode_unknownType_throws() {
+        var activity = Activity(babyId: "b1", type: .bath)
+        activity.type = .unknown
+        XCTAssertThrowsError(try JSONEncoder().encode(activity),
+                             ".unknown 활동은 인코딩(=영속)되면 안 된다 (데이터 손실 방지)")
+    }
+
+    /// 커스텀 encode가 정상 type의 round-trip을 깨지 않아야 한다
+    func testActivity_encodeDecode_knownType_roundTrips() throws {
+        let original = Activity(babyId: "b1", type: .feedingBottle, amount: 100)
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Activity.self, from: data)
+        XCTAssertEqual(decoded.type, .feedingBottle)
+        XCTAssertEqual(decoded.amount, 100)
+    }
+
+    /// 불변 3·5: .unknown 은 중립 카테고리 + 입력/타이머 플래그 모두 false
+    func testActivityType_unknown_neutralFlags() {
+        XCTAssertEqual(Activity.ActivityType.unknown.category, .unknown)
+        XCTAssertNotEqual(Activity.ActivityType.unknown.category, .feeding)
+        XCTAssertFalse(Activity.ActivityType.unknown.needsTimer)
+        XCTAssertFalse(Activity.ActivityType.unknown.needsAmount)
+        XCTAssertFalse(Activity.ActivityType.unknown.needsQuickInput)
+    }
+
+    /// init?(rawValue:) 부활 차단 — 센티넬 "unknown" 은 known(rawValue:)에서 nil
+    func testActivityType_known_rejectsSentinelAndUnknownRaw() {
+        XCTAssertEqual(Activity.ActivityType.known(rawValue: "sleep"), .sleep)
+        XCTAssertEqual(Activity.ActivityType.known(rawValue: "feeding_pumping"), .feedingPumping)
+        XCTAssertNil(Activity.ActivityType.known(rawValue: "unknown"), "센티넬은 raw로 부활 금지")
+        XCTAssertNil(Activity.ActivityType.known(rawValue: "future_type_xyz"), "미지의 raw는 드롭")
+    }
+
+    /// 불변 5: .unknown 은 기록 가능 picker에서 제외
+    func testQuickRecordSettings_excludesUnknown() {
+        XCTAssertFalse(QuickRecordSettings.allAvailableTypes.contains(.unknown),
+                       ".unknown 은 사용자 기록 picker에 노출되면 안 된다")
+        XCTAssertFalse(QuickRecordSettings.defaultTypes.contains(.unknown))
+    }
+
+    /// 불변 3: .unknown(섭취량 보유)은 오늘 수유 집계에 끼면 안 된다 (의료 정합)
+    @MainActor
+    func testUnknown_excludedFromTodayFeedingTotals() {
+        let vm = ActivityViewModel()
+        let now = Date()
+        var unknown = Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 999)
+        unknown.type = .unknown
+        vm.todayActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100),
+            unknown
+        ]
+        XCTAssertEqual(vm.todayFeedingCount, 1, ".unknown 은 수유 횟수에 포함되면 안 된다")
+        XCTAssertEqual(vm.todayTotalMl, 100, ".unknown 의 양은 섭취 총량에 합산되면 안 된다")
+    }
+
+    /// 불변 3: .unknown 은 주간 통계(수유/유축/수면/기저귀)에서 모두 배제
+    @MainActor
+    func testUnknown_excludedFromStats() {
+        let vm = StatsViewModel()
+        let now = Date()
+        var unknown = Activity(babyId: "b1", type: .feedingBottle, startTime: now, duration: 99999, amount: 999)
+        unknown.type = .unknown
+        vm.weeklyActivities = [
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100),
+            unknown
+        ]
+        XCTAssertEqual(vm.feedingActivities.count, 1)
+        XCTAssertEqual(vm.pumpingActivities.count, 0)
+        XCTAssertEqual(vm.dailyFeedingAmounts.reduce(0) { $0 + $1.amount }, 100, accuracy: 0.001,
+                       ".unknown 의 양은 수유 차트에 합산되면 안 된다")
+    }
+
     /// §7-4: CSV가 유축량을 별도 컬럼에 분리, 섭취 양(ml)은 공란 (생산≠섭취)
     func testCSV_pumpingHasSeparateColumn() {
         let now = Date()

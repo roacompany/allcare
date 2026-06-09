@@ -48,13 +48,16 @@ extension DashboardView {
                         TimelineRow(activity: activity)
                             .contentShape(Rectangle())
                             .onTapGesture {
+                                guard activity.type != .unknown else { return }   // .unknown은 read-only — 편집 시트 진입 차단
                                 editingActivity = activity
                             }
                             .contextMenu {
-                                Button {
-                                    editingActivity = activity
-                                } label: {
-                                    Label("시간 수정", systemImage: "pencil")
+                                if activity.type != .unknown {
+                                    Button {
+                                        editingActivity = activity
+                                    } label: {
+                                        Label("시간 수정", systemImage: "pencil")
+                                    }
                                 }
                                 Button(role: .destructive) {
                                     Task {
