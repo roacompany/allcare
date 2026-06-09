@@ -50,7 +50,7 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
-            if type == .temperature && isFeverTrendDetected {
+            if type == .temperature, registerTemperature(activity) {
                 NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
             }
             await evaluateBadgesIfNeeded(type: type, babyId: babyId, currentUserId: currentUserId, at: activity.startTime)

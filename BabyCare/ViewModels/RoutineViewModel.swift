@@ -128,33 +128,37 @@ final class RoutineViewModel: LoadingStateful {
     func checkAndAutoResetIfNeeded(userId: String) async {
         let today = Calendar.current.startOfDay(for: Date())
 
-        for rIdx in routines.indices {
-            let routine = routines[rIdx]
-            let last = routine.lastResetDate.map { Calendar.current.startOfDay(for: $0) }
+        // 값 스냅샷을 순회하고 갱신/롤백은 id 로 위치를 찾는다 — await 도중 routines 배열이
+        // 변동(추가/삭제/재정렬)돼도 stale 인덱스로 엉뚱한 항목을 덮어쓰거나 out-of-range 크래시 나지 않게 (#9).
+        for original in routines {
+            let last = original.lastResetDate.map { Calendar.current.startOfDay(for: $0) }
 
             // 이미 오늘 리셋된 경우 skip
             if last == today { continue }
 
-            let wasFullyCompleted = !routine.items.isEmpty && routine.items.allSatisfy { $0.isCompleted }
+            let wasFullyCompleted = !original.items.isEmpty && original.items.allSatisfy { $0.isCompleted }
             let gapDays = last.map { Calendar.current.dateComponents([.day], from: $0, to: today).day ?? 0 } ?? 0
 
             let newStreak: Int
             if wasFullyCompleted && gapDays == 1 {
-                newStreak = (routine.currentStreak ?? 0) + 1
+                newStreak = (original.currentStreak ?? 0) + 1
             } else {
                 newStreak = 0
             }
 
-            let backup = routines[rIdx]
-
-            for i in routines[rIdx].items.indices {
-                routines[rIdx].items[i].isCompleted = false
+            var updated = original
+            for i in updated.items.indices {
+                updated.items[i].isCompleted = false
             }
-            routines[rIdx].lastResetDate = today
-            routines[rIdx].currentStreak = newStreak
+            updated.lastResetDate = today
+            updated.currentStreak = newStreak
+
+            // 낙관적 반영도 id 로 (스냅샷 이후 배열이 바뀌었을 수 있음)
+            guard let applyIdx = routines.firstIndex(where: { $0.id == updated.id }) else { continue }
+            routines[applyIdx] = updated
 
             do {
-                try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
+                try await firestoreService.saveRoutine(updated, userId: userId)
                 if newStreak >= 3 {
                     let event = BadgeEvaluator.Event(
                         kind: .routineStreakUpdated(newStreak: newStreak),
@@ -165,7 +169,10 @@ final class RoutineViewModel: LoadingStateful {
                     AppState.shared.badgePresenter.enqueue(earned)
                 }
             } catch {
-                routines[rIdx] = backup
+                // 롤백도 id 로 — await 동안 배열이 변동/삭제됐을 수 있음
+                if let rollbackIdx = routines.firstIndex(where: { $0.id == original.id }) {
+                    routines[rollbackIdx] = original
+                }
             }
         }
     }

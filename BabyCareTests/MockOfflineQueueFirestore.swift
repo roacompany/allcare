@@ -11,10 +11,14 @@ final class MockOfflineQueueFirestore: OfflineQueueFirestoreProviding, @unchecke
 
     private(set) var executedOps: [PendingOperation] = []
 
+    /// execute 진입 시 호출되는 테스트 훅 (flush 도중 enqueue 같은 동시 상황 재현용).
+    var onExecute: (@Sendable (PendingOperation) async -> Void)?
+
     var executeCallCount: Int { executedOps.count }
 
     func executePendingOperation(_ op: PendingOperation) async throws {
         executedOps.append(op)
+        if let hook = onExecute { await hook(op) }
         if let err = errorOnExecute { throw err }
         if let err = errorByOperationId[op.id] { throw err }
     }

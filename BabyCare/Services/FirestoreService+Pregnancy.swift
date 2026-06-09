@@ -274,7 +274,23 @@ extension FirestoreService {
             .whereField("outcome", isEqualTo: PregnancyOutcome.ongoing.rawValue)
             .limit(to: 1)
             .getDocuments()
-        return decodeDocuments(snapshot.documents, as: Pregnancy.self).first
+        guard let doc = snapshot.documents.first,
+              var pregnancy = decodeDocuments([doc], as: Pregnancy.self).first else { return nil }
+        // 공유 임신 문서 경로에서 실소유자 stamp — 안 하면 VM 의 `?? currentUserId` 폴백이
+        // 파트너 본인 uid 로 떨어져 하위컬렉션(kicks/visits/weights…)이 빈값으로 읽힌다 (#3).
+        if let owner = Self.ownerUserId(fromPregnancyPath: doc.reference.path) {
+            pregnancy.ownerUserId = owner
+        }
+        return pregnancy
+    }
+
+    /// 공유 임신 문서 경로(users/{owner}/pregnancies/{pid})에서 소유자 uid 추출.
+    static func ownerUserId(fromPregnancyPath path: String) -> String? {
+        let parts = path.split(separator: "/").map(String.init)
+        guard parts.count >= 4,
+              parts[0] == FirestoreCollections.users,
+              parts[2] == FirestoreCollections.pregnancies else { return nil }
+        return parts[1]
     }
 }
 
