@@ -176,6 +176,9 @@ struct ContentView: View {
         guard presenter.current == nil, presenter.pending.isEmpty else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(700)) // 스낵바 트랜지션 정착
+            // 정착 지연 동안 앱이 백그라운드로 가면 그 1샷을 소진하지 않고 대기.
+            // (scenePhase 캡처값은 stale → 라이브 UIApplication.applicationState 사용)
+            guard UIApplication.shared.applicationState == .active else { return }
             guard presenter.current == nil, presenter.pending.isEmpty else { return }
             guard let trigger = reviewService.consumePending() else { return }
             requestReview()
