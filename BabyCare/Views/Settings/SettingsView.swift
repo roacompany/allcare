@@ -57,7 +57,16 @@ struct SettingsView: View {
                         NavigationLink {
                             PregnancyShareView()
                         } label: {
-                            Label("파트너 공유", systemImage: "person.2.fill")
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("파트너 공유")
+                                    Text("임신 경과를 파트너가 보기 (읽기 전용)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "person.2.fill")
+                            }
                         }
 
                         if pregnancyVM.activePregnancy != nil {
@@ -183,7 +192,16 @@ struct SettingsView: View {
                     NavigationLink {
                         FamilySharingView()
                     } label: {
-                        Label("가족 공유", systemImage: "person.2.fill")
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("가족 공유")
+                                Text("아기 기록을 가족과 함께 작성 (공동 편집)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "person.3.fill")
+                        }
                     }
 
                     NavigationLink {
