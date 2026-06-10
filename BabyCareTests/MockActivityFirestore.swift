@@ -12,6 +12,7 @@ final class MockActivityFirestore: ActivityFirestoreProviding, @unchecked Sendab
     var activitiesByDate: [Activity] = []
     var activitiesByRange: [Activity] = []
     var weeklyMetricSnapshotsResponse: [WeeklyMetricSnapshot] = []
+    var statsResponse: UserStats?
 
     func saveActivity(_ activity: Activity, userId: String) async throws {
         saveActivityCalls.append(activity)
@@ -36,5 +37,9 @@ final class MockActivityFirestore: ActivityFirestoreProviding, @unchecked Sendab
 
     func saveWeeklyMetricSnapshot(_ snapshot: WeeklyMetricSnapshot, userId: String, babyId: String) async throws {
         saveWeeklyMetricSnapshotCalls.append(snapshot)
+    }
+
+    func fetchStats(userId: String) async throws -> UserStats? {
+        statsResponse
     }
 }

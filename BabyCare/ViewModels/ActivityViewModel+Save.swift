@@ -240,6 +240,15 @@ extension ActivityViewModel {
         let event = BadgeEvaluator.Event(kind: kind, babyId: babyId, at: date)
         let earned = await BadgeEvaluator().evaluate(event: event, userId: currentUserId)
         AppState.shared.badgePresenter.enqueue(earned)
+        await noteRecordsMilestoneIfEligible(currentUserId: currentUserId)
+    }
+
+    /// 누적 핵심 활동 기록이 임계값(20)을 넘으면 앱 평가 대기 신호. 이미 소진됐으면 stats fetch도 생략.
+    private func noteRecordsMilestoneIfEligible(currentUserId: String) async {
+        guard !AppReviewPromptService.shared.isConsumed else { return }
+        let stats = try? await firestoreService.fetchStats(userId: currentUserId)
+        guard AppReviewPromptService.coreActivityTotal(stats) >= AppReviewPromptService.recordsMilestoneThreshold else { return }
+        AppReviewPromptService.shared.noteTrigger(.recordsMilestone)
     }
 
     func updateActivity(_ activity: Activity, userId: String) async {

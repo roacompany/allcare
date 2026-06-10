@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AnnouncementViewModel.self) private var announcementVM
     @Environment(ThemeManager.self) private var themeManager
     @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(\.openURL) private var openURL
 
     @State private var showAddBaby = false
     @State private var showLogoutAlert = false
@@ -261,6 +262,20 @@ struct SettingsView: View {
                 }
 
                 Section("정보") {
+                    if FeatureFlags.appReviewPromptEnabled {
+                        Button {
+                            AnalyticsService.shared.trackEvent(
+                                AnalyticsEvents.reviewPromptRequested,
+                                parameters: [AnalyticsParams.source: "settings"]
+                            )
+                            if let url = URL(string: "itms-apps://apps.apple.com/app/id6759935352?action=write-review") {
+                                openURL(url)
+                            }
+                        } label: {
+                            Label("리뷰 남기기", systemImage: "star.bubble")
+                        }
+                        .accessibilityLabel("App Store에서 리뷰 남기기")
+                    }
                     HStack {
                         Text("버전")
                         Spacer()

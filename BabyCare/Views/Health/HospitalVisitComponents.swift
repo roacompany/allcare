@@ -54,6 +54,9 @@ struct HospitalReportSheet: View {
                 }
             }
         }
+        .onChange(of: reportVM.cachedReport != nil) { _, hasReport in
+            if hasReport { AppReviewPromptService.shared.noteTrigger(.hospitalReport) }
+        }
     }
 }
 

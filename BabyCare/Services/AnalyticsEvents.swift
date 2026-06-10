@@ -66,6 +66,9 @@ enum AnalyticsEvents {
     static let highlightCacheHit = "highlight_cache_hit"
     static let highlightPatternReportTapped = "highlight_pattern_report_tapped"
     static let highlightCardTapped = "highlight_card_tapped"
+
+    // App Review — 시스템 평가 시트/딥링크 요청 시점 (requestReview는 콜백 없음 → 유일한 계측).
+    static let reviewPromptRequested = "review_prompt_requested"
 }
 
 // MARK: - Parameter Keys
@@ -75,6 +78,7 @@ enum AnalyticsParams {
     static let actionType = "action_type"
     static let category = "category"
     static let source = "source"
+    static let trigger = "trigger"
 
     // Pumping (유축)
     static let amountBucket = "amount_bucket"
