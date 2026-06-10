@@ -58,5 +58,25 @@
 - **App Store iOS 27 SDK 강제 기한: 없음(미발표).** 현재 규칙은 iOS 26 SDK(Xcode 26+, 2026-04-28 발효) — 앱은 이미 충족(Xcode 26.5). ~2027-04 iOS 27 강제는 **추정**일 뿐. → **서두를 필요 없음.**
 - **권고 순서**: 2026 내내 iOS 26 SDK로 계속 출시 → Xcode 27로 **재빌드+시각 QA**(이 문서 §5) + §4 폴리시 → 그 다음 미래 SDK bump. `developer.apple.com/news/upcoming-requirements` 모니터.
 
+## 7. 앱 아이콘 Icon Composer 전환 가이드 (MED — 아트워크는 PO)
+
+현재: `Assets.xcassets/AppIcon.appiconset/AppIcon.png` = **평면 단일 PNG, Dark/Tinted 변형 0**. iOS 27은 레이어드 `.icon`(Default/Dark/Mono + 굴절/반사)을 권장(**차단 아님** — 평면도 출시는 됨). macOS 26.5라 Icon Composer 사용 가능 ✅.
+
+> **Claude가 할 수 있는 것** = 프로젝트 배선 + 검증 절차. **PO가 할 것** = 레이어 아트워크 디자인(배경/심볼 분리).
+
+1. **레이어 준비**(PO): 현 아이콘을 ①배경(그라데이션/단색) ②전경 심볼(하트) 등으로 분리. 벡터(SVG/PDF) 또는 고해상 PNG 레이어 권장.
+2. **Icon Composer**(Xcode 번들, macOS 26.4+): 새 `.icon` 생성 → 레이어 임포트 → **Default/Dark/Mono** 외형 지정 → 레이어별 specular/refraction/translucency/shadow 튜닝 → `BabyCare.icon` 내보내기.
+3. **프로젝트 배선**: `BabyCare.icon`을 타깃에 추가 + 앱 아이콘으로 지정. XcodeGen(`project.yml`)은 `.icon`을 리소스로 추가하고 앱아이콘 이름을 설정(`ASSETCATALOG_COMPILER_APPICON_NAME` 또는 `.icon` 자동 인식). ⚠️ `.icon`+XcodeGen 통합은 신규 → **Xcode 26.4+/27 빌드 인식 확인 필수**(기존 `AppIcon.appiconset`는 폴백으로 당분간 유지 가능).
+4. **검증**: 빌드 → 홈 화면/Spotlight/App Library/알림 + **다크/틴트** 외형 + 작은 크기 선명도 확인.
+
+> 우선순위 MED·비차단. 아트워크 준비되면 배선/검증은 Claude가 진행.
+
+## 8. 진행 상태 (2026-06-10)
+
+- ✅ §4-#3 **LoginView 접근성/대비 수정** 완료(`b53b87a`) — Reduce Transparency/Increase Contrast 시 불투명 폴백 + 장식 orb 숨김. (시각 검증은 §5 Xcode 27 QA에 포함)
+- ⬜ §1·§5 **Xcode 27 시각 QA** — Xcode 27 beta 설치 후(PO 액션). macOS 26.5 설치 자격 ✅.
+- ⬜ §7 **레이어드 아이콘** — PO 아트워크 대기.
+- ⬜ §4-#2 머티리얼 위 대비 양극단 검증 — Xcode 27 QA와 함께.
+
 ## 출처
 apple.com/os/ios · developer.apple.com/swiftui/whats-new · developer.apple.com/icon-composer · Apple TN3187(UIScene) · developer.apple.com/documentation/technologyoverviews/liquid-glass · (보조) classmethod iOS27 migration guide, MacRumors 2026-06-08.
