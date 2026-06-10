@@ -369,6 +369,7 @@ struct RecordingView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         .onAppear {
+            AnalyticsService.shared.trackScreen(AnalyticsScreens.recording)
             if let initialCategory {
                 selectedCategory = initialCategory
             }

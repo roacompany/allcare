@@ -350,12 +350,19 @@ struct ContentView: View {
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             DashboardView()
+                .onAppear {
+                    // screen_view는 탭 루트 onAppear로 일원화 — 앱 시작 첫 노출(기본 탭)도 계측됨
+                    AnalyticsService.shared.trackScreen(AnalyticsScreens.dashboard)
+                }
                 .tabItem {
                     Label("홈", systemImage: "house.fill")
                 }
                 .tag(0)
 
             CalendarView()
+                .onAppear {
+                    AnalyticsService.shared.trackScreen(AnalyticsScreens.calendar)
+                }
                 .tabItem {
                     Label("기록", systemImage: "calendar")
                 }
@@ -369,12 +376,18 @@ struct ContentView: View {
                 .tag(2)
 
             HealthView()
+                .onAppear {
+                    AnalyticsService.shared.trackScreen(AnalyticsScreens.health)
+                }
                 .tabItem {
                     Label("건강", systemImage: "heart.text.clipboard.fill")
                 }
                 .tag(3)
 
             SettingsView()
+                .onAppear {
+                    AnalyticsService.shared.trackScreen(AnalyticsScreens.settings)
+                }
                 .tabItem {
                     Label("설정", systemImage: "gearshape.fill")
                 }
@@ -387,14 +400,8 @@ struct ContentView: View {
                 selectedTab = oldValue
                 initialRecordingCategory = nil
                 showRecording = true
-            } else {
-                // 탭 전환 페이지뷰 트래킹
-                let screenNames = [0: AnalyticsScreens.dashboard, 1: AnalyticsScreens.calendar,
-                                   3: AnalyticsScreens.health, 4: AnalyticsScreens.settings]
-                if let screenName = screenNames[newValue] {
-                    AnalyticsService.shared.trackScreen(screenName)
-                }
             }
+            // screen_view는 각 탭 루트의 onAppear로 일원화 (첫 진입 포함, 이중 발화 방지)
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()

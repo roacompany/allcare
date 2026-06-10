@@ -193,6 +193,7 @@ extension ActivityViewModel {
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
     func savePrebuiltActivity(_ activity: Activity, userId: String, currentUserId: String) async {
         guard activity.type != .unknown else { return logUnknownSaveBlocked() }
+        errorMessage = nil   // 이전 작업의 스테일 에러가 성공 판정(analytics/haptic)을 오염시키지 않도록
         var activity = activity
         activity.createdBy = currentUserId
         todayActivities.insert(activity, at: 0)
@@ -210,6 +211,7 @@ extension ActivityViewModel {
 
     func quickSave(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
         guard type != .unknown else { return logUnknownSaveBlocked() }
+        errorMessage = nil   // 이전 작업의 스테일 에러가 성공 판정(analytics/haptic)을 오염시키지 않도록
         var activity = Activity(babyId: babyId, type: type)
         activity.createdBy = currentUserId
 

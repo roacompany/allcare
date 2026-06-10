@@ -51,7 +51,7 @@ struct HighlightDetailSheet: View {
                 AnalyticsEvents.highlightSheetDismissed,
                 parameters: [
                     AnalyticsParams.metricKey: candidate.metricKey,
-                    "dwell_ms": String(dwellMs)
+                    AnalyticsParams.dwellMs: String(dwellMs)
                 ]
             )
         }

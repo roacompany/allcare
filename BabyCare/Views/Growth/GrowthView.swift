@@ -148,6 +148,9 @@ struct GrowthView: View {
                     recordToDelete = nil
                 }
             }
+            .onAppear {
+                AnalyticsService.shared.trackScreen(AnalyticsScreens.growth)
+            }
             .task { await loadRecords() }
             .onChange(of: babyVM.selectedBaby?.id) {
                 Task { await loadRecords() }

@@ -94,6 +94,11 @@ final class HighlightAISummaryService: HighlightAISummaryServiceProviding {
         guard let hit = cached, !hit.isExpired else {
             return nil
         }
+        // 캐시 적중률 telemetry — metricKey만 (weekKey/babyId 금지)
+        AnalyticsService.shared.trackEvent(
+            AnalyticsEvents.highlightCacheHit,
+            parameters: [AnalyticsParams.metricKey: metricKey]
+        )
         return hit.summary
     }
 }

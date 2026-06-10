@@ -22,6 +22,8 @@ struct HighlightTickerView: View {
 
     @State private var currentIndex: Int = 0
     @State private var isPaused: Bool = false
+    /// highlight_ticker_shown dedupe — 뷰 생애 동안 metricKey당 1회 (tick마다 반복 발화 방지).
+    @State private var impressionDeduper = TickerImpressionDeduper()
 
     // MARK: - Body
 
@@ -48,6 +50,7 @@ struct HighlightTickerView: View {
         cardContent(for: candidates[0])
             .accessibilityIdentifier("weeklyHighlightTicker")
             .accessibilityElement(children: .combine)
+            .onAppear { trackImpression(at: 0) }
     }
 
     // MARK: - Animated Ticker (TimelineView)
@@ -72,6 +75,7 @@ struct HighlightTickerView: View {
         }
         .accessibilityIdentifier("weeklyHighlightTicker")
         .accessibilityElement(children: .combine)
+        .onAppear { trackImpression(at: currentIndex) }   // 최초 렌더 카드 (onChange 미발화 보완)
     }
 
     // MARK: - Card Content
@@ -111,6 +115,17 @@ struct HighlightTickerView: View {
             // candidates[currentIndex] 사용 시 TimelineView tick 직후 탭 → displayed card와
             // sheet candidate 불일치 가능. 클로저 인자로 받은 candidate는 항상 렌더 중인 카드.
             isPaused.toggle()
+            // metricKey/position만 — weekKey/babyId 금지
+            AnalyticsService.shared.trackEvent(
+                AnalyticsEvents.highlightTickerTapped,
+                parameters: [AnalyticsParams.metricKey: candidate.metricKey]
+            )
+            if isPaused {
+                AnalyticsService.shared.trackEvent(
+                    AnalyticsEvents.highlightTickerPaused,
+                    parameters: [AnalyticsParams.metricKey: candidate.metricKey]
+                )
+            }
             onCandidateSelected?(candidate)
         }
     }
@@ -156,15 +171,23 @@ struct HighlightTickerView: View {
         return Int(date.timeIntervalSinceReferenceDate / 5) % candidates.count
     }
 
-    /// VoiceOver 공지 + Analytics highlightTickerShown 이벤트 전송.
+    /// VoiceOver 공지(매 tick) + Analytics impression(뷰 생애당 metricKey 1회 dedupe).
     private func announceCurrentCandidate(at index: Int) {
         guard index < candidates.count else { return }
+
+        // VoiceOver accessibility 공지 — dedupe 대상 아님 (순환 공지는 접근성 기능)
+        AccessibilityNotification.Announcement(candidates[index].title).post()
+
+        trackImpression(at: index)
+    }
+
+    /// Analytics highlight_ticker_shown — 5초 tick 반복이 아닌 '노출'을 세도록 dedupe.
+    /// metricKey / position 만 포함 (weekKey/babyId 금지).
+    private func trackImpression(at index: Int) {
+        guard index < candidates.count else { return }
         let candidate = candidates[index]
+        guard impressionDeduper.shouldFire(candidate.metricKey) else { return }
 
-        // VoiceOver accessibility 공지
-        AccessibilityNotification.Announcement(candidate.title).post()
-
-        // Analytics: metricKey / position 만 포함 (weekKey/babyId 금지)
         AnalyticsService.shared.trackEvent(
             AnalyticsEvents.highlightTickerShown,
             parameters: [
