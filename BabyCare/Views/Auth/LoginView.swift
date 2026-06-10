@@ -4,6 +4,10 @@ import AuthenticationServices
 struct LoginView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.colorScheme) private var colorScheme
+    // 접근성/iOS 27 합치: 커스텀 글래스(gradient 배경·blur orb)는 시스템 머티리얼과 달리
+    // Reduce Transparency / Increase Contrast / 투명도 슬라이더에 자동 대응하지 않으므로 직접 처리.
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @State private var showForgotPassword = false
     @State private var navigateToSignUp = false
     @FocusState private var focusedField: AuthField?
@@ -35,13 +39,23 @@ struct LoginView: View {
     private var loginV2: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: v2BgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture { dismissKeyboard() }
+                // Reduce Transparency / Increase Contrast 시 불투명 단색 배경으로 폴백
+                // (시스템 머티리얼 카드/인풋/pill은 자동 대응 — 커스텀 gradient만 직접 처리)
+                Group {
+                    if reduceTransparency || colorSchemeContrast == .increased {
+                        DS2.Color.surfacePrimary
+                    } else {
+                        LinearGradient(colors: v2BgGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                    }
+                }
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
 
-                // Subtle decorative orbs (glass blurred)
-                v2DecorativeOrbs
+                // Subtle decorative orbs (glass blurred) — Reduce Transparency/Contrast 시 숨김(translucent 장식 제거)
+                if !reduceTransparency && colorSchemeContrast != .increased {
+                    v2DecorativeOrbs
+                }
 
                 ScrollView {
                     VStack(spacing: DS2.Spacing.xxl) {
