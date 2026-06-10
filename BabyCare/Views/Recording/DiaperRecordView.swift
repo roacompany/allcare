@@ -96,6 +96,9 @@ struct DiaperRecordView: View {
             }
             .padding(.top, 8)
         }
+        .onAppear {
+            AnalyticsService.shared.trackScreen(AnalyticsScreens.diaperRecording)
+        }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
             set: { if !$0 { productCandidates = [] } }
@@ -120,7 +123,6 @@ struct DiaperRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
-        AnalyticsService.shared.trackEvent(AnalyticsEvents.diaperRecordSave, parameters: [AnalyticsParams.category: selectedDiaperType.displayName])
         Task {
             await activityVM.saveActivity(
                 userId: dataUserId,
@@ -132,6 +134,8 @@ struct DiaperRecordView: View {
                 isSaving = false
                 return
             }
+            // 저장 성공 후 발화. category = 영어 rawValue (diaper_wet/diaper_dirty/diaper_both)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.diaperRecordSave, parameters: [AnalyticsParams.category: selectedDiaperType.rawValue])
             if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: currentUserId) {
                 productCandidates = candidates
             } else {

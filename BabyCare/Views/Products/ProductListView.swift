@@ -95,6 +95,9 @@ struct ProductListView: View {
                     SafariView(url: url).ignoresSafeArea()
                 }
             }
+            .onAppear {
+                AnalyticsService.shared.trackScreen(AnalyticsScreens.productList)
+            }
             .task {
                 guard let userId = authVM.currentUserId else { return }
                 await productVM.loadProducts(userId: userId)

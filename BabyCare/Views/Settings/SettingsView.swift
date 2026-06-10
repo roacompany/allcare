@@ -12,7 +12,7 @@ struct SettingsView: View {
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
     @State private var showDeletePregnancyAlert = false
-    @AppStorage("analytics_opt_out") private var analyticsOptOut = false
+    @AppStorage(AnalyticsService.optOutKey) private var analyticsOptOut = false
 
     var body: some View {
         NavigationStack {

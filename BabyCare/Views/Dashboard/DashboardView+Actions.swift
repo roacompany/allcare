@@ -63,7 +63,10 @@ extension DashboardView {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
-        AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.displayName])
+        if activityVM.errorMessage == nil {
+            // 저장 성공 후 발화. category = 영어 rawValue (한글 displayName 금지 — GA4 차원 파편화)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.rawValue])
+        }
 
         // 성공 피드백: 햅틱 + 토스트
         let generator = UINotificationFeedbackGenerator()
@@ -88,12 +91,21 @@ extension DashboardView {
               let currentUserId = authVM.currentUserId else { return }
         await activityVM.savePrebuiltActivity(activity, userId: userId, currentUserId: currentUserId)
 
-        if activity.type == .feedingPumping {
-            // 유축 telemetry — raw mL 금지, coarse bucket만 (spec §10)
-            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
-                AnalyticsParams.amountBucket: PumpingAnalytics.bucket(activity.amount),
-                AnalyticsParams.side: activity.side?.rawValue ?? "none"
-            ])
+        if activityVM.errorMessage == nil {
+            if activity.type == .feedingPumping {
+                // 유축 telemetry — raw mL 금지, coarse bucket만 (spec §10). 섭취 이벤트와 분리.
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
+                    AnalyticsParams.amountBucket: PumpingAnalytics.bucket(activity.amount),
+                    AnalyticsParams.side: activity.side?.rawValue ?? "none"
+                ])
+            } else {
+                // 미니시트 경로(temperature/medication/feedingBottle)도 빠른기록으로 계측
+                var params = [AnalyticsParams.category: activity.type.rawValue]
+                if activity.type == .feedingBottle {
+                    params[AnalyticsParams.content] = (activity.feedingContent ?? .formula).rawValue
+                }
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: params)
+            }
         }
 
         let generator = UINotificationFeedbackGenerator()

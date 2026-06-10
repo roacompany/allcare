@@ -61,6 +61,7 @@ struct AIAdviceView: View {
                 Text("모든 대화가 삭제됩니다. 되돌릴 수 없습니다.")
             }
             .onAppear {
+                AnalyticsService.shared.trackScreen(AnalyticsScreens.aiAdvice)
                 if !vm.hasAPIKey {
                     showAPIKeySheet = true
                 }

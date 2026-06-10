@@ -24,7 +24,8 @@ extension AnalyticsTracking {
 final class AnalyticsService: AnalyticsTracking {
     static let shared = AnalyticsService()
 
-    private static let optOutKey = "analytics_opt_out"
+    /// 단일 소스 — SettingsView @AppStorage도 이 상수를 참조 (문자열 이중 정의 drift 방지).
+    static let optOutKey = "analytics_opt_out"
 
     var isEnabled: Bool {
         !UserDefaults.standard.bool(forKey: Self.optOutKey)
@@ -59,8 +60,17 @@ final class AnalyticsService: AnalyticsTracking {
     }
 
     func setEnabled(_ enabled: Bool) {
+        if !enabled {
+            // 끄기 직전이 전환을 계측할 수 있는 마지막 시점 (꺼진 후에는 전송 불가).
+            trackEvent(AnalyticsEvents.analyticsOptOutToggle,
+                       parameters: [AnalyticsParams.enabled: "false"])
+        }
         UserDefaults.standard.set(!enabled, forKey: Self.optOutKey)
         Analytics.setAnalyticsCollectionEnabled(enabled)
+        if enabled {
+            trackEvent(AnalyticsEvents.analyticsOptOutToggle,
+                       parameters: [AnalyticsParams.enabled: "true"])
+        }
         AppLogger.analytics.info("Analytics opt-out toggled: collection \(enabled ? "enabled" : "disabled")")
     }
 

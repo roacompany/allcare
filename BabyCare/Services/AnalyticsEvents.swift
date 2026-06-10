@@ -20,7 +20,6 @@ enum AnalyticsScreens {
 
 enum AnalyticsEvents {
     // Dashboard
-    static let dashboardCardTap = "dashboard_card_tap"
     static let dashboardQuickRecord = "dashboard_quick_record"
 
     // Calendar
@@ -55,6 +54,7 @@ enum AnalyticsEvents {
     // 임신 모드 데이터는 절대 포함 금지 (memory feedback_no_data_deletion / safety.md 준수).
     static let insightGenerated = "insight_generated"
     static let insightShown = "insight_shown"
+    /// 아직 미발화 — 인사이트 카드에 탭 가능한 UI가 추가될 때 logInsightTapped로 연결 (Phase 2 라벨).
     static let insightTapped = "insight_tapped"
 
     // Weekly Highlights — v2.8.3+ AI 주간 하이라이트 ticker + sheet telemetry.
@@ -76,9 +76,16 @@ enum AnalyticsEvents {
 enum AnalyticsParams {
     static let screenName = "screen_name"
     static let actionType = "action_type"
+    /// 값은 영어 안정 식별자(enum rawValue)만 사용 — 한글 displayName 금지 (GA4 차원 파편화 방지).
     static let category = "category"
     static let source = "source"
     static let trigger = "trigger"
+    /// 병수유 내용물 — Activity.FeedingContent rawValue (formula / breast_milk).
+    static let content = "content"
+    /// analytics_opt_out_toggle — "true"/"false".
+    static let enabled = "enabled"
+    /// highlight_sheet_dismissed 체류 시간 (ms).
+    static let dwellMs = "dwell_ms"
 
     // Pumping (유축)
     static let amountBucket = "amount_bucket"
@@ -112,7 +119,19 @@ enum AnalyticsUserProperties {
     static let babyCount = "baby_count"
     static let appVersion = "app_version"
     static let onboardingCompleted = "onboarding_completed"
-    static let primaryFeature = "primary_feature"
     static let familySharingEnabled = "family_sharing_enabled"
     static let theme = "theme"
+}
+
+// MARK: - Ticker Impression Dedupe
+
+/// highlight_ticker_shown이 5초 tick마다 반복 발화되는 것을 막는다 —
+/// 뷰 생애(대시보드 한 번 진입) 동안 metricKey당 1회만 true.
+/// VoiceOver 공지는 dedupe 대상이 아님 (접근성은 매 tick 유지).
+struct TickerImpressionDeduper {
+    private var fired: Set<String> = []
+
+    mutating func shouldFire(_ metricKey: String) -> Bool {
+        fired.insert(metricKey).inserted
+    }
 }

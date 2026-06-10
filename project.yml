@@ -81,6 +81,8 @@ targets:
         CFBundleLocalizations:
           - ko
         ITSAppUsesNonExemptEncryption: false
+        # screen_view 수동 일원화 — Firebase 자동 보고(UIHostingController 클래스명)와 혼재 방지
+        FirebaseAutomaticScreenReportingEnabled: false
         LSApplicationQueriesSchemes:
           - coupang
         NSCalendarsFullAccessUsageDescription: "병원 방문 및 예방접종 일정을 캘린더에 추가하기 위해 접근 권한이 필요합니다."

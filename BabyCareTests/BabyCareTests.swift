@@ -617,19 +617,73 @@ final class BabyCareTests: XCTestCase {
     }
 
     func testAnalyticsEvents_constants() {
-        // 이벤트명이 Firebase 규칙을 준수하는지 확인 (소문자+언더스코어, 40자 이내)
-        let events = [
-            AnalyticsEvents.dashboardCardTap,
-            AnalyticsEvents.recordSave,
-            AnalyticsEvents.aiAdviceRequest,
-            AnalyticsEvents.growthDataInput,
-            AnalyticsEvents.productView,
+        // 이벤트명·파라미터 키·화면명이 GA4 규칙을 준수하는지 확인 (소문자+숫자+언더스코어, 40자 이내)
+        let identifiers = [
+            // 이벤트 (전수)
+            AnalyticsEvents.dashboardQuickRecord,
+            AnalyticsEvents.calendarDateSelect, AnalyticsEvents.calendarRecordOpen,
+            AnalyticsEvents.recordSave, AnalyticsEvents.feedRecordSave,
+            AnalyticsEvents.sleepRecordSave, AnalyticsEvents.diaperRecordSave,
+            AnalyticsEvents.pumpingRecorded,
+            AnalyticsEvents.healthDataView, AnalyticsEvents.aiAdviceRequest,
+            AnalyticsEvents.growthDataInput, AnalyticsEvents.productView,
+            AnalyticsEvents.analyticsOptOutToggle,
+            AnalyticsEvents.insightGenerated, AnalyticsEvents.insightShown, AnalyticsEvents.insightTapped,
+            AnalyticsEvents.highlightTickerShown, AnalyticsEvents.highlightTickerTapped,
+            AnalyticsEvents.highlightTickerPaused, AnalyticsEvents.highlightSheetOpened,
+            AnalyticsEvents.highlightSheetDismissed, AnalyticsEvents.highlightCacheHit,
+            AnalyticsEvents.highlightPatternReportTapped, AnalyticsEvents.highlightCardTapped,
+            AnalyticsEvents.reviewPromptRequested,
+            // 파라미터 키 (전수)
+            AnalyticsParams.screenName, AnalyticsParams.actionType, AnalyticsParams.category,
+            AnalyticsParams.source, AnalyticsParams.trigger, AnalyticsParams.content,
+            AnalyticsParams.enabled, AnalyticsParams.dwellMs,
+            AnalyticsParams.amountBucket, AnalyticsParams.side,
+            AnalyticsParams.metricKey, AnalyticsParams.position,
+            AnalyticsParams.scorerMode, AnalyticsParams.historyWeeks,
+            // 화면명 (전수)
+            AnalyticsScreens.dashboard, AnalyticsScreens.calendar, AnalyticsScreens.health,
+            AnalyticsScreens.settings, AnalyticsScreens.recording, AnalyticsScreens.feedRecording,
+            AnalyticsScreens.sleepRecording, AnalyticsScreens.diaperRecording,
+            AnalyticsScreens.aiAdvice, AnalyticsScreens.growth, AnalyticsScreens.productList,
         ]
-        for event in events {
-            XCTAssertTrue(event.count <= 40, "\(event)는 40자를 초과합니다")
-            XCTAssertTrue(event.range(of: "^[a-z_]+$", options: .regularExpression) != nil,
-                          "\(event)는 소문자+언더스코어 규칙을 위반합니다")
+        for identifier in identifiers {
+            XCTAssertTrue(identifier.count <= 40, "\(identifier)는 40자를 초과합니다")
+            XCTAssertTrue(identifier.range(of: "^[a-z][a-z0-9_]*$", options: .regularExpression) != nil,
+                          "\(identifier)는 소문자+숫자+언더스코어 규칙을 위반합니다")
+            XCTAssertFalse(identifier.hasPrefix("ga_") || identifier.hasPrefix("google_") || identifier.hasPrefix("firebase_"),
+                           "\(identifier)는 GA4 예약 접두사를 사용합니다")
         }
+    }
+
+    func testAnalyticsCategoryValues_areEnglishStableIdentifiers() {
+        // category 파라미터로 전송되는 rawValue가 영어 안정 식별자인지 (한글 displayName 혼입 방지 회귀 가드)
+        let categoryValues = Activity.ActivityType.allCases.map(\.rawValue)
+            + Activity.ActivityCategory.allCases.map(\.rawValue)
+            + Activity.FeedingContent.allCases.map(\.rawValue)
+        for value in categoryValues {
+            XCTAssertTrue(value.range(of: "^[a-z][a-z0-9_]*$", options: .regularExpression) != nil,
+                          "category 값 \(value)는 영어 snake_case 안정 식별자가 아닙니다")
+        }
+    }
+
+    func testTickerImpressionDeduper_firesOncePerKey() {
+        var deduper = TickerImpressionDeduper()
+        XCTAssertTrue(deduper.shouldFire("feeding.count"), "최초 노출은 발화해야 합니다")
+        XCTAssertFalse(deduper.shouldFire("feeding.count"), "같은 metricKey 반복 tick은 발화하면 안 됩니다")
+        XCTAssertTrue(deduper.shouldFire("sleep.hours"), "다른 metricKey는 발화해야 합니다")
+        XCTAssertFalse(deduper.shouldFire("sleep.hours"))
+    }
+
+    func testPumpingAnalytics_bucket_boundaries() {
+        XCTAssertEqual(PumpingAnalytics.bucket(nil), "unknown")
+        XCTAssertEqual(PumpingAnalytics.bucket(0), "0-59")
+        XCTAssertEqual(PumpingAnalytics.bucket(59.9), "0-59")
+        XCTAssertEqual(PumpingAnalytics.bucket(60), "60-119")
+        XCTAssertEqual(PumpingAnalytics.bucket(119.9), "60-119")
+        XCTAssertEqual(PumpingAnalytics.bucket(120), "120-179")
+        XCTAssertEqual(PumpingAnalytics.bucket(180), "180+")
+        XCTAssertEqual(PumpingAnalytics.bucket(500), "180+")
     }
 
     // MARK: - Consecutive Fever Days Tests

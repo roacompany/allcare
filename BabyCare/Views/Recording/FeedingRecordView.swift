@@ -61,6 +61,7 @@ struct FeedingRecordView: View {
             .padding(.top, 8)
         }
         .onAppear {
+            AnalyticsService.shared.trackScreen(AnalyticsScreens.feedRecording)
             // 모유수유: 이전 기록의 반대편 자동 제안
             if type == .feedingBreast {
                 if let lastSide = activityVM.lastFeeding?.side {
@@ -284,13 +285,13 @@ struct FeedingRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
-        AnalyticsService.shared.trackEvent(AnalyticsEvents.feedRecordSave, parameters: [AnalyticsParams.category: type.displayName])
         Task {
             await activityVM.saveActivity(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
             guard activityVM.errorMessage == nil else {
                 isSaving = false
                 return
             }
+            trackSaveSuccess()
             let feedAmount = Int(activityVM.amount)
             // 유축한 모유 병수유는 분유 재고를 차감하지 않는다 (모유 ≠ formula)
             let skipFormulaDeduction = (type == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
@@ -302,5 +303,22 @@ struct FeedingRecordView: View {
                 onSaved?()
             }
         }
+    }
+
+    /// 저장 성공 후 발화 (시도≠성공 혼재 방지). category 값은 영어 rawValue 고정.
+    /// 유축은 섭취가 아니므로 feed_record_save 대신 pumping_recorded (생산/섭취 의료 격리와 동일 원칙).
+    private func trackSaveSuccess() {
+        if type == .feedingPumping {
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
+                AnalyticsParams.amountBucket: PumpingAnalytics.bucket(Double(activityVM.amount)),
+                AnalyticsParams.side: activityVM.selectedSide.rawValue
+            ])
+            return
+        }
+        var params = [AnalyticsParams.category: type.rawValue]
+        if type == .feedingBottle {
+            params[AnalyticsParams.content] = activityVM.selectedFeedingContent.rawValue
+        }
+        AnalyticsService.shared.trackEvent(AnalyticsEvents.feedRecordSave, parameters: params)
     }
 }

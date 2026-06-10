@@ -84,6 +84,13 @@ struct CalendarView: View {
                     }
                 }
                 .presentationDetents([.medium])
+                .onAppear {
+                    // category = 영어 rawValue (한글 displayName 금지)
+                    AnalyticsService.shared.trackEvent(
+                        AnalyticsEvents.calendarRecordOpen,
+                        parameters: [AnalyticsParams.category: activity.type.rawValue]
+                    )
+                }
             }
             .sheet(isPresented: $showRecording, onDismiss: {
                 activityVM.resetForm()

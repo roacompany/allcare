@@ -128,6 +128,7 @@ struct SleepRecordView: View {
             .padding(.top, 8)
         }
         .onAppear {
+            AnalyticsService.shared.trackScreen(AnalyticsScreens.sleepRecording)
             if let babyId = babyVM.selectedBaby?.id,
                activityVM.sleepMethod == nil,
                let raw = UserDefaults.standard.string(forKey: lastMethodKey(babyId: babyId)),
@@ -158,11 +159,12 @@ struct SleepRecordView: View {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
         isSaving = true
-        AnalyticsService.shared.trackEvent(AnalyticsEvents.sleepRecordSave)
         Task {
             await activityVM.saveActivity(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: .sleep)
             isSaving = false
             if activityVM.errorMessage == nil {
+                // 저장 성공 후 발화 (시도≠성공 혼재 방지)
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.sleepRecordSave)
                 onSaved?()
             }
         }
