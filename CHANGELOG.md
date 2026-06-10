@@ -2,7 +2,30 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.6] - 2026-06-09 (TestFlight 빌드 87/88, App Store 제출 WAITING_FOR_REVIEW)
+## [2.8.7] - 2026-06-10 (TestFlight 빌드 89 — 미출시)
+
+> 앱 평가 팝업 + v2.8.6 이후 누적된 미출시 수정(#24~#28)을 묶은 빌드. TestFlight 업로드 완료(VALID), App Store 심사 미제출.
+
+### Added — 앱 평가(App Store 리뷰) 팝업 (#29)
+
+- 긍정적 성취(누적 핵심기록 20개 / 병원리포트 생성 완료) 중 **먼저 도달한 1개**에서 시스템 평가 시트를 **생애 1회** 노출 (`requestReview`, Apple throttle 준수)
+- 설정 > 정보에 **'리뷰 남기기'** 버튼 — App Store 작성 화면으로 직행(딥링크). 자동 1회 노출과 독립
+- `AppReviewPromptService`(순수 one-shot 게이트, UserDefaults·@MainActor 원자 소진) + `ContentView` 단일 초크포인트(scene 활성·배지 스낵바 없음·라이브 포그라운드 가드로 샷 보존). `FeatureFlags.appReviewPromptEnabled` 컴파일 킬스위치
+- 트리거 v1 = 2종(기록 마일스톤·병원리포트). 배지·하이라이트 트리거는 v1.1 보류
+
+### Fixed — 누적 수정 (#24~#28, v2.8.6 이후 main 머지)
+
+- **캘린더에서 다른 날짜 기록 수정이 저장 안 되던 버그** (#28)
+- 코드 감사 8건 — 오프라인 저장 데이터 손실, 미지 활동 타입(`.unknown`) 체온 누수, 임신 공유, 인사이트 Z-score, 발열 판정, 수유 오집계, 루틴/비교 staleness (#27)
+- forward-compat: 미지 ActivityType 관용 디코드(`.unknown` 센티넬) — 구버전이 신버전 기록을 통째 drop하지 않음 (#24)
+- activities collectionGroup 인덱스(어드민 인사이트 대시보드) (#25) · 활동 작성자(`createdBy`) + 보호자 관계 라벨 (#26)
+
+### Tests
+
+- 신규 단위 테스트 7개(one-shot/소진/재무장 방지/플래그 OFF/영속/임계값)
+- `make verify` green — arch R1=R2=R3=R4=0, design 100%, PR #29 CI Verify pass. 독립 적대적 코드리뷰(CRITICAL/HIGH 0)
+
+## [2.8.6] - 2026-06-09 (App Store 출시 완료 — READY_FOR_SALE 2026-06-10, 빌드 88)
 
 > v2.8.4/v2.8.5는 TestFlight 전용(미릴리즈) — v2.8.5(BCDS) 라인은 폐기. v2.8.6이 DS2 대시보드·Sentry·유축의 첫 App Store 릴리즈.
 

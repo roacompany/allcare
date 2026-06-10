@@ -104,6 +104,19 @@ harness-score: 96% (Grade A) — 2026-04-17
 - `make deploy`는 `verified` 단계까지 통과한 것만 shipped로 인정
 - CLAUDE.md "Recent Changes" 섹션에는 shipped만 기록
 
+## Recent Session (2026-06-10) — 앱 평가(App Store 리뷰) 팝업 + v2.8.7 빌드 89 TestFlight
+
+### 앱 평가 팝업 (PR #29, squash `9366769`)
+- PO "앱평가 팝업 추가" → brainstorm → spec → plan → 서브에이전트 3명 TDD 구현 → 적대적 코드리뷰(CRITICAL/HIGH 0, MEDIUM 1건 즉시 수정) → PR #29 CI Verify pass → 머지
+- `AppReviewPromptService` (@MainActor @Observable, **순수** one-shot 게이트 · UserDefaults `autoReviewPromptConsumed` · StoreKit/SwiftUI/Firestore 무의존 · 원자 check-and-set) + `ContentView` 단일 초크포인트 (`@Environment(\.requestReview)` — scene 활성 · 배지 스낵바 없음 · 라이브 `UIApplication.applicationState` 가드로 700ms 정착 중 백그라운드 전환 시 샷 보존)
+- 트리거 v1 = 기록 누적 20개(`ActivityViewModel+Save.evaluateBadgesIfNeeded`, `fetchStats` narrow protocol) + 병원리포트 완료(`HospitalReportSheet.onChange`). 먼저 도달한 1개만. 설정 > 정보 "리뷰 남기기" 딥링크(자동 1회와 **독립**). `FeatureFlags.appReviewPromptEnabled` 컴파일 킬스위치. analytics `review_prompt_requested {trigger, source}`
+- ⚠️ `@Environment(\.requestReview)`는 **`import StoreKit` 필요**(Xcode 26.5). 배지·하이라이트 트리거는 v1.1 보류(스펙 §12). 스펙/플랜 = `docs/superpowers/{specs,plans}/2026-06-10-app-review-prompt*`
+- 단위 테스트 7개 + `make verify` green(arch R1–4=0, design 29/29)
+
+### v2.8.7 빌드 89 TestFlight (미출시)
+- 빌드 89 = 앱 평가 팝업 + v2.8.6 이후 누적 미출시 수정(#24 forward-compat · #25 firestore 인덱스 · #26 createdBy · #27 코드감사 8건 · #28 캘린더 저장버그)
+- ASC ground-truth(최고 빌드 88) 확인 후 **수동** bump v2.8.7/89(`make bump` 회피) → `make upload` → VALID. App Store 심사 **미제출**(PO 결정 대기)
+
 ## Recent Session (2026-06-09) — 유축 기록하기 통합 + 병수유 내용물 + v2.8.6 출시
 
 ### 릴리즈 트레인 꼬임 해소 (DS2 정본화 부작용)
@@ -254,14 +267,15 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.6 (빌드 88) — **App Store WAITING_FOR_REVIEW** (2026-06-09 제출, AFTER_APPROVAL. 유축 기록 + 병수유 내용물 + DS2 대시보드 + Sentry. versionId `a61a4dc9-8ecf-4bc4-a6e6-2910ce447db7`, buildId `08c69b5a-...`)
+- **Version**: v2.8.7 (빌드 89) — **TestFlight VALID, App Store 미제출** (앱 평가 팝업 + #24~#28 누적수정, 2026-06-10 업로드 `87739d1f-...`). 직전 v2.8.6 (빌드 88) = **App Store 출시 완료 (READY_FOR_SALE, 2026-06-10 확인)** — 유축 + 병수유 + DS2 대시보드 + Sentry
 - **App Store**:
-  - **v2.8.6 WAITING_FOR_REVIEW** (유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry, 2026-06-09 제출 AFTER_APPROVAL. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
+  - **v2.8.7 — App Store 미제출** (TestFlight 빌드 89 VALID, 앱 평가 팝업 + #24~#28 누적수정. 제출 시 새 train 생성 — PO 결정 대기)
+  - **v2.8.6 READY_FOR_SALE** (출시 완료 2026-06-10 — 유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry 첫 릴리즈. 빌드 88 승인+AFTER_APPROVAL 자동출시. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
   - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
-- **TestFlight**: **v2.8.6 빌드 88** (`08c69b5a-...`, 2026-06-09 — 유축 기록하기 통합 + 병수유 내용물, VALID), 빌드 87 (`f4371a83-...`, 유축 그리드 전용, VALID·superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
+- **TestFlight**: **v2.8.7 빌드 89** (`87739d1f-...`, 2026-06-10 — 앱 평가 팝업 + #24~#28 누적수정, VALID·미출시), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **출시됨**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
   - 이전: v2.8.3 빌드 69 (`c040f15f-...`, nested NavigationStack fix), 68/67, 66 (v2.8.2 ML), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
 - **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
