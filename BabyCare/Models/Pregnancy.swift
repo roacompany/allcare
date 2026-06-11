@@ -93,6 +93,12 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         return cal.dateComponents([.day], from: today, to: dueDay).day
     }
 
+    /// 출산 전환 시트 성별 prefill. ultrasoundGender(Baby.Gender) 직접 사용, 없으면 .male.
+    /// (구버전 버그: rawValue↔displayName 비교로 항상 .male로 떨어짐 — 직접 대입으로 수정.)
+    var genderPrefill: Baby.Gender {
+        ultrasoundGender ?? .male
+    }
+
     /// 단태아 여부.
     var isSingleton: Bool {
         (fetusCount ?? 1) == 1

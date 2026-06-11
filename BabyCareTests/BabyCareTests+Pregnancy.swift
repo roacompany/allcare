@@ -659,6 +659,25 @@ final class PregnancyRecoveryModalStateTests: XCTestCase {
     }
 }
 
+// MARK: - PregnancyGenderPrefill Tests (P3-foundation Task 1)
+
+final class PregnancyGenderPrefillTests: XCTestCase {
+    func test_genderPrefill_female_returnsFemale() {
+        var p = Pregnancy(fetusCount: 1)
+        p.ultrasoundGender = .female
+        XCTAssertEqual(p.genderPrefill, .female, "여아 초음파 → prefill 여아")
+    }
+    func test_genderPrefill_male_returnsMale() {
+        var p = Pregnancy(fetusCount: 1)
+        p.ultrasoundGender = .male
+        XCTAssertEqual(p.genderPrefill, .male)
+    }
+    func test_genderPrefill_nil_defaultsToMale() {
+        let p = Pregnancy(fetusCount: 1)
+        XCTAssertEqual(p.genderPrefill, .male, "미설정 시 기본값")
+    }
+}
+
 // MARK: - P3-1: Termination Flow Edge Case Tests (A-11 확장)
 
 /// PregnancyTerminationView 엣지 케이스 + P2-1 CTA 분리 검증.
