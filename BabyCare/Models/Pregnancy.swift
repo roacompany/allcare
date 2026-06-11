@@ -31,14 +31,15 @@ struct Pregnancy: Identifiable, Codable, Hashable {
     var createdAt: Date
     var updatedAt: Date
 
-    /// 소유자 UID. Runtime-only — Firestore에 persist되지 않음.
+    /// 소유자 UID. Firestore에 영속화 — 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준).
+    /// optional이므로 레거시 문서(필드 없음)는 nil로 안전 디코딩. 없으면 path-based fallback 사용.
     var ownerUserId: String?
 
     enum CodingKeys: String, CodingKey {
         case id, lmpDate, dueDate, eddHistory, fetusCount, babyNickname
         case ultrasoundGender, transitionState, outcome, archivedAt
         case prePregnancyWeight, weightUnit, sharedWith, createdAt, updatedAt
-        // ownerUserId intentionally excluded — runtime-only tag set by PregnancyViewModel.
+        case ownerUserId   // 영속화: 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준)
     }
 
     init(

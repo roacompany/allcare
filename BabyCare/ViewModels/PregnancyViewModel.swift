@@ -142,13 +142,14 @@ final class PregnancyViewModel {
         }
         // LMP 또는 dueDate 중 하나 필수. LMP만 있으면 dueDate = LMP + 280일.
         let computed = Self.computeEddIfNeeded(lmpDate: lmpDate, dueDate: dueDate)
-        let pregnancy = Pregnancy(
+        var pregnancy = Pregnancy(
             lmpDate: lmpDate,
             dueDate: computed.dueDate,
             eddHistory: computed.dueDate.map { [$0] },
             fetusCount: fetusCount,
             babyNickname: babyNickname
         )
+        pregnancy.ownerUserId = userId   // 영속화: 생성자가 소유자 (비대칭 공유 owner-write 기준)
         errorMessage = nil
         do {
             try await firestoreService.savePregnancy(pregnancy, userId: userId)

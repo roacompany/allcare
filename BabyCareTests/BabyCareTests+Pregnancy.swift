@@ -842,3 +842,15 @@ final class PregnancyTransitionIdempotencyTests: XCTestCase {
     }
 }
 
+// MARK: - Task 4: ownerUserId 영속화 (공유 임신 소유자 식별 토대)
+
+final class PregnancyOwnerPersistenceTests: XCTestCase {
+    func test_ownerUserId_survivesEncodeDecodeRoundtrip() throws {
+        var p = Pregnancy(fetusCount: 1)
+        p.ownerUserId = "mom-uid"
+        let data = try JSONEncoder().encode(p)
+        let decoded = try JSONDecoder().decode(Pregnancy.self, from: data)
+        XCTAssertEqual(decoded.ownerUserId, "mom-uid", "ownerUserId가 직렬화에 보존되어야 함")
+    }
+}
+
