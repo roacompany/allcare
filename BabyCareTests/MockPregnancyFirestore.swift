@@ -35,6 +35,10 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var fetchSharedPregnancyCalls: [String] = []
     private(set) var deletePregnancyCalls: [String] = []
     private(set) var transitionCalls: [(pregnancyId: String, babyName: String)] = []
+    /// 멱등 시뮬: 이미 생성된 것으로 간주할 Baby.id (크래시 후 잔존 상태 재현).
+    var existingBabyIds: Set<String> = []
+    /// 실제로 새로 생성된 Baby.id (중복 생성 여부 검증용).
+    private(set) var createdBabyIds: [String] = []
     private(set) var terminateCalls: [(pregnancyId: String, outcome: PregnancyOutcome)] = []
     private(set) var markTransitionPendingCalls: [String] = []
     private(set) var rollbackTransitionPendingCalls: [String] = []
@@ -69,6 +73,9 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     func transitionPregnancyToBaby(pregnancy: Pregnancy, newBaby: Baby, userId: String) async throws {
         if let err = errorOnTransition { throw err }
         transitionCalls.append((pregnancy.id, newBaby.name))
+        guard !existingBabyIds.contains(newBaby.id) else { return }  // 멱등: 이미 존재하면 no-op
+        existingBabyIds.insert(newBaby.id)
+        createdBabyIds.append(newBaby.id)
     }
 
     func terminatePregnancy(pregnancy: Pregnancy, outcome: PregnancyOutcome, userId: String) async throws {

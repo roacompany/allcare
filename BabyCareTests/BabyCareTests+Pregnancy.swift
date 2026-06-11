@@ -659,6 +659,44 @@ final class PregnancyRecoveryModalStateTests: XCTestCase {
     }
 }
 
+// MARK: - PregnancyFinalWeek Tests (P3-foundation Task 2)
+
+final class PregnancyFinalWeekTests: XCTestCase {
+    func test_finalWeekAndDay_usesArchivedAt_notToday() {
+        let cal = Calendar.current
+        let lmp = cal.date(byAdding: .day, value: -200, to: Date())!
+        let archived = cal.date(byAdding: .day, value: 84, to: lmp)!  // LMP+84일 = 12주 0일
+        let p = Pregnancy(lmpDate: lmp, outcome: .miscarriage, archivedAt: archived)
+        let wd = p.finalWeekAndDay
+        XCTAssertEqual(wd?.weeks, 12)
+        XCTAssertEqual(wd?.days, 0)
+    }
+    func test_finalWeekAndDay_noArchivedAt_fallsBackToToday() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -70, to: Date())!  // 10주 0일
+        let p = Pregnancy(lmpDate: lmp)
+        XCTAssertEqual(p.finalWeekAndDay?.weeks, 10)
+    }
+}
+
+// MARK: - PregnancyGenderPrefill Tests (P3-foundation Task 1)
+
+final class PregnancyGenderPrefillTests: XCTestCase {
+    func test_genderPrefill_female_returnsFemale() {
+        var p = Pregnancy(fetusCount: 1)
+        p.ultrasoundGender = .female
+        XCTAssertEqual(p.genderPrefill, .female, "여아 초음파 → prefill 여아")
+    }
+    func test_genderPrefill_male_returnsMale() {
+        var p = Pregnancy(fetusCount: 1)
+        p.ultrasoundGender = .male
+        XCTAssertEqual(p.genderPrefill, .male)
+    }
+    func test_genderPrefill_nil_defaultsToMale() {
+        let p = Pregnancy(fetusCount: 1)
+        XCTAssertEqual(p.genderPrefill, .male, "미설정 시 기본값")
+    }
+}
+
 // MARK: - P3-1: Termination Flow Edge Case Tests (A-11 확장)
 
 /// PregnancyTerminationView 엣지 케이스 + P2-1 CTA 분리 검증.
@@ -773,6 +811,46 @@ final class TerminationFlowEdgeCaseTests: XCTestCase {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
+    }
+}
+
+// MARK: - Task 3: 출산 전환 중복 아기 멱등화 (P0)
+
+@MainActor
+final class PregnancyTransitionIdempotencyTests: XCTestCase {
+    private func makeVM(_ mock: MockPregnancyFirestore) -> PregnancyViewModel {
+        PregnancyViewModel(firestoreService: mock)
+    }
+
+    func test_transition_normalFlow_createsOneBabyWithDeterministicId() async throws {
+        let mock = MockPregnancyFirestore()
+        let vm = makeVM(mock)
+        let p = Pregnancy(fetusCount: 1)
+        vm.activePregnancy = p
+        _ = try await vm.transitionToBaby(babyName: "콩이", gender: .female, birthDate: Date(), userId: "mom")
+        XCTAssertEqual(mock.createdBabyIds, ["baby_\(p.id)"], "결정적 id 1개 생성")
+    }
+
+    func test_transition_retryWhenBabyExists_noDuplicate() async throws {
+        let mock = MockPregnancyFirestore()
+        let p = Pregnancy(fetusCount: 1)
+        mock.existingBabyIds = ["baby_\(p.id)"]   // 1차 시도가 이미 생성(크래시 후 잔존)
+        let vm = makeVM(mock)
+        vm.activePregnancy = p
+        _ = try await vm.transitionToBaby(babyName: "콩이", gender: .female, birthDate: Date(), userId: "mom")
+        XCTAssertTrue(mock.createdBabyIds.isEmpty, "이미 존재하면 새 아기 생성 0 (멱등)")
+    }
+}
+
+// MARK: - Task 4: ownerUserId 영속화 (공유 임신 소유자 식별 토대)
+
+final class PregnancyOwnerPersistenceTests: XCTestCase {
+    func test_ownerUserId_survivesEncodeDecodeRoundtrip() throws {
+        var p = Pregnancy(fetusCount: 1)
+        p.ownerUserId = "mom-uid"
+        let data = try JSONEncoder().encode(p)
+        let decoded = try JSONDecoder().decode(Pregnancy.self, from: data)
+        XCTAssertEqual(decoded.ownerUserId, "mom-uid", "ownerUserId가 직렬화에 보존되어야 함")
     }
 }
 

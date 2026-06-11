@@ -32,17 +32,7 @@ struct PregnancyTransitionSheet: View {
 
     init(pregnancy: Pregnancy) {
         _babyName = State(initialValue: pregnancy.babyNickname ?? "")
-        let prefillGender: Baby.Gender
-        if let ultra = pregnancy.ultrasoundGender {
-            switch ultra.rawValue {
-            case "남아": prefillGender = .male
-            case "여아": prefillGender = .female
-            default: prefillGender = .male
-            }
-        } else {
-            prefillGender = .male
-        }
-        _gender = State(initialValue: prefillGender)
+        _gender = State(initialValue: pregnancy.genderPrefill)
     }
 
     // MARK: - Computed

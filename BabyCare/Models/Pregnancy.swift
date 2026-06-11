@@ -31,14 +31,15 @@ struct Pregnancy: Identifiable, Codable, Hashable {
     var createdAt: Date
     var updatedAt: Date
 
-    /// 소유자 UID. Runtime-only — Firestore에 persist되지 않음.
+    /// 소유자 UID. Firestore에 영속화 — 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준).
+    /// optional이므로 레거시 문서(필드 없음)는 nil로 안전 디코딩. 없으면 path-based fallback 사용.
     var ownerUserId: String?
 
     enum CodingKeys: String, CodingKey {
         case id, lmpDate, dueDate, eddHistory, fetusCount, babyNickname
         case ultrasoundGender, transitionState, outcome, archivedAt
         case prePregnancyWeight, weightUnit, sharedWith, createdAt, updatedAt
-        // ownerUserId intentionally excluded — runtime-only tag set by PregnancyViewModel.
+        case ownerUserId   // 영속화: 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준)
     }
 
     init(
@@ -84,6 +85,12 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         return (weeks: totalDays / 7, days: totalDays % 7)
     }
 
+    /// 아카이브 표시용 "최종 주차" — 종료/출산 시각(archivedAt) 기준, 없으면 오늘.
+    /// (currentWeekAndDay는 Date() 기준이라 종료된 임신에서 계속 증가하는 버그 회피.)
+    var finalWeekAndDay: (weeks: Int, days: Int)? {
+        PregnancyDateMath.weekAndDay(from: lmpDate, now: archivedAt ?? Date())
+    }
+
     /// 예정일까지 남은 일수 (음수 가능). dueDate 없으면 nil.
     var dDay: Int? {
         guard let due = dueDate else { return nil }
@@ -91,6 +98,12 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         let today = cal.startOfDay(for: Date())
         let dueDay = cal.startOfDay(for: due)
         return cal.dateComponents([.day], from: today, to: dueDay).day
+    }
+
+    /// 출산 전환 시트 성별 prefill. ultrasoundGender(Baby.Gender) 직접 사용, 없으면 .male.
+    /// (구버전 버그: rawValue↔displayName 비교로 항상 .male로 떨어짐 — 직접 대입으로 수정.)
+    var genderPrefill: Baby.Gender {
+        ultrasoundGender ?? .male
     }
 
     /// 단태아 여부.
