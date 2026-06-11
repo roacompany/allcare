@@ -1,0 +1,218 @@
+<!doctype html><html lang=ko><head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name=robots content="noindex,nofollow">
+<title>임신 노트 — BabyCare 임신모드 v3 설계</title>
+<link rel=preconnect href="https://cdn.jsdelivr.net">
+<link rel=stylesheet href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --ink:#2A1A3A; --sub:#6B5B7B; --faint:#9B8FA8; --accent:#9466C9; --accent2:#B56FD1;
+  --wash:#F3ECFB; --wash2:#E9DEFB; --line:#EBE4F2; --bg:#F6F2FB; --card:#fff;
+  --pink:#FF9FB5; --good:#2E9E6B; --warn:#E08A3C; --bad:#D9534F;
+}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:Pretendard,-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);
+  color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.6}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 80px}
+.hero{padding:38px 4px 24px}
+.kick{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:8px 0 6px;line-height:1.15}
+.lede{font-size:16px;color:var(--sub);margin:0 0 16px}
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.pill{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--wash);color:var(--accent)}
+.pill.warn{background:#FBEFE0;color:var(--warn)}
+.pill.good{background:#E5F4EC;color:var(--good)}
+section{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px 22px;margin:14px 0;
+  box-shadow:0 1px 2px rgba(42,26,58,.03),0 16px 40px -22px rgba(42,26,58,.18)}
+.s-kick{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
+h3{font-size:15px;font-weight:800;margin:18px 0 6px;color:var(--ink)}
+p{margin:9px 0;color:#473A57}
+b,strong{color:var(--ink);font-weight:700}
+.big-idea{font-size:17px;line-height:1.65;color:var(--ink)}
+.big-idea .hl{background:linear-gradient(transparent 60%,var(--wash2) 60%);font-weight:800}
+/* flow */
+.flow{display:flex;flex-direction:column;gap:0;margin:16px 0 4px}
+.fnode{display:flex;gap:12px;align-items:flex-start}
+.fnode .dot{flex:none;width:34px;height:34px;border-radius:11px;background:var(--wash);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
+.fnode .bd{flex:1;padding-bottom:14px}
+.fnode .bt{font-weight:800;font-size:14.5px}
+.fnode .bs{font-size:13px;color:var(--sub);margin-top:1px}
+.fconn{width:34px;display:flex;justify-content:center}
+.fconn span{width:2px;height:14px;background:var(--wash2);display:block;margin:-6px 0}
+/* phone */
+.phone{max-width:280px;margin:18px auto 6px;border:8px solid #2A1A3A;border-radius:34px;overflow:hidden;
+  background:#fff;box-shadow:0 24px 50px -20px rgba(42,26,58,.4)}
+.ph-top{background:linear-gradient(135deg,#9466C9,#B56FD1);color:#fff;padding:14px 16px 16px}
+.ph-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;background:rgba(255,255,255,.22);
+  padding:4px 9px;border-radius:999px;margin-bottom:10px}
+.ph-week{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.ph-dday{font-size:12.5px;opacity:.92;margin-top:1px}
+.ph-bar{height:5px;background:rgba(255,255,255,.3);border-radius:9px;margin-top:10px;overflow:hidden}
+.ph-bar i{display:block;width:60%;height:100%;background:#fff;border-radius:9px}
+.ph-body{padding:12px;display:flex;flex-direction:column;gap:8px;min-height:150px;background:#FBF8FE}
+.ph-c{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:12px}
+.ph-c .t{font-weight:700;font-size:12px}.ph-c .d{color:var(--faint);font-size:11px;margin-top:1px}
+.ph-quick{display:flex;gap:6px}
+.ph-quick span{flex:1;text-align:center;background:var(--wash);color:var(--accent);font-weight:700;font-size:11px;padding:7px 0;border-radius:9px}
+.ph-tabs{display:flex;border-top:1px solid var(--line);background:#fff}
+.ph-tabs span{flex:1;text-align:center;padding:8px 0 10px;font-size:10px;color:var(--faint)}
+.ph-tabs span.on{color:var(--accent);font-weight:800}
+.ph-tabs span i{display:block;font-size:15px;margin-bottom:2px;font-style:normal}
+.cap{text-align:center;font-size:12px;color:var(--faint);margin:4px 0 0}
+/* tabs explain */
+.tab4{display:grid;grid-template-columns:1fr;gap:9px;margin-top:6px}
+.tab4 .t{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;background:var(--bg);border-radius:13px}
+.tab4 .t .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.tab4 .t .nm{font-weight:800;font-size:14.5px}
+.tab4 .t .ds{font-size:12.5px;color:var(--sub);margin-top:1px;line-height:1.5}
+/* features accordion */
+.feat details{border:1px solid var(--line);border-radius:13px;margin:8px 0;overflow:hidden;background:#fff}
+.feat summary{list-style:none;cursor:pointer;padding:13px 15px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:14.5px}
+.feat summary::-webkit-details-marker{display:none}
+.feat summary .c{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent);background:var(--wash);padding:2px 8px;border-radius:999px}
+.feat summary .ar{color:var(--faint);font-size:12px;transition:.2s}
+.feat details[open] summary .ar{transform:rotate(90deg)}
+.feat .inner{padding:2px 15px 14px;font-size:13px;color:var(--sub);line-height:1.7}
+.feat .inner b{color:var(--ink)}
+.feat .star{color:var(--accent2)}
+/* screens */
+.scr{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.scr:last-child{border-bottom:0}
+.scr .n{flex:none;width:30px;height:30px;border-radius:9px;background:var(--wash2);color:var(--accent);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.scr .nm{font-weight:800;font-size:14.5px}
+.scr .ds{font-size:13px;color:var(--sub);margin-top:2px;line-height:1.55}
+/* diagnosis */
+.diag{display:flex;flex-direction:column;gap:10px}
+.diag .row{display:flex;gap:11px;align-items:flex-start;font-size:14px}
+.diag .row .ic{flex:none;font-size:16px}
+.diag .b4{background:#FDECEC;border-radius:12px;padding:13px 15px;font-size:13.5px;color:#9B3A36}
+.diag .af{background:#E9F6EF;border-radius:12px;padding:13px 15px;font-size:13.5px;color:#1F6B47}
+.note{font-size:12.5px;color:var(--faint);margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.foot{text-align:center;color:var(--faint);font-size:12px;padding:24px 0 0}
+ul.clean{margin:8px 0;padding-left:0;list-style:none}
+ul.clean li{position:relative;padding-left:18px;margin:6px 0;font-size:14px;color:#473A57}
+ul.clean li::before{content:"";position:absolute;left:3px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent2)}
+.kr{color:var(--bad);font-weight:800}
+</style></head>
+<body><div class=wrap>
+
+<div class=hero>
+  <div class=kick>BabyCare · 임신모드 v3 설계</div>
+  <h1>임신 노트 🤰</h1>
+  <p class=lede>육아앱 속 <b>독립된 임신 추적 공간</b>. 출산하면 그대로 육아 기록으로 이어집니다.</p>
+  <div class=pills>
+    <span class="pill">설계 단계 (코드 전)</span>
+    <span class="pill good">기능 53개 확정</span>
+    <span class="pill">화면 10개 명세</span>
+    <span class="pill warn">v2는 비활성(안전)</span>
+  </div>
+</div>
+
+<section>
+  <div class=s-kick>한 문장</div>
+  <p class=big-idea>임신은 육아와 <span class=hl>섞지 않고 별도 공간</span>으로 둡니다. 평소엔 육아앱을 쓰다가, <span class=hl>임신 카드 하나</span>를 누르면 보라색 "임신 노트"가 열리고, 닫으면 <span class=hl>정확히 원래 육아 화면</span>으로 돌아옵니다. 출산하면 임신 기록이 <span class=hl>지워지지 않고</span> 아기 기록으로 승계됩니다.</p>
+</section>
+
+<section>
+  <div class=s-kick>구조 한눈에</div>
+  <h2>어떻게 들어가고 나오나</h2>
+  <div class=flow>
+    <div class=fnode><div class=dot>👶</div><div class=bd><div class=bt>육아 홈 (기존 그대로)</div><div class=bs>맨 위에 임신 카드 1장: "🤰 둘째 24주 · D-112 ›"</div></div></div>
+    <div class=fconn><span></span></div>
+    <div class=fnode><div class=dot>🤰</div><div class=bd><div class=bt>임신 노트 (보라 공간, 전체 화면)</div><div class=bs>탭 누르면 위로 덮어 열림. 한 번에 한 공간만 보여 헷갈리지 않음</div></div></div>
+    <div class=fconn><span></span></div>
+    <div class=fnode><div class=dot>↩︎</div><div class=bd><div class=bt>[← 육아로] 닫기 한 번</div><div class=bs>떠났던 육아 화면으로 그대로 복귀 (상태 자동 보존)</div></div></div>
+  </div>
+  <p class=note>임신만 있고 아기가 없으면 → 임신 노트가 곧 앱 첫 화면. 임신 기능이 육아 탭에 절대 섞이지 않습니다(그게 예전 버그의 원인이었음).</p>
+</section>
+
+<section>
+  <div class=s-kick>임신 노트 내부</div>
+  <h2>4개 탭으로 구성</h2>
+  <div class=phone>
+    <div class=ph-top>
+      <span class=ph-chip>← 육아로 · 🤰 임신 24주</span>
+      <div class=ph-week>임신 24주 3일</div>
+      <div class=ph-dday>출산예정일까지 D-112 · 🥬 옥수수만 해요</div>
+      <div class=ph-bar><i></i></div>
+    </div>
+    <div class=ph-body>
+      <div class=ph-c><div class=t>오늘의 한마디 · 데일리 팁</div><div class=d>물을 한 컵 더 마셔보세요</div></div>
+      <div class=ph-quick><span>태동</span><span>체중</span><span>증상</span></div>
+      <div class=ph-c><div class=t>🩺 정밀초음파 D-2</div><div class=d>다가오는 검진 · 준비 질문 보기</div></div>
+    </div>
+    <div class=ph-tabs>
+      <span class=on><i>📈</i>여정</span><span><i>✎</i>기록</span><span><i>🩺</i>검진</span><span><i>⋯</i>더보기</span>
+    </div>
+  </div>
+  <p class=cap>①여정 탭 예시 — 매일 여는 첫 화면은 항상 가볍게</p>
+  <div class=tab4>
+    <div class=t><div class=n>1</div><div><div class=nm>여정 — 주차 타임라인 (매일)</div><div class=ds>위로 올리면 지난 주차 기록·초음파, 아래로 내리면 다가올 콘텐츠·검진. "오늘"은 요약 카드 + 빠른 기록.</div></div></div>
+    <div class=t><div class=n>2</div><div><div class=nm>기록 — 셀프 추적 (매일)</div><div class=ds>태동·체중·증상·혈압/혈당·진통 타이머. 기록하면 여정 타임라인에 자동으로 쌓임.</div></div></div>
+    <div class=t><div class=n>3</div><div><div class=nm>검진 — 한국 산전관리 (가끔)</div><div class=ds><span class=kr>★</span> 한국 검진 일정 자동 안내 · 국민행복카드 바우처 · 산모수첩 · 초음파 보관. 경쟁앱에 없는 차별점.</div></div></div>
+    <div class=t><div class=n>4</div><div><div class=nm>더보기 — 도구·추억·설정 (가끔)</div><div class=ds>출산가방·이름짓기·태교·운동·일기·만삭사진·부부공유·커뮤니티·알림 설정.</div></div></div>
+  </div>
+</section>
+
+<section>
+  <div class=s-kick>기능</div>
+  <h2>총 53개 — 영역별</h2>
+  <p style="font-size:13.5px;color:var(--sub);margin-top:-4px">탭하면 펼쳐집니다. <span class=kr>★</span> = 경쟁앱에 없는 한국 차별점.</p>
+  <div class=feat>
+    <details><summary>🍼 추적 <span class=c>8</span><span class=ar>›</span></summary><div class=inner>주차(NN주N일)+D-day · 태동 카운터(2시간 10회) · 체중+그래프(한국 BMI 권장범위) · 증상/기분 · <b>진통 간격 타이머(5-1-1)</b> · 혈압/혈당(임당) · 약/수분/수면</div></details>
+    <details><summary>📖 주차별 콘텐츠 <span class=c>5</span><span class=ar>›</span></summary><div class=inner>태아발달/엄마변화/<b>아빠 팁</b> 3블록 · 매일 바뀌는 데일리 팁 · 아기 크기 비유(한국 과일) · 발달 일러스트 · 전문가 감수 아티클</div></details>
+    <details><summary>🩺 산전검진·건강 <span class=c>4</span><span class=ar>›</span></summary><div class=inner><span class=star>★</span> <b>한국 검진×주차 자동 매핑</b>(NT·쿼드·정밀초음파·임당) · <span class=star>★</span> <b>국민행복카드 바우처</b> · <span class=star>★</span> <b>산모수첩 디지털 미러</b> · 검진(일정+수치+초음파 한 묶음) · 진료 준비 질문</div></details>
+    <details><summary>💜 정서·기록 <span class=c>4</span><span class=ar>›</span></summary><div class=inner>임신 일기(사진) · <b>만삭 사진 타임랩스</b> · 초음파 주차 타임라인 · 아기에게 쓰는 편지·태담</div></details>
+    <details><summary>🧰 도구 <span class=c>7</span><span class=ar>›</span></summary><div class=inner>예정일 계산기 · 출산준비물 체크 · <b>출산가방 체크리스트</b> · 출산계획서 · 아기 이름 짓기 · 홈 위젯 · 쌍둥이/다태아 모드</div></details>
+    <details><summary>👫 공유 <span class=c>2</span><span class=ar>›</span></summary><div class=inner>부부/가족 공유(초대코드) · 응원·태담 스탬프</div></details>
+    <details><summary>🥗 영양·식단 <span class=c>2</span><span class=ar>›</span></summary><div class=inner>음식 안전 조회(임신부가 먹어도 되나) · 트라이메스터별 영양 가이드 + 영양제</div></details>
+    <details><summary>🔄 전환 <span class=c>2</span><span class=ar>›</span></summary><div class=inner><b>임신→출산→육아 무손실 연결</b>(BabyCare 최대 강점) · 출산 기록 → 아기 프로필 자동 생성</div></details>
+    <details><summary>🕊️ 손실 경로 <span class=c>1</span><span class=ar>›</span></summary><div class=inner>유산/사산/중지 시 <b>조용한 모드</b> — 주수 멈춤·알림 끄기·데이터 보존·추모 기록. 한국 앱 어디도 제대로 안 함.</div></details>
+    <details><summary>🔔 알림 <span class=c>1</span><span class=ar>›</span></summary><div class=inner>주차·검진·태동 리마인더 — "알림 과다"가 경쟁앱 최대 불만이라 <b>절제</b>가 원칙</div></details>
+    <details><summary>👥 커뮤니티·태교·운동 <span class=c>3</span><span class=ar>›</span></summary><div class=inner>출산예정월 동기 그룹 · 태교 음악/동화 · 임산부 운동/요가 (정복 모드 추가)</div></details>
+  </div>
+  <p class=note>❌ 제외: 쇼핑·커머스·광고 전부 (BabyCare는 광고 0이 차별점). 3D 영상·병원연동·AI챗봇도 v1 제외.</p>
+</section>
+
+<section>
+  <div class=s-kick>화면</div>
+  <h2>주요 10화면</h2>
+  <div class=scr><div class=n>1</div><div><div class=nm>셸 (4탭 + 공간칩)</div><div class=ds>보라 4탭 컨테이너. 상단 [← 육아로]·"🤰임신N주" 칩으로 0.5초에 "지금 임신 공간"임을 인지.</div></div></div>
+  <div class=scr><div class=n>2</div><div><div class=nm>①여정 (척추)</div><div class=ds>주차 헤더+진행바, "오늘" 요약, 위=과거/아래=미래 스크롤.</div></div></div>
+  <div class=scr><div class=n>3</div><div><div class=nm>②기록</div><div class=ds>태동(원형·햅틱)·체중 그래프·증상 스탬프·혈압혈당·진통 타이머.</div></div></div>
+  <div class=scr><div class=n>4</div><div><div class=nm>③검진 <span class=star>★한국</span></div><div class=ds>검진 묶음·한국 검진 자동매핑·바우처·산모수첩·진료준비질문.</div></div></div>
+  <div class=scr><div class=n>5</div><div><div class=nm>④더보기</div><div class=ds>도구함·콘텐츠 서가·추억·함께보기·커뮤니티·설정(접어 묶기).</div></div></div>
+  <div class=scr><div class=n>6</div><div><div class=nm>주차 상세</div><div class=ds>태아/엄마/아빠팁 3블록+아기크기+일러스트, 주차 넘기기.</div></div></div>
+  <div class=scr><div class=n>7</div><div><div class=nm>진입 카드 + 공간 전환</div><div class=ds>육아홈 진입문 1개, 색·칩 정체성, 알림에 [둘째 임신] 표시.</div></div></div>
+  <div class=scr><div class=n>8</div><div><div class=nm>출산 전환</div><div class=ds>막달에만 뜨는 "출산했어요"→한 폼→중복 없이 아기 프로필 생성→축하.</div></div></div>
+  <div class=scr><div class=n>9</div><div><div class=nm>손실 (조용한 모드)</div><div class=ds>설정 깊은 곳→조용히 멈춤·보존·추모. 축하 톤과 완전 분리.</div></div></div>
+  <div class=scr><div class=n>10</div><div><div class=nm>등록 + 위젯</div><div class=ds>예정일/마지막 생리일 입력→자동 계산. 홈 위젯 D-day.</div></div></div>
+</section>
+
+<section>
+  <div class=s-kick>왜 새로 만드나</div>
+  <h2>예전 게 왜 "개판"이었나</h2>
+  <div class=diag>
+    <div class=b4>❌ <b>옛 버그</b>: 출산 전환 시 아기 중복 생성 · 성별 항상 '남아' · 가족 공유 기록 사라짐 · 유산 후에도 주수 계속 증가</div>
+    <div class=af>✅ <b>진짜 원인은 하나</b>: "임신을 모드 스위치로" 다룬 것. → 임신을 <b>아기와 동급의 별도 공간</b>으로 다시 모델링하면 4개 버그가 구조적으로 같이 풀림.</div>
+  </div>
+  <p class=note>중요 정정: 데이터를 통째로 갈아엎을 필요는 <b>없음</b>(이미 정리돼 있음). 버그는 작은 수정으로 해결. 진짜 관문은 코드가 아니라 <b>의사·변호사 감수</b>(확보 가능 확인됨).</p>
+</section>
+
+<section>
+  <div class=s-kick>구현 전 결정 사항</div>
+  <h2>다음에 정할 것</h2>
+  <ul class=clean>
+    <li><b>③검진 한국 데이터 큐레이션</b> — 검진 일정·바우처·산모수첩 데이터 준비 (가장 큰 신규 작업, 별도 단계 권장)</li>
+    <li><b>단계적 출시(RC)</b> — 5%→25%→100%로 안전하게 (예전 회귀 방지)</li>
+    <li><b>기존 사용자 안내</b> — 둘째 임신 중인 분에게 "임신 카드가 임신 노트 입구로 바뀜" 1회 안내</li>
+    <li><b>파트너 입력 범위</b> — 의료수치는 산모만 vs 둘 다 (설계 중 재검토)</li>
+  </ul>
+</section>
+
+<p class=foot>BabyCare 임신모드 v3 · 설계 패키지 (기능·IA·화면) · 2026-06-11<br>상세: FEATURES.md / IA.md / SCREENS.md (design/pregnancy-v3 브랜치)</p>
+
+</div></body></html>
