@@ -471,6 +471,7 @@ final class PregnancyViewModel {
         try await firestoreService.markTransitionPending(p.id, userId: userId)
 
         let newBaby = Baby(
+            id: "baby_\(p.id)",
             name: babyName.isEmpty ? (p.babyNickname ?? "우리 아기") : babyName,
             birthDate: birthDate,
             gender: gender

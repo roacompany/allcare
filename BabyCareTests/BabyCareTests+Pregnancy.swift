@@ -814,3 +814,31 @@ final class TerminationFlowEdgeCaseTests: XCTestCase {
     }
 }
 
+// MARK: - Task 3: 출산 전환 중복 아기 멱등화 (P0)
+
+@MainActor
+final class PregnancyTransitionIdempotencyTests: XCTestCase {
+    private func makeVM(_ mock: MockPregnancyFirestore) -> PregnancyViewModel {
+        PregnancyViewModel(firestoreService: mock)
+    }
+
+    func test_transition_normalFlow_createsOneBabyWithDeterministicId() async throws {
+        let mock = MockPregnancyFirestore()
+        let vm = makeVM(mock)
+        let p = Pregnancy(fetusCount: 1)
+        vm.activePregnancy = p
+        _ = try await vm.transitionToBaby(babyName: "콩이", gender: .female, birthDate: Date(), userId: "mom")
+        XCTAssertEqual(mock.createdBabyIds, ["baby_\(p.id)"], "결정적 id 1개 생성")
+    }
+
+    func test_transition_retryWhenBabyExists_noDuplicate() async throws {
+        let mock = MockPregnancyFirestore()
+        let p = Pregnancy(fetusCount: 1)
+        mock.existingBabyIds = ["baby_\(p.id)"]   // 1차 시도가 이미 생성(크래시 후 잔존)
+        let vm = makeVM(mock)
+        vm.activePregnancy = p
+        _ = try await vm.transitionToBaby(babyName: "콩이", gender: .female, birthDate: Date(), userId: "mom")
+        XCTAssertTrue(mock.createdBabyIds.isEmpty, "이미 존재하면 새 아기 생성 0 (멱등)")
+    }
+}
+

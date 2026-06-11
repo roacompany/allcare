@@ -164,6 +164,13 @@ extension FirestoreService {
         newBaby: Baby,
         userId: String
     ) async throws {
+        // 멱등 가드: 같은 id의 Baby가 이미 있으면(재시도/크래시 후) no-op.
+        let userRef = db.collection(FirestoreCollections.users).document(userId)
+        let bRef = userRef
+            .collection(FirestoreCollections.babies)
+            .document(newBaby.id)
+        if try await bRef.getDocument().exists { return }
+
         let batch = db.batch()
 
         // 1. Pregnancy 업데이트
@@ -176,10 +183,6 @@ extension FirestoreService {
         try batch.setData(from: archived, forDocument: pRef, merge: true)
 
         // 2. Baby 생성
-        let userRef = db.collection(FirestoreCollections.users).document(userId)
-        let bRef = userRef
-            .collection(FirestoreCollections.babies)
-            .document(newBaby.id)
         try batch.setData(from: newBaby, forDocument: bRef, merge: false)
 
         // 3. babyCount +1 (denormalized counter for admin N+1 회피)
