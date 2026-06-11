@@ -659,6 +659,25 @@ final class PregnancyRecoveryModalStateTests: XCTestCase {
     }
 }
 
+// MARK: - PregnancyFinalWeek Tests (P3-foundation Task 2)
+
+final class PregnancyFinalWeekTests: XCTestCase {
+    func test_finalWeekAndDay_usesArchivedAt_notToday() {
+        let cal = Calendar.current
+        let lmp = cal.date(byAdding: .day, value: -200, to: Date())!
+        let archived = cal.date(byAdding: .day, value: 84, to: lmp)!  // LMP+84일 = 12주 0일
+        let p = Pregnancy(lmpDate: lmp, outcome: .miscarriage, archivedAt: archived)
+        let wd = p.finalWeekAndDay
+        XCTAssertEqual(wd?.weeks, 12)
+        XCTAssertEqual(wd?.days, 0)
+    }
+    func test_finalWeekAndDay_noArchivedAt_fallsBackToToday() {
+        let lmp = Calendar.current.date(byAdding: .day, value: -70, to: Date())!  // 10주 0일
+        let p = Pregnancy(lmpDate: lmp)
+        XCTAssertEqual(p.finalWeekAndDay?.weeks, 10)
+    }
+}
+
 // MARK: - PregnancyGenderPrefill Tests (P3-foundation Task 1)
 
 final class PregnancyGenderPrefillTests: XCTestCase {

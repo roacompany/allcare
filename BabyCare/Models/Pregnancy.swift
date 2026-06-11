@@ -84,6 +84,12 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         return (weeks: totalDays / 7, days: totalDays % 7)
     }
 
+    /// 아카이브 표시용 "최종 주차" — 종료/출산 시각(archivedAt) 기준, 없으면 오늘.
+    /// (currentWeekAndDay는 Date() 기준이라 종료된 임신에서 계속 증가하는 버그 회피.)
+    var finalWeekAndDay: (weeks: Int, days: Int)? {
+        PregnancyDateMath.weekAndDay(from: lmpDate, now: archivedAt ?? Date())
+    }
+
     /// 예정일까지 남은 일수 (음수 가능). dueDate 없으면 nil.
     var dDay: Int? {
         guard let due = dueDate else { return nil }

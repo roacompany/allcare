@@ -110,7 +110,7 @@ struct PregnancyArchiveDetailView: View {
                 }
             }
 
-            if let weeks = pregnancy.currentWeekAndDay {
+            if let weeks = pregnancy.finalWeekAndDay {
                 Section("진행 기록") {
                     LabeledContent("최종 주차", value: "\(weeks.weeks)주 \(weeks.days)일")
                 }
