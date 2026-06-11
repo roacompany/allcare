@@ -1,0 +1,233 @@
+<!doctype html><html lang=ko><head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name=robots content="noindex,nofollow">
+<title>임신 노트 — 화면 목업 (v3)</title>
+<link rel=preconnect href="https://cdn.jsdelivr.net">
+<link rel=stylesheet href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --ink:#2A1A3A;--sub:#6B5B7B;--faint:#9B8FA8;--pp:#9466C9;--pp2:#B56FD1;--ppwash:#F3ECFB;
+  --pink:#FF7FA0;--pinkwash:#FFF0F4;--line:#EBE4F2;--bg:#F4F0F8;--card:#fff;
+  --good:#2E9E6B;--warn:#E08A3C;--bad:#D9534F;
+}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:Pretendard,-apple-system,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.55}
+.wrap{max-width:1100px;margin:0 auto;padding:36px 18px 90px}
+.hero{text-align:center;margin-bottom:8px}
+.kick{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--pp)}
+h1{font-size:28px;font-weight:800;letter-spacing:-.03em;margin:8px 0 4px}
+.lede{color:var(--sub);font-size:15px;margin:0}
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:14px 0 6px;font-size:12px;color:var(--faint)}
+.legend b{font-weight:700}
+.dotp{color:var(--pp)}.dotk{color:var(--pink)}
+/* grid */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:26px 22px;margin-top:24px;align-items:start}
+.mk{display:flex;flex-direction:column;align-items:center}
+.mk .cap{margin-top:11px;text-align:center}
+.mk .cap .t{font-weight:800;font-size:14.5px}
+.mk .cap .d{font-size:12px;color:var(--faint);margin-top:2px;line-height:1.45;max-width:250px}
+.mk .num{display:inline-block;font-size:10.5px;font-weight:800;color:var(--pp);background:var(--ppwash);padding:2px 8px;border-radius:999px;margin-bottom:5px}
+/* phone */
+.ph{width:250px;border:7px solid #2A1A3A;border-radius:32px;overflow:hidden;background:#fff;box-shadow:0 20px 44px -20px rgba(42,26,58,.42)}
+.scr{height:480px;display:flex;flex-direction:column;overflow:hidden}
+.nav{flex:none;padding:11px 13px 9px}
+.nav.pp{background:linear-gradient(135deg,#9466C9,#B56FD1);color:#fff}
+.nav.pink{background:linear-gradient(135deg,#FF8FAB,#FFA9BE);color:#fff}
+.nav.quiet{background:#EDEAF0;color:#5A4E66}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;background:rgba(255,255,255,.24);padding:3px 8px;border-radius:999px;margin-bottom:7px}
+.nav.quiet .chip{background:rgba(0,0,0,.06);color:#5A4E66}
+.big{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.sm{font-size:11px;opacity:.93;margin-top:1px}
+.bar{height:4px;background:rgba(255,255,255,.3);border-radius:9px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:#fff;border-radius:9px}
+.body{flex:1;overflow:hidden;padding:10px;display:flex;flex-direction:column;gap:7px;background:#FBF9FE}
+.body.pinkbg{background:#FFF6F8}
+.body.quietbg{background:#F6F4F8}
+.c{background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 10px}
+.c .ct{font-weight:700;font-size:11.5px}.c .cd{color:var(--faint);font-size:10.5px;margin-top:1px;line-height:1.4}
+.c.hl{border-color:#E3D3F5;background:var(--ppwash)}
+.c.star{border-color:#F0C36B;background:#FFF7E6}
+.c.pink{border-color:#FAD0DB;background:var(--pinkwash)}
+.quick{display:flex;gap:5px}
+.quick span{flex:1;text-align:center;background:var(--ppwash);color:var(--pp);font-weight:700;font-size:10.5px;padding:7px 0;border-radius:9px}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:6px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .l{font-weight:600}.row .r{color:var(--faint);font-size:10px}
+.row .done{color:var(--good);font-weight:700}
+.tabs{flex:none;display:flex;border-top:1px solid var(--line);background:#fff}
+.tabs span{flex:1;text-align:center;padding:7px 0 9px;font-size:9px;color:var(--faint)}
+.tabs span.on{color:var(--pp);font-weight:800}
+.tabs span i{display:block;font-size:14px;margin-bottom:1px;font-style:normal}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px}
+.ring{width:120px;height:120px;border-radius:50%;border:9px solid var(--ppwash);border-top-color:var(--pp);display:flex;align-items:center;justify-content:center;flex-direction:column}
+.ring .n{font-size:30px;font-weight:800;color:var(--pp)}.ring .u{font-size:10px;color:var(--faint)}
+.chart{height:78px;border-radius:9px;background:linear-gradient(180deg,#F3ECFB,#fff);border:1px solid var(--line);position:relative;overflow:hidden;margin-top:3px}
+.chart .band{position:absolute;left:0;right:0;top:28%;height:34%;background:rgba(148,102,201,.10)}
+.chart svg{position:absolute;inset:0}
+.cta{background:linear-gradient(135deg,#9466C9,#B56FD1);color:#fff;border-radius:12px;padding:11px;text-align:center}
+.cta .t{font-weight:800;font-size:13px}.cta .d{font-size:10.5px;opacity:.92;margin-top:2px}
+.cta .alt{font-size:10px;opacity:.85;margin-top:6px}
+.sheet{margin-top:auto;background:#fff;border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:0;padding:11px 12px}
+.fld{font-size:10.5px;color:var(--faint);margin:6px 0 2px}
+.inp{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;color:var(--ink);background:#fff}
+.btn{background:var(--pp);color:#fff;text-align:center;font-weight:800;font-size:12px;padding:9px;border-radius:10px;margin-top:9px}
+.sec{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--faint);text-transform:uppercase;margin:6px 2px 1px}
+.note{text-align:center;color:var(--faint);font-size:12px;margin-top:34px;padding-top:18px;border-top:1px solid var(--line)}
+.star-i{color:var(--pp2);font-weight:800}
+.k{color:var(--bad);font-weight:800}
+</style></head>
+<body><div class=wrap>
+
+<div class=hero>
+  <div class=kick>BabyCare 임신모드 v3 · 화면 목업</div>
+  <h1>임신 노트 — 화면 미리보기 🤰</h1>
+  <p class=lede>실제 레이아웃 스케치 (와이어프레임). 색·간격은 방향용, 픽셀 확정 아님.</p>
+  <div class=legend>
+    <span><b class=dotp>■</b> 보라 = 임신 노트(독립 공간)</span>
+    <span><b class=dotk>■</b> 핑크 = 육아 (기존)</span>
+    <span><b class=star-i>★</b> = 한국 차별점</span>
+  </div>
+</div>
+
+<div class=gallery>
+
+  <!-- 1. 육아홈 + Portal -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pink"><div class=big>👶 우리 아기</div><div class=sm>오늘도 안녕!</div></div>
+      <div class="body pinkbg">
+        <div class="c hl" style="border-color:#E3D3F5;background:var(--ppwash)"><div class=ct style="color:var(--pp)">🤰 둘째 · 임신 24주 3일 · D-112 ›</div><div class=cd>임신 노트 열기</div></div>
+        <div class=c><div class=ct>로아 (첫째) · 14개월</div><div class=cd>오늘 수유 5 · 수면 2 · 배변 3</div></div>
+        <div class="c pink"><div class=ct>다음 수유 예측</div><div class=cd>약 1시간 30분 후</div></div>
+        <div class=c><div class=ct>오늘의 하이라이트</div><div class=cd>어제보다 더 잘 잤어요 💤</div></div>
+      </div>
+      <div class=tabs><span class=on><i>🏠</i>홈</span><span><i>📅</i>캘린더</span><span><i>➕</i>기록</span><span><i>💗</i>건강</span><span><i>⚙️</i>설정</span></div>
+    </div></div>
+    <div class=cap><span class=num>1</span><div class=t>육아 홈 + 진입문</div><div class=d>둘째 임신 중이면 맨 위에 임신 카드 1개. 임신 기능은 육아 탭에 안 섞임.</div></div>
+  </div>
+
+  <!-- 2. 여정 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>← 육아로 · 🤰 임신 24주</span><div class=big>임신 24주 3일</div><div class=sm>D-112 · 🌽 옥수수만 해요</div><div class=bar><i style="width:60%"></i></div></div>
+      <div class=body>
+        <div class="c hl"><div class=ct>오늘의 한마디</div><div class=cd>물을 한 컵 더 마셔보세요 💧</div></div>
+        <div class=quick><span>👣 태동</span><span>⚖️ 체중</span><span>📝 증상</span></div>
+        <div class="c star"><div class=ct>🩺 정밀초음파 D-2</div><div class=cd>다가오는 검진 · 준비 질문 보기 ›</div></div>
+        <div class=c><div class=ct>이번 주 체크리스트</div><div class=cd>☐ 임당검사 예약 · ☐ 태동 매일 확인</div></div>
+      </div>
+      <div class=tabs><span class=on><i>📈</i>여정</span><span><i>✎</i>기록</span><span><i>🩺</i>검진</span><span><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>2</span><div class=t>①여정 (척추)</div><div class=d>매일 여는 첫 화면. 위로=지난 주차 기록, 아래로=다가올 콘텐츠·검진.</div></div>
+  </div>
+
+  <!-- 3. 태동 카운터 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>👣 태동 카운터</span><div class=big>오늘 5회</div><div class=sm>2시간에 10회가 기준이에요</div></div>
+      <div class="body" style="justify-content:center;align-items:center">
+        <div class=ring><div class=n>5</div><div class=u>/ 10회</div></div>
+        <div class=c style="width:100%;text-align:center"><div class=ct>경과 41분 · 마지막 태동 2분 전</div></div>
+        <div class=btn style="width:100%">+ 태동 느꼈어요</div>
+      </div>
+      <div class=tabs><span><i>📈</i>여정</span><span class=on><i>✎</i>기록</span><span><i>🩺</i>검진</span><span><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>3</span><div class=t>②기록 — 태동</div><div class=d>탭으로 카운트. 한국 표준 "2시간 10회". 햅틱·세션 기록.</div></div>
+  </div>
+
+  <!-- 4. 체중 그래프 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>⚖️ 체중</span><div class=big>+8.5kg</div><div class=sm>임신 전 대비 · 권장 범위 안 ✓</div></div>
+      <div class=body>
+        <div class=c><div class=ct>증가 추이</div>
+          <div class=chart><div class=band></div>
+            <svg viewBox="0 0 200 78" preserveAspectRatio=none><polyline points="6,66 40,60 80,52 120,42 160,34 192,28" fill=none stroke="#9466C9" stroke-width=3 stroke-linecap=round/></svg>
+          </div>
+          <div class=cd style="margin-top:5px">보라 밴드 = 한국 BMI 기준 권장 증가 범위 (정상 11.5~15kg)</div>
+        </div>
+        <div class=c><div class=ct>이번 주 +0.4kg</div><div class=cd>적정 속도로 늘고 있어요</div></div>
+      </div>
+      <div class=tabs><span><i>📈</i>여정</span><span class=on><i>✎</i>기록</span><span><i>🩺</i>검진</span><span><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>4</span><div class=t>②기록 — 체중</div><div class=d>한국 BMI별 권장 증가 밴드 위에 내 추이. 진료 때 보여주기.</div></div>
+  </div>
+
+  <!-- 5. 검진 (한국 차별점) -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>🩺 검진</span><div class=big>산전 관리</div><div class=sm>주차에 맞는 검사를 챙겨드려요</div></div>
+      <div class=body style="gap:6px">
+        <div class="c star"><div class=ct>다음 검진 · 정밀초음파 D-2</div><div class=cd>6/13 (목) 14:00 · 강남차병원</div></div>
+        <div class=sec><span class=star-i>★</span> 한국 검진 일정</div>
+        <div class=c style="padding:5px 10px">
+          <div class=row><span class=l>11~13주 NT·1차 기형아</span><span class="r done">완료</span></div>
+          <div class=row><span class=l>15~20주 쿼드</span><span class="r done">완료</span></div>
+          <div class=row><span class=l>20주 정밀초음파</span><span class=r>D-2</span></div>
+          <div class=row><span class=l>24~28주 임당검사</span><span class=r>예정</span></div>
+        </div>
+        <div class="c star"><div class=ct><span class=star-i>★</span> 국민행복카드</div><div class=cd>잔액 100만원 · 사용기한 ~2027.x · 사용처 ›</div></div>
+        <div class=c><div class=ct>🍼 산모수첩</div><div class=cd>혈압·체중·초음파 기록 모아보기 ›</div></div>
+      </div>
+      <div class=tabs><span><i>📈</i>여정</span><span><i>✎</i>기록</span><span class=on><i>🩺</i>검진</span><span><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>5</span><div class=t>③검진 <span class=k>★ 한국 차별점</span></div><div class=d>주차별 검진 자동 안내 + 국민행복카드 바우처 + 산모수첩. 경쟁앱 공백.</div></div>
+  </div>
+
+  <!-- 6. 더보기 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>⋯ 더보기</span><div class=big>도구·추억·설정</div></div>
+      <div class=body style="gap:6px">
+        <div class=sec>도구함</div>
+        <div class=c style="padding:6px 10px"><div class=row><span class=l>🧳 출산가방 체크리스트</span><span class=r>›</span></div><div class=row><span class=l>📋 출산계획서 · 이름 짓기</span><span class=r>›</span></div></div>
+        <div class=sec>콘텐츠 서가</div>
+        <div class=c style="padding:6px 10px"><div class=row><span class=l>🎵 태교 음악·동화</span><span class=r>›</span></div><div class=row><span class=l>🧘 임산부 운동·요가</span><span class=r>›</span></div></div>
+        <div class=sec>추억 · 함께보기</div>
+        <div class=c style="padding:6px 10px"><div class=row><span class=l>📸 만삭사진·일기·태담</span><span class=r>›</span></div><div class=row><span class=l>👫 남편과 함께보기</span><span class=r>초대 ›</span></div></div>
+        <div class=c><div class=ct>👥 출산예정월 커뮤니티</div><div class=cd>2026년 10월 출산맘 그룹</div></div>
+      </div>
+      <div class=tabs><span><i>📈</i>여정</span><span><i>✎</i>기록</span><span><i>🩺</i>검진</span><span class=on><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>6</span><div class=t>④더보기</div><div class=d>1회성·가끔 쓰는 것들을 접어 묶음. 첫 화면을 가볍게 유지.</div></div>
+  </div>
+
+  <!-- 7. 출산 전환 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav pp"><span class=chip>← 육아로 · 🤰 임신 39주</span><div class=big>임신 39주 5일</div><div class=sm>D-2 · 곧 만나요 💕</div><div class=bar><i style="width:98%"></i></div></div>
+      <div class=body>
+        <div class=cta><div class=t>👶 출산했어요!</div><div class=d>아기 정보를 등록하고 육아 모드로</div><div class=alt>· 아직이에요 / 예정일 조정</div></div>
+        <div class=sheet>
+          <div class=ct style="font-weight:800;font-size:12px">출산 등록</div>
+          <div class=fld>아기 이름 (태명: 콩이)</div><div class=inp>콩이</div>
+          <div class=fld>성별 · 생일 · 체중</div><div class=inp>여아 · 6/13 · 3.2kg</div>
+          <div class=btn>등록하고 육아 시작 →</div>
+        </div>
+      </div>
+      <div class=tabs><span class=on><i>📈</i>여정</span><span><i>✎</i>기록</span><span><i>🩺</i>검진</span><span><i>⋯</i>더보기</span></div>
+    </div></div>
+    <div class=cap><span class=num>7</span><div class=t>출산 전환</div><div class=d>막달에만 뜨는 CTA → 한 폼 → 중복 없이 아기 프로필 생성. 임신 기록은 보존.</div></div>
+  </div>
+
+  <!-- 8. 손실 조용한 모드 -->
+  <div class=mk>
+    <div class=ph><div class=scr>
+      <div class="nav quiet"><span class=chip>🕊️ 조용한 모드</span><div class=big style="font-weight:700">함께 있을게요</div></div>
+      <div class="body quietbg" style="justify-content:center;text-align:center">
+        <div class=center style="gap:10px">
+          <div style="font-size:30px">🕊️</div>
+          <div style="font-size:13px;color:#5A4E66;line-height:1.6">소중한 기록은 그대로 보관돼 있어요.<br>천천히, 준비되실 때 보셔도 괜찮습니다.</div>
+          <div class=c style="width:100%;text-align:left;margin-top:6px"><div class=ct>기록 조용히 보기</div><div class=cd>초음파 · 일기 (알림 없음)</div></div>
+        </div>
+      </div>
+    </div></div>
+    <div class=cap><span class=num>8</span><div class=t>손실 — 조용한 모드</div><div class=d>주수 멈춤 · 알림 모두 끔 · 데이터 보존 · 축하 톤과 완전 분리. 한국 앱 공백.</div></div>
+  </div>
+
+</div>
+
+<p class=note>임신 노트 v3 화면 목업 · 2026-06-11 · 와이어프레임(방향용)<br>상세 명세: SCREENS.md · 구조: IA.md · 기능: FEATURES.md</p>
+
+</div></body></html>
