@@ -236,14 +236,16 @@ final class FeatureFlagServiceTests: XCTestCase {
         XCTAssertFalse(result, "캐시 없을 때 coldStart = false")
     }
 
-    // coldStartDefault: 캐시 있으면 캐시값 반환
+    // coldStartDefault: 킬스위치 ON이면 캐시값 반환, OFF(v2.8.8 핫픽스)면 A-18 우선(캐시 무관 false)
     @MainActor
     func testFeatureFlagService_coldStartDefault_withCache_returnsCachedValue() {
         UserDefaults.standard.set(true, forKey: FeatureFlagService.testCacheKey)
         defer { UserDefaults.standard.removeObject(forKey: FeatureFlagService.testCacheKey) }
         let service = FeatureFlagService.shared
         let result = service.coldStartDefault(userId: "test-user")
-        XCTAssertTrue(result, "캐시 true이면 coldStart = true")
+        // 컴파일 킬스위치 값에 따라 분기 — 스위치 OFF면 캐시를 무시하고 false (A-18 invariant)
+        XCTAssertEqual(result, service.compileTimeValue,
+                       "캐시 true → 킬스위치 ON이면 true, OFF면 false(A-18 우선)")
     }
 
     // A-18: pregnancyModeEnabled 초기값 false (fetch 전)
@@ -442,10 +444,11 @@ final class FeatureFlagServiceBehaviorTests: XCTestCase {
         let noCacheResult = service.coldStartDefault(userId: "isolation-user")
         XCTAssertFalse(noCacheResult, "캐시 없음 → coldStart false")
 
-        // 캐시 true 설정
+        // 캐시 true 설정: 킬스위치 ON이면 캐시값(true), OFF(v2.8.8 핫픽스)면 A-18 우선 false
         UserDefaults.standard.set(true, forKey: key)
         let cachedResult = service.coldStartDefault(userId: "isolation-user")
-        XCTAssertTrue(cachedResult, "캐시 true → coldStart true")
+        XCTAssertEqual(cachedResult, service.compileTimeValue,
+                       "캐시 true → 킬스위치 ON이면 true, OFF면 false(A-18)")
 
         // 캐시 제거 후 기본값 복원
         UserDefaults.standard.removeObject(forKey: key)
