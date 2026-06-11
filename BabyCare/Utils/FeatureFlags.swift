@@ -12,7 +12,12 @@ enum FeatureFlags {
     ///
     /// NOTE: 이 값은 FeatureFlagService.compileTime으로 읽힌다.
     ///       FeatureFlagService 단독 게이트웨이 — 직접 FirebaseRemoteConfig 금지 (A-18).
-    static let pregnancyModeEnabled: Bool = true
+    ///
+    /// 2026-06-11: false로 비활성 (v2.8.8 핫픽스). v2(현 구현)는 "임신=전역 모드 플래그"
+    /// 데이터모델 결함으로 출산전환 중복아기(P0)·성별오류(P1)·가족공유 유실(P1)이 라이브.
+    /// 임신을 '프로필 엔티티'로 재모델링하는 v3 재설계(.dev/specs/pregnancy-mode-v3/) 완료 시
+    /// 새 구현으로 재활성. 기존 사용자 Firestore 데이터는 보존(삭제 금지 룰).
+    static let pregnancyModeEnabled: Bool = false
     /// 주간 하이라이트 compile-time kill switch.
     /// true = 코드 활성화. FeatureFlagService.isHighlightV2Enabled(userId:)가
     /// RemoteConfig highlight_enabled + StableHash 코호트 bucketing으로 최종 노출 여부 결정.
