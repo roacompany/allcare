@@ -10,6 +10,7 @@ struct PrenatalCareView: View {
 
     @State private var formPrefill: VisitFormPrefill?
     @State private var showMirrorDetail = false
+    @State private var showFoodSafety = false
 
     /// 검진 추가 시트 프리필(빈 값 = 빈 폼). Identifiable 로 .sheet(item:) 트리거.
     private struct VisitFormPrefill: Identifiable {
@@ -30,6 +31,12 @@ struct PrenatalCareView: View {
 
     private var mirrorMeasurements: [MaternalMeasurement] {
         MaternalRecordMirror.latestMeasurements(vitals: pregnancyVM.vitalEntries, weights: pregnancyVM.weightEntries)
+    }
+
+    private var checklistItems: [PregnancyChecklistItem] { pregnancyVM.checklistItems }
+
+    private var weeklyHighlights: [PregnancyChecklistItem] {
+        PregnancyChecklistPlanner.weeklyHighlights(checklistItems, currentWeek: currentWeek, limit: 3)
     }
 
     /// 공유 임신 데이터는 소유자 path 로 저장(#19/#41) — authVM.currentUserId 직접 전달 금지.
@@ -63,7 +70,21 @@ struct PrenatalCareView: View {
                     onSeeAll: { showMirrorDetail = true }
                 )
 
-                upcomingNote
+                WeeklyChecklistMiniCard(
+                    highlights: weeklyHighlights,
+                    completedCount: checklistItems.filter { $0.isCompleted }.count,
+                    totalCount: checklistItems.count,
+                    completionRate: PregnancyChecklistPlanner.completionRate(checklistItems),
+                    onToggle: toggleChecklist
+                )
+
+                VisitQuestionMemoCard(
+                    visit: nextVisit,
+                    onAdd: addQuestion,
+                    onToggle: toggleQuestion
+                )
+
+                FoodSafetyQuickRow { showFoodSafety = true }
             }
             .padding(.horizontal, DS2.Spacing.lg)
             .padding(.vertical, DS2.Spacing.lg)
@@ -78,25 +99,31 @@ struct PrenatalCareView: View {
             MaternalRecordDetailSheet(vitals: pregnancyVM.vitalEntries, weights: pregnancyVM.weightEntries)
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: $showFoodSafety) {
+            FoodSafetySheet()
+        }
     }
 
-    /// 후속 Phase D 진행 안내(빈 화면 금지 원칙은 위 카드들이 충족 — 1줄 표시).
-    private var upcomingNote: some View {
-        HStack(spacing: DS2.Spacing.sm) {
-            Image(systemName: "hourglass")
-                .font(.caption)
-                .foregroundStyle(DS2.Color.pregnancy.opacity(0.6))
-            Text("주차별 체크리스트·진료준비 질문·음식 안전 조회는 순차 제공돼요.")
-                .font(DS2.Font.caption2)
-                .foregroundStyle(DS2.Color.textSecondary)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, DS2.Spacing.xs)
-    }
+    // MARK: - Actions (저장은 모두 소유자 path `ownerUserId` 경유 — #41 공유 격리)
 
     private func toggleNextVisit() {
         guard let visit = nextVisit, let owner = ownerUserId else { return }
         Task { await pregnancyVM.togglePrenatalVisit(visit, userId: owner) }
+    }
+
+    private func toggleChecklist(_ item: PregnancyChecklistItem) {
+        guard let owner = ownerUserId else { return }
+        Task { await pregnancyVM.toggleChecklistItem(item, userId: owner) }
+    }
+
+    private func addQuestion(_ text: String) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.addVisitQuestion(to: visit, text: text, userId: owner) }
+    }
+
+    private func toggleQuestion(_ question: VisitPrepQuestion) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.toggleVisitQuestion(in: visit, questionId: question.id, userId: owner) }
     }
 }
 

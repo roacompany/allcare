@@ -39,18 +39,22 @@
 - [x] TDD: 미러 최신추출(항목별·빈·부분) + 바우처 금액(단태/다태/취약지) — PrenatalScheduleTests **15 green**(A6+B6+C3).
 - [ ] (이연) 자궁저높이·태아추정체중(EFW)=신규 필드 / 바우처 **수동 잔액 입력·진행바**=Pregnancy 필드(@AppStorage 금지 — #41 기기전역 누수). 둘 다 영속 추가라 별도.
 
-## Phase D — 체크리스트 mini + 진료 준비 질문 + 음식 안전
+## Phase D — 체크리스트 mini + 진료 준비 질문 + 음식 안전 (✅ 이 PR, 추가분)
 
-- [ ] `WeeklyChecklistMiniCard` — PregnancyChecklistView 재사용(완료율 바·"전체" push, 자체 NavigationStack 금지).
-- [ ] `VisitQuestionMemoCard` — 다음 검진 연결 질문 리스트(체크 메모) + 인라인 추가. 영속 위치(visit 임베딩 vs 신규) 결정.
-- [ ] `FoodSafetyQuickRow` → `FoodSafetySheet`(한국 임산부 맥락 빠른 조회, 도구함 자산).
+순수 로직 3종 TDD(`PregnancyChecklistPlanner`·`VisitPrepQuestion`/임베딩·`PregnancyFoodSafety`) → 뷰 3종 → PrenatalCareView 배선.
+
+- [x] `WeeklyChecklistMiniCard` — `PregnancyChecklistPlanner.weeklyHighlights`(현재 삼분기 미완료 top3·주차 미상 폴백) + 완료율 바 + "전체 체크리스트" NavigationLink push(부모 스택·자체 NavigationStack 0). 빈 상태=시작 CTA / 다 완료=긍정 라벨. 토글 저장=소유자 path(#41).
+- [x] `VisitQuestionMemoCard` — **영속=PrenatalVisit.preparationQuestions 임베딩 결정**(신규 컬렉션 X·Firestore.Encoder 자동 직렬화·검진과 함께 소유자 path 저장 → #41 자동 준수). 체크(물어봤어요) 토글 + 인라인 vertical TextField 추가. 검진 0건 → 안내. VM 글루=`PregnancyViewModel+PrenatalQuestions.swift`(본체 비대화 방지 분리).
+- [x] `FoodSafetyQuickRow` → `FoodSafetySheet` — `PregnancyFoodSafety`(한국 임산부 11항목·의료감수 전 초안·advisory 3레벨[대체로 괜찮아요/주의/피하는 게 좋아요], "안전/위험" 단정 회피) + `.searchable` 이름·키워드 검색 + 면책 배너. 커머스 0.
+- [x] TDD: 플래너(삼분기 매핑·완료율·weeklyHighlights·limit·nil 폴백 5) + 질문(Codable 라운드트립·구버전 nil 호환·openQuestionCount 3) + 음식안전(비퇴화·검색 empty/키워드/무매치·대소문자 4) — **PrenatalScheduleTests 27 green(A6+B6+C3+D12)**.
+- [ ] (이연) 타임라인 노드별 완료/누락 배지(visit↔주차 fuzzy) · 산모수첩 자궁저높이/EFW 신규 필드 · 바우처 수동 잔액. 질문 삭제(swipe) — 현재 추가·토글까지.
 
 ---
 
 ## Done Criteria (전체 ③검진)
-- [ ] 8섹션(면책·히어로·타임라인·바우처·산모수첩·체크리스트·진료질문·음식안전) 노출, 빈 화면 금지.
-- [ ] 의학 단정 텍스트 0 / 모든 수치·안내 면책 동반 / 임신 데이터 Analytics 미전송.
-- [ ] 신규 컬렉션·필드 = Narrow Protocol 5단계 + arch R3=0. 보라(`DS2.Color.pregnancy`) 톤. `make verify` green. flag-off 휴면.
+- [x] 8섹션(면책·히어로·타임라인·바우처·산모수첩·체크리스트·진료질문·음식안전) 노출, 빈 화면 금지.
+- [x] 의학 단정 텍스트 0 / 모든 수치·안내 면책 동반 / 임신 데이터 Analytics 미전송.
+- [x] 신규 컬렉션 0(질문=PrenatalVisit 임베딩 필드) + arch R3=0. 보라(`DS2.Color.pregnancy`) 톤. `make verify` green(빌드·27 prenatal+전체 유닛·arch R1–4=0·lint 0err·design 100%). flag-off 휴면.
 
 ## 출시 선결(PO/H-item)
 - 🔴 **산부인과 전문의 의료감수** — prenatal-data.md 전 항목(검진 시기·임당 기준·바우처 금액·산모수첩 참고치)은 초안. 앱 노출 전 검수 필수.

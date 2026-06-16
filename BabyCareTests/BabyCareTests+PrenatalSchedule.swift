@@ -131,4 +131,105 @@ final class PrenatalScheduleTests: XCTestCase {
         XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: nil), 1_000_000)
         XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: 1, isRemoteArea: true), 1_200_000)
     }
+
+    // MARK: - Phase D: 체크리스트 플래너 + 진료준비 질문 + 음식 안전
+
+    private func checklistItem(cat: String, done: Bool, order: Int = 0, title: String = "t") -> PregnancyChecklistItem {
+        PregnancyChecklistItem(pregnancyId: "p", title: title, category: cat,
+                               isCompleted: done, source: "bundle", order: order)
+    }
+
+    // --- PregnancyChecklistPlanner (주차→삼분기 / 완료율 / 이번 주 요약) ---
+
+    func test_checklistPlanner_currentTrimesterCategory() {
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 8), "trimester1")
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 13), "trimester1")
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 14), "trimester2")
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 27), "trimester2")
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 28), "trimester3")
+        XCTAssertEqual(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 42), "trimester3") // 막달 이후도 3삼분기 과업
+        XCTAssertNil(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: nil))
+        XCTAssertNil(PregnancyChecklistPlanner.currentTrimesterCategory(forWeek: 0))
+    }
+
+    func test_checklistPlanner_completionRate() {
+        XCTAssertEqual(PregnancyChecklistPlanner.completionRate([]), 0)
+        let items = [checklistItem(cat: "trimester2", done: true), checklistItem(cat: "trimester2", done: false),
+                     checklistItem(cat: "trimester3", done: true), checklistItem(cat: "trimester3", done: false)]
+        XCTAssertEqual(PregnancyChecklistPlanner.completionRate(items), 0.5, accuracy: 0.001)
+    }
+
+    func test_checklistPlanner_weeklyHighlights_currentTrimesterIncompleteOrdered() {
+        let items = [checklistItem(cat: "trimester2", done: false, order: 1, title: "t2-a"),
+                     checklistItem(cat: "trimester2", done: true, order: 0, title: "t2-done"),
+                     checklistItem(cat: "trimester2", done: false, order: 2, title: "t2-b"),
+                     checklistItem(cat: "trimester3", done: false, order: 0, title: "t3")]
+        let hi = PregnancyChecklistPlanner.weeklyHighlights(items, currentWeek: 20, limit: 3) // 20주=t2
+        XCTAssertEqual(hi.map { $0.title }, ["t2-a", "t2-b"]) // 미완료만 · order 정렬 · 타 삼분기 제외
+    }
+
+    func test_checklistPlanner_weeklyHighlights_respectsLimit() {
+        let items = (0..<5).map { checklistItem(cat: "trimester1", done: false, order: $0, title: "n\($0)") }
+        XCTAssertEqual(PregnancyChecklistPlanner.weeklyHighlights(items, currentWeek: 6, limit: 2).count, 2)
+    }
+
+    func test_checklistPlanner_weeklyHighlights_nilWeekFallsBackToAllIncomplete() {
+        let items = [checklistItem(cat: "trimester1", done: false, order: 0, title: "a"),
+                     checklistItem(cat: "trimester3", done: true, order: 1, title: "b-done"),
+                     checklistItem(cat: "custom", done: false, order: 2, title: "c")]
+        let hi = PregnancyChecklistPlanner.weeklyHighlights(items, currentWeek: nil, limit: 5)
+        XCTAssertEqual(hi.map { $0.title }, ["a", "c"]) // 주차 미상 → 전체 미완료
+    }
+
+    // --- VisitPrepQuestion / PrenatalVisit 임베딩 (진료준비 질문) ---
+
+    func test_visitPrepQuestion_codableRoundTrip_preservesQuestions() throws {
+        var v = PrenatalVisit(pregnancyId: "p", scheduledAt: Date())
+        v.preparationQuestions = [VisitPrepQuestion(text: "철분제 계속 먹어도 되나요?"),
+                                  VisitPrepQuestion(text: "체중 증가 괜찮나요?", asked: true)]
+        let decoded = try JSONDecoder().decode(PrenatalVisit.self, from: JSONEncoder().encode(v))
+        XCTAssertEqual(decoded.preparationQuestions?.count, 2)
+        XCTAssertEqual(decoded.preparationQuestions?.first?.text, "철분제 계속 먹어도 되나요?")
+        XCTAssertEqual(decoded.preparationQuestions?.last?.asked, true)
+    }
+
+    func test_prenatalVisit_backwardCompat_missingQuestionsDecodesNil() throws {
+        // 구버전 문서(질문 필드 없음)도 디코드 — 신규 필드 optional 계약.
+        let json = #"{"id":"v1","pregnancyId":"p","scheduledAt":0,"isCompleted":false,"createdAt":0,"updatedAt":0}"#
+            .data(using: .utf8)!
+        XCTAssertNil(try JSONDecoder().decode(PrenatalVisit.self, from: json).preparationQuestions)
+    }
+
+    func test_prenatalVisit_openQuestionCount() {
+        var v = PrenatalVisit(pregnancyId: "p", scheduledAt: Date())
+        XCTAssertEqual(v.openQuestionCount, 0)
+        v.preparationQuestions = [VisitPrepQuestion(text: "a"), VisitPrepQuestion(text: "b", asked: true),
+                                  VisitPrepQuestion(text: "c")]
+        XCTAssertEqual(v.openQuestionCount, 2)
+    }
+
+    // --- PregnancyFoodSafety (음식·약물 안전 빠른 조회, 의료감수 전 초안) ---
+
+    func test_foodSafety_itemsNonEmptyAndWellFormed() {
+        XCTAssertFalse(PregnancyFoodSafety.items.isEmpty)
+        for it in PregnancyFoodSafety.items {
+            XCTAssertFalse(it.name.isEmpty, "\(it.id) name empty")
+            XCTAssertFalse(it.guidance.isEmpty, "\(it.id) guidance empty")
+        }
+    }
+
+    func test_foodSafety_search_emptyOrBlankReturnsAll() {
+        XCTAssertEqual(PregnancyFoodSafety.search("").count, PregnancyFoodSafety.items.count)
+        XCTAssertEqual(PregnancyFoodSafety.search("   ").count, PregnancyFoodSafety.items.count)
+    }
+
+    func test_foodSafety_search_matchesNameOrKeyword() {
+        XCTAssertTrue(PregnancyFoodSafety.search("커피").contains { $0.id == "caffeine" })
+        XCTAssertTrue(PregnancyFoodSafety.search("카페인").contains { $0.id == "caffeine" }) // 동의어 키워드
+    }
+
+    func test_foodSafety_search_noMatchEmpty_andCaseInsensitive() {
+        XCTAssertTrue(PregnancyFoodSafety.search("존재하지않는음식zzz").isEmpty)
+        XCTAssertEqual(PregnancyFoodSafety.search("COFFEE").count, PregnancyFoodSafety.search("coffee").count)
+    }
 }
