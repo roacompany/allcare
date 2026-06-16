@@ -111,12 +111,18 @@ struct PrenatalVisitFormSheet: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
 
-    @State private var scheduledAt: Date = Date()
+    @State private var scheduledAt: Date
     @State private var hospitalName: String = ""
-    @State private var visitType: String = "routine"
+    @State private var visitType: String
     @State private var notes: String = ""
     @State private var reminderEnabled: Bool = true
     @State private var isSaving = false
+
+    /// 표준 검진 노드에서 방문 유형·예정일을 프리필해 진입(③검진 타임라인). 무인자는 기존 동작.
+    init(prefillVisitType: String? = nil, prefillDate: Date? = nil) {
+        _scheduledAt = State(initialValue: prefillDate ?? Date())
+        _visitType = State(initialValue: prefillVisitType ?? "routine")
+    }
 
     private let visitTypes = [
         ("routine", "정기 검진"),

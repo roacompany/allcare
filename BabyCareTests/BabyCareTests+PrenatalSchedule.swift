@@ -47,4 +47,50 @@ final class PrenatalScheduleTests: XCTestCase {
         XCTAssertNil(KoreanPrenatalSchedule.currentItem(currentWeek: 100))
         XCTAssertNil(KoreanPrenatalSchedule.currentItem(currentWeek: nil))
     }
+
+    // MARK: - Phase B: 검진객체 연동 (PrenatalVisitPlanner)
+
+    func test_items_haveVisitTypeHint() {
+        XCTAssertEqual(item("gdm-screening").visitTypeHint, "gtt")
+        XCTAssertEqual(item("nt-first").visitTypeHint, "ultrasound")
+        XCTAssertEqual(item("early-basic").visitTypeHint, "bloodTest")
+    }
+
+    private func visit(daysFromNow days: Int, completed: Bool = false, now: Date) -> PrenatalVisit {
+        let date = Calendar.current.date(byAdding: .day, value: days, to: now)!
+        return PrenatalVisit(pregnancyId: "p1", scheduledAt: date, isCompleted: completed)
+    }
+
+    func test_nextRelevantVisit_prefersNearestUpcoming() {
+        let now = Date()
+        let near = visit(daysFromNow: 5, now: now)
+        let visits = [visit(daysFromNow: 20, now: now), near,
+                      visit(daysFromNow: -3, now: now), visit(daysFromNow: 1, completed: true, now: now)]
+        XCTAssertEqual(PrenatalVisitPlanner.nextRelevantVisit(in: visits, asOf: now)?.id, near.id)
+    }
+
+    func test_nextRelevantVisit_fallsBackToMostRecentOverdue() {
+        let now = Date()
+        let recentOverdue = visit(daysFromNow: -3, now: now)
+        let visits = [visit(daysFromNow: -10, now: now), recentOverdue,
+                      visit(daysFromNow: -1, completed: true, now: now)]
+        XCTAssertEqual(PrenatalVisitPlanner.nextRelevantVisit(in: visits, asOf: now)?.id, recentOverdue.id)
+    }
+
+    func test_nextRelevantVisit_nilWhenAllCompletedOrEmpty() {
+        let now = Date()
+        XCTAssertNil(PrenatalVisitPlanner.nextRelevantVisit(in: [visit(daysFromNow: 5, completed: true, now: now)], asOf: now))
+        XCTAssertNil(PrenatalVisitPlanner.nextRelevantVisit(in: [], asOf: now))
+    }
+
+    func test_suggestedDate_midWeekFromLMP() {
+        let lmp = Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+        let nt = item("nt-first") // 11~13 → mid 12 → LMP + 84일
+        let expected = Calendar.current.date(byAdding: .day, value: 84, to: lmp)
+        XCTAssertEqual(PrenatalVisitPlanner.suggestedDate(for: nt, lmpDate: lmp), expected)
+    }
+
+    func test_suggestedDate_nilWithoutLMP() {
+        XCTAssertNil(PrenatalVisitPlanner.suggestedDate(for: item("nt-first"), lmpDate: nil))
+    }
 }

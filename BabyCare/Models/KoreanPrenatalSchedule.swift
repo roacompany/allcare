@@ -15,6 +15,8 @@ struct KoreanPrenatalScheduleItem: Identifiable, Hashable {
     let weekEnd: Int
     let summary: String
     let note: String?
+    /// 이 검진을 PrenatalVisit 로 추가할 때 프리필할 방문 유형(routine|ultrasound|bloodTest|gtt|other).
+    let visitTypeHint: String
 }
 
 /// 타임라인 노드 = 항목 + 현재 주차 대비 상태.
@@ -33,19 +35,19 @@ enum KoreanPrenatalSchedule {
 
     static let standardItems: [KoreanPrenatalScheduleItem] = [
         .init(id: "early-basic", title: "초기 기본검사", weekStart: 5, weekEnd: 10,
-              summary: "혈액형·빈혈·감염(B형간염·풍진 등)·소변 기본검사", note: "첫 내원 시"),
+              summary: "혈액형·빈혈·감염(B형간염·풍진 등)·소변 기본검사", note: "첫 내원 시", visitTypeHint: "bloodTest"),
         .init(id: "nt-first", title: "NT·1차 기형아 선별", weekStart: 11, weekEnd: 13,
-              summary: "목덜미 투명대 초음파 + 모체혈청 선별", note: "11주~13주 6일"),
+              summary: "목덜미 투명대 초음파 + 모체혈청 선별", note: "11주~13주 6일", visitTypeHint: "ultrasound"),
         .init(id: "quad-second", title: "쿼드·2차 기형아 선별", weekStart: 15, weekEnd: 20,
-              summary: "모체혈액 4종 호르몬 선별", note: nil),
+              summary: "모체혈액 4종 호르몬 선별", note: nil, visitTypeHint: "bloodTest"),
         .init(id: "detailed-ultrasound", title: "정밀초음파", weekStart: 18, weekEnd: 24,
-              summary: "태아 주요 장기·구조 정밀 관찰", note: "약 20주(출처별 18~24주)"),
+              summary: "태아 주요 장기·구조 정밀 관찰", note: "약 20주(출처별 18~24주)", visitTypeHint: "ultrasound"),
         .init(id: "gdm-screening", title: "임신성 당뇨 선별(GTT)", weekStart: 24, weekEnd: 28,
-              summary: "50g 경구당부하 선별검사", note: "양성 시 100g 정밀검사"),
+              summary: "50g 경구당부하 선별검사", note: "양성 시 100g 정밀검사", visitTypeHint: "gtt"),
         .init(id: "gbs-screening", title: "GBS(B군 연쇄구균) 선별", weekStart: 35, weekEnd: 37,
-              summary: "질·직장 도말 배양(분만 중 항생제 판단)", note: nil),
+              summary: "질·직장 도말 배양(분만 중 항생제 판단)", note: nil, visitTypeHint: "bloodTest"),
         .init(id: "term-predelivery", title: "분만 전 검사", weekStart: 37, weekEnd: 40,
-              summary: "막달 종합검사(혈액·응고 등 분만 대비)", note: nil)
+              summary: "막달 종합검사(혈액·응고 등 분만 대비)", note: nil, visitTypeHint: "bloodTest")
     ]
 
     /// 정기 진찰 간격 안내(KSOG/아이사랑 통념). 고정 규칙 아님 — "권장" 표기.

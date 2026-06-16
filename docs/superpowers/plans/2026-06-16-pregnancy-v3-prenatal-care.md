@@ -24,12 +24,13 @@
 
 ---
 
-## Phase B — 다음 검진 히어로 + 타임라인↔검진객체 연동
+## Phase B — 다음 검진 히어로 + 타임라인 노드→검진 추가 (✅ 이 PR, 추가분)
 
-- [ ] `NextVisitHeroCard` — `PrenatalVisit.daysUntilScheduled/isDueSoon/isOverdue` 재사용(D-day 캡슐·주차 라벨·표준매핑 칩·[진료준비][완료] CTA). 검진 0건이면 빈 상태 카드 + [검진 추가].
-- [ ] 타임라인 노드 ↔ PrenatalVisit 매핑: 등록 노드 = 완료/예정 상태, 미등록 = "이 검진 추가하기"(`PrenatalVisitFormSheet` visitType 프리필). `KoreanPrenatalScheduleItem.id` ↔ visit 표준유형 매핑.
-- [ ] 완료 토글 = OptimisticReplaceable(낙관 업데이트+rollback) + 타임라인 동기화.
-- [ ] TDD: 노드-방문 매핑/완료 상태 파생(순수). make verify green.
+- [x] `NextVisitHeroCard` — `PrenatalVisitPlanner.nextRelevantVisit`(미완료 중 임박 예정, 없으면 최근 지연) + D-day 캡슐(완료/오늘/D-N/D+N 지연)·이번 주 권장 검진 칩(`currentItem`)·[완료 체크] 토글. 검진 0건 → 빈 상태 + [검진 추가].
+- [x] 타임라인 노드 탭 → `PrenatalVisitFormSheet` 프리필(visitType=`visitTypeHint`, 예정일=`suggestedDate` LMP+중앙주차). 노드 우측 `+` 아이콘·a11y 힌트.
+- [x] 완료 토글 = 기존 `togglePrenatalVisit`(저장 userId = **소유자 path `dataUserId`**, #41 공유 격리 준수).
+- [x] TDD: `nextRelevantVisit`(임박/지연 fallback/완료·빈) + `suggestedDate`(LMP 중앙주차/nil) + `visitTypeHint` — **PrenatalScheduleTests 12 green(A6+B6)**.
+- [ ] (이연) 타임라인 노드별 **완료/누락 상태 배지**(visit↔검진 주차 매핑) — 노드-방문 fuzzy 매핑이라 별도. 현재는 "추가" 어포던스까지.
 
 ## Phase C — 산모수첩 디지털 미러 + 국민행복카드 바우처
 
