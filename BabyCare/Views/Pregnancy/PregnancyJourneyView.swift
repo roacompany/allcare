@@ -1,65 +1,132 @@
 import SwiftUI
 
-// TODO(v3 서브프로젝트 3): 여정 타임라인 구현.
-// 최종 목표: sticky 헤더(NN주N일·D-day·40주 진행바) + "오늘" 섹션(데일리팁/크기비교/QuickLogStrip/동적승격카드/체크리스트) +
-// 위로 스크롤(과거 주차 응집 카드 lazy 페이징) + 아래로 스크롤(미래 주차 콘텐츠 + 검진 마일스톤 핀) + 의료면책배너.
-// DashboardPregnancyView를 이 탭으로 승격하는 방식으로 구현 예정.
-// SCREENS.md §①여정 참조.
-
-/// ① 여정 탭 루트 (서브프로젝트 3에서 DashboardPregnancyView 승격·재배치 예정).
+/// ① 여정 탭 루트 — 주차 타임라인 척추 (SCREENS.md §①여정).
+/// "오늘" 섹션(데일리팁·크기비교·QuickLog·동적승격·체크리스트) + 미래 검진 마일스톤 + 면책.
+/// 과거 주차 응집 카드(초음파/일기 썸네일)는 후속 플랜(D 정서기록 의존).
 @MainActor
 struct PregnancyJourneyView: View {
     @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(AuthViewModel.self) private var authVM
+
+    private let weekStore = PregnancyWeekContentStore.loadBundled()
+
+    @State private var activeSheet: JourneySheet?
+    @State private var showTransitionSheet = false
+    @State private var showChecklist = false
+
+    private enum JourneySheet: Int, Identifiable {
+        case kick, weight, symptom
+        var id: Int { rawValue }
+    }
+
+    private var content: PregnancyJourneyContent {
+        PregnancyJourneyContent(
+            currentWeek: pregnancyVM.currentWeekAndDay?.weeks,
+            checklistItems: pregnancyVM.checklistItems,
+            prenatalVisits: pregnancyVM.prenatalVisits
+        )
+    }
+
+    private var weekContent: PregnancyWeekContent? {
+        guard let week = pregnancyVM.currentWeekAndDay?.weeks else { return nil }
+        return weekStore.content(forWeek: week)
+    }
+
+    private var isMultiFetus: Bool {
+        (pregnancyVM.activePregnancy?.fetusCount ?? 1) > 1
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: DS2.Spacing.xl) {
-                DS2EmptyState(
-                    icon: "point.topleft.down.curvedto.point.bottomright.up",
-                    title: "여정",
-                    message: "곧 제공됩니다\n이 주차의 기록과 다가올 마일스톤을 한눈에 볼 수 있어요."
-                )
-
-                // 예정 기능 미리보기
-                comingSoonList
-            }
-            .padding(.horizontal, DS2.Spacing.lg)
-            .padding(.top, DS2.Spacing.xl)
-        }
-        .navigationTitle("여정")
-        .navigationBarTitleDisplayMode(.large)
-    }
-
-    private var comingSoonList: some View {
-        DS2Card(tint: DS2.Color.pregnancy) {
-            VStack(alignment: .leading, spacing: DS2.Spacing.md) {
-                Text("구현 예정")
-                    .font(DS2.Font.headline)
-                    .foregroundStyle(DS2.Color.pregnancy)
-
-                let features = [
-                    "NN주N일 · D-day · 40주 진행바 sticky 헤더",
-                    "오늘의 데일리팁 / 아기 크기 비교",
-                    "QuickLogStrip (태동·증상·체중 1탭 시트)",
-                    "검진 D-2 임박 / 37주+ 진통 타이머 동적 승격",
-                    "미완 체크리스트 상위 3 미리보기",
-                    "지난 주차 응집 카드 (초음파·일기·측정)",
-                    "다가올 주차 콘텐츠 + 한국 산전검진 핀",
-                    "의료 면책 배너"
-                ]
-
-                ForEach(features, id: \.self) { feature in
-                    HStack(spacing: DS2.Spacing.sm) {
-                        Image(systemName: "circle")
-                            .font(.caption2)
-                            .foregroundStyle(DS2.Color.pregnancy.opacity(0.5))
-                        Text(feature)
-                            .font(DS2.Font.caption)
-                            .foregroundStyle(DS2.Color.textSecondary)
-                    }
+            LazyVStack(spacing: DS2.Spacing.lg, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    todaySection
+                    futureSection
+                    JourneyDisclaimerBanner(multiFetus: isMultiFetus)
+                } header: {
+                    JourneyStickyHeader(
+                        weekAndDay: pregnancyVM.currentWeekAndDay,
+                        dDay: pregnancyVM.dDay
+                    )
                 }
             }
+            .padding(.horizontal, DS2.Spacing.lg)
+            .padding(.bottom, DS2.Spacing.xl)
         }
+        .navigationTitle("여정")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showChecklist) {
+            PregnancyChecklistView()
+        }
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .kick: KickRecordingSheet()
+            case .weight: PregnancyWeightEntrySheet()
+            case .symptom: PregnancySymptomMemoSheet()
+            }
+        }
+        .sheet(isPresented: $showTransitionSheet) {
+            if let pregnancy = pregnancyVM.activePregnancy {
+                PregnancyTransitionSheet(pregnancy: pregnancy)
+            }
+        }
+    }
+
+    // MARK: - 오늘 섹션
+
+    @ViewBuilder private var todaySection: some View {
+        if let wc = weekContent {
+            DailyTipCard(tip: wc.tip)
+            BabySizeCompareCard(week: wc.week, fruitSize: wc.fruitSize, milestone: wc.milestone)
+        }
+
+        JourneyQuickLogStrip(
+            onKick: { activeSheet = .kick },
+            onSymptom: { activeSheet = .symptom },
+            onWeight: { activeSheet = .weight }
+        )
+
+        ForEach(Array(content.promotedCards.enumerated()), id: \.offset) { _, card in
+            // 검진/진통 타이머 상세 화면은 후속(③ PrenatalCareView 콘텐츠·ContractionTimerView 미구현).
+            JourneyPromotedCardView(card: card, action: {})
+        }
+
+        if !content.topIncompleteChecklist.isEmpty {
+            ChecklistPreviewCard(items: content.topIncompleteChecklist, onSeeAll: { showChecklist = true })
+        }
+
+        if pregnancyVM.dDay != nil {
+            birthCTABanner
+        }
+    }
+
+    // MARK: - 미래 섹션
+
+    @ViewBuilder private var futureSection: some View {
+        if !content.futureMilestones.isEmpty {
+            VisitMilestoneList(milestones: content.futureMilestones)
+        }
+    }
+
+    // MARK: - 출산 CTA
+
+    private var birthCTABanner: some View {
+        Button { showTransitionSheet = true } label: {
+            HStack(spacing: DS2.Spacing.md) {
+                Image(systemName: "heart.circle.fill").font(.title2).foregroundStyle(DS2.Color.pregnancy)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("출산했어요!").font(DS2.Font.headline).foregroundStyle(DS2.Color.textPrimary)
+                    Text("아기 정보를 등록하고 육아 모드로 전환하세요.")
+                        .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.subheadline).foregroundStyle(.tertiary)
+            }
+            .padding(DS2.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS2.Color.pregnancy.opacity(0.12), in: RoundedRectangle(cornerRadius: DS2.Radius.md))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -67,10 +134,15 @@ struct PregnancyJourneyView: View {
 
 #if DEBUG
 #Preview {
-    NavigationStack {
-        PregnancyJourneyView()
-    }
-    .environment(PregnancyViewModel())
-    .tint(DS2.Color.pregnancy)
+    let vm = PregnancyViewModel()
+    vm.activePregnancy = Pregnancy(
+        lmpDate: Calendar.current.date(byAdding: .day, value: -168, to: Date()),
+        dueDate: Calendar.current.date(byAdding: .day, value: 112, to: Date()),
+        fetusCount: 1, babyNickname: "둘째"
+    )
+    return NavigationStack { PregnancyJourneyView() }
+        .environment(vm)
+        .environment(AuthViewModel())
+        .tint(DS2.Color.pregnancy)
 }
 #endif
