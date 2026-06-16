@@ -48,7 +48,7 @@ extension FirestoreService {
             .collection(FirestoreCollections.babies)
             .document(babyId)
 
-        // 하위 컬렉션 cascade 삭제
+        // 하위 컬렉션 cascade 삭제 (RC3: allergies/cryRecords/weeklyMetrics/highlightCache 누락분 추가 — orphan 잔존 방지)
         let subcollections = [
             FirestoreCollections.activities,
             FirestoreCollections.growth,
@@ -57,7 +57,11 @@ extension FirestoreService {
             FirestoreCollections.milestones,
             FirestoreCollections.hospitalVisits,
             FirestoreCollections.purchases,
-            FirestoreCollections.hospitalReports
+            FirestoreCollections.hospitalReports,
+            FirestoreCollections.allergies,
+            FirestoreCollections.cryRecords,
+            FirestoreCollections.weeklyMetrics,
+            FirestoreCollections.highlightCache
         ]
         for subcollection in subcollections {
             let docs = try await babyRef.collection(subcollection).getDocuments()

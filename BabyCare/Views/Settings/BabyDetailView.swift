@@ -98,7 +98,8 @@ struct BabyDetailView: View {
             Button("삭제", role: .destructive) {
                 Task {
                     guard let currentUserId = authVM.currentUserId else { return }
-                    let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                    // 삭제 대상 아기의 owner 경로 직접 사용 (RC1: 비선택 공유 아기 오삭제 방지)
+                    let userId = BabyViewModel.ownerUserId(for: baby, currentUserId: currentUserId) ?? currentUserId
                     await babyVM.deleteBaby(baby, userId: userId)
                     dismiss()
                 }
@@ -110,7 +111,8 @@ struct BabyDetailView: View {
 
     private func save() {
         guard let currentUserId = authVM.currentUserId else { return }
-        let userId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        // 수정 대상 아기의 owner 경로 직접 사용 (RC1: 비선택 공유 아기 오수정 방지)
+        let userId = BabyViewModel.ownerUserId(for: baby, currentUserId: currentUserId) ?? currentUserId
         isSaving = true
         var updated = baby
         updated.name = name.trimmingCharacters(in: .whitespaces)
