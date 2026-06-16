@@ -244,6 +244,19 @@ final class PregnancyViewModel {
         }
     }
 
+    /// 국민행복카드 수동 사용액 갱신(원·음수 방지). userId = 소유자 path(#41).
+    func updateVoucherUsed(_ amount: Int, userId: String) async {
+        guard var p = activePregnancy else { return }
+        p.voucherUsedAmount = max(0, amount)
+        p.updatedAt = Date()
+        do {
+            try await firestoreService.savePregnancy(p, userId: userId)
+            self.activePregnancy = p
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Week / D-day
 
     var currentWeekAndDay: (weeks: Int, days: Int)? {

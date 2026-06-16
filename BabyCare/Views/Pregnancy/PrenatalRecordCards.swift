@@ -154,10 +154,17 @@ struct MaternalRecordDetailSheet: View {
 /// 국민행복카드 임신·출산 진료비 바우처 안내 카드(정적·카드사 미연동, 커머스 0).
 struct HappyCardVoucherCard: View {
     let fetusCount: Int?
+    var usedAmount: Int?
+    var onSaveUsed: ((Int) -> Void)?
     @State private var showUsage = false
+    @State private var isEditingUsed = false
+    @State private var usedDraft = ""
 
     private var amount: Int { HappyCardVoucher.supportAmount(fetusCount: fetusCount) }
     private var isMulti: Bool { (fetusCount ?? 1) >= 2 }
+    private var progress: Double { HappyCardVoucher.usedProgress(used: usedAmount ?? 0, total: amount) }
+    private var remaining: Int { HappyCardVoucher.remaining(used: usedAmount ?? 0, total: amount) }
+    private var isOver: Bool { HappyCardVoucher.isOverBudget(used: usedAmount ?? 0, total: amount) }
 
     var body: some View {
         DS2Card(tint: DS2.Color.pregnancy) {
@@ -174,6 +181,7 @@ struct HappyCardVoucherCard: View {
                         .background(DS2.Color.pregnancy.opacity(0.14), in: Capsule())
                         .foregroundStyle(DS2.Color.pregnancy)
                 }
+                if onSaveUsed != nil { usageSection }
                 Text(HappyCardVoucher.periodNote)
                     .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
                 DisclosureGroup(isExpanded: $showUsage) {
@@ -191,5 +199,56 @@ struct HappyCardVoucherCard: View {
                     .font(DS2.Font.caption2).foregroundStyle(DS2.Color.textSecondary)
             }
         }
+    }
+
+    /// 사용 진행 바 + 잔여 + 수동 입력(만 원 단위). 카드사 미연동 — 직접 기록.
+    @ViewBuilder private var usageSection: some View {
+        VStack(alignment: .leading, spacing: DS2.Spacing.sm) {
+            if usedAmount != nil {
+                ProgressView(value: progress).tint(isOver ? .orange : DS2.Color.pregnancy)
+                HStack {
+                    Text("사용 \((usedAmount ?? 0) / 10000)만 원")
+                        .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
+                    Spacer(minLength: 0)
+                    Text("잔여 \(remaining / 10000)만 원")
+                        .font(DS2.Font.caption.weight(.semibold)).foregroundStyle(DS2.Color.pregnancy)
+                }
+                .accessibilityElement(children: .combine)
+                if isOver {
+                    Label("입력한 사용액이 지원 한도를 넘었어요", systemImage: "exclamationmark.triangle")
+                        .font(DS2.Font.caption2).foregroundStyle(.orange)
+                }
+            } else {
+                Text("사용액을 입력해두면 잔여 금액을 한눈에 볼 수 있어요")
+                    .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
+            }
+            if isEditingUsed {
+                HStack(spacing: DS2.Spacing.sm) {
+                    TextField("사용액 (만 원)", text: $usedDraft)
+                        .keyboardType(.numberPad)
+                        .font(DS2.Font.subheadline)
+                    Button("저장", action: saveUsed)
+                        .font(DS2.Font.subheadline).tint(DS2.Color.pregnancy)
+                        .disabled(usedDraft.filter(\.isNumber).isEmpty)
+                    Button("취소") { isEditingUsed = false; usedDraft = "" }
+                        .font(DS2.Font.subheadline).tint(DS2.Color.textSecondary)
+                }
+            } else {
+                Button(usedAmount == nil ? "사용액 입력" : "사용액 수정") {
+                    usedDraft = usedAmount.map { String($0 / 10000) } ?? ""
+                    isEditingUsed = true
+                }
+                .font(DS2.Font.subheadline).tint(DS2.Color.pregnancy)
+            }
+        }
+        .padding(.vertical, DS2.Spacing.xs)
+    }
+
+    private func saveUsed() {
+        let digits = usedDraft.filter(\.isNumber)
+        guard let manwon = Int(digits) else { isEditingUsed = false; return }
+        onSaveUsed?(manwon * 10_000)
+        usedDraft = ""
+        isEditingUsed = false
     }
 }

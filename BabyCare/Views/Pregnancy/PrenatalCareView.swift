@@ -67,7 +67,11 @@ struct PrenatalCareView: View {
                     )
                 }
 
-                HappyCardVoucherCard(fetusCount: pregnancyVM.activePregnancy?.fetusCount)
+                HappyCardVoucherCard(
+                    fetusCount: pregnancyVM.activePregnancy?.fetusCount,
+                    usedAmount: pregnancyVM.activePregnancy?.voucherUsedAmount,
+                    onSaveUsed: saveVoucherUsed
+                )
 
                 MaternalRecordMirrorCard(
                     measurements: mirrorMeasurements,
@@ -128,6 +132,11 @@ struct PrenatalCareView: View {
     private func toggleQuestion(_ question: VisitPrepQuestion) {
         guard let visit = nextVisit, let owner = ownerUserId else { return }
         Task { await pregnancyVM.toggleVisitQuestion(in: visit, questionId: question.id, userId: owner) }
+    }
+
+    private func saveVoucherUsed(_ amount: Int) {
+        guard let owner = ownerUserId else { return }
+        Task { await pregnancyVM.updateVoucherUsed(amount, userId: owner) }
     }
 }
 

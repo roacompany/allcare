@@ -286,4 +286,35 @@ final class PrenatalScheduleTests: XCTestCase {
         XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: nt, visits: [], lmpDate: nil, currentWeek: 32), .missed)
         XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: nt, visits: [], lmpDate: nil, currentWeek: 5), .upcoming)
     }
+
+    // MARK: - 이연: 국민행복카드 수동 잔액 진행도
+
+    func test_voucher_usedProgress_clampsAndGuards() {
+        XCTAssertEqual(HappyCardVoucher.usedProgress(used: 0, total: 1_000_000), 0)
+        XCTAssertEqual(HappyCardVoucher.usedProgress(used: 500_000, total: 1_000_000), 0.5, accuracy: 0.001)
+        XCTAssertEqual(HappyCardVoucher.usedProgress(used: 1_200_000, total: 1_000_000), 1.0) // 초과 클램프
+        XCTAssertEqual(HappyCardVoucher.usedProgress(used: 100, total: 0), 0)                  // 총액 0 방어
+        XCTAssertEqual(HappyCardVoucher.usedProgress(used: -50, total: 1_000_000), 0)          // 음수 방어
+    }
+
+    func test_voucher_remaining_neverNegative() {
+        XCTAssertEqual(HappyCardVoucher.remaining(used: 300_000, total: 1_000_000), 700_000)
+        XCTAssertEqual(HappyCardVoucher.remaining(used: 1_200_000, total: 1_000_000), 0) // 초과→0
+        XCTAssertEqual(HappyCardVoucher.remaining(used: -50, total: 1_000_000), 1_000_000)
+    }
+
+    func test_voucher_isOverBudget() {
+        XCTAssertFalse(HappyCardVoucher.isOverBudget(used: 1_000_000, total: 1_000_000))
+        XCTAssertTrue(HappyCardVoucher.isOverBudget(used: 1_000_001, total: 1_000_000))
+    }
+
+    func test_voucher_pregnancy_voucherUsedAmount_codableRoundTripAndBackwardCompat() throws {
+        var p = Pregnancy(lmpDate: nil)
+        p.voucherUsedAmount = 350_000
+        let decoded = try JSONDecoder().decode(Pregnancy.self, from: JSONEncoder().encode(p))
+        XCTAssertEqual(decoded.voucherUsedAmount, 350_000)
+        // 구버전 문서(필드 없음) → nil 안전 디코딩
+        let legacy = #"{"id":"p1","createdAt":0,"updatedAt":0}"#.data(using: .utf8)!
+        XCTAssertNil(try JSONDecoder().decode(Pregnancy.self, from: legacy).voucherUsedAmount)
+    }
 }

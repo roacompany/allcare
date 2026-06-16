@@ -11,6 +11,22 @@ enum HappyCardVoucher {
         return base + (isRemoteArea ? 200_000 : 0)
     }
 
+    /// 수동 입력 사용액 대비 사용 진행률 0...1 (총액 0·음수 방어, 초과는 1.0 클램프).
+    static func usedProgress(used: Int, total: Int) -> Double {
+        guard total > 0 else { return 0 }
+        return min(1.0, Double(max(0, used)) / Double(total))
+    }
+
+    /// 남은 금액(원). 음수 방지(초과 사용 시 0).
+    static func remaining(used: Int, total: Int) -> Int {
+        max(0, total - max(0, used))
+    }
+
+    /// 사용액이 총 지원액을 초과했는지(경고 라벨용).
+    static func isOverBudget(used: Int, total: Int) -> Bool {
+        used > total
+    }
+
     static let usageNote =
         "병·의원·약국 등 요양기관에서 진료비·처방 약제 구입에 사용해요. (미용·건강보조식품 등은 제외)"
     static let periodNote =

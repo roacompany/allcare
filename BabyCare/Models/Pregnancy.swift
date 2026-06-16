@@ -35,11 +35,16 @@ struct Pregnancy: Identifiable, Codable, Hashable {
     /// optional이므로 레거시 문서(필드 없음)는 nil로 안전 디코딩. 없으면 path-based fallback 사용.
     var ownerUserId: String?
 
+    /// 국민행복카드 수동 입력 누적 사용액(원). nil = 미입력. 카드사 미연동 — 사용자 직접 기록.
+    /// (#41: @AppStorage 기기전역 금지 → Pregnancy 문서에 영속해 계정/공유 격리.)
+    var voucherUsedAmount: Int?
+
     enum CodingKeys: String, CodingKey {
         case id, lmpDate, dueDate, eddHistory, fetusCount, babyNickname
         case ultrasoundGender, transitionState, outcome, archivedAt
         case prePregnancyWeight, weightUnit, sharedWith, createdAt, updatedAt
         case ownerUserId   // 영속화: 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준)
+        case voucherUsedAmount
     }
 
     init(
