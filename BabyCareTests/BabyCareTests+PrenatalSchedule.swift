@@ -232,4 +232,58 @@ final class PrenatalScheduleTests: XCTestCase {
         XCTAssertTrue(PregnancyFoodSafety.search("존재하지않는음식zzz").isEmpty)
         XCTAssertEqual(PregnancyFoodSafety.search("COFFEE").count, PregnancyFoodSafety.search("coffee").count)
     }
+
+    // MARK: - 이연: 타임라인 노드 완료/누락 진행도 (visit↔표준일정 fuzzy 매핑)
+
+    private static let fixedLMP = Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+
+    /// fixedLMP 기준 임신 N주차에 해당하는 검진(주차*7일).
+    private func visitAtWeek(_ week: Int, type: String?, completed: Bool) -> PrenatalVisit {
+        let date = Calendar.current.date(byAdding: .day, value: week * 7, to: Self.fixedLMP)!
+        return PrenatalVisit(pregnancyId: "p", scheduledAt: date, visitType: type, isCompleted: completed)
+    }
+
+    func test_nodeProgress_doneWhenCompletedMatchingVisit() {
+        let gtt = item("gdm-screening") // 24~28, hint gtt
+        let v = visitAtWeek(26, type: "gtt", completed: true)
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: gtt, visits: [v], lmpDate: Self.fixedLMP, currentWeek: 32), .done)
+    }
+
+    func test_nodeProgress_loggedWhenIncompleteMatchingVisit() {
+        let gtt = item("gdm-screening")
+        let v = visitAtWeek(25, type: "gtt", completed: false)
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: gtt, visits: [v], lmpDate: Self.fixedLMP, currentWeek: 32), .logged)
+    }
+
+    func test_nodeProgress_missedWhenPastWindowNoVisit() {
+        let nt = item("nt-first") // 11~13
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: nt, visits: [], lmpDate: Self.fixedLMP, currentWeek: 32), .missed)
+    }
+
+    func test_nodeProgress_upcomingForCurrentAndFutureWindows() {
+        let gtt = item("gdm-screening") // 24~28
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: gtt, visits: [], lmpDate: Self.fixedLMP, currentWeek: 26), .upcoming) // 현재창
+        let gbs = item("gbs-screening")  // 35~37
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: gbs, visits: [], lmpDate: Self.fixedLMP, currentWeek: 26), .upcoming) // 미래창
+    }
+
+    func test_nodeProgress_typeMismatchNotMatched() {
+        // 정밀초음파(18~24, hint ultrasound) 창에 든 혈액검사 방문은 초음파 노드를 채우지 않음 → 지난창=누락.
+        let ultrasound = item("detailed-ultrasound")
+        let v = visitAtWeek(20, type: "bloodTest", completed: true)
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: ultrasound, visits: [v], lmpDate: Self.fixedLMP, currentWeek: 32), .missed)
+    }
+
+    func test_nodeProgress_untypedVisitMatchesByWindowOnly() {
+        let ultrasound = item("detailed-ultrasound") // 18~24
+        let v = visitAtWeek(20, type: nil, completed: true)
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: ultrasound, visits: [v], lmpDate: Self.fixedLMP, currentWeek: 32), .done)
+    }
+
+    func test_nodeProgress_nilLMP_fallsBackToWindowStatus() {
+        let nt = item("nt-first") // 11~13
+        // 주차 환산 불가 → 매칭 없음. 지난창=누락 / 미래창=upcoming.
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: nt, visits: [], lmpDate: nil, currentWeek: 32), .missed)
+        XCTAssertEqual(PrenatalVisitPlanner.nodeProgress(for: nt, visits: [], lmpDate: nil, currentWeek: 5), .upcoming)
+    }
 }

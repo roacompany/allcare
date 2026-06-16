@@ -139,16 +139,26 @@ struct NextVisitHeroCard: View {
 /// 데이터는 `KoreanPrenatalSchedule`(의료감수 전 초안·참고용). 노드 탭 → 검진 추가(프리필).
 struct KoreanPrenatalTimelineCard: View {
     let currentWeek: Int?
+    var visits: [PrenatalVisit]
+    var lmpDate: Date?
     var onSelect: ((KoreanPrenatalScheduleItem) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(currentWeek: Int?, onSelect: ((KoreanPrenatalScheduleItem) -> Void)? = nil) {
+    init(currentWeek: Int?, visits: [PrenatalVisit] = [], lmpDate: Date? = nil,
+         onSelect: ((KoreanPrenatalScheduleItem) -> Void)? = nil) {
         self.currentWeek = currentWeek
+        self.visits = visits
+        self.lmpDate = lmpDate
         self.onSelect = onSelect
     }
 
     private var nodes: [PrenatalTimelineNode] {
         KoreanPrenatalSchedule.timeline(currentWeek: currentWeek)
+    }
+
+    /// 노드별 사용자 검진 매칭 진행도(완료/기록됨/기록 없음/예정).
+    private func progress(for node: PrenatalTimelineNode) -> PrenatalNodeProgress {
+        PrenatalVisitPlanner.nodeProgress(for: node.item, visits: visits, lmpDate: lmpDate, currentWeek: currentWeek)
     }
 
     var body: some View {
@@ -159,11 +169,13 @@ struct KoreanPrenatalTimelineCard: View {
                     ForEach(nodes) { node in
                         if let onSelect {
                             Button { onSelect(node.item) } label: {
-                                PrenatalScheduleNodeRow(node: node, reduceMotion: reduceMotion, tappable: true)
+                                PrenatalScheduleNodeRow(node: node, progress: progress(for: node),
+                                                        reduceMotion: reduceMotion, tappable: true)
                             }
                             .buttonStyle(.plain)
                         } else {
-                            PrenatalScheduleNodeRow(node: node, reduceMotion: reduceMotion, tappable: false)
+                            PrenatalScheduleNodeRow(node: node, progress: progress(for: node),
+                                                    reduceMotion: reduceMotion, tappable: false)
                         }
                     }
                 }
@@ -192,12 +204,23 @@ struct KoreanPrenatalTimelineCard: View {
 /// 타임라인 노드 1행 — 상태 점(지난/지금/예정 3상태) + 제목 + 주차범위 + 요약 + 보조노트.
 struct PrenatalScheduleNodeRow: View {
     let node: PrenatalTimelineNode
+    var progress: PrenatalNodeProgress = .upcoming
     let reduceMotion: Bool
     var tappable: Bool = false
     @State private var pulse = false
 
     private var item: KoreanPrenatalScheduleItem { node.item }
     private var status: PrenatalScheduleStatus { node.status }
+
+    /// 사용자 검진 매칭 배지(완료/기록됨/기록 없음). 예정(upcoming)이면 배지 없음.
+    private var progressBadge: (text: String, color: Color)? {
+        switch progress {
+        case .done: return ("완료", .green)
+        case .logged: return ("기록됨", DS2.Color.pregnancy)
+        case .missed: return ("기록 없음", .orange)
+        case .upcoming: return nil
+        }
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: DS2.Spacing.md) {
@@ -208,13 +231,21 @@ struct PrenatalScheduleNodeRow: View {
                     Text(item.title)
                         .font(DS2.Font.subheadline)
                         .foregroundStyle(status == .future ? DS2.Color.textSecondary : DS2.Color.textPrimary)
-                    if status == .current {
+                    if status == .current && progress == .upcoming {
                         Text("지금 여기")
                             .font(DS2.Font.caption2).bold()
                             .padding(.horizontal, DS2.Spacing.sm)
                             .padding(.vertical, 2)
                             .background(DS2.Color.pregnancy.opacity(0.18), in: Capsule())
                             .foregroundStyle(DS2.Color.pregnancy)
+                    }
+                    if let badge = progressBadge {
+                        Text(badge.text)
+                            .font(DS2.Font.caption2).bold()
+                            .padding(.horizontal, DS2.Spacing.sm)
+                            .padding(.vertical, 2)
+                            .background(badge.color.opacity(0.16), in: Capsule())
+                            .foregroundStyle(badge.color)
                     }
                 }
                 Text("\(item.weekStart)~\(item.weekEnd)주 · \(item.summary)")
@@ -241,19 +272,29 @@ struct PrenatalScheduleNodeRow: View {
     }
 
     @ViewBuilder private var statusDot: some View {
-        switch status {
-        case .current:
+        switch progress {
+        case .done:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(.green)
+        case .logged:
+            Circle().fill(DS2.Color.pregnancy).frame(width: 12, height: 12)
+        case .missed:
+            Circle().strokeBorder(.orange.opacity(0.6), lineWidth: 1.5).frame(width: 12, height: 12)
+        case .upcoming:
+            upcomingDot
+        }
+    }
+
+    @ViewBuilder private var upcomingDot: some View {
+        if status == .current {
             Circle()
                 .fill(DS2.Color.pregnancy)
                 .frame(width: 12, height: 12)
                 .scaleEffect((pulse && !reduceMotion) ? 1.25 : 1.0)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
                 .onAppear { if !reduceMotion { pulse = true } }
-        case .past:
-            Circle()
-                .fill(DS2.Color.textSecondary.opacity(0.4))
-                .frame(width: 12, height: 12)
-        case .future:
+        } else {
             Circle()
                 .strokeBorder(DS2.Color.pregnancy.opacity(0.4), lineWidth: 1.5)
                 .frame(width: 12, height: 12)
@@ -261,10 +302,16 @@ struct PrenatalScheduleNodeRow: View {
     }
 
     private var statusLabel: String {
-        switch status {
-        case .past: return "지난 권장 시기"
-        case .current: return "지금 권장 시기"
-        case .future: return "다가올 시기"
+        switch progress {
+        case .done: return "완료"
+        case .logged: return "검진 기록됨"
+        case .missed: return "기록 없음, 지난 권장 시기"
+        case .upcoming:
+            switch status {
+            case .current: return "지금 권장 시기"
+            case .future: return "다가올 시기"
+            case .past: return "지난 권장 시기"
+            }
         }
     }
 }

@@ -56,7 +56,11 @@ struct PrenatalCareView: View {
                     onToggleComplete: toggleNextVisit
                 )
 
-                KoreanPrenatalTimelineCard(currentWeek: currentWeek) { item in
+                KoreanPrenatalTimelineCard(
+                    currentWeek: currentWeek,
+                    visits: pregnancyVM.prenatalVisits,
+                    lmpDate: pregnancyVM.activePregnancy?.lmpDate
+                ) { item in
                     formPrefill = VisitFormPrefill(
                         visitType: item.visitTypeHint,
                         date: PrenatalVisitPlanner.suggestedDate(for: item, lmpDate: pregnancyVM.activePregnancy?.lmpDate)
