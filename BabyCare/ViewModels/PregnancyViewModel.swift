@@ -12,6 +12,7 @@ final class PregnancyViewModel {
     var checklistItems: [PregnancyChecklistItem] = []
     var weightEntries: [PregnancyWeightEntry] = []
     var symptoms: [PregnancySymptom] = []
+    var vitalEntries: [PregnancyVitalEntry] = []
 
     /// 진행 중인 태동 세션 (UI가 실시간 갱신).
     var currentKickSession: KickSession?
@@ -79,7 +80,8 @@ final class PregnancyViewModel {
                 async let items = firestoreService.fetchChecklistItems(userId: dataOwner, pregnancyId: pid)
                 async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
                 async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
-                // 5개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
+                async let vitals = firestoreService.fetchVitalEntries(userId: dataOwner, pregnancyId: pid)
+                // 6개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
                 do {
                     self.kickSessions = try await kicks
                 } catch {
@@ -109,6 +111,12 @@ final class PregnancyViewModel {
                 } catch {
                     logSilent("fetchSymptoms 실패", error: error, logger: AppLogger.pregnancy)
                     self.symptoms = []
+                }
+                do {
+                    self.vitalEntries = try await vitals
+                } catch {
+                    logSilent("fetchVitalEntries 실패", error: error, logger: AppLogger.pregnancy)
+                    self.vitalEntries = []
                 }
             }
             // pending orphan 감지 (30초 임계값)
@@ -201,6 +209,7 @@ final class PregnancyViewModel {
             prenatalVisits = []
             checklistItems = []
             weightEntries = []
+            vitalEntries = []
             PregnancyWidgetSyncService.update(pregnancy: nil)
         } catch {
             errorMessage = error.localizedDescription
@@ -403,6 +412,18 @@ final class PregnancyViewModel {
         do {
             try await firestoreService.saveSymptom(symptom, userId: userId, pregnancyId: pid)
             symptoms.insert(symptom, at: 0)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Vitals (혈압/혈당)
+
+    func addVitalEntry(_ entry: PregnancyVitalEntry, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        do {
+            try await firestoreService.saveVitalEntry(entry, userId: userId, pregnancyId: pid)
+            vitalEntries.insert(entry, at: 0)
         } catch {
             errorMessage = error.localizedDescription
         }
