@@ -25,6 +25,8 @@ protocol PregnancyFirestoreProviding: Sendable {
     func fetchSymptoms(userId: String, pregnancyId: String) async throws -> [PregnancySymptom]
     func saveVitalEntry(_ entry: PregnancyVitalEntry, userId: String, pregnancyId: String) async throws
     func fetchVitalEntries(userId: String, pregnancyId: String) async throws -> [PregnancyVitalEntry]
+    func saveContractionSession(_ session: ContractionSession, userId: String, pregnancyId: String) async throws
+    func fetchContractionSessions(userId: String, pregnancyId: String) async throws -> [ContractionSession]
     func addPregnancyPartner(email: String, userId: String, pregnancyId: String) async throws
     func removePregnancyPartner(partnerUid: String, userId: String, pregnancyId: String) async throws
     /// 파트너가 sharedWith에 포함된 진행 중 임신 조회 (collectionGroup 쿼리).

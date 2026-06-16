@@ -78,4 +78,54 @@ final class PregnancyTrackingTests: XCTestCase {
         XCTAssertEqual(mock.saveVitalEntryCalls.count, 1)
         XCTAssertEqual(vm.vitalEntries.first?.glucose, 90)
     }
+
+    // MARK: - ContractionSession (5-1-1)
+
+    func test_511_metWhenIntervalsTightAndSustained() {
+        // 5분 간격·1분 지속·1시간 지속 → 충족
+        let now = Date()
+        var session = ContractionSession(pregnancyId: "p1")
+        for i in 0..<13 {
+            let start = now.addingTimeInterval(Double(i) * 300)        // 5분 간격
+            session.contractions.append(ContractionEvent(startedAt: start, endedAt: start.addingTimeInterval(60)))
+        }
+        XCTAssertTrue(session.meets511(asOf: now.addingTimeInterval(13 * 300)))
+    }
+
+    func test_511_notMetWhenSparse() {
+        // 15분 간격 → 미충족
+        let now = Date()
+        var session = ContractionSession(pregnancyId: "p1")
+        for i in 0..<5 {
+            let start = now.addingTimeInterval(Double(i) * 900)
+            session.contractions.append(ContractionEvent(startedAt: start, endedAt: start.addingTimeInterval(30)))
+        }
+        XCTAssertFalse(session.meets511(asOf: now.addingTimeInterval(5 * 900)))
+    }
+
+    func test_511_notMetWhenShortHistory() {
+        // 5분 간격·1분 지속이지만 20분만 → 1시간 미충족
+        let now = Date()
+        var session = ContractionSession(pregnancyId: "p1")
+        for i in 0..<5 {
+            let start = now.addingTimeInterval(Double(i) * 300)
+            session.contractions.append(ContractionEvent(startedAt: start, endedAt: start.addingTimeInterval(60)))
+        }
+        XCTAssertFalse(session.meets511(asOf: now.addingTimeInterval(5 * 300)))
+    }
+
+    @MainActor
+    func test_saveContractionSession_upsertsById() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        vm.activePregnancy = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "t")
+        var session = ContractionSession(pregnancyId: "p1")
+        await vm.saveContractionSession(session, userId: "u1")
+        XCTAssertEqual(vm.contractionSessions.count, 1)
+        // 같은 id 재저장 → 교체(중복 추가 아님)
+        session.contractions.append(ContractionEvent(startedAt: Date()))
+        await vm.saveContractionSession(session, userId: "u1")
+        XCTAssertEqual(vm.contractionSessions.count, 1)
+        XCTAssertEqual(mock.saveContractionSessionCalls.count, 2)
+    }
 }
