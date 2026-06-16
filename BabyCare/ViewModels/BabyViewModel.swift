@@ -114,7 +114,11 @@ final class BabyViewModel {
                 for access in sharedAccess {
                     group.addTask {
                         do {
-                            guard var baby = try await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else { return nil }
+                            guard var baby = try await self.firestoreService.fetchBaby(userId: access.ownerUserId, babyId: access.babyId) else {
+                                // owner가 아기를 삭제 → 본인 stale sharedAccess 자가정리 (권한상 본인 문서만 가능, #2 admin 공유통계 과대 방지)
+                                try? await self.firestoreService.removeSharedAccess(accessId: "\(access.ownerUserId)_\(access.babyId)", userId: userId)
+                                return nil
+                            }
                             // Tag shared baby with its owner's userId so all data loads use the correct Firestore path
                             baby.ownerUserId = access.ownerUserId
                             return baby
