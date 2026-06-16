@@ -93,6 +93,11 @@ final class AppState {
 
         product.products = []
 
+        // 임신 v3 선택 모듈 표시 토글(@AppStorage)은 기기 전역 — 계정 전환 시 잔존 방지 (L1)
+        for key in ["pregnancy.module.medication", "pregnancy.module.water", "pregnancy.module.sleep"] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+
         OfflineQueue.shared.clear()
     }
 }
