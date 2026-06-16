@@ -47,7 +47,7 @@
 - [x] `VisitQuestionMemoCard` — **영속=PrenatalVisit.preparationQuestions 임베딩 결정**(신규 컬렉션 X·Firestore.Encoder 자동 직렬화·검진과 함께 소유자 path 저장 → #41 자동 준수). 체크(물어봤어요) 토글 + 인라인 vertical TextField 추가. 검진 0건 → 안내. VM 글루=`PregnancyViewModel+PrenatalQuestions.swift`(본체 비대화 방지 분리).
 - [x] `FoodSafetyQuickRow` → `FoodSafetySheet` — `PregnancyFoodSafety`(한국 임산부 11항목·의료감수 전 초안·advisory 3레벨[대체로 괜찮아요/주의/피하는 게 좋아요], "안전/위험" 단정 회피) + `.searchable` 이름·키워드 검색 + 면책 배너. 커머스 0.
 - [x] TDD: 플래너(삼분기 매핑·완료율·weeklyHighlights·limit·nil 폴백 5) + 질문(Codable 라운드트립·구버전 nil 호환·openQuestionCount 3) + 음식안전(비퇴화·검색 empty/키워드/무매치·대소문자 4) — **PrenatalScheduleTests 27 green(A6+B6+C3+D12)**.
-- [ ] (이연) 타임라인 노드별 완료/누락 배지(visit↔주차 fuzzy) · 산모수첩 자궁저높이/EFW 신규 필드 · 바우처 수동 잔액. 질문 삭제(swipe) — 현재 추가·토글까지.
+- [x] (이연 — 전부 완료, 후속 4커밋): ① 타임라인 노드별 완료/누락 배지(`PrenatalVisitPlanner.nodeProgress` visit↔주차 fuzzy 매핑, `8213212`) · ② 바우처 수동 잔액+진행바(`Pregnancy.voucherUsedAmount`, `2c8eef9`) · ③ 진료질문 삭제(contextMenu, `8e3c3fc`) · ④ 산모수첩 자궁저높이/EFW 신규 필드(`PregnancyVitalEntry.fundalHeight/estimatedFetalWeight` + 미러 + ②기록 입력폼 섹션, `7696131`). 순수 로직 누적 TDD 41 green. flag-off.
 
 ---
 
