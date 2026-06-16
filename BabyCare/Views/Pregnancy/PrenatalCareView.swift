@@ -89,7 +89,8 @@ struct PrenatalCareView: View {
                 VisitQuestionMemoCard(
                     visit: nextVisit,
                     onAdd: addQuestion,
-                    onToggle: toggleQuestion
+                    onToggle: toggleQuestion,
+                    onDelete: deleteQuestion
                 )
 
                 FoodSafetyQuickRow { showFoodSafety = true }
@@ -132,6 +133,11 @@ struct PrenatalCareView: View {
     private func toggleQuestion(_ question: VisitPrepQuestion) {
         guard let visit = nextVisit, let owner = ownerUserId else { return }
         Task { await pregnancyVM.toggleVisitQuestion(in: visit, questionId: question.id, userId: owner) }
+    }
+
+    private func deleteQuestion(_ question: VisitPrepQuestion) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.deleteVisitQuestion(in: visit, questionId: question.id, userId: owner) }
     }
 
     private func saveVoucherUsed(_ amount: Int) {

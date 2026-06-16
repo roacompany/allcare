@@ -26,4 +26,15 @@ extension PregnancyViewModel {
         updated.updatedAt = Date()
         await savePrenatalVisit(updated, userId: userId)
     }
+
+    /// 질문 삭제.
+    func deleteVisitQuestion(in visit: PrenatalVisit, questionId: String, userId: String) async {
+        guard var questions = visit.preparationQuestions,
+              questions.contains(where: { $0.id == questionId }) else { return }
+        questions.removeAll { $0.id == questionId }
+        var updated = visit
+        updated.preparationQuestions = questions
+        updated.updatedAt = Date()
+        await savePrenatalVisit(updated, userId: userId)
+    }
 }

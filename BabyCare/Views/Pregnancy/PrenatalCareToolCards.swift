@@ -106,6 +106,7 @@ struct VisitQuestionMemoCard: View {
     let visit: PrenatalVisit?
     let onAdd: (String) -> Void
     let onToggle: (VisitPrepQuestion) -> Void
+    let onDelete: (VisitPrepQuestion) -> Void
 
     @State private var draft = ""
     @FocusState private var inputFocused: Bool
@@ -123,7 +124,7 @@ struct VisitQuestionMemoCard: View {
                     } else {
                         VStack(spacing: DS2.Spacing.sm) {
                             ForEach(questions) { q in
-                                QuestionRow(question: q) { onToggle(q) }
+                                QuestionRow(question: q, onToggle: { onToggle(q) }, onDelete: { onDelete(q) })
                             }
                         }
                     }
@@ -174,6 +175,7 @@ struct VisitQuestionMemoCard: View {
 private struct QuestionRow: View {
     let question: VisitPrepQuestion
     let onToggle: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         Button(action: onToggle) {
@@ -189,8 +191,11 @@ private struct QuestionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) { Label("삭제", systemImage: "trash") }
+        }
         .accessibilityLabel("\(question.text), \(question.asked ? "물어봤어요" : "아직 안 물어봄")")
-        .accessibilityHint("두 번 탭하면 물어봤어요로 바꿔요")
+        .accessibilityHint("두 번 탭하면 물어봤어요로 바꿔요. 길게 누르면 삭제할 수 있어요")
     }
 }
 
