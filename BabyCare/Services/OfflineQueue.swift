@@ -82,4 +82,10 @@ final class OfflineQueue {
             operations = ops
         }
     }
+
+    /// 로그아웃/계정 전환 시 큐 비우기 — 이전 계정 경로 write 가 새 세션에서 재생(cross-account)되는 것 차단.
+    func clear() {
+        operations = []
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
 }

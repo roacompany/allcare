@@ -132,6 +132,9 @@ struct ContentView: View {
                     await runBadgeBackfillIfNeeded(userId: userId)
                     await FirestoreService.shared.updateLastAccessedAt(userId: userId)
                 }
+            } else {
+                // 로그아웃/계정 전환: 이전 계정의 사용자 스코프 상태 전부 초기화(데이터 잔존 차단).
+                AppState.shared.resetUserScopedState()
             }
         }
         .onChange(of: scenePhase) { _, newPhase in

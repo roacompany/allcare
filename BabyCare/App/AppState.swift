@@ -46,4 +46,53 @@ final class AppState {
         insight = InsightService()
         pregnancy = PregnancyViewModel()
     }
+
+    /// 로그아웃/계정 전환 시 사용자 스코프 상태를 전부 초기화 (계정 간 데이터 잔존 차단).
+    /// ContentView 의 isAuthenticated=false 단일 초크포인트에서 호출.
+    func resetUserScopedState() {
+        baby.reset()
+        pregnancy.reset()
+
+        activity.todayActivities = []
+
+        calendar.activitiesForDate = []
+        calendar.hospitalVisitsForDate = []
+        calendar.vaccinationsForDate = []
+        calendar.todosForDate = []
+        calendar.eventDots = [:]
+
+        todo.todos = []
+        todo.completedTodosCache = []
+
+        stats.weeklyActivities = []
+        diary.entries = []
+
+        health.vaccinations = []
+        health.milestones = []
+        health.hospitalVisits = []
+
+        routine.routines = []
+
+        aiAdvice.messages = []
+        aiAdvice.currentBaby = nil
+
+        announcement.announcements = []
+        announcement.allAnnouncements = []
+
+        patternReport.report = nil
+        patternReport.aiInsight = nil
+        patternReport.feedingPredictionText = nil
+
+        purchase.records = []
+
+        hospitalReport.cachedReport = nil
+        hospitalReport.checklistItems = []
+        hospitalReport.growthRecords = []
+        hospitalReport.vaccinations = []
+        hospitalReport.pdfURL = nil
+
+        product.products = []
+
+        OfflineQueue.shared.clear()
+    }
 }
