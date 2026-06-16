@@ -170,6 +170,25 @@ extension FirestoreService {
         return decodeDocuments(snapshot.documents, as: PregnancyVitalEntry.self)
     }
 
+    // MARK: - Contractions (진통 타이머)
+
+    func saveContractionSession(_ session: ContractionSession, userId: String, pregnancyId: String) async throws {
+        try pregnancyRef(userId: userId)
+            .document(pregnancyId)
+            .collection(FirestoreCollections.contractionSessions)
+            .document(session.id)
+            .setData(from: session, merge: true)
+    }
+
+    func fetchContractionSessions(userId: String, pregnancyId: String) async throws -> [ContractionSession] {
+        let snapshot = try await pregnancyRef(userId: userId)
+            .document(pregnancyId)
+            .collection(FirestoreCollections.contractionSessions)
+            .order(by: "startedAt", descending: true)
+            .getDocuments()
+        return decodeDocuments(snapshot.documents, as: ContractionSession.self)
+    }
+
     // MARK: - Transition (WriteBatch + transitionState idempotency)
 
     /// Pregnancy → Baby 원자적 전환.

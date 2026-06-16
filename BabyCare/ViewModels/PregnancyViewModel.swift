@@ -13,6 +13,7 @@ final class PregnancyViewModel {
     var weightEntries: [PregnancyWeightEntry] = []
     var symptoms: [PregnancySymptom] = []
     var vitalEntries: [PregnancyVitalEntry] = []
+    var contractionSessions: [ContractionSession] = []
 
     /// 진행 중인 태동 세션 (UI가 실시간 갱신).
     var currentKickSession: KickSession?
@@ -81,7 +82,8 @@ final class PregnancyViewModel {
                 async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
                 async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
                 async let vitals = firestoreService.fetchVitalEntries(userId: dataOwner, pregnancyId: pid)
-                // 6개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
+                async let contractions = firestoreService.fetchContractionSessions(userId: dataOwner, pregnancyId: pid)
+                // 7개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
                 do {
                     self.kickSessions = try await kicks
                 } catch {
@@ -117,6 +119,12 @@ final class PregnancyViewModel {
                 } catch {
                     logSilent("fetchVitalEntries 실패", error: error, logger: AppLogger.pregnancy)
                     self.vitalEntries = []
+                }
+                do {
+                    self.contractionSessions = try await contractions
+                } catch {
+                    logSilent("fetchContractionSessions 실패", error: error, logger: AppLogger.pregnancy)
+                    self.contractionSessions = []
                 }
             }
             // pending orphan 감지 (30초 임계값)
@@ -210,6 +218,7 @@ final class PregnancyViewModel {
             checklistItems = []
             weightEntries = []
             vitalEntries = []
+            contractionSessions = []
             PregnancyWidgetSyncService.update(pregnancy: nil)
         } catch {
             errorMessage = error.localizedDescription
@@ -424,6 +433,23 @@ final class PregnancyViewModel {
         do {
             try await firestoreService.saveVitalEntry(entry, userId: userId, pregnancyId: pid)
             vitalEntries.insert(entry, at: 0)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Contractions (진통 타이머)
+
+    /// 진통 세션 upsert (id 기준 교체, 없으면 prepend). 타이머가 진행/종료 시 호출.
+    func saveContractionSession(_ session: ContractionSession, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        do {
+            try await firestoreService.saveContractionSession(session, userId: userId, pregnancyId: pid)
+            if let idx = contractionSessions.firstIndex(where: { $0.id == session.id }) {
+                contractionSessions[idx] = session
+            } else {
+                contractionSessions.insert(session, at: 0)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
