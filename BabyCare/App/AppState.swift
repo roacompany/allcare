@@ -97,6 +97,8 @@ final class AppState {
         for key in ["pregnancy.module.medication", "pregnancy.module.water", "pregnancy.module.sleep"] {
             UserDefaults.standard.removeObject(forKey: key)
         }
+        // 공지 읽음 상태도 기기 전역 — 계정 전환 시 제거(이전 계정 읽음 플래그 잔존 방지)
+        UserDefaults.standard.removeObject(forKey: AnnouncementViewModel.readStorageKey)
 
         OfflineQueue.shared.clear()
     }
