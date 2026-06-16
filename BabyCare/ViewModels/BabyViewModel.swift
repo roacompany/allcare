@@ -56,6 +56,13 @@ final class BabyViewModel {
         return babies.first
     }
 
+    /// **특정 아기**에 대한 데이터 경로 userId — 그 아기의 owner 를 직접 사용(현재 선택 아기와 무관).
+    /// `dataUserId()`는 selectedBaby 기준이라, 비선택 공유 아기를 삭제/수정할 때 엉뚱한 경로를
+    /// 가리켜 삭제가 조용히 실패하는 버그(RC1)를 유발 → 대상 아기의 ownerUserId 를 직접 쓴다.
+    static func ownerUserId(for baby: Baby, currentUserId: String?) -> String? {
+        baby.ownerUserId ?? currentUserId
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {
@@ -141,6 +148,7 @@ final class BabyViewModel {
     }
 
     func addBaby(userId: String) async {
+        guard !isLoading else { return }   // 중복 탭/재진입 방지 (RC2: 서로 다른 UUID 중복 생성 차단)
         guard isFormValid else {
             errorMessage = "아기 이름을 입력해주세요."
             return
