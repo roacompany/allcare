@@ -6,11 +6,38 @@
 #   → narrow protocol(BadgeFirestoreProviding 등) 패턴으로 mock 가능하도록 강제
 # - Rule 4: designSystemV2Preview dual-mode 분기 점진 제거 (DS2 정본화 → V1 dead, 9→0 ratchet)
 #   → 컴파일타임 static let=true 플래그라 런타임 테스트 불가, dead V1 재유입을 grep으로 차단
-# Usage: bash scripts/arch_test.sh
+# Usage: bash scripts/arch_test.sh [--update-baseline]
+#   --update-baseline: 위반이 baseline 미만(감축)일 때 BASELINE_RX 을 현재값으로 자동 하향 갱신.
+#                      회귀(위반 > baseline)는 플래그와 무관하게 FAIL — 가릴 수 없음.
 
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+UPDATE_BASELINE=0
+for arg in "$@"; do
+    case "$arg" in
+        --update-baseline) UPDATE_BASELINE=1 ;;
+        *) echo "Unknown arg: $arg (usage: bash scripts/arch_test.sh [--update-baseline])" >&2; exit 2 ;;
+    esac
+done
+
+# 위반이 baseline 미만(감축)일 때만 동작: --update-baseline 면 스크립트의 BASELINE_RX 을
+# 현재값으로 자동 하향(ratchet-down) 갱신, 아니면 수동 갱신 넛지. 상향(회귀 은폐)은 불가.
+maybe_update_baseline() {
+    local rule="$1" current="$2" baseline="$3" varname="$4"
+    [ "$current" -lt "$baseline" ] || return 0
+    if [ "$UPDATE_BASELINE" -eq 1 ]; then
+        local tmp; tmp="$(mktemp)"
+        sed -E "s/^${varname}=[0-9]+/${varname}=${current}/" "$SCRIPT_PATH" > "$tmp" && mv "$tmp" "$SCRIPT_PATH"
+        echo "✅ ${rule} baseline 자동 갱신: ${baseline} → ${current} (${varname}, --update-baseline)"
+    else
+        echo "🎉 ${rule} 위반 감소: ${current} < baseline ${baseline}"
+        echo "   ⚠️  --update-baseline 로 ${varname} 을 ${current} 로 갱신(또는 수동 편집)해 같은 PR 에 커밋하세요"
+        echo "   (갱신 안 하면 다음 회귀가 silent 통과)"
+    fi
+}
 
 RULE1_VIOLATIONS=0
 RULE2_VIOLATIONS=0
@@ -116,17 +143,12 @@ if [ "$FAIL" -eq 1 ]; then
     exit 1
 fi
 
-# Ratchet nudge: 위반이 baseline 미만이면 같은 PR 에서 baseline 을 갱신해야 silent 회귀 방지
-if [ "$RULE3_VIOLATIONS" -lt "$BASELINE_R3" ]; then
-    echo "🎉 Rule 3 위반 감소: $RULE3_VIOLATIONS < baseline $BASELINE_R3"
-    echo "   ⚠️  scripts/arch_test.sh 의 BASELINE_R3 을 $RULE3_VIOLATIONS 로 갱신해 같은 PR 에 함께 커밋하세요"
-    echo "   (갱신 안 하면 다음 회귀가 silent 통과)"
-fi
-if [ "$RULE4_VIOLATIONS" -lt "$BASELINE_R4" ]; then
-    echo "🎉 Rule 4 분기 감소: $RULE4_VIOLATIONS < baseline $BASELINE_R4"
-    echo "   ⚠️  scripts/arch_test.sh 의 BASELINE_R4 를 $RULE4_VIOLATIONS 로 갱신해 같은 PR 에 함께 커밋하세요"
-    echo "   (갱신 안 하면 dead V1 재유입이 silent 통과)"
-fi
+# Ratchet: 위반이 baseline 미만(감축)이면 --update-baseline 로 자동 하향, 아니면 갱신 넛지.
+# 회귀(위반 > baseline)는 위 FAIL 게이트에서 이미 exit 1 — 여기 도달 못 함.
+maybe_update_baseline "Rule 1 (Views→Services)"    "$RULE1_VIOLATIONS" "$BASELINE_R1" "BASELINE_R1"
+maybe_update_baseline "Rule 2 (Models→Views)"      "$RULE2_VIOLATIONS" "$BASELINE_R2" "BASELINE_R2"
+maybe_update_baseline "Rule 3 (Firestore 직접호출)"  "$RULE3_VIOLATIONS" "$BASELINE_R3" "BASELINE_R3"
+maybe_update_baseline "Rule 4 (designSystemV2 분기)" "$RULE4_VIOLATIONS" "$BASELINE_R4" "BASELINE_R4"
 
 if [ "$TOTAL_VIOLATIONS" -eq 0 ]; then
     echo "✅ Architecture test PASSED (R1=0 R2=0 R3=0 R4=0)"
