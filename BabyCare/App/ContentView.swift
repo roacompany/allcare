@@ -29,6 +29,7 @@ struct ContentView: View {
 
     @State private var showPregnancyOnboarding = false
     @State private var showPendingRecoveryModal = false
+    @State private var showPregnancyNote = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,7 +76,11 @@ struct ContentView: View {
                         case .babyOnly:
                             mainTabView
                         case .pregnancyOnly:
-                            mainTabView
+                            if FeatureFlags.pregnancyModeEnabled {
+                                PregnancyNoteRootView(showsExitChip: false, onExit: {})
+                            } else {
+                                mainTabView
+                            }
                         case .both:
                             mainTabView
                         }

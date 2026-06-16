@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State var lastSavedActivity: Activity?
     @State var quickInputType: Activity.ActivityType?
     @State var showMoreSection = false
+    @State private var showPregnancyNote = false
 
     // MARK: - Weekly Highlights v2
     // CR-R02: @State 기반 .task 평가는 bootstrap async와 race 가능.
@@ -44,6 +45,7 @@ struct DashboardView: View {
     // spacing 14 (V1 20 대비 -30%) + summary 카드 padding 컴팩트
     @ViewBuilder
     private var dashboardV2Layout: some View {
+        pregnancyPortalCardIfNeeded
         AnnouncementBanner()
         alertBannersSection
         highlightTickerOrV1Card
@@ -188,6 +190,9 @@ struct DashboardView: View {
             }
             .presentationDetents([.medium])
         }
+        .fullScreenCover(isPresented: $showPregnancyNote) {
+            PregnancyNoteRootView(showsExitChip: true, onExit: { showPregnancyNote = false })
+        }
     }
 
     // MARK: - Weekly Highlights XOR (v1 / v2)
@@ -246,6 +251,22 @@ struct DashboardView: View {
                 }
                 WeeklyHighlightGridContainer(cards: cards)
                     .accessibilityIdentifier("weeklyHighlightGrid")
+            }
+        }
+    }
+
+    // MARK: - Pregnancy Portal Card (임신 노트 진입, .both + flag-on)
+
+    /// `.both` + `FeatureFlags.pregnancyModeEnabled` 시에만 홈 최상단에 임신 노트 진입 카드 삽입.
+    /// flag-off 또는 .babyOnly 시 EmptyView — 기존 동작과 완전 동일.
+    @ViewBuilder
+    private var pregnancyPortalCardIfNeeded: some View {
+        if FeatureFlags.pregnancyModeEnabled {
+            switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {
+            case .both:
+                PregnancyPortalCard(onTap: { showPregnancyNote = true })
+            case .empty, .babyOnly, .pregnancyOnly:
+                EmptyView()
             }
         }
     }

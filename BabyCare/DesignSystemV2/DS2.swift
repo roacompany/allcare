@@ -34,6 +34,9 @@ enum DS2 {
         static let temperature = AppColors.temperatureColor
         static let medication = AppColors.medicationColor
         static let pumping = AppColors.pumpingColor   // 유축 — 보라/자두 #B56FD1 (DESIGN.md §1)
+        /// 임신 노트 공간 액센트 (#B56FD1). 육아 핑크(#FF9FB5)와 시각 분리.
+        /// 진입 시 탭바 선택 틴트·공간칩 전경에 사용. 전용 Asset 생성 전 pumpingColor 재사용.
+        static let pregnancy = AppColors.pumpingColor // 임신 노트 공간 액센트 — 보라 #B56FD1
 
         // Semantic
         static let success = AppColors.successColor
