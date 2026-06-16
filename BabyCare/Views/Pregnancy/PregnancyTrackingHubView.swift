@@ -12,6 +12,11 @@ struct PregnancyTrackingHubView: View {
     @State private var showVitals = false
     @State private var showContractionTimer = false
 
+    // 선택 모듈 표시 여부 (로컬 선호 — Firestore 불필요)
+    @AppStorage("pregnancy.module.medication") private var medicationEnabled = false
+    @AppStorage("pregnancy.module.water") private var waterEnabled = false
+    @AppStorage("pregnancy.module.sleep") private var sleepEnabled = false
+
     private enum TrackingSheet: Int, Identifiable {
         case kick, weight, symptom
         var id: Int { rawValue }
@@ -80,11 +85,18 @@ struct PregnancyTrackingHubView: View {
                          subtitle: "5-1-1 규칙으로 진통 간격 기록", action: { showContractionTimer = true })
     }
 
-    // MARK: - 선택 모듈 (Phase D)
+    // MARK: - 선택 모듈 (약/수분/수면 표시 토글)
 
     @ViewBuilder private var optionalTools: some View {
-        ContentUnavailableView("준비 중", systemImage: "switch.2",
-                               description: Text("약·수분·수면 모듈이 곧 제공됩니다."))
+        Text("필요한 기록 도구만 켜서 화면을 가볍게 유지하세요.")
+            .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        OptionalModuleToggleCard(icon: "pills.fill", title: "약 복용",
+                                 subtitle: "복용 시간·종류를 기록", isEnabled: $medicationEnabled)
+        OptionalModuleToggleCard(icon: "drop.fill", title: "수분 섭취",
+                                 subtitle: "하루 수분량을 기록", isEnabled: $waterEnabled)
+        OptionalModuleToggleCard(icon: "bed.double.fill", title: "수면",
+                                 subtitle: "수면 시간·질을 기록", isEnabled: $sleepEnabled)
     }
 }
 
