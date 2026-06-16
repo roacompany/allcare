@@ -46,7 +46,6 @@ struct DashboardView: View {
     @ViewBuilder
     private var dashboardV2Layout: some View {
         pregnancyPortalCardIfNeeded
-        AnnouncementBanner()
         alertBannersSection
         highlightTickerOrV1Card
         quickActionsSection
