@@ -9,6 +9,7 @@ struct PregnancyTrackingHubView: View {
 
     @State private var segment: TrackingSegment = .daily
     @State private var activeSheet: TrackingSheet?
+    @State private var showVitals = false
 
     private enum TrackingSheet: Int, Identifiable {
         case kick, weight, symptom
@@ -45,6 +46,7 @@ struct PregnancyTrackingHubView: View {
         }
         .navigationTitle("기록")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showVitals) { PregnancyVitalsView() }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .kick: KickRecordingSheet()
@@ -68,8 +70,12 @@ struct PregnancyTrackingHubView: View {
     // MARK: - 상태별 (Phase B/C)
 
     @ViewBuilder private var conditionalTools: some View {
-        ContentUnavailableView("준비 중", systemImage: "heart.text.square",
-                               description: Text("혈압/혈당·진통 타이머가 곧 제공됩니다."))
+        TrackingToolCard(icon: "heart.text.square", title: "혈압 / 혈당",
+                         subtitle: "임당 참고 목표선 비교", action: { showVitals = true })
+        // 진통 간격 타이머(5-1-1)는 Phase C 에서 제공.
+        Text("진통 간격 타이머(5-1-1)는 곧 제공됩니다.")
+            .font(DS2.Font.caption).foregroundStyle(DS2.Color.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - 선택 모듈 (Phase D)
