@@ -39,6 +39,23 @@ final class BabyViewModel {
         return dataUserId(currentUserId: currentUserId) ?? currentUserId
     }
 
+    // MARK: - Account Switch Reset
+
+    /// 로그아웃/계정 전환 시 사용자 데이터 초기화 (계정 간 잔존 방지).
+    func reset() {
+        babies = []
+        selectedBaby = nil
+        hasInitialLoad = false
+        errorMessage = nil
+        resetForm()
+    }
+
+    /// 새 목록 기준 선택 아기 재검증 — 현재 선택이 목록에 없으면 첫 아기로(계정 전환 stale 선택 방지).
+    static func resolveSelection(current: Baby?, in babies: [Baby]) -> Baby? {
+        if let current, babies.contains(where: { $0.id == current.id }) { return current }
+        return babies.first
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {
@@ -116,9 +133,8 @@ final class BabyViewModel {
             }
 
             babies = allBabies
-            if selectedBaby == nil, let first = babies.first {
-                selectedBaby = first
-            }
+            // 계정 전환 시 이전 계정 selectedBaby 잔존 방지 — 새 목록 기준 재검증
+            selectedBaby = Self.resolveSelection(current: selectedBaby, in: babies)
         } catch {
             errorMessage = "아기 정보를 불러오지 못했습니다: \(error.localizedDescription)"
         }

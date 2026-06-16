@@ -455,6 +455,24 @@ final class PregnancyViewModel {
         }
     }
 
+    // MARK: - Account Switch Reset
+
+    /// 로그아웃/계정 전환 시 임신 데이터 초기화 (계정 간 잔존 방지).
+    func reset() {
+        activePregnancy = nil
+        archivedPregnancies = []
+        kickSessions = []
+        prenatalVisits = []
+        checklistItems = []
+        weightEntries = []
+        symptoms = []
+        vitalEntries = []
+        contractionSessions = []
+        currentKickSession = nil
+        pendingOrphan = nil
+        errorMessage = nil
+    }
+
     // MARK: - Pending Recovery (P2-2)
 
     /// activePregnancy가 stale pending 상태인지 검사하고 pendingOrphan을 설정.
