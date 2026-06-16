@@ -430,8 +430,9 @@ final class PregnancyViewModel {
 
     func addVitalEntry(_ entry: PregnancyVitalEntry, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (M2/#19)
         do {
-            try await firestoreService.saveVitalEntry(entry, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveVitalEntry(entry, userId: owner, pregnancyId: pid)
             vitalEntries.insert(entry, at: 0)
         } catch {
             errorMessage = error.localizedDescription
@@ -443,8 +444,9 @@ final class PregnancyViewModel {
     /// 진통 세션 upsert (id 기준 교체, 없으면 prepend). 타이머가 진행/종료 시 호출.
     func saveContractionSession(_ session: ContractionSession, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (M2/#19)
         do {
-            try await firestoreService.saveContractionSession(session, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveContractionSession(session, userId: owner, pregnancyId: pid)
             if let idx = contractionSessions.firstIndex(where: { $0.id == session.id }) {
                 contractionSessions[idx] = session
             } else {

@@ -1,7 +1,10 @@
 import Foundation
 
 enum FeatureFlags {
-    static let cryAnalysisEnabled: Bool = true
+    /// 울음 분석 compile-time kill switch.
+    /// ⚠️ false 유지 — CryAnalysisService.analyzeStub()가 고정 25% 확률(가짜)을 반환(실 CoreML 미통합, TODO v2.7+).
+    /// true 면 라이브 사용자에게 가짜 분석 결과가 노출된다(의료 인접 신뢰 리스크). 실모델 통합 시 재활성.
+    static let cryAnalysisEnabled: Bool = false
     /// 임신 모드 compile-time kill switch.
     /// true = 코드 활성화 (v2.8+ 재설계 이후). FeatureFlagService가 RemoteConfig +
     /// 코호트 rollout %를 조합해 최종 노출 여부를 결정한다.

@@ -51,6 +51,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var saveWeightEntryCalls: [PregnancyWeightEntry] = []
     private(set) var saveSymptomCalls: [PregnancySymptom] = []
     private(set) var saveVitalEntryCalls: [PregnancyVitalEntry] = []
+    private(set) var saveVitalEntryUserIds: [String] = []
     private(set) var saveContractionSessionCalls: [ContractionSession] = []
 
     // MARK: - Protocol Conformance
@@ -134,6 +135,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func saveVitalEntry(_ entry: PregnancyVitalEntry, userId: String, pregnancyId: String) async throws {
         saveVitalEntryCalls.append(entry)
+        saveVitalEntryUserIds.append(userId)
     }
 
     func fetchVitalEntries(userId: String, pregnancyId: String) async throws -> [PregnancyVitalEntry] {

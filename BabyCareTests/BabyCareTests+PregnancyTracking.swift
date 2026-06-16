@@ -128,4 +128,18 @@ final class PregnancyTrackingTests: XCTestCase {
         XCTAssertEqual(vm.contractionSessions.count, 1)
         XCTAssertEqual(mock.saveContractionSessionCalls.count, 2)
     }
+
+    // MARK: - M2: 공유 임신 데이터는 owner 경로로 저장
+
+    @MainActor
+    func test_addVitalEntry_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        // 파트너(partner-uid)가 입력해도 owner-uid 경로로 저장돼야 함
+        await vm.addVitalEntry(PregnancyVitalEntry(pregnancyId: shared.id, glucose: 90), userId: "partner-uid")
+        XCTAssertEqual(mock.saveVitalEntryUserIds.last, "owner-uid")
+    }
 }
