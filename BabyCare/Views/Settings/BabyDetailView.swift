@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct BabyDetailView: View {
     @Environment(BabyViewModel.self) private var babyVM
@@ -14,9 +16,33 @@ struct BabyDetailView: View {
     @State private var showDeleteAlert = false
     @State private var isSaving = false
     @State private var savedMessage: String?
+    @State private var photoItem: PhotosPickerItem?
+    @State private var newPhoto: UIImage?
 
     var body: some View {
         Form {
+            Section {
+                HStack {
+                    Spacer()
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        Group {
+                            if let img = newPhoto {
+                                Image(uiImage: img).resizable().scaledToFill()
+                            } else if let url = baby.photoURL {
+                                CachedAsyncImage(url: url, size: CGSize(width: 88, height: 88)) {
+                                    photoPlaceholder
+                                }
+                            } else {
+                                photoPlaceholder
+                            }
+                        }
+                        .frame(width: 88, height: 88).clipShape(Circle())
+                    }
+                    .accessibilityLabel("아기 사진 변경")
+                    Spacer()
+                }
+            }
+
             Section("기본 정보") {
                 TextField("이름", text: $name)
 
@@ -87,6 +113,15 @@ struct BabyDetailView: View {
             }
         }
         .animation(.easeInOut, value: savedMessage)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    newPhoto = img
+                }
+            }
+        }
         .onAppear {
             name = baby.name
             birthDate = baby.birthDate
@@ -109,6 +144,13 @@ struct BabyDetailView: View {
         }
     }
 
+    private var photoPlaceholder: some View {
+        ZStack {
+            Circle().fill(Color(.systemGray5))
+            Image(systemName: "camera.fill").foregroundStyle(.secondary)
+        }
+    }
+
     private func save() {
         guard let currentUserId = authVM.currentUserId else { return }
         // 수정 대상 아기의 owner 경로 직접 사용 (RC1: 비선택 공유 아기 오수정 방지)
@@ -120,7 +162,7 @@ struct BabyDetailView: View {
         updated.gender = gender
         updated.bloodType = bloodType
         Task {
-            await babyVM.updateBaby(updated, userId: userId)
+            await babyVM.updateBaby(updated, photo: newPhoto, userId: userId)
             isSaving = false
             if babyVM.errorMessage == nil {
                 withAnimation { savedMessage = "\(updated.name) 정보 저장됨" }

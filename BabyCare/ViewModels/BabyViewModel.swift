@@ -204,6 +204,22 @@ final class BabyViewModel {
         }
     }
 
+    /// 사진 포함 업데이트 — 새 사진이 있으면 Storage 업로드 후 photoURL 반영하여 저장.
+    func updateBaby(_ baby: Baby, photo: UIImage?, userId: String) async {
+        guard let photo else {
+            await updateBaby(baby, userId: userId)
+            return
+        }
+        var updated = baby
+        do {
+            updated.photoURL = try await storageService.uploadBabyPhoto(photo, userId: userId, babyId: baby.id)
+        } catch {
+            errorMessage = "사진 업로드에 실패했습니다: \(error.localizedDescription)"
+            return
+        }
+        await updateBaby(updated, userId: userId)
+    }
+
     func deleteBaby(_ baby: Baby, userId: String) async {
         let backup = babies
         let backupSelected = selectedBaby

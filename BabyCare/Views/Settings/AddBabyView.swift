@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct AddBabyView: View {
     @Environment(BabyViewModel.self) private var babyVM
@@ -7,6 +9,7 @@ struct AddBabyView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showPregnancyRegistration = false
+    @State private var photoItem: PhotosPickerItem?
 
     private var pregnancyVMHasActive: Bool {
         pregnancyVM.activePregnancy != nil
@@ -81,6 +84,25 @@ struct AddBabyView: View {
                     }
                 }
 
+                Section {
+                    HStack {
+                        Spacer()
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            if let img = vm.babyPhoto {
+                                Image(uiImage: img).resizable().scaledToFill()
+                                    .frame(width: 88, height: 88).clipShape(Circle())
+                            } else {
+                                ZStack {
+                                    Circle().fill(Color(.systemGray5)).frame(width: 88, height: 88)
+                                    Image(systemName: "camera.fill").foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .accessibilityLabel("아기 사진 선택")
+                        Spacer()
+                    }
+                }
+
                 Section("기본 정보") {
                     TextField("아기 이름", text: $vm.babyName)
 
@@ -119,6 +141,15 @@ struct AddBabyView: View {
             }
             .navigationTitle("아기 등록")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let img = UIImage(data: data) {
+                        babyVM.babyPhoto = img
+                    }
+                }
+            }
             .sheet(isPresented: $showPregnancyRegistration, onDismiss: {
                 // 임신 등록 성공 시 AddBabyView도 함께 닫기 + 미사용 babyVM 폼 잔재 제거
                 if pregnancyVMHasActive {
