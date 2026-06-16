@@ -173,6 +173,7 @@ final class RoutineViewModel: LoadingStateful {
                 if let rollbackIdx = routines.firstIndex(where: { $0.id == original.id }) {
                     routines[rollbackIdx] = original
                 }
+                errorMessage = "루틴 저장에 실패했습니다: \(error.localizedDescription)"
             }
         }
     }
@@ -189,6 +190,7 @@ final class RoutineViewModel: LoadingStateful {
             try await firestoreService.saveRoutine(routines[rIdx], userId: userId)
         } catch {
             routines[rIdx] = backup
+            errorMessage = "루틴 초기화에 실패했습니다: \(error.localizedDescription)"
         }
     }
 

@@ -6,8 +6,11 @@ final class AnnouncementViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    /// 공지 읽음 상태 저장 키 (기기 전역). 계정 전환 시 AppState.resetUserScopedState 에서 제거(잔존 방지).
+    static let readStorageKey = "readAnnouncementIds"
+
     private let firestoreService = FirestoreService.shared
-    private let readKey = "readAnnouncementIds"
+    private let readKey = AnnouncementViewModel.readStorageKey
 
     // MARK: - Computed
 
