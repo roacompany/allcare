@@ -308,6 +308,39 @@ final class PrenatalScheduleTests: XCTestCase {
         XCTAssertTrue(HappyCardVoucher.isOverBudget(used: 1_000_001, total: 1_000_000))
     }
 
+    // MARK: - 이연: 산모수첩 자궁저높이·태아추정체중(EFW)
+
+    func test_mirror_includesFundalHeightAndEFW_latestPerMetric() {
+        let cal = Calendar.current
+        let now = Date()
+        func d(_ days: Int) -> Date { cal.date(byAdding: .day, value: days, to: now)! }
+        let vitals = [
+            PregnancyVitalEntry(pregnancyId: "p", measuredAt: d(-3), fundalHeight: 28.0),
+            PregnancyVitalEntry(pregnancyId: "p", measuredAt: d(-1), fundalHeight: 30.0),   // 최신
+            PregnancyVitalEntry(pregnancyId: "p", measuredAt: d(-2), estimatedFetalWeight: 1500)
+        ]
+        let m = MaternalRecordMirror.latestMeasurements(vitals: vitals, weights: [])
+        XCTAssertEqual(m.first { $0.id == "fundalHeight" }?.value, "30.0")
+        XCTAssertEqual(m.first { $0.id == "fundalHeight" }?.unit, "cm")
+        XCTAssertEqual(m.first { $0.id == "efw" }?.value, "1500")
+        XCTAssertEqual(m.first { $0.id == "efw" }?.unit, "g")
+    }
+
+    func test_mirror_excludesAbsentFundalAndEFW() {
+        let m = MaternalRecordMirror.latestMeasurements(
+            vitals: [PregnancyVitalEntry(pregnancyId: "p", systolic: 110, diastolic: 70, measuredAt: Date())],
+            weights: [])
+        XCTAssertNil(m.first { $0.id == "fundalHeight" })
+        XCTAssertNil(m.first { $0.id == "efw" })
+    }
+
+    func test_vitalEntry_fundalEFW_codableRoundTrip() throws {
+        let e = PregnancyVitalEntry(pregnancyId: "p", measuredAt: Date(), fundalHeight: 31.5, estimatedFetalWeight: 2100)
+        let decoded = try JSONDecoder().decode(PregnancyVitalEntry.self, from: JSONEncoder().encode(e))
+        XCTAssertEqual(decoded.fundalHeight, 31.5)
+        XCTAssertEqual(decoded.estimatedFetalWeight, 2100)
+    }
+
     func test_voucher_pregnancy_voucherUsedAmount_codableRoundTripAndBackwardCompat() throws {
         var p = Pregnancy(lmpDate: nil)
         p.voucherUsedAmount = 350_000

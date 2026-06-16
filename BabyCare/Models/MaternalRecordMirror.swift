@@ -10,9 +10,8 @@ struct MaternalMeasurement: Identifiable, Hashable {
     let context: String? // 혈당 맥락("공복") 등, 없으면 nil
 }
 
-/// 산모수첩 디지털 미러 — 기존 검진 수치(혈압/혈당=pregnancyVitals, 체중=pregnancyWeights)에서
+/// 산모수첩 디지털 미러 — 기존 검진 수치(혈압/혈당/자궁저높이/EFW=pregnancyVitals, 체중=pregnancyWeights)에서
 /// 항목별 최신값을 모아 보여주기 위한 순수 파생. ⚠️ 참고용·의학 단정 아님(safety.md).
-/// (자궁저높이·태아추정체중은 신규 필드 — 후속 Phase.)
 enum MaternalRecordMirror {
 
     /// 항목별 가장 최근 측정값(없는 항목은 제외).
@@ -43,6 +42,22 @@ enum MaternalRecordMirror {
             let value = String(format: "%.1f", weightEntry.weight)
             result.append(MaternalMeasurement(id: "weight", label: "체중", value: value,
                                               unit: weightEntry.unit, measuredAt: weightEntry.measuredAt, context: nil))
+        }
+
+        // 자궁저높이(cm): 가장 최근
+        if let entry = vitals.filter({ $0.fundalHeight != nil }).max(by: { $0.measuredAt < $1.measuredAt }),
+           let fundal = entry.fundalHeight {
+            result.append(MaternalMeasurement(id: "fundalHeight", label: "자궁저높이",
+                                              value: String(format: "%.1f", fundal),
+                                              unit: "cm", measuredAt: entry.measuredAt, context: nil))
+        }
+
+        // 태아 추정 체중(EFW, g): 가장 최근
+        if let entry = vitals.filter({ $0.estimatedFetalWeight != nil }).max(by: { $0.measuredAt < $1.measuredAt }),
+           let efw = entry.estimatedFetalWeight {
+            result.append(MaternalMeasurement(id: "efw", label: "태아 추정 체중",
+                                              value: String(format: "%.0f", efw),
+                                              unit: "g", measuredAt: entry.measuredAt, context: nil))
         }
 
         return result
