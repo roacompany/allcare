@@ -32,11 +32,12 @@
 - [x] TDD: `nextRelevantVisit`(임박/지연 fallback/완료·빈) + `suggestedDate`(LMP 중앙주차/nil) + `visitTypeHint` — **PrenatalScheduleTests 12 green(A6+B6)**.
 - [ ] (이연) 타임라인 노드별 **완료/누락 상태 배지**(visit↔검진 주차 매핑) — 노드-방문 fuzzy 매핑이라 별도. 현재는 "추가" 어포던스까지.
 
-## Phase C — 산모수첩 디지털 미러 + 국민행복카드 바우처
+## Phase C — 산모수첩 디지털 미러 + 국민행복카드 바우처 (✅ 이 PR, 추가분)
 
-- [ ] `MaternalRecordMirrorCard` — 최신 수치 칩 그리드(혈압·혈당=pregnancyVitals 재사용 / 체중=pregnancyWeights / 자궁저높이·태아추정체중=신규 필드 또는 PrenatalVisit 확장) + "전체 보기" → `MaternalRecordDetailSheet`(Apple Charts sparkline).
-- [ ] `HappyCardVoucherCard` — 단태/다태 한도(prenatal-data.md: 100/140만·분만취약지 +20만)·사용기한 안내 + 수동 잔액 입력(카드사 미연동)·진행바 clamp. 커머스/결제 0. "실제 잔액은 정부24/카드사 확인" 면책.
-- [ ] 신규 영속 필드(바우처 잔액·자궁저높이·EFW) = Narrow Protocol 5단계 또는 Pregnancy/PrenatalVisit 확장. arch R3=0.
+- [x] `MaternalRecordMirrorCard` — 최신 혈압·혈당·체중 칩(`MaternalRecordMirror.latestMeasurements` 순수 추출, 기존 pregnancyVitals/pregnancyWeights 재사용) + "전체 보기" → `MaternalRecordDetailSheet`(체중 `LineMark` 추이 + 혈당 기록). 빈 상태 = ②기록 유도.
+- [x] `HappyCardVoucherCard` — `HappyCardVoucher.supportAmount`(단태 100만/다태 140만/분만취약지 +20만, `fetusCount` 기반) + 사용기한·사용처·신청 디스클로저 + 면책. 커머스 0.
+- [x] TDD: 미러 최신추출(항목별·빈·부분) + 바우처 금액(단태/다태/취약지) — PrenatalScheduleTests **15 green**(A6+B6+C3).
+- [ ] (이연) 자궁저높이·태아추정체중(EFW)=신규 필드 / 바우처 **수동 잔액 입력·진행바**=Pregnancy 필드(@AppStorage 금지 — #41 기기전역 누수). 둘 다 영속 추가라 별도.
 
 ## Phase D — 체크리스트 mini + 진료 준비 질문 + 음식 안전
 

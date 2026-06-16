@@ -93,4 +93,42 @@ final class PrenatalScheduleTests: XCTestCase {
     func test_suggestedDate_nilWithoutLMP() {
         XCTAssertNil(PrenatalVisitPlanner.suggestedDate(for: item("nt-first"), lmpDate: nil))
     }
+
+    // MARK: - Phase C: 산모수첩 미러 + 국민행복카드 바우처
+
+    func test_mirror_latestPerMetric() {
+        let cal = Calendar.current
+        let now = Date()
+        func d(_ days: Int) -> Date { cal.date(byAdding: .day, value: days, to: now)! }
+        let vitals = [
+            PregnancyVitalEntry(pregnancyId: "p", systolic: 110, diastolic: 70, measuredAt: d(-3)),
+            PregnancyVitalEntry(pregnancyId: "p", systolic: 120, diastolic: 80, measuredAt: d(-1)),
+            PregnancyVitalEntry(pregnancyId: "p", glucose: 95, glucoseContext: "fasting", measuredAt: d(-2))
+        ]
+        let weights = [
+            PregnancyWeightEntry(pregnancyId: "p", weight: 60.0, unit: "kg", measuredAt: d(-5)),
+            PregnancyWeightEntry(pregnancyId: "p", weight: 62.5, unit: "kg", measuredAt: d(-1))
+        ]
+        let m = MaternalRecordMirror.latestMeasurements(vitals: vitals, weights: weights)
+        XCTAssertEqual(m.first { $0.id == "bp" }?.value, "120/80")
+        XCTAssertEqual(m.first { $0.id == "glucose" }?.value, "95")
+        XCTAssertEqual(m.first { $0.id == "glucose" }?.context, "공복")
+        XCTAssertEqual(m.first { $0.id == "weight" }?.value, "62.5")
+    }
+
+    func test_mirror_emptyAndPartial() {
+        XCTAssertTrue(MaternalRecordMirror.latestMeasurements(vitals: [], weights: []).isEmpty)
+        let onlyGlucose = [PregnancyVitalEntry(pregnancyId: "p", glucose: 100, measuredAt: Date())]
+        let m = MaternalRecordMirror.latestMeasurements(vitals: onlyGlucose, weights: [])
+        XCTAssertEqual(m.count, 1)
+        XCTAssertEqual(m.first?.id, "glucose")
+    }
+
+    func test_voucher_supportAmount() {
+        XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: 1), 1_000_000)
+        XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: 2), 1_400_000)
+        XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: 3), 1_400_000)
+        XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: nil), 1_000_000)
+        XCTAssertEqual(HappyCardVoucher.supportAmount(fetusCount: 1, isRemoteArea: true), 1_200_000)
+    }
 }
