@@ -141,11 +141,15 @@ struct PregnancyVitalEntrySheet: View {
     @State private var diastolic: String = ""
     @State private var glucose: String = ""
     @State private var glucoseContext: PregnancyVitalEntry.GlucoseContext = .fasting
+    @State private var fundalHeight: String = ""
+    @State private var efw: String = ""
     @State private var isSaving = false
 
     private var hasBP: Bool { !systolic.isEmpty && !diastolic.isEmpty }
     private var hasGlucose: Bool { !glucose.isEmpty }
-    private var canSave: Bool { hasBP || hasGlucose }
+    private var hasFundal: Bool { !fundalHeight.isEmpty }
+    private var hasEFW: Bool { !efw.isEmpty }
+    private var canSave: Bool { hasBP || hasGlucose || hasFundal || hasEFW }
 
     var body: some View {
         NavigationStack {
@@ -166,15 +170,31 @@ struct PregnancyVitalEntrySheet: View {
                     }
                     .pickerStyle(.segmented)
                 }
+                Section("태아·자궁 (산모수첩 검진 수치)") {
+                    HStack {
+                        Text("자궁저높이")
+                        Spacer(minLength: DS2.Spacing.md)
+                        TextField("0", text: $fundalHeight)
+                            .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        Text("cm").foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("태아 추정 체중")
+                        Spacer(minLength: DS2.Spacing.md)
+                        TextField("0", text: $efw)
+                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        Text("g").foregroundStyle(.secondary)
+                    }
+                }
                 Section {
                     HStack(spacing: DS2.Spacing.sm) {
                         Image(systemName: "info.circle.fill").foregroundStyle(.orange)
-                        Text("참고용 기록입니다. 임신성 당뇨·고혈압 판단은 담당 의료진과 함께 하세요.")
+                        Text("참고용 기록입니다. 임신성 당뇨·고혈압 등 의학적 판단은 담당 의료진과 함께 하세요.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationTitle("혈압 / 혈당 기록")
+            .navigationTitle("검진 수치 기록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -196,7 +216,9 @@ struct PregnancyVitalEntrySheet: View {
             systolic: hasBP ? Int(systolic) : nil,
             diastolic: hasBP ? Int(diastolic) : nil,
             glucose: hasGlucose ? Int(glucose) : nil,
-            glucoseContext: hasGlucose ? glucoseContext.rawValue : nil
+            glucoseContext: hasGlucose ? glucoseContext.rawValue : nil,
+            fundalHeight: hasFundal ? Double(fundalHeight) : nil,
+            estimatedFetalWeight: hasEFW ? Double(efw) : nil
         )
         await pregnancyVM.addVitalEntry(entry, userId: userId)
         if pregnancyVM.errorMessage == nil { dismiss() }

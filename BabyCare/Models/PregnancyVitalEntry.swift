@@ -11,12 +11,18 @@ struct PregnancyVitalEntry: Identifiable, Codable, Hashable {
     var glucoseContext: String?
     var measuredAt: Date
     var notes: String?
+    /// 자궁저높이(cm) — 산모수첩 검진 수치(신규 optional 필드, 구버전 nil 호환).
+    var fundalHeight: Double?
+    /// 태아 추정 체중(g) — 산모수첩 검진 수치(신규 optional 필드, 구버전 nil 호환).
+    var estimatedFetalWeight: Double?
     var createdAt: Date
 
     init(id: String = UUID().uuidString, pregnancyId: String,
          systolic: Int? = nil, diastolic: Int? = nil,
          glucose: Int? = nil, glucoseContext: String? = nil,
-         measuredAt: Date = Date(), notes: String? = nil, createdAt: Date = Date()) {
+         measuredAt: Date = Date(), notes: String? = nil,
+         fundalHeight: Double? = nil, estimatedFetalWeight: Double? = nil,
+         createdAt: Date = Date()) {
         self.id = id
         self.pregnancyId = pregnancyId
         self.systolic = systolic
@@ -25,6 +31,8 @@ struct PregnancyVitalEntry: Identifiable, Codable, Hashable {
         self.glucoseContext = glucoseContext
         self.measuredAt = measuredAt
         self.notes = notes
+        self.fundalHeight = fundalHeight
+        self.estimatedFetalWeight = estimatedFetalWeight
         self.createdAt = createdAt
     }
 

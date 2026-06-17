@@ -1,64 +1,148 @@
 import SwiftUI
 
-// TODO(v3 서브프로젝트 5): 검진 탭 구현.
-// 최종 목표: 다음 검진 히어로 카드(D-day 캡슐+표준매핑 칩+진료준비/완료 CTA) +
-// 한국 산전검진 타임라인 자동 주차 매핑(11~13주 NT / 15~20주 정밀초음파 / 24~28주 임당 GTT) +
-// 국민행복카드 바우처 잔액 카드 + 산모수첩 디지털 미러 + 주차별 체크리스트 + 진료 준비 질문 메모 + 음식 안전 조회.
-// SCREENS.md §③검진 참조. 한국 산모 차별화 심장 화면.
-
-/// ③ 검진 탭 루트 (서브프로젝트 5 구현 예정).
+/// ③ 검진 탭 루트 (서브프로젝트 5).
+/// A=면책+타임라인 · B=다음 검진 히어로+노드→검진 추가 · C=산모수첩 미러+국민행복카드 바우처.
+/// 후속 Phase D: 주차별 체크리스트 · 진료준비 질문 · 음식 안전. (SCREENS.md §③검진)
 @MainActor
 struct PrenatalCareView: View {
     @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(AuthViewModel.self) private var authVM
+
+    @State private var formPrefill: VisitFormPrefill?
+    @State private var showMirrorDetail = false
+    @State private var showFoodSafety = false
+
+    /// 검진 추가 시트 프리필(빈 값 = 빈 폼). Identifiable 로 .sheet(item:) 트리거.
+    private struct VisitFormPrefill: Identifiable {
+        let id = UUID()
+        let visitType: String?
+        let date: Date?
+    }
+
+    private var currentWeek: Int? { pregnancyVM.currentWeekAndDay?.weeks }
+
+    private var nextVisit: PrenatalVisit? {
+        PrenatalVisitPlanner.nextRelevantVisit(in: pregnancyVM.prenatalVisits)
+    }
+
+    private var recommendedItem: KoreanPrenatalScheduleItem? {
+        KoreanPrenatalSchedule.currentItem(currentWeek: currentWeek)
+    }
+
+    private var mirrorMeasurements: [MaternalMeasurement] {
+        MaternalRecordMirror.latestMeasurements(vitals: pregnancyVM.vitalEntries, weights: pregnancyVM.weightEntries)
+    }
+
+    private var checklistItems: [PregnancyChecklistItem] { pregnancyVM.checklistItems }
+
+    private var weeklyHighlights: [PregnancyChecklistItem] {
+        PregnancyChecklistPlanner.weeklyHighlights(checklistItems, currentWeek: currentWeek, limit: 3)
+    }
+
+    /// 공유 임신 데이터는 소유자 path 로 저장(#19/#41) — authVM.currentUserId 직접 전달 금지.
+    private var ownerUserId: String? {
+        pregnancyVM.dataUserId(currentUserId: authVM.currentUserId)
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: DS2.Spacing.xl) {
-                DS2EmptyState(
-                    icon: "stethoscope",
-                    title: "검진",
-                    message: "곧 제공됩니다\n한국 산전검진 일정·바우처·산모수첩을 한 화면에서 확인해요."
+                PrenatalDisclaimerBanner()
+
+                NextVisitHeroCard(
+                    visit: nextVisit,
+                    recommendedItem: recommendedItem,
+                    onAdd: { formPrefill = VisitFormPrefill(visitType: nil, date: nil) },
+                    onToggleComplete: toggleNextVisit
                 )
 
-                comingSoonList
+                KoreanPrenatalTimelineCard(
+                    currentWeek: currentWeek,
+                    visits: pregnancyVM.prenatalVisits,
+                    lmpDate: pregnancyVM.activePregnancy?.lmpDate
+                ) { item in
+                    formPrefill = VisitFormPrefill(
+                        visitType: item.visitTypeHint,
+                        date: PrenatalVisitPlanner.suggestedDate(for: item, lmpDate: pregnancyVM.activePregnancy?.lmpDate)
+                    )
+                }
+
+                HappyCardVoucherCard(
+                    fetusCount: pregnancyVM.activePregnancy?.fetusCount,
+                    usedAmount: pregnancyVM.activePregnancy?.voucherUsedAmount,
+                    onSaveUsed: saveVoucherUsed
+                )
+
+                MaternalRecordMirrorCard(
+                    measurements: mirrorMeasurements,
+                    onSeeAll: { showMirrorDetail = true }
+                )
+
+                WeeklyChecklistMiniCard(
+                    highlights: weeklyHighlights,
+                    completedCount: checklistItems.filter { $0.isCompleted }.count,
+                    totalCount: checklistItems.count,
+                    completionRate: PregnancyChecklistPlanner.completionRate(checklistItems),
+                    onToggle: toggleChecklist
+                )
+
+                VisitQuestionMemoCard(
+                    visit: nextVisit,
+                    onAdd: addQuestion,
+                    onToggle: toggleQuestion,
+                    onDelete: deleteQuestion
+                )
+
+                FoodSafetyQuickRow { showFoodSafety = true }
             }
             .padding(.horizontal, DS2.Spacing.lg)
-            .padding(.top, DS2.Spacing.xl)
+            .padding(.vertical, DS2.Spacing.lg)
         }
         .navigationTitle("검진")
         .navigationBarTitleDisplayMode(.large)
+        .sheet(item: $formPrefill) { prefill in
+            PrenatalVisitFormSheet(prefillVisitType: prefill.visitType, prefillDate: prefill.date)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showMirrorDetail) {
+            MaternalRecordDetailSheet(vitals: pregnancyVM.vitalEntries, weights: pregnancyVM.weightEntries)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showFoodSafety) {
+            FoodSafetySheet()
+        }
     }
 
-    private var comingSoonList: some View {
-        DS2Card(tint: DS2.Color.pregnancy) {
-            VStack(alignment: .leading, spacing: DS2.Spacing.md) {
-                Text("구현 예정")
-                    .font(DS2.Font.headline)
-                    .foregroundStyle(DS2.Color.pregnancy)
+    // MARK: - Actions (저장은 모두 소유자 path `ownerUserId` 경유 — #41 공유 격리)
 
-                let features = [
-                    "다음 검진 히어로 카드 (D-day·표준매핑 칩)",
-                    "🔴 한국 산전검진 타임라인 (11~13주 NT, 15~20주 정밀초음파, 24~28주 임당)",
-                    "🔴 국민행복카드 바우처 잔액·안내",
-                    "🔴 산모수첩 디지털 미러 (혈압·체중·자궁저높이·태아 추정체중)",
-                    "주차별 체크리스트 + 완료율",
-                    "진료 준비 질문 메모 (다음 검진 연결)",
-                    "음식 안전 빠른 조회 (임신 중 먹어도 될까?)",
-                    "의료 면책 배너 상시"
-                ]
+    private func toggleNextVisit() {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.togglePrenatalVisit(visit, userId: owner) }
+    }
 
-                ForEach(features, id: \.self) { feature in
-                    HStack(spacing: DS2.Spacing.sm) {
-                        Image(systemName: "circle")
-                            .font(.caption2)
-                            .foregroundStyle(DS2.Color.pregnancy.opacity(0.5))
-                        Text(feature)
-                            .font(DS2.Font.caption)
-                            .foregroundStyle(DS2.Color.textSecondary)
-                    }
-                }
-            }
-        }
+    private func toggleChecklist(_ item: PregnancyChecklistItem) {
+        guard let owner = ownerUserId else { return }
+        Task { await pregnancyVM.toggleChecklistItem(item, userId: owner) }
+    }
+
+    private func addQuestion(_ text: String) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.addVisitQuestion(to: visit, text: text, userId: owner) }
+    }
+
+    private func toggleQuestion(_ question: VisitPrepQuestion) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.toggleVisitQuestion(in: visit, questionId: question.id, userId: owner) }
+    }
+
+    private func deleteQuestion(_ question: VisitPrepQuestion) {
+        guard let visit = nextVisit, let owner = ownerUserId else { return }
+        Task { await pregnancyVM.deleteVisitQuestion(in: visit, questionId: question.id, userId: owner) }
+    }
+
+    private func saveVoucherUsed(_ amount: Int) {
+        guard let owner = ownerUserId else { return }
+        Task { await pregnancyVM.updateVoucherUsed(amount, userId: owner) }
     }
 }
 
@@ -70,6 +154,7 @@ struct PrenatalCareView: View {
         PrenatalCareView()
     }
     .environment(PregnancyViewModel())
+    .environment(AuthViewModel())
     .tint(DS2.Color.pregnancy)
 }
 #endif

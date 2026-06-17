@@ -12,6 +12,8 @@ struct PrenatalVisit: Identifiable, Codable, Hashable {
     var notes: String?
     var isCompleted: Bool
     var reminderEnabled: Bool?
+    /// 진료 때 물어볼 질문 메모(임베딩·optional 신규 필드). nil = 구버전 문서 호환.
+    var preparationQuestions: [VisitPrepQuestion]?
     var createdAt: Date
     var updatedAt: Date
 
@@ -26,6 +28,7 @@ struct PrenatalVisit: Identifiable, Codable, Hashable {
         notes: String? = nil,
         isCompleted: Bool = false,
         reminderEnabled: Bool? = true,
+        preparationQuestions: [VisitPrepQuestion]? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -39,8 +42,14 @@ struct PrenatalVisit: Identifiable, Codable, Hashable {
         self.notes = notes
         self.isCompleted = isCompleted
         self.reminderEnabled = reminderEnabled
+        self.preparationQuestions = preparationQuestions
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    /// 아직 "물어봤어요" 표시되지 않은 질문 수(히어로 배지용).
+    var openQuestionCount: Int {
+        preparationQuestions?.filter { !$0.asked }.count ?? 0
     }
 
     /// 예정일까지 남은 일수 (음수 가능).
