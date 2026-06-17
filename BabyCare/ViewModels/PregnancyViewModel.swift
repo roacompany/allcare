@@ -321,11 +321,12 @@ final class PregnancyViewModel {
 
     func toggleChecklistItem(_ item: PregnancyChecklistItem, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
         var updated = item
         updated.isCompleted.toggle()
         updated.completedAt = updated.isCompleted ? Date() : nil
         do {
-            try await firestoreService.saveChecklistItem(updated, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveChecklistItem(updated, userId: owner, pregnancyId: pid)
             if let idx = checklistItems.firstIndex(where: { $0.id == updated.id }) {
                 checklistItems[idx] = updated
             }
@@ -337,6 +338,7 @@ final class PregnancyViewModel {
     /// 사용자 추가 체크리스트 항목 (source=user).
     func addChecklistItem(title: String, category: String = "custom", userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
         let newItem = PregnancyChecklistItem(
             pregnancyId: pid,
             title: title,
@@ -345,7 +347,7 @@ final class PregnancyViewModel {
             order: checklistItems.count
         )
         do {
-            try await firestoreService.saveChecklistItem(newItem, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveChecklistItem(newItem, userId: owner, pregnancyId: pid)
             checklistItems.append(newItem)
         } catch {
             errorMessage = error.localizedDescription
@@ -395,8 +397,9 @@ final class PregnancyViewModel {
 
     func savePrenatalVisit(_ visit: PrenatalVisit, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
         do {
-            try await firestoreService.savePrenatalVisit(visit, userId: userId, pregnancyId: pid)
+            try await firestoreService.savePrenatalVisit(visit, userId: owner, pregnancyId: pid)
             if let idx = prenatalVisits.firstIndex(where: { $0.id == visit.id }) {
                 prenatalVisits[idx] = visit
             } else {
@@ -419,8 +422,9 @@ final class PregnancyViewModel {
 
     func addWeightEntry(_ entry: PregnancyWeightEntry, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
         do {
-            try await firestoreService.saveWeightEntry(entry, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveWeightEntry(entry, userId: owner, pregnancyId: pid)
             weightEntries.append(entry)
         } catch {
             errorMessage = error.localizedDescription
@@ -431,8 +435,9 @@ final class PregnancyViewModel {
 
     func addSymptom(_ symptom: PregnancySymptom, userId: String) async {
         guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
         do {
-            try await firestoreService.saveSymptom(symptom, userId: userId, pregnancyId: pid)
+            try await firestoreService.saveSymptom(symptom, userId: owner, pregnancyId: pid)
             symptoms.insert(symptom, at: 0)
         } catch {
             errorMessage = error.localizedDescription

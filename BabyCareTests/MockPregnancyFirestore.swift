@@ -47,9 +47,13 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var saveKickSessionCalls: [KickSession] = []
     private(set) var saveKickSessionUserIds: [String] = []
     private(set) var savePrenatalVisitCalls: [PrenatalVisit] = []
+    private(set) var savePrenatalVisitUserIds: [String] = []
     private(set) var saveChecklistItemCalls: [PregnancyChecklistItem] = []
+    private(set) var saveChecklistItemUserIds: [String] = []
     private(set) var saveWeightEntryCalls: [PregnancyWeightEntry] = []
+    private(set) var saveWeightEntryUserIds: [String] = []
     private(set) var saveSymptomCalls: [PregnancySymptom] = []
+    private(set) var saveSymptomUserIds: [String] = []
     private(set) var saveVitalEntryCalls: [PregnancyVitalEntry] = []
     private(set) var saveVitalEntryUserIds: [String] = []
     private(set) var saveContractionSessionCalls: [ContractionSession] = []
@@ -103,6 +107,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func savePrenatalVisit(_ visit: PrenatalVisit, userId: String, pregnancyId: String) async throws {
         savePrenatalVisitCalls.append(visit)
+        savePrenatalVisitUserIds.append(userId)
     }
 
     func fetchPrenatalVisits(userId: String, pregnancyId: String) async throws -> [PrenatalVisit] {
@@ -111,6 +116,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func saveChecklistItem(_ item: PregnancyChecklistItem, userId: String, pregnancyId: String) async throws {
         saveChecklistItemCalls.append(item)
+        saveChecklistItemUserIds.append(userId)
     }
 
     func fetchChecklistItems(userId: String, pregnancyId: String) async throws -> [PregnancyChecklistItem] {
@@ -119,6 +125,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func saveWeightEntry(_ entry: PregnancyWeightEntry, userId: String, pregnancyId: String) async throws {
         saveWeightEntryCalls.append(entry)
+        saveWeightEntryUserIds.append(userId)
     }
 
     func fetchWeightEntries(userId: String, pregnancyId: String) async throws -> [PregnancyWeightEntry] {
@@ -127,6 +134,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func saveSymptom(_ symptom: PregnancySymptom, userId: String, pregnancyId: String) async throws {
         saveSymptomCalls.append(symptom)
+        saveSymptomUserIds.append(userId)
     }
 
     func fetchSymptoms(userId: String, pregnancyId: String) async throws -> [PregnancySymptom] {

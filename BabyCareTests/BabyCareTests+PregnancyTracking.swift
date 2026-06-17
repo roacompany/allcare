@@ -142,4 +142,68 @@ final class PregnancyTrackingTests: XCTestCase {
         await vm.addVitalEntry(PregnancyVitalEntry(pregnancyId: shared.id, glucose: 90), userId: "partner-uid")
         XCTAssertEqual(mock.saveVitalEntryUserIds.last, "owner-uid")
     }
+
+    /// 파트너가 토글해도 체크리스트 저장은 owner 경로로 가야 한다 (#41 격리).
+    @MainActor
+    func test_toggleChecklistItem_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        let item = PregnancyChecklistItem(pregnancyId: shared.id, title: "엽산", category: "trimester1")
+        await vm.toggleChecklistItem(item, userId: "partner-uid")
+        XCTAssertEqual(mock.saveChecklistItemUserIds.last, "owner-uid")
+    }
+
+    /// 파트너가 항목을 추가해도 owner 경로로 저장돼야 한다 (#41 격리).
+    @MainActor
+    func test_addChecklistItem_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        await vm.addChecklistItem(title: "병원 예약", userId: "partner-uid")
+        XCTAssertEqual(mock.saveChecklistItemUserIds.last, "owner-uid")
+    }
+
+    /// 파트너가 검진을 저장/토글해도 owner 경로로 가야 한다 (#41 격리).
+    @MainActor
+    func test_savePrenatalVisit_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        let visit = PrenatalVisit(pregnancyId: shared.id, scheduledAt: Date())
+        await vm.savePrenatalVisit(visit, userId: "partner-uid")
+        XCTAssertEqual(mock.savePrenatalVisitUserIds.last, "owner-uid")
+    }
+
+    /// 파트너가 체중을 기록해도 owner 경로로 저장돼야 한다 (#41 격리).
+    @MainActor
+    func test_addWeightEntry_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        let entry = PregnancyWeightEntry(pregnancyId: shared.id, weight: 60, unit: "kg", measuredAt: Date())
+        await vm.addWeightEntry(entry, userId: "partner-uid")
+        XCTAssertEqual(mock.saveWeightEntryUserIds.last, "owner-uid")
+    }
+
+    /// 파트너가 증상을 기록해도 owner 경로로 저장돼야 한다 (#41 격리).
+    @MainActor
+    func test_addSymptom_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        let symptom = PregnancySymptom(pregnancyId: shared.id, memo: "메모", occurredAt: Date())
+        await vm.addSymptom(symptom, userId: "partner-uid")
+        XCTAssertEqual(mock.saveSymptomUserIds.last, "owner-uid")
+    }
 }
