@@ -85,17 +85,30 @@ struct BabyCareApp: App {
     }
 
     #if !DEBUG
-    private static let pregnancyKeywords = ["pregnancy", "임신", "kick", "태동", "edd", "lmp", "prenatal"]
-
+    // 임신 민감정보 redact 는 PregnancyRedactor(순수·테스트가능)에 위임. 여기서는 Sentry
+    // 타입(Breadcrumb/Event)을 그 위에 얇게 어댑트한다. (safety.md: 임신 데이터 외부전송 금지)
     private static func redactPregnancyBreadcrumb(_ crumb: Breadcrumb) -> Breadcrumb? {
-        guard let msg = crumb.message?.lowercased() else { return crumb }
-        return pregnancyKeywords.contains(where: msg.contains) ? nil : crumb
+        if let message = crumb.message, PregnancyRedactor.containsKeyword(message) { return nil }
+        if let data = crumb.data, PregnancyRedactor.containsKeyword(inDict: data) { return nil }
+        return crumb
     }
 
+    /// message / exceptions[].value / extra(재귀) 전반에서 임신 맥락 redact.
+    /// (sentry-cocoa 9.15.0: `context` 는 settable 프로퍼티 아님 → 미커버.
+    ///  breadcrumb 는 beforeBreadcrumb 에서 drop.)
     private static func redactPregnancyEvent(_ event: Event) -> Event? {
-        guard let text = event.message?.formatted.lowercased() else { return event }
-        if pregnancyKeywords.contains(where: text.contains) {
-            event.message = SentryMessage(formatted: "[redacted: pregnancy context]")
+        if let formatted = event.message?.formatted, PregnancyRedactor.containsKeyword(formatted) {
+            event.message = SentryMessage(formatted: PregnancyRedactor.placeholder)
+        }
+        if let exceptions = event.exceptions {
+            for exception in exceptions {
+                if let value = exception.value, PregnancyRedactor.containsKeyword(value) {
+                    exception.value = PregnancyRedactor.placeholder
+                }
+            }
+        }
+        if let extra = event.extra {
+            event.extra = PregnancyRedactor.scrub(extra)
         }
         return event
     }
