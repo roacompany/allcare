@@ -852,5 +852,14 @@ final class PregnancyOwnerPersistenceTests: XCTestCase {
         let decoded = try JSONDecoder().decode(Pregnancy.self, from: data)
         XCTAssertEqual(decoded.ownerUserId, "mom-uid", "ownerUserId가 직렬화에 보존되어야 함")
     }
+
+    func test_prePregnancyHeight_survivesEncodeDecodeRoundtrip() throws {
+        // 임신 전 키 — BMI 권장 증가밴드 기준점(신규 필드, CodingKeys 등록 필요).
+        var p = Pregnancy(fetusCount: 1)
+        p.prePregnancyHeight = 162.0
+        let data = try JSONEncoder().encode(p)
+        let decoded = try JSONDecoder().decode(Pregnancy.self, from: data)
+        XCTAssertEqual(decoded.prePregnancyHeight, 162.0, "prePregnancyHeight가 직렬화에 보존되어야 함")
+    }
 }
 

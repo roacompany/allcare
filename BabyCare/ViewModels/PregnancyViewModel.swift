@@ -257,6 +257,22 @@ final class PregnancyViewModel {
         }
     }
 
+    /// 임신 전 키·체중 기준 정보 갱신(BMI 권장 증가밴드 기준점). nil 전달 시 해당 값 제거.
+    /// 공유 임신 데이터는 소유자 path로 저장(#41).
+    func setPrePregnancyBaseline(heightCm: Double?, weightKg: Double?, userId: String) async {
+        guard var p = activePregnancy else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
+        p.prePregnancyHeight = heightCm
+        p.prePregnancyWeight = weightKg
+        p.updatedAt = Date()
+        do {
+            try await firestoreService.savePregnancy(p, userId: owner)
+            self.activePregnancy = p
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Week / D-day
 
     var currentWeekAndDay: (weeks: Int, days: Int)? {
