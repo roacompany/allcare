@@ -24,6 +24,8 @@ struct Pregnancy: Identifiable, Codable, Hashable {
     var archivedAt: Date?
     /// 임신 전 체중 (체중 증가 기준선).
     var prePregnancyWeight: Double?
+    /// 임신 전 키(cm) — BMI 권장 증가밴드 기준점. nil이면 밴드 미표시.
+    var prePregnancyHeight: Double?
     /// 체중 단위 (kg|lb).
     var weightUnit: String?
     /// 파트너 공유 UID 목록 (read-only).
@@ -42,7 +44,7 @@ struct Pregnancy: Identifiable, Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id, lmpDate, dueDate, eddHistory, fetusCount, babyNickname
         case ultrasoundGender, transitionState, outcome, archivedAt
-        case prePregnancyWeight, weightUnit, sharedWith, createdAt, updatedAt
+        case prePregnancyWeight, prePregnancyHeight, weightUnit, sharedWith, createdAt, updatedAt
         case ownerUserId   // 영속화: 공유 임신 소유자 식별 (비대칭 공유 owner-write 기준)
         case voucherUsedAmount
     }
@@ -59,6 +61,7 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         outcome: PregnancyOutcome? = .ongoing,
         archivedAt: Date? = nil,
         prePregnancyWeight: Double? = nil,
+        prePregnancyHeight: Double? = nil,
         weightUnit: String? = "kg",
         sharedWith: [String]? = nil,
         createdAt: Date = Date(),
@@ -75,6 +78,7 @@ struct Pregnancy: Identifiable, Codable, Hashable {
         self.outcome = outcome
         self.archivedAt = archivedAt
         self.prePregnancyWeight = prePregnancyWeight
+        self.prePregnancyHeight = prePregnancyHeight
         self.weightUnit = weightUnit
         self.sharedWith = sharedWith
         self.createdAt = createdAt

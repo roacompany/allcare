@@ -129,6 +129,151 @@ final class PregnancyTrackingTests: XCTestCase {
         XCTAssertEqual(mock.saveContractionSessionCalls.count, 2)
     }
 
+    // MARK: - Korean BMI 권장 증가밴드 (KoreanGestationalWeightGain)
+
+    func test_bmi_computesFromHeightAndWeight() {
+        // 160cm·51.2kg → BMI 20.0
+        let bmi = KoreanGestationalWeightGain.bmi(heightCm: 160, weightKg: 51.2)
+        XCTAssertEqual(bmi ?? 0, 20.0, accuracy: 0.01)
+    }
+
+    func test_bmi_nilForNonPositiveInput() {
+        XCTAssertNil(KoreanGestationalWeightGain.bmi(heightCm: 0, weightKg: 60))
+        XCTAssertNil(KoreanGestationalWeightGain.bmi(heightCm: 160, weightKg: 0))
+    }
+
+    func test_bmiCategory_koreanCutoffs() {
+        typealias C = KoreanGestationalWeightGain.Category
+        XCTAssertEqual(C.category(forBMI: 18.0), .underweight)
+        XCTAssertEqual(C.category(forBMI: 18.5), .normal)      // 경계 포함
+        XCTAssertEqual(C.category(forBMI: 22.9), .normal)
+        XCTAssertEqual(C.category(forBMI: 23.0), .overweight)  // 한국 과체중 경계
+        XCTAssertEqual(C.category(forBMI: 24.9), .overweight)
+        XCTAssertEqual(C.category(forBMI: 25.0), .obese)       // 한국 비만 경계 (서구 30과 다름)
+    }
+
+    func test_recommendedTotalGain_matchesKSOG() {
+        typealias C = KoreanGestationalWeightGain.Category
+        XCTAssertEqual(C.underweight.recommendedTotalGainKg, 12.5...18.0)
+        XCTAssertEqual(C.normal.recommendedTotalGainKg, 11.5...15.0)
+        XCTAssertEqual(C.overweight.recommendedTotalGainKg, 7.0...11.5)
+        // 비만 "7kg 미만" → 하한 없음(0)
+        XCTAssertEqual(C.obese.recommendedTotalGainKg, 0.0...7.0)
+    }
+
+    func test_cumulativeBand_anchorsToLockedTotalAt40() {
+        // 만삭(40주) 밴드 = FEATURES.md §③ LOCK 총 증가 범위
+        let band = KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: 40, category: .normal)
+        XCTAssertEqual(band?.lowerBound ?? -1, 11.5, accuracy: 0.001)
+        XCTAssertEqual(band?.upperBound ?? -1, 15.0, accuracy: 0.001)
+    }
+
+    func test_cumulativeBand_zeroAtConception() {
+        let band = KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: 0, category: .normal)
+        XCTAssertEqual(band?.lowerBound ?? -1, 0.0, accuracy: 0.001)
+        XCTAssertEqual(band?.upperBound ?? -1, 0.0, accuracy: 0.001)
+    }
+
+    func test_cumulativeBand_firstTrimesterModest() {
+        // 13주(1삼분기 말) = 초안 1삼분기 범위 0.5~2.0 (정상)
+        let band = KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: 13, category: .normal)
+        XCTAssertEqual(band?.lowerBound ?? -1, 0.5, accuracy: 0.001)
+        XCTAssertEqual(band?.upperBound ?? -1, 2.0, accuracy: 0.001)
+    }
+
+    func test_cumulativeBand_clampsBeyondTerm() {
+        // 42주 → 40주로 클램프(만삭 후 동일)
+        let b40 = KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: 40, category: .normal)
+        let b42 = KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: 42, category: .normal)
+        XCTAssertEqual(b42?.lowerBound ?? -1, b40?.lowerBound ?? -2, accuracy: 0.001)
+        XCTAssertEqual(b42?.upperBound ?? -1, b40?.upperBound ?? -2, accuracy: 0.001)
+    }
+
+    func test_cumulativeBand_nilForNegativeWeek() {
+        XCTAssertNil(KoreanGestationalWeightGain.recommendedCumulativeRange(atWeek: -1, category: .normal))
+    }
+
+    func test_bandPosition_belowWithinAbove() {
+        typealias G = KoreanGestationalWeightGain
+        // 정상·40주 밴드 = 11.5~15.0 (LOCK)
+        XCTAssertEqual(G.position(cumulativeGainKg: 10.0, atWeek: 40, category: .normal), .below)
+        XCTAssertEqual(G.position(cumulativeGainKg: 13.0, atWeek: 40, category: .normal), .within)
+        XCTAssertEqual(G.position(cumulativeGainKg: 16.0, atWeek: 40, category: .normal), .above)
+    }
+
+    func test_bandPosition_boundaryIsWithin() {
+        typealias G = KoreanGestationalWeightGain
+        XCTAssertEqual(G.position(cumulativeGainKg: 11.5, atWeek: 40, category: .normal), .within)
+        XCTAssertEqual(G.position(cumulativeGainKg: 15.0, atWeek: 40, category: .normal), .within)
+    }
+
+    func test_obeseBand_noLowerFloor() {
+        typealias G = KoreanGestationalWeightGain
+        // 비만 밴드 하한 0 → 적게 늘어도 below 아님(within), 7kg 초과만 above
+        XCTAssertEqual(G.position(cumulativeGainKg: 0.5, atWeek: 40, category: .obese), .within)
+        XCTAssertEqual(G.position(cumulativeGainKg: 8.0, atWeek: 40, category: .obese), .above)
+    }
+
+    // MARK: - 밴드 표시 상태 조립 (guidance) — 가드 + 계산
+
+    func test_guidance_nilForTwins() {
+        // 다태아는 단태아 밴드 비적용 → nil
+        XCTAssertNil(KoreanGestationalWeightGain.guidance(
+            prePregnancyHeightCm: 160, prePregnancyWeightKg: 55,
+            latestWeightKg: 60, currentWeek: 20, fetusCount: 2))
+    }
+
+    func test_guidance_nilWhenBaselineMissing() {
+        typealias G = KoreanGestationalWeightGain
+        XCTAssertNil(G.guidance(prePregnancyHeightCm: nil, prePregnancyWeightKg: 55,
+                                latestWeightKg: 60, currentWeek: 20, fetusCount: 1))
+        XCTAssertNil(G.guidance(prePregnancyHeightCm: 160, prePregnancyWeightKg: nil,
+                                latestWeightKg: 60, currentWeek: 20, fetusCount: 1))
+    }
+
+    func test_guidance_nilWhenNoCurrentWeightOrWeek() {
+        typealias G = KoreanGestationalWeightGain
+        XCTAssertNil(G.guidance(prePregnancyHeightCm: 160, prePregnancyWeightKg: 55,
+                                latestWeightKg: nil, currentWeek: 20, fetusCount: 1))
+        XCTAssertNil(G.guidance(prePregnancyHeightCm: 160, prePregnancyWeightKg: 55,
+                                latestWeightKg: 60, currentWeek: nil, fetusCount: 1))
+    }
+
+    func test_guidance_computesCategoryGainPosition() {
+        // 160cm·55kg → BMI 21.5(정상). 최신 60kg → 누적 +5.0kg. 20주.
+        let g = KoreanGestationalWeightGain.guidance(
+            prePregnancyHeightCm: 160, prePregnancyWeightKg: 55,
+            latestWeightKg: 60, currentWeek: 20, fetusCount: 1)
+        XCTAssertEqual(g?.category, .normal)
+        XCTAssertEqual(g?.week, 20)
+        XCTAssertEqual(g?.cumulativeGainKg ?? -1, 5.0, accuracy: 0.001)
+        // 20주 정상 밴드 ≈ 3.35~5.37 → 5.0 within
+        XCTAssertEqual(g?.position, .within)
+    }
+
+    func test_guidance_defaultsNilFetusCountToSingleton() {
+        // fetusCount nil → 1(단태아)로 해석, 밴드 노출
+        XCTAssertNotNil(KoreanGestationalWeightGain.guidance(
+            prePregnancyHeightCm: 160, prePregnancyWeightKg: 55,
+            latestWeightKg: 60, currentWeek: 20, fetusCount: nil))
+    }
+
+    // MARK: - 기준 정보(임신 전 키·체중) 영속화 — owner path
+
+    @MainActor
+    func test_setPrePregnancyBaseline_persistsToOwnerPath() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        // 파트너(partner-uid)가 입력해도 owner-uid 경로로 저장돼야 함(#41)
+        await vm.setPrePregnancyBaseline(heightCm: 162, weightKg: 55, userId: "partner-uid")
+        XCTAssertEqual(vm.activePregnancy?.prePregnancyHeight, 162)
+        XCTAssertEqual(vm.activePregnancy?.prePregnancyWeight, 55)
+        XCTAssertEqual(mock.savePregnancyUserIds.last, "owner-uid")
+    }
+
     // MARK: - M2: 공유 임신 데이터는 owner 경로로 저장
 
     @MainActor
