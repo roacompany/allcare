@@ -14,6 +14,7 @@ final class PregnancyViewModel {
     var symptoms: [PregnancySymptom] = []
     var vitalEntries: [PregnancyVitalEntry] = []
     var contractionSessions: [ContractionSession] = []
+    var moods: [PregnancyMood] = []
 
     /// 진행 중인 태동 세션 (UI가 실시간 갱신).
     var currentKickSession: KickSession?
@@ -83,7 +84,8 @@ final class PregnancyViewModel {
                 async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
                 async let vitals = firestoreService.fetchVitalEntries(userId: dataOwner, pregnancyId: pid)
                 async let contractions = firestoreService.fetchContractionSessions(userId: dataOwner, pregnancyId: pid)
-                // 7개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
+                async let moodList = firestoreService.fetchMoods(userId: dataOwner, pregnancyId: pid)
+                // 8개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
                 do {
                     self.kickSessions = try await kicks
                 } catch {
@@ -125,6 +127,12 @@ final class PregnancyViewModel {
                 } catch {
                     logSilent("fetchContractionSessions 실패", error: error, logger: AppLogger.pregnancy)
                     self.contractionSessions = []
+                }
+                do {
+                    self.moods = try await moodList
+                } catch {
+                    logSilent("fetchMoods 실패", error: error, logger: AppLogger.pregnancy)
+                    self.moods = []
                 }
             }
             // pending orphan 감지 (30초 임계값)
@@ -444,6 +452,19 @@ final class PregnancyViewModel {
         }
     }
 
+    // MARK: - Mood (정서기록)
+
+    func addMood(_ mood: PregnancyMood, userId: String) async {
+        guard let pid = activePregnancy?.id else { return }
+        let owner = dataUserId(currentUserId: userId) ?? userId  // 공유 임신 데이터는 소유자 path (#41)
+        do {
+            try await firestoreService.saveMood(mood, userId: owner, pregnancyId: pid)
+            moods.insert(mood, at: 0)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Vitals (혈압/혈당)
 
     func addVitalEntry(_ entry: PregnancyVitalEntry, userId: String) async {
@@ -488,6 +509,7 @@ final class PregnancyViewModel {
         symptoms = []
         vitalEntries = []
         contractionSessions = []
+        moods = []
         currentKickSession = nil
         pendingOrphan = nil
         errorMessage = nil

@@ -115,6 +115,7 @@ enum FirestoreCollections {
     static let pregnancySymptoms = "pregnancySymptoms"
     static let pregnancyVitals = "pregnancyVitals"
     static let contractionSessions = "contractionSessions"
+    static let pregnancyMoods = "pregnancyMoods"
     // MARK: - Insights ML
     /// 주간 metric 스냅샷. 경로: users/{uid}/babies/{bid}/weeklyMetrics/{weekKey}
     /// Phase 1 통계적 이상치 탐지의 history input. Phase 2 ML 학습 입력.

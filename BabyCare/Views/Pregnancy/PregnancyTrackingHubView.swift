@@ -18,7 +18,7 @@ struct PregnancyTrackingHubView: View {
     @AppStorage("pregnancy.module.sleep") private var sleepEnabled = false
 
     private enum TrackingSheet: Int, Identifiable {
-        case kick, weight, symptom
+        case kick, weight, symptom, mood
         var id: Int { rawValue }
     }
 
@@ -61,6 +61,7 @@ struct PregnancyTrackingHubView: View {
             case .kick: KickRecordingSheet()
             case .weight: PregnancyWeightEntrySheet()
             case .symptom: PregnancySymptomMemoSheet()
+            case .mood: PregnancyMoodSheet()
             }
         }
     }
@@ -72,8 +73,37 @@ struct PregnancyTrackingHubView: View {
                          subtitle: "ACOG 2시간 내 10회 기준", action: { activeSheet = .kick })
         TrackingToolCard(icon: "scalemass.fill", title: "체중",
                          subtitle: "임신 전 대비 증가 추이", action: { activeSheet = .weight })
-        TrackingToolCard(icon: "face.smiling", title: "증상 / 기분",
-                         subtitle: "오늘 컨디션을 기록", action: { activeSheet = .symptom })
+        TrackingToolCard(icon: "list.bullet.clipboard.fill", title: "증상",
+                         subtitle: "오늘 증상을 기록", action: { activeSheet = .symptom })
+        TrackingToolCard(icon: "face.smiling", title: "기분",
+                         subtitle: "오늘 기분을 가볍게 체크", action: { activeSheet = .mood })
+        if !pregnancyVM.moods.isEmpty {
+            recentMoodStrip
+        }
+    }
+
+    /// 최근 기분 이모지 스트립 (저장된 기분 가시화).
+    private var recentMoodStrip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("최근 기분")
+                .font(DS2.Font.caption)
+                .foregroundStyle(DS2.Color.textSecondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(pregnancyVM.moods.prefix(10)) { entry in
+                        VStack(spacing: 2) {
+                            Text(entry.mood.emoji).font(.title3)
+                            Text(entry.occurredAt, format: .dateTime.month().day())
+                                .font(.caption2)
+                                .foregroundStyle(DS2.Color.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS2.Color.pregnancy.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - 상태별 (Phase B/C)
