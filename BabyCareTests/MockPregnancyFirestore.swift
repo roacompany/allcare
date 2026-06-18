@@ -18,6 +18,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     var symptomsResponse: [PregnancySymptom] = []
     var vitalEntriesResponse: [PregnancyVitalEntry] = []
     var contractionSessionsResponse: [ContractionSession] = []
+    var moodsResponse: [PregnancyMood] = []
 
     // MARK: - 에러 주입
 
@@ -57,6 +58,8 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     private(set) var saveVitalEntryCalls: [PregnancyVitalEntry] = []
     private(set) var saveVitalEntryUserIds: [String] = []
     private(set) var saveContractionSessionCalls: [ContractionSession] = []
+    private(set) var saveMoodCalls: [PregnancyMood] = []
+    private(set) var saveMoodUserIds: [String] = []
 
     // MARK: - Protocol Conformance
 
@@ -156,6 +159,15 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
 
     func fetchContractionSessions(userId: String, pregnancyId: String) async throws -> [ContractionSession] {
         contractionSessionsResponse
+    }
+
+    func saveMood(_ mood: PregnancyMood, userId: String, pregnancyId: String) async throws {
+        saveMoodCalls.append(mood)
+        saveMoodUserIds.append(userId)
+    }
+
+    func fetchMoods(userId: String, pregnancyId: String) async throws -> [PregnancyMood] {
+        moodsResponse
     }
 
     func addPregnancyPartner(email: String, userId: String, pregnancyId: String) async throws {}

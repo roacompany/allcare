@@ -170,3 +170,92 @@ struct PregnancySymptomMemoSheet: View {
         }
     }
 }
+
+// MARK: - PregnancyMoodSheet
+// 정서(기분) 체크인 시트 — 가벼운 기분 기록 + 선택 메모. 의료적 우울 스크리닝 아님.
+
+struct PregnancyMoodSheet: View {
+    @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(AuthViewModel.self) private var authVM
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var mood: PregnancyMood.Mood = .okay
+    @State private var memo: String = ""
+    @State private var isSaving = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("오늘 기분") {
+                    HStack(spacing: 6) {
+                        ForEach(PregnancyMood.Mood.allCases) { option in
+                            Button {
+                                mood = option
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Text(option.emoji).font(.title)
+                                    Text(option.displayName)
+                                        .font(.caption2)
+                                        .multilineTextAlignment(.center)
+                                        .foregroundStyle(mood == option ? DS2.Color.pregnancy : .secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    mood == option ? DS2.Color.pregnancy.opacity(0.12) : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 10)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                Section("메모 (선택)") {
+                    TextField("오늘 어땠는지 가볍게 적어보세요", text: $memo, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+
+                Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: "heart.circle.fill")
+                            .foregroundStyle(DS2.Color.pregnancy)
+                        Text("가벼운 기분 기록이에요. 힘든 마음이 이어지면 혼자 두지 말고 주변이나 의료진에게 이야기해 보세요.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("기분 기록")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        Task { await save() }
+                    }
+                    .disabled(isSaving)
+                }
+            }
+        }
+    }
+
+    private func save() async {
+        guard let userId = authVM.currentUserId,
+              let pid = pregnancyVM.activePregnancy?.id else { return }
+        isSaving = true
+        defer { isSaving = false }
+        let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        let record = PregnancyMood(
+            pregnancyId: pid,
+            mood: mood,
+            memo: trimmed.isEmpty ? nil : trimmed
+        )
+        await pregnancyVM.addMood(record, userId: userId)
+        if pregnancyVM.errorMessage == nil {
+            dismiss()
+        }
+    }
+}

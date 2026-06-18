@@ -206,4 +206,41 @@ final class PregnancyTrackingTests: XCTestCase {
         await vm.addSymptom(symptom, userId: "partner-uid")
         XCTAssertEqual(mock.saveSymptomUserIds.last, "owner-uid")
     }
+
+    // MARK: - 정서기록 (PregnancyMood) — 가벼운 기분 체크인
+
+    func test_pregnancyMood_codableRoundtrip() throws {
+        let m = PregnancyMood(pregnancyId: "p1", mood: .good, memo: "산책함", occurredAt: Date())
+        let data = try JSONEncoder().encode(m)
+        let decoded = try JSONDecoder().decode(PregnancyMood.self, from: data)
+        XCTAssertEqual(decoded.mood, .good)
+        XCTAssertEqual(decoded.memo, "산책함")
+    }
+
+    func test_mood_allCasesHaveDisplayAndEmoji() {
+        for mood in PregnancyMood.Mood.allCases {
+            XCTAssertFalse(mood.displayName.isEmpty)
+            XCTAssertFalse(mood.emoji.isEmpty)
+        }
+    }
+
+    func test_mood_rawValuesStableForPersistence() {
+        // rawValue = Firestore 영구 저장값. 변경 금지.
+        XCTAssertEqual(PregnancyMood.Mood.great.rawValue, "great")
+        XCTAssertEqual(PregnancyMood.Mood.hard.rawValue, "hard")
+        XCTAssertEqual(PregnancyMood.Mood.allCases.count, 5)
+    }
+
+    @MainActor
+    func test_addMood_routesToOwnerPath_forSharedPregnancy() async {
+        let mock = MockPregnancyFirestore()
+        let vm = PregnancyViewModel(firestoreService: mock)
+        var shared = Pregnancy(lmpDate: nil, dueDate: nil, fetusCount: 1, babyNickname: "공유")
+        shared.ownerUserId = "owner-uid"
+        vm.activePregnancy = shared
+        // 파트너가 기록해도 owner 경로로 저장돼야 함(#41)
+        await vm.addMood(PregnancyMood(pregnancyId: shared.id, mood: .good), userId: "partner-uid")
+        XCTAssertEqual(mock.saveMoodUserIds.last, "owner-uid")
+        XCTAssertEqual(vm.moods.first?.mood, .good)
+    }
 }
