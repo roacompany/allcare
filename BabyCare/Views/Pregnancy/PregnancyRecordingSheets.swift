@@ -108,6 +108,25 @@ struct PregnancySymptomMemoSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if !recommendedChips.isEmpty {
+                    Section {
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 72), spacing: 8)],
+                            alignment: .leading,
+                            spacing: 8
+                        ) {
+                            ForEach(recommendedChips) { chip in
+                                chipButton(chip)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    } header: {
+                        Text(currentWeek != nil ? "이번 주 흔한 증상" : "흔한 증상")
+                    } footer: {
+                        Text("탭하면 메모에 추가돼요. 증상 기록은 빈도·추이만 모아 진료 때 보여줄 수 있어요.")
+                    }
+                }
+
                 Section(LocalizedStringKey("pregnancy.symptom.section.memo")) {
                     TextField(LocalizedStringKey("pregnancy.symptom.placeholder"), text: $memo, axis: .vertical)
                         .lineLimit(4...8)
@@ -125,6 +144,28 @@ struct PregnancySymptomMemoSheet: View {
                             .tag(PregnancySymptom.Severity?.some(.severe))
                     }
                     .pickerStyle(.segmented)
+                }
+
+                Section {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 72), spacing: 8)],
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+                        ForEach(PregnancySymptomCatalog.urgent) { chip in
+                            chipButton(chip)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text(PregnancySymptomCatalog.urgentNotice)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("이런 증상은 바로 진료하세요")
                 }
 
                 Section {
@@ -151,6 +192,48 @@ struct PregnancySymptomMemoSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: - 추천 칩
+
+    private var currentWeek: Int? {
+        pregnancyVM.currentWeekAndDay?.weeks
+    }
+
+    /// 현재 주차에 흔한 증상 추천칩. 주차 미상이면 전 기간 공통 증상만.
+    private var recommendedChips: [PregnancySymptomCatalog.Chip] {
+        if let wk = currentWeek {
+            return PregnancySymptomCatalog.recommended(forWeek: wk)
+        }
+        return PregnancySymptomCatalog.common.filter { $0.weekRange == nil }
+    }
+
+    /// 칩 탭 → 메모에 한 손 추가(중복 방지). 이미 있으면 무시.
+    private func appendChip(_ label: String) {
+        let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            memo = label
+        } else if !trimmed.contains(label) {
+            memo = trimmed + ", " + label
+        }
+    }
+
+    private func chipButton(_ chip: PregnancySymptomCatalog.Chip) -> some View {
+        let selected = memo.contains(chip.label)
+        return Button {
+            appendChip(chip.label)
+        } label: {
+            Text(chip.label)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    DS2.Color.pregnancy.opacity(selected ? 0.25 : 0.10),
+                    in: Capsule()
+                )
+                .foregroundStyle(DS2.Color.pregnancy)
+        }
+        .buttonStyle(.plain)
     }
 
     private func save() async {
