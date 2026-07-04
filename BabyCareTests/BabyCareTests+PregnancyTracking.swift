@@ -351,4 +351,51 @@ final class PregnancyTrackingTests: XCTestCase {
         await vm.addSymptom(symptom, userId: "partner-uid")
         XCTAssertEqual(mock.saveSymptomUserIds.last, "owner-uid")
     }
+
+    // MARK: - 증상 주차별 추천칩 (PregnancySymptomCatalog)
+
+    func test_recommendedChips_earlyWeekIncludesNausea() {
+        // 초기(8주)엔 입덧이 추천됨
+        let chips = PregnancySymptomCatalog.recommended(forWeek: 8)
+        XCTAssertTrue(chips.contains { $0.label.contains("입덧") })
+    }
+
+    func test_recommendedChips_lateWeekIncludesEdema() {
+        // 후기(34주)엔 부종이 추천됨
+        let chips = PregnancySymptomCatalog.recommended(forWeek: 34)
+        XCTAssertTrue(chips.contains { $0.label.contains("부종") })
+    }
+
+    func test_recommendedChips_earlyWeekExcludesLateOnly() {
+        // 후기 전용(부종)은 초기(8주) 추천에 없음
+        let chips = PregnancySymptomCatalog.recommended(forWeek: 8)
+        XCTAssertFalse(chips.contains { $0.label.contains("부종") })
+    }
+
+    func test_recommendedChips_neverIncludeUrgent() {
+        // 응급 가능 증상은 '흔한 증상' 추천칩에 섞이지 않음
+        for week in [6, 20, 38] {
+            let chips = PregnancySymptomCatalog.recommended(forWeek: week)
+            XCTAssertFalse(chips.contains { $0.isUrgent }, "week \(week)")
+        }
+    }
+
+    func test_recommendedChips_allHaveLabels() {
+        let chips = PregnancySymptomCatalog.recommended(forWeek: 20)
+        XCTAssertFalse(chips.isEmpty)
+        XCTAssertTrue(chips.allSatisfy { !$0.label.isEmpty })
+    }
+
+    func test_urgentChips_nonEmptyAndFlagged() {
+        XCTAssertFalse(PregnancySymptomCatalog.urgent.isEmpty)
+        XCTAssertTrue(PregnancySymptomCatalog.urgent.allSatisfy { $0.isUrgent })
+        XCTAssertTrue(PregnancySymptomCatalog.urgent.contains { $0.label.contains("출혈") })
+    }
+
+    func test_urgentNotice_isNonDiagnostic() {
+        // 위험도 판정 금지 — 의료진 연락 안내만
+        let notice = PregnancySymptomCatalog.urgentNotice
+        XCTAssertTrue(notice.contains("연락"))
+        XCTAssertFalse(notice.isEmpty)
+    }
 }
