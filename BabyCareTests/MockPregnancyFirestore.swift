@@ -34,6 +34,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     // MARK: - 호출 기록
 
     private(set) var savePregnancyCalls: [Pregnancy] = []
+    private(set) var savePregnancyUserIds: [String] = []
     private(set) var fetchActivePregnancyCalls: [String] = []
     private(set) var fetchSharedPregnancyCalls: [String] = []
     private(set) var deletePregnancyCalls: [String] = []
@@ -66,6 +67,7 @@ final class MockPregnancyFirestore: PregnancyFirestoreProviding, @unchecked Send
     func savePregnancy(_ pregnancy: Pregnancy, userId: String) async throws {
         if let err = errorOnSavePregnancy { throw err }
         savePregnancyCalls.append(pregnancy)
+        savePregnancyUserIds.append(userId)
     }
 
     func fetchActivePregnancy(userId: String) async throws -> Pregnancy? {
