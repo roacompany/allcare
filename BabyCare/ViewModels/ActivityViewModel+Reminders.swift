@@ -6,6 +6,10 @@ extension ActivityViewModel {
     // MARK: - Activity Reminder
 
     func scheduleActivityReminderIfNeeded(type: Activity.ActivityType, babyName: String) {
+        // 복귀 넛지 (이탈 방지 P0-2): 모든 저장 = 침묵 타이머 리셋.
+        // 활동별 리마인더 규칙(아래 guard)과 무관하게 항상 갱신한다.
+        NotificationService.shared.scheduleReturnNudge()
+
         guard let rule = ActivityReminderSettings.rule(for: type), rule.enabled else { return }
         NotificationService.shared.scheduleActivityReminder(
             type: type, babyName: babyName, afterMinutes: rule.intervalMinutes

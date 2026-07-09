@@ -6,6 +6,7 @@ import UserNotifications
 struct NotificationSettingsView: View {
     @State private var rules = ActivityReminderSettings.rules
     @State private var feedingOverdueAlertEnabled = ActivityReminderSettings.feedingOverdueAlertEnabled
+    @State private var returnNudgeEnabled = NotificationSettings.returnNudgeEnabled
     @State private var weeklyInsightEnabled = ActivityReminderSettings.weeklyInsightEnabled
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
@@ -104,6 +105,27 @@ struct NotificationSettingsView: View {
                 Text("수유 예측")
             } footer: {
                 Text("예측된 수유 시간에서 30분이 지나도 수유 기록이 없으면 알림을 보냅니다.")
+            }
+
+            // 복귀 넛지 (이탈 방지 P0-2)
+            Section {
+                Toggle(isOn: $returnNudgeEnabled) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.wave.fill")
+                            .font(.body)
+                            .foregroundStyle(AppColors.primaryAccent)
+                            .frame(width: 24)
+                        Text("기록 쉬어감 알림")
+                    }
+                }
+                .onChange(of: returnNudgeEnabled) { _, val in
+                    // setter가 OFF 시 pending 넛지 제거까지 처리 (R1: View→Service 직접 호출 금지)
+                    NotificationSettings.returnNudgeEnabled = val
+                }
+            } header: {
+                Text("복귀 알림")
+            } footer: {
+                Text("마지막 기록 후 24시간 동안 기록이 없으면 한 번만 부드럽게 알려드립니다.")
             }
 
             // 접종 알림

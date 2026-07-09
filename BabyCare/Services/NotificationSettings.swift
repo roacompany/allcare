@@ -53,6 +53,20 @@ enum NotificationSettings {
         get { defaults.object(forKey: "growthVelocityEnabled") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "growthVelocityEnabled") }
     }
+
+    /// D1 복귀 넛지 (이탈 방지 P0-2) — 기본 ON.
+    /// OFF 저장 시 pending 넛지도 즉시 제거 — "껐는데 알림 옴" 방지.
+    /// (UNUserNotificationCenter는 스레드 안전 · View는 이 setter만 호출, Service 직접 호출 금지 R1)
+    static var returnNudgeEnabled: Bool {
+        get { defaults.object(forKey: "returnNudgeEnabled") as? Bool ?? true }
+        set {
+            defaults.set(newValue, forKey: "returnNudgeEnabled")
+            if !newValue {
+                UNUserNotificationCenter.current()
+                    .removePendingNotificationRequests(withIdentifiers: [ReturnNudgePolicy.notificationIdentifier])
+            }
+        }
+    }
 }
 
 // MARK: - Activity Reminder Rules (활동별 알림 규칙)
