@@ -21,6 +21,10 @@ final class NotificationRouter: ObservableObject {
         switch type {
         case "announcement":
             pendingDestination = .announcements
+        case "return_nudge":
+            // D1 복귀 넛지 (이탈 방지 P0-2) — 복귀 계측 후 대시보드로.
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.returnNudgeOpened)
+            pendingDestination = .dashboard
         case "reorder":
             let productId = userInfo["productId"] as? String ?? ""
             let coupangURLString = userInfo["coupangURL"] as? String

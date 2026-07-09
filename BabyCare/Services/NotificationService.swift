@@ -349,6 +349,43 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
+    // MARK: - Return Nudge (D1 복귀 넛지 — 이탈 방지 P0-2)
+
+    /// 마지막 기록 후 24시간 무기록이면 1회 발화. 저장할 때마다 동일 identifier로 교체 예약
+    /// → 기록이 이어지는 동안은 울리지 않고, 멈춘 뒤 정확히 24h 후 한 번만 온다.
+    func scheduleReturnNudge(lastRecordAt: Date = Date()) {
+        guard NotificationSettings.returnNudgeEnabled,
+              let fireDate = ReturnNudgePolicy.fireDate(lastRecordAt: lastRecordAt, now: Date()) else { return }
+
+        let identifier = ReturnNudgePolicy.notificationIdentifier
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = "오늘 하루는 어땠나요?"
+        content.body = "기록이 하루 쉬어가고 있어요. 가볍게 한 번 남겨볼까요?"
+        content.sound = .default
+        content.categoryIdentifier = "RETURN_NUDGE"
+        content.userInfo = ["type": "return_nudge"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: max(fireDate.timeIntervalSinceNow, 60),
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelReturnNudge() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [ReturnNudgePolicy.notificationIdentifier])
+    }
+
     // MARK: - Weekly Insight
 
     func scheduleWeeklyInsight(topInsightTitle: String) {

@@ -2478,6 +2478,41 @@ final class BabyCareTests: XCTestCase {
         // 수유·기저귀·수면 3종 고정 순서 — 대시보드 quickSave 경로 재사용 계약
         XCTAssertEqual(FirstRecordGuidePolicy.guideTypes, [.feedingBreast, .diaperWet, .sleep])
     }
+
+    // MARK: - ReturnNudgePolicy Tests (P0-2 D1 복귀 넛지 — 이탈 방지)
+
+    func testReturnNudge_fireDateIs24hAfterLastRecord() {
+        let last = Date(timeIntervalSince1970: 1_000_000)
+        let fire = ReturnNudgePolicy.fireDate(lastRecordAt: last, now: last)
+        XCTAssertEqual(fire, last.addingTimeInterval(24 * 60 * 60))
+    }
+
+    func testReturnNudge_nilWhenSilenceAlreadyPast() {
+        // 이미 24h+ 지난 시점엔 과거 발화 예약 금지 (UNTimeIntervalNotificationTrigger 음수 크래시 가드)
+        let last = Date(timeIntervalSince1970: 1_000_000)
+        let now = last.addingTimeInterval(25 * 60 * 60)
+        XCTAssertNil(ReturnNudgePolicy.fireDate(lastRecordAt: last, now: now))
+    }
+
+    func testReturnNudge_nilAtExactBoundary() {
+        let last = Date(timeIntervalSince1970: 1_000_000)
+        let now = last.addingTimeInterval(24 * 60 * 60)
+        XCTAssertNil(ReturnNudgePolicy.fireDate(lastRecordAt: last, now: now))
+    }
+
+    func testReturnNudge_identifierStable() {
+        // 동일 id 교체 예약 계약 — 저장할 때마다 이 id로 갈아끼워 "기록 이어지는 동안 침묵" 보장
+        XCTAssertEqual(ReturnNudgePolicy.notificationIdentifier, "return-nudge-d1")
+    }
+
+    func testReturnNudgeSetting_defaultOnAndPersistToggle() {
+        let key = "returnNudgeEnabled"
+        UserDefaults.standard.removeObject(forKey: key)
+        XCTAssertTrue(NotificationSettings.returnNudgeEnabled, "미설정 기본값은 ON (P0-2 핵심)")
+        NotificationSettings.returnNudgeEnabled = false
+        XCTAssertFalse(NotificationSettings.returnNudgeEnabled)
+        UserDefaults.standard.removeObject(forKey: key)
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
