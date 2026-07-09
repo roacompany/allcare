@@ -70,6 +70,10 @@ enum AnalyticsEvents {
     // App Review — 시스템 평가 시트/딥링크 요청 시점 (requestReview는 콜백 없음 → 유일한 계측).
     static let reviewPromptRequested = "review_prompt_requested"
 
+    // First Record Guide — 이탈 방지 P0-1: 첫 기록/재시작 유도 카드 (아기등록→첫기록 퍼널 계측).
+    static let firstRecordGuideShown = "first_record_guide_shown"
+    static let firstRecordGuideTapped = "first_record_guide_tapped"
+
     // Return Nudge — 이탈 방지 P0-2: D1 복귀 넛지 알림 탭(복귀) 계측.
     static let returnNudgeOpened = "return_nudge_opened"
 }

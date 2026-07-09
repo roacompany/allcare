@@ -47,6 +47,7 @@ struct DashboardView: View {
     private var dashboardV2Layout: some View {
         pregnancyPortalCardIfNeeded
         alertBannersSection
+        firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
         predictionSection
@@ -58,6 +59,21 @@ struct DashboardView: View {
         BadgeHomeStrip()
         reorderSummaryCard
         moreDisclosureGroup
+    }
+
+    /// 첫 기록 가이드 (이탈 방지 P0-1) — 아기 있음 + 오늘/최근 1주 기록 0 + 로딩 아님일 때만.
+    @ViewBuilder
+    private var firstRecordGuideIfNeeded: some View {
+        if FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: babyVM.selectedBaby != nil,
+            todayCount: activityVM.todayActivities.count,
+            recentWeekCount: activityVM.recentWeekActivities.count,
+            isLoading: activityVM.isLoading
+        ) {
+            FirstRecordGuideCard { type in
+                Task { await quickSave(type: type) }
+            }
+        }
     }
 
     private var moreDisclosureGroup: some View {
