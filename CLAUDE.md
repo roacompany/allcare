@@ -267,21 +267,22 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.7 (빌드 89) — **TestFlight VALID, App Store 미제출** (앱 평가 팝업 + #24~#28 누적수정, 2026-06-10 업로드 `87739d1f-...`). 직전 v2.8.6 (빌드 88) = **App Store 출시 완료 (READY_FOR_SALE, 2026-06-10 확인)** — 유축 + 병수유 + DS2 대시보드 + Sentry
+- **Version**: v2.8.8 (빌드 92 committed, main `741bcde`, 2026-07-09 실측) — **App Store 미제출**. 임신 v3 전체(flag-off 휴면, #32~#38·#48~#52) + 데이터 무결성(#39~#44·#49) + GA4 태깅 위생(#30) + 부채(#45~#47) 포함. TestFlight 업로드 = v2.8.8 빌드 93/94(`tf/pregnancy-v3-test` 브랜치·flag-on QA 전용·머지 금지·#49~#52 미포함) + 95~97(쿠팡식 실험 워크트리) — **ASC 최고 빌드 97(2026-07-09 실측), main 기준 다음 TF 빌드 ≥98**. **App Store 라이브 = v2.8.6 (빌드 88, READY_FOR_SALE)** — 유축 + 병수유 + DS2 대시보드 + Sentry. v2.8.7(빌드 89)은 TF VALID·미제출(2.8.8 제출 시 동반 출시)
 - **App Store**:
-  - **v2.8.7 — App Store 미제출** (TestFlight 빌드 89 VALID, 앱 평가 팝업 + #24~#28 누적수정. 제출 시 새 train 생성 — PO 결정 대기)
+  - **v2.8.8 — main committed(빌드 92)·미제출** (임신 v3 flag-off 휴면 포함 — 제출해도 임신 UI 노출 0. rollout은 RC 재배선 + 의료감수 후. 제출 여부 = PO 결정)
+  - **v2.8.7 — App Store 미제출** (TestFlight 빌드 89 VALID, 앱 평가 팝업 + #24~#28 누적수정. 2.8.8 제출 시 동반 출시)
   - **v2.8.6 READY_FOR_SALE** (출시 완료 2026-06-10 — 유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry 첫 릴리즈. 빌드 88 승인+AFTER_APPROVAL 자동출시. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
   - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
-- **TestFlight**: **v2.8.7 빌드 89** (`87739d1f-...`, 2026-06-10 — 앱 평가 팝업 + #24~#28 누적수정, VALID·미출시), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **출시됨**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
+- **TestFlight**: **v2.8.8 빌드 95~97** (쿠팡식 실험 워크트리, 2026-06-28) / **빌드 94/93** (`tf/pregnancy-v3-test` 브랜치 — 임신 v3 flag-on QA 전용·머지 금지), v2.8.7 빌드 89 (`87739d1f-...`, VALID·미출시), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **출시됨**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
   - 이전: v2.8.3 빌드 69 (`c040f15f-...`, nested NavigationStack fix), 68/67, 66 (v2.8.2 ML), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
-- **Firestore**: 32개 컬렉션 (31 + highlightCache). `weeklyMetrics`, `highlightCache` 모두 deploy 완료
+- **Firestore**: 35개 컬렉션 상수 (24 기본 + 9 pregnancy[v3에서 pregnancyVitals/contractionSessions/pregnancyMoods 추가] + weeklyMetrics/highlightCache). rules/index deploy 완료
 - **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
-- **테스트**: 371 단위 + 23 XCUITest (Highlights +17 unit +5 XCUITest). **CI Test 완전 통과** (PR #7 인프라 + PR #8 5건 부채 fix, 2026-05-15). 370/370 PASS, 0 skip.
-- **규모**: 308+ Swift 파일, 23개 VM, 32개 Firestore 컬렉션
+- **테스트**: 단위 테스트 함수 ~564 + XCUITest ~27 (정적 집계 2026-07-09, 임신 v3 계열 PregnancyTracking 46·PrenatalSchedule 41 포함). `make verify` green + smoke PASS (2026-07-09 실행). CI Test 인프라 정상 (PR #7/#8, 2026-05-15).
+- **규모**: 347 Swift 파일(앱 타깃), 23개 VM, 35개 Firestore 컬렉션 상수
 - **AdMob**: 완전 폐기 (2026-05-10 `ddb63d1`) — SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거 12 파일 -467 lines
 - **Admin**: Vercel 자동 배포 (Insights ML 탭 + lastAccessedAt fallback + Weekly Highlights worker `c283ef5`)
 - **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (법무 검토 미수령)
@@ -381,8 +382,8 @@ make dead-code   # 미사용 코드 탐지
 - ✅ 8 Service self-declared `Logger(...)` → `AppLogger` 통일 — Round 7 완료. BadgeEvaluator / SoundLibrary / SoundPlayer / LiveActivity / Calendar / Analytics / FirestoreService + Catalog/Purchase/User extension. `subsystem` 하드코딩 + `import OSLog` 0.
 - [ ] VM helper protocol 확장 — in-place mutation / append-or-replace 패턴 (RoutineVM toggleItem / HealthVM saveHospitalVisit)
 - [ ] `arch_test.sh` BASELINE 자동 갱신 (현재 수동, 잊으면 silent positive)
-- [ ] InsightService 525라인 v1+v3 공존 정리 (Provider 추가 분할)
-- [ ] GitHub Actions `actions/checkout@v4` → v5 (Node.js 24, deadline 2026-09-16)
+- ✅ InsightService 분할 — #47 (`d4e70fe`, 2026-06-18) 606→110줄, +Cards/+Highlights extension 분리
+- ✅ GitHub Actions `actions/checkout@v4` → v5 — #45 (`52723c0`, 2026-06-18) + arch_test `--update-baseline` 플래그
 
 ### 로드맵
 - ✅ P0: 임신 모드 v2 — v2.8.0 App Store 출시 완료 (2026-05-02 승인)
@@ -392,7 +393,7 @@ make dead-code   # 미사용 코드 탐지
 - ✅ P0: v2.8.3 App Store 출시 — 빌드 69 nested NavigationStack fix + Weekly Highlights v2 (2026-05-17 제출 → AFTER_APPROVAL 자동 출시, ASC `appStoreState=READY_FOR_SALE` 확인 2026-05-22)
 - ✅ CI Test 단계 인프라 fix — PR #7 머지 (`2c57c1f`, 2026-05-15). stub plist API_KEY 35→39자 + AppDelegate XCTest 가드 + iOS 18.x sim 강제. **부채**: CI에서 처음 실행된 테스트 5건 사전 실패 — 별도 PR 예정 (`-skip-testing`로 임시 우회 중).
 - [ ] v2.8 RC Rollout (심사 통과 후): Firebase Console `pregnancy_rollout_pct` 0→5→25→50→100% 단계 (Crashlytics 무회귀 확인)
-- [ ] AdMob 차단 항소 + 통과 후 `FeatureFlags.adsEnabled=true` 1줄 복구
+- ~~AdMob 항소~~ — AdMob 완전 폐기(2026-05-10 `ddb63d1`)로 무의미. `adsEnabled` flag는 코드에 존재하지 않음(2026-07-09 감사 확인) — 재도입 시 신규 구현
 - [ ] Phase 2 ML: 4주+ 데이터 누적 후 anomaly mode 활성화 (`insight_scorer_mode=anomaly`) 또는 CoreML 합성 baseline
 - P2: 사진 AI OCR, AI 실시간 제안
 - P4~P6:

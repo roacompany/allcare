@@ -2,6 +2,29 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.8.8] - Unreleased (main 빌드 92 committed — App Store 미제출)
+
+> main `741bcde` 기준. TestFlight 빌드 93/94는 `tf/pregnancy-v3-test` 브랜치(임신 v3 flag-on QA 전용, #49~#52 미포함), 95~97은 쿠팡식 실험 워크트리가 소비 — **ASC 최고 빌드 97(2026-07-09 실측), main 기준 다음 TF 빌드는 ≥98**. 2.8.8 제출 시 미출시 2.8.7 내용도 함께 출시된다. 임신 v3는 컴파일 flag-off 휴면(사용자 노출 0).
+
+### Added — 임신 모드 v3 (flag-off 휴면, #32~#38 · #48~#52)
+
+- 임신 v2 컴파일 비활성화(#31) 후 원점 재설계: "임신 노트" 독립 4탭 셸(#33) + ①여정 주차 타임라인(#34) + ②기록 허브(매일도구 #35 · 혈압/혈당 `pregnancyVitals` #36 · 진통 타이머 `contractionSessions` #37 · 선택모듈 #38) + ③검진 8섹션(한국 산전검진 타임라인·다음 검진 히어로·산모수첩 미러·바우처·체크리스트·진료질문·음식안전, #48) + P0 기반 수정(출산 전환 멱등 등, #32)
+- 후속 3종: 임신 전 BMI 권장 증가밴드(#50) · 증상 주차별 추천칩(#51) · 정서기록 기분 모듈(#52, 신규 컬렉션 `pregnancyMoods`)
+- ⚠️ 검진/바우처/음식안전 등 의료 데이터 전부 의료감수 전 초안 + v3 UI는 RC 게이트 미연결(compile flag만) — 출시돼도 노출 0, rollout은 재배선+감수 후
+
+### Fixed — 데이터 무결성 (#39~#44, #49)
+
+- 계정 전환 시 이전 계정 데이터 잔존 — 로그아웃 단일 초크포인트 `AppState.resetUserScopedState()` (#39)
+- 공유 아기 삭제가 비선택 아기 경로로 오삭제/조용히 실패 + cascade 4컬렉션 orphan 보강 (#40)
+- 울음분석 stub 가짜 확률 라이브 노출 차단 `cryAnalysisEnabled=false` (#41)
+- 배지/루틴 에러 노출·공지 읽음상태 계정 격리·오프라인큐 인코딩 가드 (#42) · 공지 배너 제거 + 아기 사진 추가/편집 (#43) · 공유 owner 삭제 후 stale sharedAccess 자가치유 (#44)
+- 임신 공유 데이터 격리 — 체크리스트/검진/체중/증상 5개 write 경로 owner-path 통일 (#49)
+
+### Changed — 태깅·부채 정리 (#30, #45~#47)
+
+- GA4 태깅 위생 일괄(#30): PrivacyInfo stale 광고 선언 제거 · `category` 영어 rawValue 통일 · orphan 이벤트 발화 연결 · 병수유 content 태깅 · screen_view 11/11 + 자동 보고 OFF
+- CI `actions/checkout` v5 + arch_test `--update-baseline` (#45) · Sentry 임신정보 redact 심화 — exceptions/extra/breadcrumb.data 커버 (#46) · InsightService 606→110줄 분할 (#47)
+
 ## [2.8.7] - 2026-06-10 (TestFlight 빌드 89 — 미출시)
 
 > 앱 평가 팝업 + v2.8.6 이후 누적된 미출시 수정(#24~#28)을 묶은 빌드. TestFlight 업로드 완료(VALID), App Store 심사 미제출.
