@@ -2439,6 +2439,45 @@ final class BabyCareTests: XCTestCase {
         )
         XCTAssertEqual(status, .caution)
     }
+
+    // MARK: - FirstRecordGuidePolicy Tests (P0-1 첫 기록 가이드 — 이탈 방지)
+
+    func testFirstRecordGuide_visibleWhenBabyAndNoRecords() {
+        XCTAssertTrue(FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: true, todayCount: 0, recentWeekCount: 0, isLoading: false
+        ))
+    }
+
+    func testFirstRecordGuide_hiddenWithoutBaby() {
+        XCTAssertFalse(FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: false, todayCount: 0, recentWeekCount: 0, isLoading: false
+        ))
+    }
+
+    func testFirstRecordGuide_hiddenWhenTodayRecordExists() {
+        XCTAssertFalse(FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: true, todayCount: 1, recentWeekCount: 0, isLoading: false
+        ))
+    }
+
+    func testFirstRecordGuide_hiddenWhenRecentWeekRecordExists() {
+        // 최근 1주 내 기록이 있는 활성 사용자에게는 노출 금지 (매일 아침 오노출 방지)
+        XCTAssertFalse(FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: true, todayCount: 0, recentWeekCount: 3, isLoading: false
+        ))
+    }
+
+    func testFirstRecordGuide_hiddenWhileLoading() {
+        // 로딩 중 깜빡 노출(flash) 방지
+        XCTAssertFalse(FirstRecordGuidePolicy.isVisible(
+            hasSelectedBaby: true, todayCount: 0, recentWeekCount: 0, isLoading: true
+        ))
+    }
+
+    func testFirstRecordGuide_guideTypesAreThreeCoreTypes() {
+        // 수유·기저귀·수면 3종 고정 순서 — 대시보드 quickSave 경로 재사용 계약
+        XCTAssertEqual(FirstRecordGuidePolicy.guideTypes, [.feedingBreast, .diaperWet, .sleep])
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
