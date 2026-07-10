@@ -17,16 +17,29 @@ extension FirestoreService {
     func fetchActivities(userId: String, babyId: String, date: Date) async throws -> [Activity] {
         let start = date.startOfDay
         let end = date.endOfDay
-        let snapshot = try await db.collection(FirestoreCollections.users)
+        let collection = db.collection(FirestoreCollections.users)
             .document(userId)
             .collection(FirestoreCollections.babies)
             .document(babyId)
             .collection(FirestoreCollections.activities)
+
+        // 해당 날짜에 시작한 활동
+        let startedSnapshot = try await collection
             .whereField("startTime", isGreaterThanOrEqualTo: Timestamp(date: start))
             .whereField("startTime", isLessThanOrEqualTo: Timestamp(date: end))
             .order(by: "startTime", descending: true)
             .getDocuments()
-        return decodeDocuments(snapshot.documents, as: Activity.self)
+        let started = decodeDocuments(startedSnapshot.documents, as: Activity.self)
+
+        // 전날 시작해 이 날짜에 끝난 활동 (자정 넘김 수면) — endTime 단일 필드 range라 별도 인덱스 불필요.
+        // 정확히 자정(00:00)에 끝난 기록은 전날 소속 (ActivityDayAttribution 경계 규칙과 동일).
+        let endedSnapshot = try await collection
+            .whereField("endTime", isGreaterThan: Timestamp(date: start))
+            .whereField("endTime", isLessThanOrEqualTo: Timestamp(date: end))
+            .getDocuments()
+        let ended = decodeDocuments(endedSnapshot.documents, as: Activity.self)
+
+        return ActivityDayAttribution.mergeDayResults(started, ended)
     }
 
     func fetchActivities(userId: String, babyId: String, from startDate: Date, to endDate: Date) async throws -> [Activity] {

@@ -91,6 +91,35 @@ struct ActivityEditSheet: View {
                             displayedComponents: [.date, .hourAndMinute]
                         )
                     }
+                } else if activity.type.supportsEndTime {
+                    // 종료 없이 저장된 구간형 기록(밤잠 등)에 나중에 기상/종료 시각 추가 —
+                    // 기존엔 섹션 자체가 숨어 입력 방법이 없었다 (자정 넘김 수면 fix)
+                    Section("종료 시간") {
+                        Toggle("종료 시간 입력", isOn: Binding(
+                            get: { editedEndTime != nil },
+                            set: { isOn in
+                                if isOn {
+                                    let now = Date()
+                                    editedEndTime = now > editedStartTime
+                                        ? now
+                                        : editedStartTime.addingTimeInterval(60)
+                                } else {
+                                    editedEndTime = nil
+                                }
+                            }
+                        ))
+                        if editedEndTime != nil {
+                            DatePicker(
+                                "종료",
+                                selection: Binding(
+                                    get: { editedEndTime ?? Date() },
+                                    set: { editedEndTime = $0 }
+                                ),
+                                in: editedStartTime...Date(),
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        }
+                    }
                 }
 
                 // 분유 수유량 (ml)
@@ -229,8 +258,10 @@ struct ActivityEditSheet: View {
                         // 시간
                         updated.startTime = editedStartTime
                         if let end = editedEndTime {
-                            updated.endTime = end
-                            updated.duration = end.timeIntervalSince(editedStartTime)
+                            // 시작을 종료 뒤로 끌었을 때 음수 duration 저장 방어
+                            let clampedEnd = max(end, editedStartTime)
+                            updated.endTime = clampedEnd
+                            updated.duration = clampedEnd.timeIntervalSince(editedStartTime)
                         } else if activity.duration != nil {
                             let duration = (activity.endTime ?? activity.startTime.addingTimeInterval(activity.duration ?? 0))
                                 .timeIntervalSince(activity.startTime)

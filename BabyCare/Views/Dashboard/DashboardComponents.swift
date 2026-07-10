@@ -71,6 +71,19 @@ struct QuickActionButton: View {
 struct TimelineRow: View {
     let activity: Activity
 
+    /// 자정을 넘긴 구간 기록(밤잠)의 범위 라벨 — "어제 오후 9:15 → 오전 8:43".
+    /// 같은 날 안에 끝난 기록은 nil (기존 표시 유지).
+    private var crossDayRangeText: String? {
+        guard let end = activity.endTime,
+              !Calendar.current.isDate(activity.startTime, inSameDayAs: end) else { return nil }
+        let startPrefix = Calendar.current.isDateInYesterday(activity.startTime)
+            ? "어제 "
+            : "\(DateFormatters.shortDate.string(from: activity.startTime)) "
+        let startText = startPrefix + DateFormatters.shortTime.string(from: activity.startTime)
+        let endText = DateFormatters.shortTime.string(from: end)
+        return "\(startText) → \(endText)"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
@@ -89,6 +102,11 @@ struct TimelineRow: View {
                     .foregroundStyle(.primary)
 
                 HStack(spacing: 6) {
+                    if let rangeText = crossDayRangeText {
+                        Text(rangeText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if let durationText = activity.durationText {
                         Text(durationText)
                             .font(.caption)
