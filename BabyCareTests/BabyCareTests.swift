@@ -2837,6 +2837,30 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - WeeklySummaryPolicy (C6 — 주간 요약 푸시 본문)
+
+    func testWeeklySummary_countsByCategory() {
+        let now = Date()
+        let acts = [
+            Activity(babyId: "b1", type: .feedingBreast, startTime: now),
+            Activity(babyId: "b1", type: .feedingBottle, startTime: now),
+            Activity(babyId: "b1", type: .sleep, startTime: now),
+            Activity(babyId: "b1", type: .diaperWet, startTime: now),
+            Activity(babyId: "b1", type: .feedingPumping, startTime: now)   // 유축=생산, 수유 카테고리 아님
+        ]
+        let line = WeeklySummaryPolicy.summaryLine(babyName: "서연", weekActivities: acts)
+        XCTAssertEqual(line, "이번 주 서연 기록 5건 — 수유 2 · 수면 1 · 기저귀 1")
+    }
+
+    func testWeeklySummary_emptyReturnsNil() {
+        XCTAssertNil(WeeklySummaryPolicy.summaryLine(babyName: "서연", weekActivities: []), "기록 없으면 nil → generic 폴백")
+    }
+
+    func testWeeklySummary_totalOnlyWhenNoCoreCategories() {
+        let acts = [Activity(babyId: "b1", type: .temperature, startTime: Date())]
+        XCTAssertEqual(WeeklySummaryPolicy.summaryLine(babyName: "서연", weekActivities: acts), "이번 주 서연 기록 1건")
+    }
+
     // MARK: - RecordStreakPolicy (C1 — 기록 스트릭 배지)
 
     func testRecordStreak_incrementsFromYesterday() {
