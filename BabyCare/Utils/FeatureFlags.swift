@@ -30,12 +30,6 @@ enum FeatureFlags {
     ///       FirebaseRemoteConfig 직접 import 금지 (FeatureFlagService 단독 게이트웨이).
     static let highlightsEnabled: Bool = true
 
-    /// 디자인 시스템 V2 미리보기 노출 게이트.
-    /// true 시 Settings → 관리자 섹션에 "DS V2 미리보기" 진입점 노출.
-    /// 폐기 가능 namespace (`BabyCare/DesignSystemV2/`) 이므로 compile-time 단독 게이트.
-    /// RemoteConfig 미연결 — Lab/실험실 성격 (PO 직접 편집 UI 없이 코드로만 평가).
-    static let designSystemV2Preview: Bool = true
-
     /// 앱 평가(App Store 리뷰) 팝업 compile-time kill switch.
     /// true = 활성. 긍정적 성취(기록 20개 / 병원리포트 완료) 중 먼저 도달한 1개에서
     /// 시스템 평가 시트를 생애 1회 호출(AppReviewPromptService). RemoteConfig 미연결

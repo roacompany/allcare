@@ -31,13 +31,6 @@ final class DesignSystemV2Tests: XCTestCase {
         XCTAssertEqual(DS2.Shadow.lg.radius, 16)
     }
 
-    // MARK: - Canonical Flag Lock
-
-    func testDS2_isCanonical() {
-        XCTAssertTrue(FeatureFlags.designSystemV2Preview,
-                      "DS2는 정본(2026-06-08~). 플래그는 컴파일타임 영구 true — V1 분기는 dead(Track A Rule 4 래칫 9→0).")
-    }
-
     // MARK: - Component Structural Smoke (init 시그니처 깨지면 컴파일 실패 = 가드)
 
     @MainActor

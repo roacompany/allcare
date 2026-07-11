@@ -6,6 +6,10 @@ final class AnnouncementViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    /// 공지 푸시 탭 → 설정 탭 진입 후 공지 목록까지 자동 push 하기 위한 1회성 플래그.
+    /// Notification post 방식은 설정 탭 미마운트 시 유실 — 플래그+onAppear/onChange 소비로 레이스 회피.
+    var pendingOpenFromPush = false
+
     /// 공지 읽음 상태 저장 키 (기기 전역). 계정 전환 시 AppState.resetUserScopedState 에서 제거(잔존 방지).
     static let readStorageKey = "readAnnouncementIds"
 

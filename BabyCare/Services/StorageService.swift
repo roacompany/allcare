@@ -58,10 +58,6 @@ final class StorageService: Sendable {
         try await uploadImage(image, path: StoragePath.babyProfile(userId: userId, babyId: babyId))
     }
 
-    func uploadActivityPhoto(_ image: UIImage, userId: String, babyId: String, activityId: String) async throws -> String {
-        try await uploadImage(image, path: StoragePath.activityPhoto(userId: userId, babyId: babyId, activityId: activityId))
-    }
-
     func uploadDiaryPhoto(_ image: UIImage, userId: String, babyId: String, diaryId: String, index: Int) async throws -> String {
         try await uploadImage(image, path: StoragePath.diaryPhoto(userId: userId, babyId: babyId, diaryId: diaryId, index: index))
     }

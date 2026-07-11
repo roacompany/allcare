@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
 
     @State private var showAddBaby = false
+    @State private var showAnnouncementsFromPush = false
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
     @State private var showDeletePregnancyAlert = false
@@ -302,6 +303,13 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("설정")
+            .navigationDestination(isPresented: $showAnnouncementsFromPush) {
+                AnnouncementListView()
+            }
+            .onAppear { consumePendingAnnouncementPush() }
+            .onChange(of: announcementVM.pendingOpenFromPush) { _, _ in
+                consumePendingAnnouncementPush()
+            }
             .sheet(isPresented: $showAddBaby) {
                 AddBabyView()
             }
@@ -336,5 +344,12 @@ struct SettingsView: View {
                 Text("진행 중인 임신 기록과 관련 데이터(태동, 산전 방문, 체크리스트, 체중)가 모두 영구 삭제됩니다. 실수로 생성된 임신을 제거하거나 처음부터 다시 시작할 때 사용하세요.\n\n복구 불가. 계속하시겠습니까?")
             }
         }
+    }
+
+    /// 공지 푸시 1회성 플래그 소비 → 공지 목록 push. (onAppear=첫 마운트 / onChange=이미 설정 탭에 있을 때)
+    private func consumePendingAnnouncementPush() {
+        guard announcementVM.pendingOpenFromPush else { return }
+        announcementVM.pendingOpenFromPush = false
+        showAnnouncementsFromPush = true
     }
 }

@@ -8,7 +8,7 @@ import SwiftUI
 /// 정책:
 /// - Spacing 8pt grid(6-step), Radius 3-step, Font 10-step. JSON 토큰의 의도적 subset(DESIGN.md §1.1 참조).
 /// - 시스템 시맨틱 색(systemGroupedBackground 등)은 의도적 비-토큰(DESIGN.md §3).
-/// - `FeatureFlags.designSystemV2Preview`(컴파일타임 영구 true)의 V1 분기는 Track A에서 점진 제거(arch_test Rule 4).
+/// - DS2 정본화 완료: V1 dual-mode 분기는 Track A에서 전부 제거(arch_test Rule 4 = 재유입 감시, baseline 0).
 enum DS2 {
 
     // MARK: - Color
