@@ -2513,6 +2513,135 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(NotificationSettings.returnNudgeEnabled)
         UserDefaults.standard.removeObject(forKey: key)
     }
+
+    // MARK: - ActivityDayAttribution Tests (자정 넘김 수면 귀속 fix)
+    // timezone 교훈: 월 중간 + 고정 KST 캘린더로 구성 (CI runner 캘린더 무관)
+
+    private var kst: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return cal
+    }
+
+    private func kstDate(_ month: Int, _ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        kst.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute))!
+    }
+
+    private func sleepActivity(id: String = "s1", start: Date, end: Date?, duration: TimeInterval? = nil) -> Activity {
+        var a = Activity(babyId: "test-baby", type: .sleep)
+        a.id = id
+        a.startTime = start
+        a.endTime = end
+        a.duration = duration ?? end.map { $0.timeIntervalSince(start) }
+        return a
+    }
+
+    func testDayAttribution_effectiveEnd_prefersEndTimeThenDurationThenStart() {
+        let start = kstDate(4, 15, 21, 15)
+        let end = kstDate(4, 16, 8, 43)
+        // endTime 우선
+        XCTAssertEqual(ActivityDayAttribution.effectiveEnd(startTime: start, endTime: end, duration: 60), end)
+        // 레거시 duration-only 기록 (편집시트 fallback 경로 실존)
+        XCTAssertEqual(
+            ActivityDayAttribution.effectiveEnd(startTime: start, endTime: nil, duration: 3600),
+            start.addingTimeInterval(3600)
+        )
+        // 둘 다 없으면 포인트 이벤트
+        XCTAssertEqual(ActivityDayAttribution.effectiveEnd(startTime: start, endTime: nil, duration: nil), start)
+    }
+
+    func testDayAttribution_overlaps_crossMidnight_appearsOnBothDays() {
+        // 실측 재현: 7/9 21:15 → 7/10 08:43 (uid=XPDu1V) — 시작일·종료일 양쪽에 보여야 한다
+        let start = kstDate(4, 14, 21, 15)
+        let end = kstDate(4, 15, 8, 43)
+        XCTAssertTrue(ActivityDayAttribution.overlaps(day: kstDate(4, 14, 12), startTime: start, endTime: end, duration: nil, calendar: kst))
+        XCTAssertTrue(ActivityDayAttribution.overlaps(day: kstDate(4, 15, 12), startTime: start, endTime: end, duration: nil, calendar: kst))
+        XCTAssertFalse(ActivityDayAttribution.overlaps(day: kstDate(4, 13, 12), startTime: start, endTime: end, duration: nil, calendar: kst))
+        XCTAssertFalse(ActivityDayAttribution.overlaps(day: kstDate(4, 16, 12), startTime: start, endTime: end, duration: nil, calendar: kst))
+    }
+
+    func testDayAttribution_overlaps_boundaryAtMidnight() {
+        // 종료가 정확히 자정이면 다음날에 안 나타남
+        let start = kstDate(4, 14, 21)
+        let midnight = kstDate(4, 15, 0)
+        XCTAssertTrue(ActivityDayAttribution.overlaps(day: kstDate(4, 14, 12), startTime: start, endTime: midnight, duration: nil, calendar: kst))
+        XCTAssertFalse(ActivityDayAttribution.overlaps(day: kstDate(4, 15, 12), startTime: start, endTime: midnight, duration: nil, calendar: kst))
+        // 자정 정각의 포인트 이벤트는 그 날짜 소속
+        XCTAssertTrue(ActivityDayAttribution.overlaps(day: kstDate(4, 15, 12), startTime: midnight, endTime: nil, duration: nil, calendar: kst))
+        XCTAssertFalse(ActivityDayAttribution.overlaps(day: kstDate(4, 14, 12), startTime: midnight, endTime: nil, duration: nil, calendar: kst))
+    }
+
+    func testDayAttribution_clippedDuration_splitsAtMidnight() {
+        // 21:15→08:43 = 총 41,280초. 시작일 9,900초(2h45m) + 종료일 31,380초(8h43m)
+        let start = kstDate(4, 14, 21, 15)
+        let end = kstDate(4, 15, 8, 43)
+        let onStartDay = ActivityDayAttribution.clippedDuration(on: kstDate(4, 14, 12), startTime: start, endTime: end, duration: nil, calendar: kst)
+        let onEndDay = ActivityDayAttribution.clippedDuration(on: kstDate(4, 15, 12), startTime: start, endTime: end, duration: nil, calendar: kst)
+        XCTAssertEqual(onStartDay, 9_900, accuracy: 0.5)
+        XCTAssertEqual(onEndDay, 31_380, accuracy: 0.5)
+        XCTAssertEqual(onStartDay + onEndDay, end.timeIntervalSince(start), accuracy: 0.5, "클립 합 = 전체 구간 보존")
+    }
+
+    func testDayAttribution_clippedDuration_edgeCases() {
+        // 통째로 걸친 중간 날짜 = 86,400초
+        let longStart = kstDate(4, 14, 23)
+        let longEnd = kstDate(4, 16, 1)
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(on: kstDate(4, 15, 12), startTime: longStart, endTime: longEnd, duration: nil, calendar: kst),
+            86_400, accuracy: 0.5
+        )
+        // 포인트 이벤트 = 0
+        let point = kstDate(4, 15, 10)
+        XCTAssertEqual(ActivityDayAttribution.clippedDuration(on: kstDate(4, 15, 12), startTime: point, endTime: nil, duration: nil, calendar: kst), 0)
+        // 역전 구간(방어) = 0
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(on: kstDate(4, 15, 12), startTime: point, endTime: point.addingTimeInterval(-3600), duration: nil, calendar: kst),
+            0
+        )
+        // 겹치지 않는 날짜 = 0
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(on: kstDate(4, 17, 12), startTime: longStart, endTime: longEnd, duration: nil, calendar: kst),
+            0
+        )
+    }
+
+    func testDayAttribution_spannedDays_listAndCap() {
+        let start = kstDate(4, 14, 21, 15)
+        let end = kstDate(4, 15, 8, 43)
+        let days = ActivityDayAttribution.spannedDays(startTime: start, endTime: end, duration: nil, calendar: kst)
+        XCTAssertEqual(days, [kst.startOfDay(for: start), kst.startOfDay(for: end)])
+        // 같은 날이면 하루만
+        XCTAssertEqual(
+            ActivityDayAttribution.spannedDays(startTime: kstDate(4, 15, 10), endTime: kstDate(4, 15, 11), duration: nil, calendar: kst).count,
+            1
+        )
+        // 손상 데이터 폭주 방지 상한
+        let corrupt = ActivityDayAttribution.spannedDays(
+            startTime: start, endTime: start.addingTimeInterval(400 * 86_400), duration: nil, calendar: kst
+        )
+        XCTAssertEqual(corrupt.count, ActivityDayAttribution.maxSpannedDays)
+    }
+
+    func testDayAttribution_mergeDayResults_dedupesAndSortsDescending() {
+        let a = sleepActivity(id: "a", start: kstDate(4, 14, 21), end: kstDate(4, 15, 7))
+        let b = sleepActivity(id: "b", start: kstDate(4, 15, 9), end: kstDate(4, 15, 10))
+        let c = sleepActivity(id: "c", start: kstDate(4, 15, 13), end: kstDate(4, 15, 14))
+        let merged = ActivityDayAttribution.mergeDayResults([c, b], [a, b])
+        XCTAssertEqual(merged.map(\.id), ["c", "b", "a"], "id dedupe + startTime 내림차순 (기존 fetch 정렬 계약 유지)")
+    }
+
+    func testSupportsEndTime_matchesRecordViewShowEndTimeSet() {
+        // 기록 뷰 showEndTime 집합과 동일: needsTimer(모유/병수유/수면) + 목욕
+        XCTAssertTrue(Activity.ActivityType.sleep.supportsEndTime)
+        XCTAssertTrue(Activity.ActivityType.feedingBreast.supportsEndTime)
+        XCTAssertTrue(Activity.ActivityType.feedingBottle.supportsEndTime)
+        XCTAssertTrue(Activity.ActivityType.bath.supportsEndTime)
+        XCTAssertFalse(Activity.ActivityType.diaperWet.supportsEndTime)
+        XCTAssertFalse(Activity.ActivityType.temperature.supportsEndTime)
+        XCTAssertFalse(Activity.ActivityType.feedingSolid.supportsEndTime)
+        XCTAssertFalse(Activity.ActivityType.medication.supportsEndTime)
+        XCTAssertFalse(Activity.ActivityType.unknown.supportsEndTime)
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)

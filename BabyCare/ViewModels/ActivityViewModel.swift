@@ -59,7 +59,11 @@ final class ActivityViewModel: OptimisticReplaceable {
     }
 
     var todaySleepDuration: TimeInterval {
-        todayActivities.filter { $0.type == .sleep }.compactMap(\.duration).reduce(0, +)
+        // 자정 클립 — 전날 밤 시작해 오늘 아침 끝난 수면은 오늘 구간만 합산 (ActivityDayAttribution)
+        let today = Date()
+        return todayActivities.filter { $0.type == .sleep }
+            .map { ActivityDayAttribution.clippedDuration($0, on: today) }
+            .reduce(0, +)
     }
 
     var todayDiaperCount: Int {

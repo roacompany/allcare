@@ -142,7 +142,10 @@ final class CalendarViewModel {
     static func eventDots(forActivities activities: [Activity]) -> [Date: Set<CalendarEventType>] {
         var dots: [Date: Set<CalendarEventType>] = [:]
         for activity in activities where activity.type.category != .pumping && activity.type.category != .unknown {
-            dots[activity.startTime.startOfDay, default: []].insert(.activity(activity.type.category))
+            // 자정 넘김 기록(밤잠)은 걸친 날짜 전부에 dot — 시작일에만 귀속시키지 않는다
+            for day in ActivityDayAttribution.spannedDays(activity) {
+                dots[day, default: []].insert(.activity(activity.type.category))
+            }
         }
         return dots
     }
@@ -160,7 +163,7 @@ final class CalendarViewModel {
         do {
             async let fetchActs = firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
-                from: start.startOfDay, to: end.endOfDay
+                from: start.startOfDay.adding(days: -1), to: end.endOfDay   // -1d: 전날 밤 시작한 자정 넘김 기록의 첫날 dot 포함
             )
             async let fetchVisits = firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
             async let fetchVax = firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
@@ -210,7 +213,7 @@ final class CalendarViewModel {
         do {
             async let fetchActs = firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
-                from: startOfMonth.startOfDay, to: endOfMonth.endOfDay
+                from: startOfMonth.startOfDay.adding(days: -1), to: endOfMonth.endOfDay   // -1d: 전월 말일 밤 시작한 자정 넘김 기록의 1일 dot 포함
             )
             async let fetchVisits = firestoreService.fetchHospitalVisits(userId: userId, babyId: babyId)
             async let fetchVax = firestoreService.fetchVaccinations(userId: userId, babyId: babyId)
