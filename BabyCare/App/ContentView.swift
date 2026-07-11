@@ -243,7 +243,12 @@ struct ContentView: View {
         guard calendar.component(.weekday, from: Date()) == 2 else { return }
         let today = calendar.startOfDay(for: Date())
         guard ActivityReminderSettings.lastWeeklyInsightDate != today else { return }
-        NotificationService.shared.scheduleWeeklyInsight(topInsightTitle: "지난주 육아 패턴 변화를 확인해보세요")
+        // C6: 지난 7일 실제 기록 요약. 데이터 없으면 generic 폴백.
+        let body = WeeklySummaryPolicy.summaryLine(
+            babyName: babyVM.selectedBaby?.name ?? "우리 아기",
+            weekActivities: activityVM.recentWeekActivities
+        ) ?? "지난주 육아 패턴 변화를 확인해보세요"
+        NotificationService.shared.scheduleWeeklyInsight(topInsightTitle: body)
         ActivityReminderSettings.lastWeeklyInsightDate = today
     }
 
