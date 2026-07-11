@@ -74,6 +74,22 @@ struct FeedingRecordView: View {
             } else if type == .feedingPumping {
                 activityVM.selectedSide = .both   // 유축 기본 방향
             }
+            // B3: 직전 값 프리필 — 사용자가 이미 입력했으면(비어있지 않으면) 유지
+            if (type == .feedingBottle || type == .feedingPumping), activityVM.amount.isEmpty,
+               let last = RecordPrefillPolicy.lastAmount(
+                   type: type,
+                   todayActivities: activityVM.todayActivities,
+                   recentActivities: activityVM.recentWeekActivities
+               ) {
+                activityVM.amount = last
+            }
+            if type == .feedingBottle,
+               let content = RecordPrefillPolicy.lastFeedingContent(
+                   todayActivities: activityVM.todayActivities,
+                   recentActivities: activityVM.recentWeekActivities
+               ) {
+                activityVM.selectedFeedingContent = content
+            }
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
