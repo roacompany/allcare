@@ -2836,6 +2836,15 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - PartnerInvitePromoPolicy (C3 — 파트너 초대 유도, 해제형 1회)
+
+    func testPartnerInvitePromo_visibleForSoloHabitUsers() {
+        XCTAssertTrue(PartnerInvitePromoPolicy.isVisible(hasSharedBaby: false, recordCount: 7, dismissed: false))
+        XCTAssertFalse(PartnerInvitePromoPolicy.isVisible(hasSharedBaby: true, recordCount: 20, dismissed: false), "이미 공유 중이면 불필요")
+        XCTAssertFalse(PartnerInvitePromoPolicy.isVisible(hasSharedBaby: false, recordCount: 6, dismissed: false), "습관 전 노출 금지")
+        XCTAssertFalse(PartnerInvitePromoPolicy.isVisible(hasSharedBaby: false, recordCount: 30, dismissed: true), "해제 후 재노출 금지")
+    }
+
     // MARK: - DashboardInsight 탭 목적지 매핑 (B5 — 읽기 전용 카드에 행동 연결)
 
     func testInsightTapDestination_mapping() {
