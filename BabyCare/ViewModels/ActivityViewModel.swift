@@ -324,11 +324,7 @@ final class ActivityViewModel: OptimisticReplaceable {
     }
 
     // MARK: - Validation
-
-    var isTemperatureValid: Bool {
-        guard let temp = Double(temperatureInput) else { return false }
-        return temp >= 34.0 && temp <= 43.0
-    }
+    // 저장 검증(수유량 1~500ml / 체온 34~43°C)은 ActivityDraftBuilder로 이관(P0). 여기는 경고 문구만.
 
     var temperatureWarning: String? {
         guard let temp = Double(temperatureInput) else { return nil }
@@ -345,11 +341,6 @@ final class ActivityViewModel: OptimisticReplaceable {
             return "체온이 35.5°C 이하입니다. 저체온 상태일 수 있으니 즉시 확인하세요."
         }
         return nil
-    }
-
-    var isAmountValid: Bool {
-        guard let ml = Double(amount) else { return false }
-        return ml > 0 && ml <= 500
     }
 
     // MARK: - Temperature Trend Detection
