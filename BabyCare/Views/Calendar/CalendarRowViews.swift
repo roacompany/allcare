@@ -76,6 +76,10 @@ struct CalendarVaccinationRow: View {
                     Text("접종 완료")
                         .font(.caption)
                         .foregroundStyle(AppColors.successColor)
+                } else if vaccination.isUnrecordedPast {
+                    Text("기록 전")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } else if vaccination.isOverdue {
                     Text("접종 지연")
                         .font(.caption)

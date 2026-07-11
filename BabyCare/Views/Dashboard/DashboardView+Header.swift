@@ -83,13 +83,27 @@ extension DashboardView {
     @ViewBuilder
     var alertBannersSection: some View {
         VStack(spacing: 8) {
-            // 접종 지연 알림
+            // 접종 지연 알림 (앱 사용 중 실제로 경과한 일정만)
             if !healthVM.overdueVaccinations.isEmpty {
                 DashboardAlertBanner(
                     icon: "exclamationmark.triangle.fill",
                     message: "접종 지연 \(healthVM.overdueVaccinations.count)건",
                     color: .red
                 )
+            }
+
+            // 앱 사용 전에 지난 접종 — 경고 대신 조용한 기록 안내 (탭하면 접종 목록)
+            if !healthVM.unrecordedPastVaccinations.isEmpty {
+                NavigationLink {
+                    VaccinationListView()
+                } label: {
+                    DashboardAlertBanner(
+                        icon: "syringe",
+                        message: "앱 사용 전 접종 \(healthVM.unrecordedPastVaccinations.count)건 기록하기",
+                        color: AppColors.healthColor
+                    )
+                }
+                .buttonStyle(.plain)
             }
 
             // 접종 예정 알림

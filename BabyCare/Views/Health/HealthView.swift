@@ -9,6 +9,7 @@ struct HealthView: View {
 
     @State private var overdueVaccinationDismissed = false
     @State private var upcomingVaccinationDismissed = false
+    @State private var unrecordedVaccinationDismissed = false
     @State private var showBabySelector = false
 
     var body: some View {
@@ -39,6 +40,15 @@ struct HealthView: View {
                             message: "접종 지연 \(healthVM.overdueVaccinations.count)건이 있습니다",
                             color: .red,
                             onDismiss: { overdueVaccinationDismissed = true }
+                        )
+                    }
+
+                    if !healthVM.unrecordedPastVaccinations.isEmpty && !unrecordedVaccinationDismissed {
+                        AlertBanner(
+                            icon: "syringe",
+                            message: "앱 사용 전 접종 \(healthVM.unrecordedPastVaccinations.count)건 — 접종 목록에서 기록해 주세요",
+                            color: AppColors.healthColor,
+                            onDismiss: { unrecordedVaccinationDismissed = true }
                         )
                     }
 
