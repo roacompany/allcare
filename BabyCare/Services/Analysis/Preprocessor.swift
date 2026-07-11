@@ -79,13 +79,30 @@ enum Preprocessor {
             $0.startTime >= period.from && $0.startTime <= period.to
         }) { calendar.startOfDay(for: $0.startTime) }
 
+        // 수면은 시작일 귀속이 아닌 하루 귀속(자정 클립) — 자정 넘김 밤잠이 시작일에 몰리는 왜곡 방지 (#55 후속 D1)
+        let sleepActivities = activities.filter { $0.type == .sleep }
+
         var aggregates: [DailyAggregate] = []
         var previousAggregate: DailyAggregate?
 
         for date in dates {
             let dayActivities = grouped[date] ?? []
+            let sleepMinutes = sleepActivities.reduce(0.0) {
+                $0 + ActivityDayAttribution.clippedDuration($1, on: date, calendar: calendar)
+            } / 60.0
 
             if dayActivities.isEmpty {
+                if sleepMinutes > 0 {
+                    // 자정 넘김 수면의 종료일 — 시작 기록은 없어도 실데이터가 있는 날 (LOCF 대상 아님)
+                    let agg = DailyAggregate(
+                        date: date, feedingCount: 0, feedingAmountMl: 0,
+                        sleepMinutes: sleepMinutes, diaperCount: 0,
+                        avgTemperature: nil, isMissingData: false, hasOutlier: sleepMinutes > 1200
+                    )
+                    aggregates.append(agg)
+                    previousAggregate = agg
+                    continue
+                }
                 if let prev = previousAggregate {
                     // LOCF: 이전 값으로 채움
                     var filled = prev
@@ -99,14 +116,12 @@ enum Preprocessor {
             }
 
             let feeding = dayActivities.filter { $0.type.category == .feeding }
-            let sleep = dayActivities.filter { $0.type == .sleep }
             let diaper = dayActivities.filter { $0.type.category == .diaper }
             // 체온은 .temperature 타입만 — forward-compat .unknown 형제 온도 누수 차단 (#1).
             let temps = dayActivities.temperatureActivities.compactMap { $0.temperature }
 
             let feedingCount = feeding.count
             let feedingAmount = feeding.compactMap { $0.amount }.reduce(0, +)
-            let sleepMinutes = sleep.compactMap { $0.duration }.reduce(0, +) / 60.0
             let diaperCount = diaper.count
             let avgTemp = temps.isEmpty ? nil : temps.reduce(0, +) / Double(temps.count)
 

@@ -2904,6 +2904,48 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(PartnerInvitePromoPolicy.isVisible(hasSharedBaby: false, recordCount: 30, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - 수면 주간 통계 하루 귀속 (D1 — #55 후속: 기간/일별 클립)
+
+    func testDayAttribution_periodClip() {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let start = base
+        let end = base.addingTimeInterval(3_600)
+        // 완전 포함
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(from: base.addingTimeInterval(-600), to: base.addingTimeInterval(4_000), startTime: start, endTime: end, duration: nil),
+            3_600
+        )
+        // 기간 시작 경계에 걸침 → 부분
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(from: base.addingTimeInterval(1_800), to: base.addingTimeInterval(7_200), startTime: start, endTime: end, duration: nil),
+            1_800
+        )
+        // 기간 밖 → 0
+        XCTAssertEqual(
+            ActivityDayAttribution.clippedDuration(from: base.addingTimeInterval(7_200), to: base.addingTimeInterval(9_000), startTime: start, endTime: end, duration: nil),
+            0
+        )
+    }
+
+    func testPreprocessor_aggregate_splitsCrossMidnightSleep() {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let day1 = cal.date(byAdding: .day, value: -3, to: today)!
+        let day2 = cal.date(byAdding: .day, value: 1, to: day1)!
+
+        var sleep = Activity(babyId: "b1", type: .sleep, startTime: day1.addingTimeInterval(21 * 3_600))
+        sleep.endTime = day1.addingTimeInterval(32 * 3_600)   // 다음날 08:00
+        sleep.duration = 11 * 3_600
+
+        let period = AnalysisPeriod(from: day1, to: day2.addingTimeInterval(12 * 3_600))
+        let aggregates = Preprocessor.aggregate(activities: [sleep], period: period)
+
+        let d1Agg = aggregates.first { cal.isDate($0.date, inSameDayAs: day1) }
+        let d2Agg = aggregates.first { cal.isDate($0.date, inSameDayAs: day2) }
+        XCTAssertEqual(d1Agg?.sleepMinutes ?? -1, 180, accuracy: 0.01, "전날 밤 21~24시 = 180분")
+        XCTAssertEqual(d2Agg?.sleepMinutes ?? -1, 480, accuracy: 0.01, "당일 새벽 0~8시 = 480분")
+    }
+
     // MARK: - DashboardInsight 탭 목적지 매핑 (B5 — 읽기 전용 카드에 행동 연결)
 
     func testInsightTapDestination_mapping() {
