@@ -2836,6 +2836,51 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - AnniversaryPolicy (C4 — 기념일 카운트다운)
+
+    private func anniversaryKstDay(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return cal.date(from: DateComponents(timeZone: cal.timeZone, year: y, month: m, day: d, hour: 12))!
+    }
+
+    private var anniversaryKstCal: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return cal
+    }
+
+    func testAnniversary_next_hundredDaysConvention() {
+        // 출생 2026-01-01 → 백일 = 출생일 포함 100번째 날 = 2026-04-10 (birth + 99일)
+        let birth = anniversaryKstDay(2026, 1, 1)
+        let next = AnniversaryPolicy.next(birthDate: birth, now: anniversaryKstDay(2026, 4, 3), calendar: anniversaryKstCal)
+        XCTAssertEqual(next?.title, "백일")
+        XCTAssertEqual(next?.dDay, 7)
+    }
+
+    func testAnniversary_next_skipsPastAndFindsFirstBirthday() {
+        let birth = anniversaryKstDay(2025, 7, 15)
+        // 2026-07-10 기준: 50/100/200/300일 모두 지남 → 다음 = 첫돌(2026-07-15) D-5
+        let next = AnniversaryPolicy.next(birthDate: birth, now: anniversaryKstDay(2026, 7, 10), calendar: anniversaryKstCal)
+        XCTAssertEqual(next?.title, "첫돌")
+        XCTAssertEqual(next?.dDay, 5)
+    }
+
+    func testAnniversary_visible_onlyWithinWindow() {
+        let birth = anniversaryKstDay(2026, 1, 1)
+        // 백일(4/10)까지 D-8 → 미노출, D-7 → 노출, 당일 D-0 → 노출
+        XCTAssertNil(AnniversaryPolicy.visible(birthDate: birth, now: anniversaryKstDay(2026, 4, 2), calendar: anniversaryKstCal))
+        XCTAssertNotNil(AnniversaryPolicy.visible(birthDate: birth, now: anniversaryKstDay(2026, 4, 3), calendar: anniversaryKstCal))
+        XCTAssertEqual(AnniversaryPolicy.visible(birthDate: birth, now: anniversaryKstDay(2026, 4, 10), calendar: anniversaryKstCal)?.dDay, 0)
+    }
+
+    func testAnniversary_secondBirthdayAfterFirst() {
+        let birth = anniversaryKstDay(2025, 7, 15)
+        let next = AnniversaryPolicy.next(birthDate: birth, now: anniversaryKstDay(2027, 7, 12), calendar: anniversaryKstCal)
+        XCTAssertEqual(next?.title, "두 돌")
+        XCTAssertEqual(next?.dDay, 3)
+    }
+
     // MARK: - PartnerInvitePromoPolicy (C3 — 파트너 초대 유도, 해제형 1회)
 
     func testPartnerInvitePromo_visibleForSoloHabitUsers() {

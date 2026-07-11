@@ -51,6 +51,7 @@ struct DashboardView: View {
     private var dashboardV2Layout: some View {
         pregnancyPortalCardIfNeeded
         alertBannersSection
+        anniversaryIfNeeded
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
@@ -79,6 +80,15 @@ struct DashboardView: View {
                 partnerInvitePromoDismissed = true
                 AnalyticsService.shared.trackEvent(AnalyticsEvents.partnerInvitePromoDismissed)
             }
+        }
+    }
+
+    /// 기념일 카운트다운 (C4) — 50일·백일·200일·300일·돌 임박(D-7) 시에만.
+    @ViewBuilder
+    private var anniversaryIfNeeded: some View {
+        if let baby = babyVM.selectedBaby,
+           let anniversary = AnniversaryPolicy.visible(birthDate: baby.birthDate, now: Date()) {
+            AnniversaryCountdownCard(anniversary: anniversary, babyName: baby.name)
         }
     }
 
