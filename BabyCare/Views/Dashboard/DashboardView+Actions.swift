@@ -53,8 +53,8 @@ extension DashboardView {
     }
 
     func quickSave(type: Activity.ActivityType) async {
-        // 추가 입력이 필요한 타입은 미니 입력 시트 표시
-        if type.needsQuickInput {
+        // 상세 입력이 필요한 타입은 통합 기록 시트로 (RecordEntryRule 단일 정책 — 기존 needsQuickInput 대체)
+        if RecordEntryRule.mode(for: type) == .detail {
             quickInputType = type
             return
         }
@@ -68,21 +68,24 @@ extension DashboardView {
             AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.rawValue])
         }
 
-        // 성공 피드백: 햅틱 + 토스트
+        showSavedFeedback(for: type)
+
+        if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId) {
+            productCandidates = candidates
+        }
+    }
+
+    /// 저장 성공 피드백 — 햅틱 + 대시보드 토스트(savedActivityType). 그리드 즉시저장 + 통합 시트 공용.
+    func showSavedFeedback(for type: Activity.ActivityType) {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         lastSavedActivity = activityVM.todayActivities.first
         withAnimation(.spring(duration: 0.3)) {
             savedActivityType = type
         }
-        // 3초 후 토스트 제거
         Task {
             try? await Task.sleep(for: .seconds(3))
             withAnimation { savedActivityType = nil; lastSavedActivity = nil }
-        }
-
-        if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId) {
-            productCandidates = candidates
         }
     }
 

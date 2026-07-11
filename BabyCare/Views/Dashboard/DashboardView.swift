@@ -269,10 +269,10 @@ struct DashboardView: View {
             }
         }
         .sheet(item: $quickInputType) { type in
-            QuickInputSheet(type: type) { activity in
-                Task { await quickSaveWithData(activity) }
-            }
-            .presentationDetents([.medium, .large])
+            // 통합 기록 시트 — 상세 타입(RecordEntryRule .detail)을 단일 시트로. (QuickInputSheet 대체)
+            UnifiedRecordSheet(type: type, onSaved: { activity in
+                showSavedFeedback(for: activity.type)
+            })
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },
