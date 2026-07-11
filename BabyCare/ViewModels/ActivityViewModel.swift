@@ -162,7 +162,8 @@ final class ActivityViewModel: OptimisticReplaceable {
                 )
             }.filter { $0.type == .temperature }
         } catch {
-            errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("활동 기록을 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "활동 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

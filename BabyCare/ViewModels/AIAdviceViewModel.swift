@@ -144,7 +144,8 @@ final class AIAdviceViewModel {
             let filtered = AIGuardrailService.filter(response)
             messages.append(ChatMessage(role: .assistant, content: filtered))
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("AI 조언 요청 실패", error: error, logger: AppLogger.ml)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
 
         isLoading = false

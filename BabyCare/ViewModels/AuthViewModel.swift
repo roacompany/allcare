@@ -155,7 +155,8 @@ final class AuthViewModel {
             if nsError.code == AuthErrorCode.requiresRecentLogin.rawValue {
                 errorMessage = "보안을 위해 재로그인이 필요합니다. 로그아웃 후 다시 로그인해주세요."
             } else {
-                errorMessage = "계정 삭제에 실패했습니다: \(error.localizedDescription)"
+                logSilent("계정 삭제 실패", error: error, logger: AppLogger.auth)
+                errorMessage = "계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
             }
         }
         isLoading = false
@@ -264,7 +265,8 @@ final class AuthViewModel {
         case AuthErrorCode.networkError.rawValue:
             return "네트워크 오류가 발생했습니다. 연결을 확인해주세요."
         default:
-            return "오류가 발생했습니다: \(error.localizedDescription)"
+            logSilent("auth 오류 (미분류 코드 \(nsError.code))", error: error, logger: AppLogger.auth)
+            return "로그인 처리 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."
         }
     }
 }

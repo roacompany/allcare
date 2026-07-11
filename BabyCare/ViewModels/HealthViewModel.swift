@@ -107,7 +107,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
                 hospitalVisits = hv
                 scheduleVaccinationReminders(babyName: babyName)
             } catch {
-                errorMessage = "건강 정보를 불러오지 못했습니다: \(error.localizedDescription)"
+                logSilent("건강 정보를 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+                errorMessage = "건강 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
             }
         }
     }
@@ -160,7 +161,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             try await firestoreService.saveVaccinations(backfilled, userId: userId)
         } catch {
             vaccinations = original
-            errorMessage = "지난 접종 일괄 기록에 실패했습니다: \(error.localizedDescription)"
+            logSilent("지난 접종 일괄 기록에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "지난 접종 일괄 기록에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -198,7 +200,7 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         if !OfflineQueue.shared.enqueueSave(document, collectionPath: path, documentId: documentId, type: type) {
             AppLogger.firestore.error("오프라인 큐 인코딩 실패 — \(collection)/\(documentId) 큐잉 누락")
         }
-        errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+        InfoToastCenter.shared.offlineSaved()
     }
 
     // MARK: - Milestone Actions
@@ -255,7 +257,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         } catch {
             if needVax { vaccinations = [] }
             if needMs { milestones = [] }
-            errorMessage = "스케줄 생성에 실패했습니다: \(error.localizedDescription)"
+            logSilent("스케줄 생성에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "스케줄 생성에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -298,7 +301,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             NotificationService.shared.cancelHospitalVisitReminder(visitId: visit.id)
         } catch {
             hospitalVisits = original
-            errorMessage = "병원 기록 삭제에 실패했습니다: \(error.localizedDescription)"
+            logSilent("병원 기록 삭제에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "병원 기록 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -326,7 +330,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             )
             solidFoodActivities = activities.filter { $0.type == .feedingSolid }
         } catch {
-            errorMessage = "이유식 기록 로드 실패: \(error.localizedDescription)"
+            logSilent("이유식 기록 로드 실패", error: error, logger: AppLogger.firestore)
+            errorMessage = "이유식 기록 로드 실패. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -373,7 +378,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             do {
                 allergyRecords = try await firestoreService.fetchAllergyRecords(userId: userId, babyId: babyId)
             } catch {
-                errorMessage = "알레르기 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+                logSilent("알레르기 기록을 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+                errorMessage = "알레르기 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
             }
         }
     }
@@ -391,7 +397,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             try await firestoreService.deleteAllergyRecord(recordId, userId: userId, babyId: babyId)
             allergyRecords.removeAll { $0.id == recordId }
         } catch {
-            errorMessage = "알레르기 기록 삭제에 실패했습니다: \(error.localizedDescription)"
+            logSilent("알레르기 기록 삭제에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "알레르기 기록 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

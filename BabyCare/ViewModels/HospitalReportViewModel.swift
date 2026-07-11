@@ -80,7 +80,8 @@ final class HospitalReportViewModel {
                 to: period.to
             )
         } catch {
-            state = .failed("활동 데이터를 불러오지 못했습니다: \(error.localizedDescription)")
+            logSilent("hospital report용 활동 데이터 로드 실패", error: error, logger: AppLogger.firestore)
+            state = .failed("활동 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.")
             return
         }
 
@@ -127,7 +128,8 @@ final class HospitalReportViewModel {
                 cachedReport = fallback
                 state = .done(fallback)
             } else {
-                state = .failed(error.localizedDescription)
+                logSilent("hospital report 생성 실패", error: error, logger: AppLogger.analysis)
+                state = .failed("리포트를 만들지 못했어요. 잠시 후 다시 시도해 주세요.")
             }
         }
     }

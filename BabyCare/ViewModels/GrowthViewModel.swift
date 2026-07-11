@@ -34,7 +34,7 @@ final class GrowthViewModel {
             enqueueOfflineGrowthRecord(record, userId: userId, type: .create)
             records.append(record)
             records.sort { $0.date < $1.date }
-            saveError = "오프라인 저장됨 — 연결 시 자동 동기화"
+            InfoToastCenter.shared.offlineSaved()
             return
         }
         AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
@@ -95,7 +95,7 @@ final class GrowthViewModel {
             try await firestoreService.updateGrowthRecord(updated, userId: userId)
         } catch {
             enqueueOfflineGrowthRecord(updated, userId: userId, type: .update)
-            saveError = "오프라인 저장됨 — 연결 시 자동 동기화"
+            InfoToastCenter.shared.offlineSaved()
         }
         if let idx = records.firstIndex(where: { $0.id == updated.id }) {
             records[idx] = updated

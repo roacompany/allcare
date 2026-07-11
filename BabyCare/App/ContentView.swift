@@ -429,10 +429,28 @@ struct ContentView: View {
             .padding(.bottom, 52) // TabBar 위
         }
         .overlay(alignment: .top) {
-            BadgeSnackbarView(presenter: AppState.shared.badgePresenter) {
-                // 설정 탭으로 이동 → 사용자가 "내 배지" row 탭하여 갤러리 진입
-                selectedTab = 4
-                NotificationCenter.default.post(name: .showBadgeGallery, object: nil)
+            VStack(spacing: 8) {
+                BadgeSnackbarView(presenter: AppState.shared.badgePresenter) {
+                    // 설정 탭으로 이동 → 사용자가 "내 배지" row 탭하여 갤러리 진입
+                    selectedTab = 4
+                    NotificationCenter.default.post(name: .showBadgeGallery, object: nil)
+                }
+                if let toast = InfoToastCenter.shared.message {
+                    Text(toast)
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut, value: InfoToastCenter.shared.message)
+        }
+        .onChange(of: InfoToastCenter.shared.message) { _, newValue in
+            // 2.5초 후 자동 소거 — 대기 중 새 토스트가 떴으면 유지 (dismiss가 문구 비교로 가드)
+            guard let shown = newValue else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                InfoToastCenter.shared.dismiss(ifStillShowing: shown)
             }
         }
     }
