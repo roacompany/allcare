@@ -2853,6 +2853,20 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNil(NextRecordSuggestionPolicy.suggestion(after: .unknown))
     }
 
+    // MARK: - WelcomeBackPolicy (C5 — 복귀 웰컴백, 자동 소멸)
+
+    func testWelcomeBack_gapDays() {
+        let cal = Calendar.current
+        let now = Date()
+        let fiveDaysAgo = cal.date(byAdding: .day, value: -5, to: now)!
+        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: now)!
+
+        XCTAssertEqual(WelcomeBackPolicy.gapDays(lastRecordAt: fiveDaysAgo, todayCount: 0, now: now), 5)
+        XCTAssertNil(WelcomeBackPolicy.gapDays(lastRecordAt: fiveDaysAgo, todayCount: 1, now: now), "오늘 기록 생기면 자동 소멸")
+        XCTAssertNil(WelcomeBackPolicy.gapDays(lastRecordAt: twoDaysAgo, todayCount: 0, now: now), "3일 미만 공백은 평시")
+        XCTAssertNil(WelcomeBackPolicy.gapDays(lastRecordAt: nil, todayCount: 0, now: now), "기록 이력 없음 = 첫기록 가이드 영역")
+    }
+
     // MARK: - AnniversaryPolicy (C4 — 기념일 카운트다운)
 
     private func anniversaryKstDay(_ y: Int, _ m: Int, _ d: Int) -> Date {
