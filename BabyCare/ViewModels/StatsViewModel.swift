@@ -67,8 +67,13 @@ final class StatsViewModel {
     }
 
     var dailySleepDurations: [(date: Date, hours: Double)] {
-        groupByDay(sleepActivities).map { date, activities in
-            (date, activities.compactMap(\.duration).reduce(0, +) / 3600)
+        // 하루 귀속(자정 클립) — 자정 넘김 밤잠이 시작일 막대에 몰리는 왜곡 방지 (D1).
+        // 한계: 해당 날짜에 시작 기록이 하나도 없으면 막대 자체가 없음(키 생성은 시작일 기준 유지).
+        groupByDay(sleepActivities).map { date, _ in
+            let hours = sleepActivities.reduce(0.0) {
+                $0 + ActivityDayAttribution.clippedDuration($1, on: date)
+            } / 3600
+            return (date, hours)
         }
         .sorted { $0.date < $1.date }
     }

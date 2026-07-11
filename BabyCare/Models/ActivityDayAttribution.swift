@@ -27,6 +27,14 @@ enum ActivityDayAttribution {
         return end > dayStart || startTime >= dayStart
     }
 
+    /// 기간 [periodStart, periodEnd] 와 겹치는 시간(초) — 기간 경계로 클립 (주간 합계용, D1).
+    static func clippedDuration(from periodStart: Date, to periodEnd: Date, startTime: Date, endTime: Date?, duration: TimeInterval?) -> TimeInterval {
+        let end = effectiveEnd(startTime: startTime, endTime: endTime, duration: duration)
+        let clippedStart = max(startTime, periodStart)
+        let clippedEnd = min(end, periodEnd)
+        return max(0, clippedEnd.timeIntervalSince(clippedStart))
+    }
+
     /// 해당 날짜에 귀속되는 시간(초) — 날짜 경계로 클립. 포인트 이벤트/역전 구간은 0.
     static func clippedDuration(on day: Date, startTime: Date, endTime: Date?, duration: TimeInterval?, calendar: Calendar = .current) -> TimeInterval {
         let dayStart = calendar.startOfDay(for: day)
