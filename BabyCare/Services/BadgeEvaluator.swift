@@ -82,7 +82,44 @@ final class BadgeEvaluator {
             }
         }
 
+        // 4. record streak (C1) — 일반 기록 로깅 이벤트마다 연속 일수 갱신 + 배지
+        if Self.shouldCheckFirstRecord(kind: event.kind) {
+            newlyEarned.append(contentsOf: await evaluateRecordStreak(userId: userId, at: event.at, babyId: event.babyId))
+        }
+
         return newlyEarned
+    }
+
+    /// 기록 스트릭 갱신 — 오늘 첫 기록일 때만 스트릭 증가·배지 판정 (같은 날 반복 기록은 no-op).
+    private func evaluateRecordStreak(userId: String, at date: Date, babyId: String?) async -> [Badge] {
+        let stats: UserStats
+        do {
+            stats = try await firestoreService.fetchStats(userId: userId) ?? .empty()
+        } catch {
+            AppLogger.badge.error("record streak fetchStats failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+        guard let newStreak = RecordStreakPolicy.updatedStreak(
+            previousStreak: stats.recordStreak ?? 0,
+            lastDayKey: stats.lastRecordDayKey,
+            now: date
+        ) else { return [] }   // 오늘 이미 카운트됨
+
+        let dayKey = RecordStreakPolicy.dayKey(date)
+        do {
+            try await firestoreService.updateRecordStreak(userId: userId, streak: newStreak, dayKey: dayKey)
+        } catch {
+            AppLogger.badge.error("updateRecordStreak failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+
+        var earned: [Badge] = []
+        for id in RecordStreakPolicy.earnedBadgeIds(streak: newStreak) {
+            if let badge = await tryEarn(id: id, userId: userId, babyId: babyId) {
+                earned.append(badge)
+            }
+        }
+        return earned
     }
 
     struct BackfillCounts {

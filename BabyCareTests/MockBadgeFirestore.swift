@@ -37,6 +37,11 @@ final class MockBadgeFirestore: BadgeFirestoreProviding, @unchecked Sendable {
         return statsResponse
     }
 
+    private(set) var updateRecordStreakCalls: [(streak: Int, dayKey: String)] = []
+    func updateRecordStreak(userId: String, streak: Int, dayKey: String) async throws {
+        updateRecordStreakCalls.append((streak, dayKey))
+    }
+
     func setStatsAbsolute(
         userId: String,
         feedingCount: Int,

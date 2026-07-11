@@ -1455,7 +1455,7 @@ final class BabyCareTests: XCTestCase {
         let streak = BadgeCatalog.all.filter { $0.category == .streak }
         XCTAssertEqual(firstTime.count, 1, "firstRecord 1개")
         XCTAssertEqual(aggregate.count, 4, "feeding100/sleep50/diaper200/growth10 = 4개")
-        XCTAssertEqual(streak.count, 3, "routineStreak 3/7/30 = 3개")
+        XCTAssertEqual(streak.count, 6, "routineStreak 3/7/30 + recordStreak 3/7/14 = 6개")
     }
 
     func testBadgeCatalog_localizableKeys_allPresent() {
@@ -1545,8 +1545,9 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(all.count, 3)
     }
 
-    func testBadgeCatalog_hasEight() {
-        XCTAssertEqual(BadgeCatalog.all.count, 8)
+    func testBadgeCatalog_hasEleven() {
+        // 8 + recordStreak 3종(C1)
+        XCTAssertEqual(BadgeCatalog.all.count, 11)
     }
 
     func testBadgeCatalog_allIdsUnique() {
@@ -2836,6 +2837,35 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - RecordStreakPolicy (C1 — 기록 스트릭 배지)
+
+    func testRecordStreak_incrementsFromYesterday() {
+        let cal = Calendar.current
+        let now = Date()
+        let yKey = RecordStreakPolicy.dayKey(cal.date(byAdding: .day, value: -1, to: now)!)
+        XCTAssertEqual(RecordStreakPolicy.updatedStreak(previousStreak: 4, lastDayKey: yKey, now: now), 5)
+    }
+
+    func testRecordStreak_sameDayReturnsNilNoChange() {
+        let now = Date()
+        let tKey = RecordStreakPolicy.dayKey(now)
+        XCTAssertNil(RecordStreakPolicy.updatedStreak(previousStreak: 3, lastDayKey: tKey, now: now), "오늘 이미 카운트 — 변경 없음")
+    }
+
+    func testRecordStreak_gapResetsToOne() {
+        let cal = Calendar.current
+        let now = Date()
+        let threeDaysAgo = RecordStreakPolicy.dayKey(cal.date(byAdding: .day, value: -3, to: now)!)
+        XCTAssertEqual(RecordStreakPolicy.updatedStreak(previousStreak: 9, lastDayKey: threeDaysAgo, now: now), 1, "공백 후 재시작")
+        XCTAssertEqual(RecordStreakPolicy.updatedStreak(previousStreak: 0, lastDayKey: nil, now: now), 1, "최초 기록 = 1")
+    }
+
+    func testRecordStreak_earnedBadgeIdsByThreshold() {
+        XCTAssertEqual(RecordStreakPolicy.earnedBadgeIds(streak: 2), [])
+        XCTAssertEqual(RecordStreakPolicy.earnedBadgeIds(streak: 3), ["recordStreak3"])
+        XCTAssertEqual(RecordStreakPolicy.earnedBadgeIds(streak: 14), ["recordStreak3", "recordStreak7", "recordStreak14"])
+    }
+
     // MARK: - NextRecordSuggestionPolicy (B4 — 이어서 기록 제안)
 
     func testNextRecordSuggestion_coreLoopCycle() {
@@ -3385,6 +3415,42 @@ final class CryAnalysisViewModelTests: XCTestCase {
 // MARK: - BadgeEvaluator 통합 테스트 (MockBadgeFirestore 활용)
 
 final class BadgeEvaluatorIntegrationTests: XCTestCase {
+
+    // C1: 기록 스트릭 — 어제 기록(streak 2) 뒤 오늘 첫 기록 → streak 3 저장 + recordStreak3 배지
+    func testBadgeEvaluator_recordStreak_incrementsAndAwardsBadge() {
+        let mock = MockBadgeFirestore()
+        let now = Date()
+        let yKey = RecordStreakPolicy.dayKey(Calendar.current.date(byAdding: .day, value: -1, to: now)!)
+        mock.statsResponse = UserStats(id: UserStats.lifetimeId, recordStreak: 2, lastRecordDayKey: yKey)
+
+        let expectation = expectation(description: "streak")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            let earned = await evaluator.evaluate(
+                event: .init(kind: .diaperLogged, babyId: "b1", at: now), userId: "user1"
+            )
+            XCTAssertEqual(mock.updateRecordStreakCalls.last?.streak, 3, "어제→오늘 = +1")
+            XCTAssertTrue(earned.contains { $0.id == "recordStreak3" }, "3일 도달 배지 획득")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
+
+    // C1: 같은 날 두 번째 기록은 스트릭 갱신 없음 (no-op)
+    func testBadgeEvaluator_recordStreak_sameDayNoUpdate() {
+        let mock = MockBadgeFirestore()
+        let now = Date()
+        mock.statsResponse = UserStats(id: UserStats.lifetimeId, recordStreak: 5, lastRecordDayKey: RecordStreakPolicy.dayKey(now))
+
+        let expectation = expectation(description: "sameday")
+        Task { @MainActor in
+            let evaluator = BadgeEvaluator(firestoreService: mock)
+            _ = await evaluator.evaluate(event: .init(kind: .feedingLogged, babyId: "b1", at: now), userId: "user1")
+            XCTAssertTrue(mock.updateRecordStreakCalls.isEmpty, "오늘 이미 카운트 — 갱신 없음")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+    }
 
     func testBadgeEvaluator_backfill_awardsFeeding100Badge() {
         let mock = MockBadgeFirestore()
