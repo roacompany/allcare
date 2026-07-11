@@ -9,6 +9,7 @@ protocol BadgeFirestoreProviding: Sendable {
     func setFirstRecordIfMissing(userId: String, at date: Date) async throws
     func incrementStats(userId: String, field: String, by value: Int) async throws
     func fetchStats(userId: String) async throws -> UserStats?
+    func updateRecordStreak(userId: String, streak: Int, dayKey: String) async throws
     func setStatsAbsolute(
         userId: String,
         feedingCount: Int,

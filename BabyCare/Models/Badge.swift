@@ -52,7 +52,16 @@ enum BadgeCatalog {
               iconSFSymbol: "crown.fill", conditionVersion: 1, threshold: 30, statsField: nil),
         .init(id: "growth10", category: .aggregate,
               titleKey: "badge.growth10", descriptionKey: "badge.growth10.desc",
-              iconSFSymbol: "chart.line.uptrend.xyaxis", conditionVersion: 1, threshold: 10, statsField: "growthRecordCount")
+              iconSFSymbol: "chart.line.uptrend.xyaxis", conditionVersion: 1, threshold: 10, statsField: "growthRecordCount"),
+        .init(id: "recordStreak3", category: .streak,
+              titleKey: "badge.recordStreak3", descriptionKey: "badge.recordStreak3.desc",
+              iconSFSymbol: "flame", conditionVersion: 1, threshold: 3, statsField: nil),
+        .init(id: "recordStreak7", category: .streak,
+              titleKey: "badge.recordStreak7", descriptionKey: "badge.recordStreak7.desc",
+              iconSFSymbol: "flame.fill", conditionVersion: 1, threshold: 7, statsField: nil),
+        .init(id: "recordStreak14", category: .streak,
+              titleKey: "badge.recordStreak14", descriptionKey: "badge.recordStreak14.desc",
+              iconSFSymbol: "trophy.fill", conditionVersion: 1, threshold: 14, statsField: nil)
     ]
 
     static func definition(id: String) -> Definition? {

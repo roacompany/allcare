@@ -18,6 +18,12 @@
 "badge.routineStreak30.desc" = "루틴을 30일 연속 달성했어요. 굉장한 꾸준함입니다.";
 "badge.growth10" = "성장 기록 10회";
 "badge.growth10.desc" = "성장 기록을 10회 남겼어요. 변화의 궤적이 보입니다.";
+"badge.recordStreak3" = "기록 3일 연속";
+"badge.recordStreak3.desc" = "3일 연속 기록을 남겼어요. 매일의 습관이 시작됐어요.";
+"badge.recordStreak7" = "기록 7일 연속";
+"badge.recordStreak7.desc" = "일주일 내리 기록했어요. 꾸준함이 자리잡고 있어요.";
+"badge.recordStreak14" = "기록 14일 연속";
+"badge.recordStreak14.desc" = "2주 연속 기록을 이어갔어요. 대단한 정성이에요.";
 
 /* Badge Section Headers */
 "badge.section.firstTime" = "첫걸음";

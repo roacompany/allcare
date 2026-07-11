@@ -25,6 +25,19 @@ extension FirestoreService {
         return try? snapshot.data(as: UserStats.self)
     }
 
+    /// 기록 스트릭 갱신 (C1) — 절대값 set(streak은 리셋될 수 있어 increment 부적합).
+    func updateRecordStreak(userId: String, streak: Int, dayKey: String) async throws {
+        let ref = db.collection(FirestoreCollections.users)
+            .document(userId)
+            .collection(FirestoreCollections.stats)
+            .document(UserStats.lifetimeId)
+        try await ref.setData([
+            "recordStreak": streak,
+            "lastRecordDayKey": dayKey,
+            "updatedAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
     /// 백필용 절대값 set — 기존 활동 전수 카운트한 결과를 한 번에 덮어쓰기.
     /// `migratedAtV1`을 함께 기록하여 idempotency 보장.
     func setStatsAbsolute(
