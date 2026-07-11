@@ -249,7 +249,8 @@ final class PregnancyViewModelIntegrationTests: XCTestCase {
                 userId: "user1"
             )
             XCTAssertNotNil(vm.errorMessage)
-            XCTAssertTrue(vm.errorMessage?.contains("write failed") == true)
+            // A3: 기술 문구(localizedDescription)는 사용자 노출 금지 — 사람 말 카피로 대체됨
+            XCTAssertFalse(vm.errorMessage?.contains("write failed") == true, "기술 에러 문구가 사용자에게 노출되면 안 된다")
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
