@@ -16,11 +16,15 @@ final class MockStorageService: StorageServiceProviding, @unchecked Sendable {
 
     var errorOnUploadBabyPhoto: Error?
     var errorOnUploadDiaryPhoto: Error?
+    var errorOnDeleteBabyStorage: Error?
+    var errorOnDeleteUserStorage: Error?
 
     // MARK: - 호출 카운터
 
     private(set) var babyUploads: [(userId: String, babyId: String)] = []
     private(set) var diaryUploads: [(userId: String, babyId: String, diaryId: String, index: Int)] = []
+    private(set) var babyStorageDeletes: [(userId: String, babyId: String)] = []
+    private(set) var userStorageDeletes: [String] = []
 
     var babyUploadCount: Int { babyUploads.count }
     var diaryUploadCount: Int { diaryUploads.count }
@@ -37,5 +41,15 @@ final class MockStorageService: StorageServiceProviding, @unchecked Sendable {
         if let err = errorOnUploadDiaryPhoto { throw err }
         diaryUploads.append((userId: userId, babyId: babyId, diaryId: diaryId, index: index))
         return "\(urlPrefix)/diary/\(diaryId)_\(index).jpg"
+    }
+
+    func deleteBabyStorage(userId: String, babyId: String) async throws {
+        if let err = errorOnDeleteBabyStorage { throw err }
+        babyStorageDeletes.append((userId: userId, babyId: babyId))
+    }
+
+    func deleteUserStorage(userId: String) async throws {
+        if let err = errorOnDeleteUserStorage { throw err }
+        userStorageDeletes.append(userId)
     }
 }

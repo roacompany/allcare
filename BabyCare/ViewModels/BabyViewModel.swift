@@ -234,6 +234,13 @@ final class BabyViewModel {
 
         do {
             try await firestoreService.deleteBaby(baby.id, userId: userId)
+            // Firestore cascade 성공 후 Storage 사진도 정리 (PII 잔존 방지).
+            // 실패는 기록만 — 문서는 이미 삭제됐으므로 롤백·삭제 UX 차단 대상 아님.
+            do {
+                try await storageService.deleteBabyStorage(userId: userId, babyId: baby.id)
+            } catch {
+                logSilent("아기 Storage 사진 정리 실패", error: error, logger: AppLogger.storage)
+            }
         } catch {
             babies = backup // 롤백
             selectedBaby = backupSelected
