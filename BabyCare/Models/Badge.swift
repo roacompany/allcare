@@ -29,14 +29,30 @@ enum BadgeCatalog {
     }
 
     static let all: [Definition] = [
-        .init(id: "firstRecord",     category: .firstTime, titleKey: "badge.firstRecord",     descriptionKey: "badge.firstRecord.desc",     iconSFSymbol: "star.fill",                  conditionVersion: 1, threshold: 1,   statsField: nil),
-        .init(id: "feeding100",      category: .aggregate, titleKey: "badge.feeding100",      descriptionKey: "badge.feeding100.desc",      iconSFSymbol: "drop.fill",                  conditionVersion: 1, threshold: 100, statsField: "feedingCount"),
-        .init(id: "sleep50",         category: .aggregate, titleKey: "badge.sleep50",         descriptionKey: "badge.sleep50.desc",         iconSFSymbol: "moon.zzz.fill",              conditionVersion: 1, threshold: 50,  statsField: "sleepCount"),
-        .init(id: "diaper200",       category: .aggregate, titleKey: "badge.diaper200",       descriptionKey: "badge.diaper200.desc",       iconSFSymbol: "drop.triangle.fill",         conditionVersion: 1, threshold: 200, statsField: "diaperCount"),
-        .init(id: "routineStreak3",  category: .streak,    titleKey: "badge.routineStreak3",  descriptionKey: "badge.routineStreak3.desc",  iconSFSymbol: "flame.fill",                 conditionVersion: 1, threshold: 3,   statsField: nil),
-        .init(id: "routineStreak7",  category: .streak,    titleKey: "badge.routineStreak7",  descriptionKey: "badge.routineStreak7.desc",  iconSFSymbol: "flame.fill",                 conditionVersion: 1, threshold: 7,   statsField: nil),
-        .init(id: "routineStreak30", category: .streak,    titleKey: "badge.routineStreak30", descriptionKey: "badge.routineStreak30.desc", iconSFSymbol: "crown.fill",                 conditionVersion: 1, threshold: 30,  statsField: nil),
-        .init(id: "growth10",        category: .aggregate, titleKey: "badge.growth10",        descriptionKey: "badge.growth10.desc",        iconSFSymbol: "chart.line.uptrend.xyaxis",  conditionVersion: 1, threshold: 10,  statsField: "growthRecordCount")
+        .init(id: "firstRecord", category: .firstTime,
+              titleKey: "badge.firstRecord", descriptionKey: "badge.firstRecord.desc",
+              iconSFSymbol: "star.fill", conditionVersion: 1, threshold: 1, statsField: nil),
+        .init(id: "feeding100", category: .aggregate,
+              titleKey: "badge.feeding100", descriptionKey: "badge.feeding100.desc",
+              iconSFSymbol: "drop.fill", conditionVersion: 1, threshold: 100, statsField: "feedingCount"),
+        .init(id: "sleep50", category: .aggregate,
+              titleKey: "badge.sleep50", descriptionKey: "badge.sleep50.desc",
+              iconSFSymbol: "moon.zzz.fill", conditionVersion: 1, threshold: 50, statsField: "sleepCount"),
+        .init(id: "diaper200", category: .aggregate,
+              titleKey: "badge.diaper200", descriptionKey: "badge.diaper200.desc",
+              iconSFSymbol: "drop.triangle.fill", conditionVersion: 1, threshold: 200, statsField: "diaperCount"),
+        .init(id: "routineStreak3", category: .streak,
+              titleKey: "badge.routineStreak3", descriptionKey: "badge.routineStreak3.desc",
+              iconSFSymbol: "flame.fill", conditionVersion: 1, threshold: 3, statsField: nil),
+        .init(id: "routineStreak7", category: .streak,
+              titleKey: "badge.routineStreak7", descriptionKey: "badge.routineStreak7.desc",
+              iconSFSymbol: "flame.fill", conditionVersion: 1, threshold: 7, statsField: nil),
+        .init(id: "routineStreak30", category: .streak,
+              titleKey: "badge.routineStreak30", descriptionKey: "badge.routineStreak30.desc",
+              iconSFSymbol: "crown.fill", conditionVersion: 1, threshold: 30, statsField: nil),
+        .init(id: "growth10", category: .aggregate,
+              titleKey: "badge.growth10", descriptionKey: "badge.growth10.desc",
+              iconSFSymbol: "chart.line.uptrend.xyaxis", conditionVersion: 1, threshold: 10, statsField: "growthRecordCount")
     ]
 
     static func definition(id: String) -> Definition? {

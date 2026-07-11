@@ -87,12 +87,7 @@ final class BabyCareTests: XCTestCase {
             babyId: "b1",
             type: .feedingPumping,
             recordTime: Date(),
-            amount: "120",
-            side: .both,
-            temperature: "",
-            medicationName: "",
-            medicationDosage: "",
-            note: ""
+            values: .init(amount: "120", side: .both)
         )
         XCTAssertEqual(activity.type, .feedingPumping)
         XCTAssertEqual(activity.amount, 120)
@@ -352,8 +347,7 @@ final class BabyCareTests: XCTestCase {
     func testQuickInput_bottle_persistsFeedingContent() {
         let breast = QuickInputSheet.buildActivity(
             babyId: "b1", type: .feedingBottle, recordTime: Date(),
-            amount: "100", side: nil, feedingContent: .breastMilk,
-            temperature: "", medicationName: "", medicationDosage: "", note: ""
+            values: .init(amount: "100", feedingContent: .breastMilk)
         )
         XCTAssertEqual(breast.amount, 100)
         XCTAssertEqual(breast.feedingContent, .breastMilk, "병수유 내용물(모유) 영속")
@@ -361,8 +355,7 @@ final class BabyCareTests: XCTestCase {
 
         let formula = QuickInputSheet.buildActivity(
             babyId: "b1", type: .feedingBottle, recordTime: Date(),
-            amount: "100", side: nil, feedingContent: .formula,
-            temperature: "", medicationName: "", medicationDosage: "", note: ""
+            values: .init(amount: "100", feedingContent: .formula)
         )
         XCTAssertEqual(formula.feedingContent, .formula)
         XCTAssertTrue(formula.isFormulaBottle)

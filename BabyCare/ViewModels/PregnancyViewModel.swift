@@ -77,63 +77,7 @@ final class PregnancyViewModel {
             self.activePregnancy = p
             PregnancyWidgetSyncService.update(pregnancy: p)
             if let pid = p?.id, let dataOwner = p?.ownerUserId {
-                async let kicks = firestoreService.fetchKickSessions(userId: dataOwner, pregnancyId: pid)
-                async let visits = firestoreService.fetchPrenatalVisits(userId: dataOwner, pregnancyId: pid)
-                async let items = firestoreService.fetchChecklistItems(userId: dataOwner, pregnancyId: pid)
-                async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
-                async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
-                async let vitals = firestoreService.fetchVitalEntries(userId: dataOwner, pregnancyId: pid)
-                async let contractions = firestoreService.fetchContractionSessions(userId: dataOwner, pregnancyId: pid)
-                async let moodList = firestoreService.fetchMoods(userId: dataOwner, pregnancyId: pid)
-                // 8개 fetch 부분 실패는 silent fallback (errorMessage 노출 안 함) — 어느 컬렉션이 실패했는지 진단 로깅
-                do {
-                    self.kickSessions = try await kicks
-                } catch {
-                    logSilent("fetchKickSessions 실패", error: error, logger: AppLogger.pregnancy)
-                    self.kickSessions = []
-                }
-                do {
-                    self.prenatalVisits = try await visits
-                } catch {
-                    logSilent("fetchPrenatalVisits 실패", error: error, logger: AppLogger.pregnancy)
-                    self.prenatalVisits = []
-                }
-                do {
-                    self.checklistItems = try await items
-                } catch {
-                    logSilent("fetchChecklistItems 실패", error: error, logger: AppLogger.pregnancy)
-                    self.checklistItems = []
-                }
-                do {
-                    self.weightEntries = try await weights
-                } catch {
-                    logSilent("fetchWeightEntries 실패", error: error, logger: AppLogger.pregnancy)
-                    self.weightEntries = []
-                }
-                do {
-                    self.symptoms = try await symptomList
-                } catch {
-                    logSilent("fetchSymptoms 실패", error: error, logger: AppLogger.pregnancy)
-                    self.symptoms = []
-                }
-                do {
-                    self.vitalEntries = try await vitals
-                } catch {
-                    logSilent("fetchVitalEntries 실패", error: error, logger: AppLogger.pregnancy)
-                    self.vitalEntries = []
-                }
-                do {
-                    self.contractionSessions = try await contractions
-                } catch {
-                    logSilent("fetchContractionSessions 실패", error: error, logger: AppLogger.pregnancy)
-                    self.contractionSessions = []
-                }
-                do {
-                    self.moods = try await moodList
-                } catch {
-                    logSilent("fetchMoods 실패", error: error, logger: AppLogger.pregnancy)
-                    self.moods = []
-                }
+                await loadPregnancySubcollections(pregnancyId: pid, dataOwner: dataOwner)
             }
             // pending orphan 감지 (30초 임계값)
             detectPendingOrphan()
@@ -666,6 +610,71 @@ final class PregnancyViewModel {
             switch self {
             case .noActivePregnancy: return "활성 임신 기록이 없습니다."
             }
+        }
+    }
+}
+
+// MARK: - Subcollection Load (8 fetch — 부분 실패 silent fallback)
+
+extension PregnancyViewModel {
+    /// 활성 임신의 8개 하위 컬렉션 병렬 로드. 부분 실패는 errorMessage 노출 없이
+    /// 컬렉션별 진단 로깅 후 빈 배열 fallback.
+    func loadPregnancySubcollections(pregnancyId pid: String, dataOwner: String) async {
+        async let kicks = firestoreService.fetchKickSessions(userId: dataOwner, pregnancyId: pid)
+        async let visits = firestoreService.fetchPrenatalVisits(userId: dataOwner, pregnancyId: pid)
+        async let items = firestoreService.fetchChecklistItems(userId: dataOwner, pregnancyId: pid)
+        async let weights = firestoreService.fetchWeightEntries(userId: dataOwner, pregnancyId: pid)
+        async let symptomList = firestoreService.fetchSymptoms(userId: dataOwner, pregnancyId: pid)
+        async let vitals = firestoreService.fetchVitalEntries(userId: dataOwner, pregnancyId: pid)
+        async let contractions = firestoreService.fetchContractionSessions(userId: dataOwner, pregnancyId: pid)
+        async let moodList = firestoreService.fetchMoods(userId: dataOwner, pregnancyId: pid)
+        do {
+            self.kickSessions = try await kicks
+        } catch {
+            logSilent("fetchKickSessions 실패", error: error, logger: AppLogger.pregnancy)
+            self.kickSessions = []
+        }
+        do {
+            self.prenatalVisits = try await visits
+        } catch {
+            logSilent("fetchPrenatalVisits 실패", error: error, logger: AppLogger.pregnancy)
+            self.prenatalVisits = []
+        }
+        do {
+            self.checklistItems = try await items
+        } catch {
+            logSilent("fetchChecklistItems 실패", error: error, logger: AppLogger.pregnancy)
+            self.checklistItems = []
+        }
+        do {
+            self.weightEntries = try await weights
+        } catch {
+            logSilent("fetchWeightEntries 실패", error: error, logger: AppLogger.pregnancy)
+            self.weightEntries = []
+        }
+        do {
+            self.symptoms = try await symptomList
+        } catch {
+            logSilent("fetchSymptoms 실패", error: error, logger: AppLogger.pregnancy)
+            self.symptoms = []
+        }
+        do {
+            self.vitalEntries = try await vitals
+        } catch {
+            logSilent("fetchVitalEntries 실패", error: error, logger: AppLogger.pregnancy)
+            self.vitalEntries = []
+        }
+        do {
+            self.contractionSessions = try await contractions
+        } catch {
+            logSilent("fetchContractionSessions 실패", error: error, logger: AppLogger.pregnancy)
+            self.contractionSessions = []
+        }
+        do {
+            self.moods = try await moodList
+        } catch {
+            logSilent("fetchMoods 실패", error: error, logger: AppLogger.pregnancy)
+            self.moods = []
         }
     }
 }

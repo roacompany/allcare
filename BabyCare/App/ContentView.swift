@@ -299,7 +299,6 @@ struct ContentView: View {
         onboardingViewV2
     }
 
-
     /// DS2 V2: 위계 명확 (primary CTA + secondary) + brand wordmark + 8pt grid spacing.
     private var onboardingViewV2: some View {
         NavigationStack {

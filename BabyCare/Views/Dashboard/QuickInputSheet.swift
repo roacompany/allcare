@@ -266,40 +266,45 @@ struct QuickInputSheet: View {
 
     // MARK: - Save
 
+    /// QuickInput 폼 값 묶음 — buildActivity 파라미터 수 제한(lint) + 폼 확장 시 시그니처 안정.
+    struct Values {
+        var amount = ""
+        var side: Activity.BreastSide?
+        var feedingContent: Activity.FeedingContent = .formula
+        var temperature = ""
+        var medicationName = ""
+        var medicationDosage = ""
+        var note = ""
+    }
+
     /// 저장 활동 구성 — 순수 함수로 분리하여 단위 테스트 가능 (side 플러밍 가드, spec §7-2).
     /// nonisolated: View(@MainActor)에 속하지만 순수 값 변환이라 actor 격리 불필요 (테스트 MainActor 호핑 회피).
     nonisolated static func buildActivity(
         babyId: String,
         type: Activity.ActivityType,
         recordTime: Date,
-        amount: String,
-        side: Activity.BreastSide?,
-        feedingContent: Activity.FeedingContent = .formula,
-        temperature: String,
-        medicationName: String,
-        medicationDosage: String,
-        note: String
+        values: Values
     ) -> Activity {
         var activity = Activity(babyId: babyId, type: type)
         activity.startTime = recordTime
 
         switch type {
         case .temperature:
-            activity.temperature = Double(temperature)
+            activity.temperature = Double(values.temperature)
         case .medication:
-            activity.medicationName = medicationName.trimmingCharacters(in: .whitespaces)
-            activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
+            activity.medicationName = values.medicationName.trimmingCharacters(in: .whitespaces)
+            activity.medicationDosage = values.medicationDosage.isEmpty ? nil : values.medicationDosage
         case .feedingBottle:
-            activity.amount = Double(amount)
-            activity.feedingContent = feedingContent
+            activity.amount = Double(values.amount)
+            activity.feedingContent = values.feedingContent
         case .feedingPumping:
-            activity.amount = Double(amount)
-            activity.side = side
+            activity.amount = Double(values.amount)
+            activity.side = values.side
         default:
             break
         }
 
-        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNote = values.note.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedNote.isEmpty {
             activity.note = trimmedNote
         }
@@ -313,13 +318,15 @@ struct QuickInputSheet: View {
             babyId: babyId,
             type: type,
             recordTime: recordTime,
-            amount: amount,
-            side: type == .feedingPumping ? selectedSide : nil,
-            feedingContent: selectedFeedingContent,
-            temperature: temperature,
-            medicationName: medicationName,
-            medicationDosage: medicationDosage,
-            note: note
+            values: .init(
+                amount: amount,
+                side: type == .feedingPumping ? selectedSide : nil,
+                feedingContent: selectedFeedingContent,
+                temperature: temperature,
+                medicationName: medicationName,
+                medicationDosage: medicationDosage,
+                note: note
+            )
         )
 
         if type == .medication {

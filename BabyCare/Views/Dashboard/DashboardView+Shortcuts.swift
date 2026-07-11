@@ -225,7 +225,4 @@ extension DashboardView {
         guard let last = activityVM.lastDiaper else { return "오늘 기록 없음" }
         return "마지막 \(last.startTime.timeAgo())"
     }
-
-
 }
-
