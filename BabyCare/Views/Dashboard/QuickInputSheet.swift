@@ -6,6 +6,7 @@ struct QuickInputSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(BabyViewModel.self) private var babyVM
+    @Environment(ActivityViewModel.self) private var activityVM
 
     // 시간 조정
     @State private var recordTime = Date()
@@ -147,6 +148,24 @@ struct QuickInputSheet: View {
                     }
                     .fontWeight(.semibold)
                     .disabled(!canSave)
+                }
+            }
+            .onAppear {
+                // B3: 직전 값 프리필 (분유/유축량 + 병수유 내용물) — 빈 값일 때만
+                if (type == .feedingBottle || type == .feedingPumping), amount.isEmpty,
+                   let last = RecordPrefillPolicy.lastAmount(
+                       type: type,
+                       todayActivities: activityVM.todayActivities,
+                       recentActivities: activityVM.recentWeekActivities
+                   ) {
+                    amount = last
+                }
+                if type == .feedingBottle,
+                   let content = RecordPrefillPolicy.lastFeedingContent(
+                       todayActivities: activityVM.todayActivities,
+                       recentActivities: activityVM.recentWeekActivities
+                   ) {
+                    selectedFeedingContent = content
                 }
             }
         }

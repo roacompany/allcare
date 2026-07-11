@@ -2787,6 +2787,46 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(MedicationReminderPromptPolicy.shouldOffer(ruleEnabled: true, alreadyPrompted: true))
     }
 
+    // MARK: - RecordPrefillPolicy (B3 — 직전 값 프리필)
+
+    func testPrefill_lastAmount_prefersTodayLatestOfSameType() {
+        var oldBottle = Activity(babyId: "b1", type: .feedingBottle, startTime: Date().addingTimeInterval(-3 * 86_400))
+        oldBottle.amount = 90
+        var todayBottle = Activity(babyId: "b1", type: .feedingBottle, startTime: Date().addingTimeInterval(-3_600))
+        todayBottle.amount = 140
+        var pumping = Activity(babyId: "b1", type: .feedingPumping, startTime: Date().addingTimeInterval(-1_800))
+        pumping.amount = 120
+
+        XCTAssertEqual(
+            RecordPrefillPolicy.lastAmount(type: .feedingBottle, todayActivities: [todayBottle, pumping], recentActivities: [oldBottle]),
+            "140", "오늘 최신 동일 타입 우선"
+        )
+        XCTAssertEqual(
+            RecordPrefillPolicy.lastAmount(type: .feedingBottle, todayActivities: [pumping], recentActivities: [oldBottle]),
+            "90", "오늘 없으면 최근 7일 fallback"
+        )
+        XCTAssertEqual(
+            RecordPrefillPolicy.lastAmount(type: .feedingPumping, todayActivities: [todayBottle, pumping], recentActivities: []),
+            "120", "타입별 분리 — 병수유 값이 유축에 새지 않는다"
+        )
+        XCTAssertNil(RecordPrefillPolicy.lastAmount(type: .feedingBottle, todayActivities: [], recentActivities: []))
+    }
+
+    func testPrefill_lastFeedingContent_fromLatestBottle() {
+        var older = Activity(babyId: "b1", type: .feedingBottle, startTime: Date().addingTimeInterval(-7_200))
+        older.amount = 100
+        older.feedingContent = .formula
+        var newer = Activity(babyId: "b1", type: .feedingBottle, startTime: Date().addingTimeInterval(-600))
+        newer.amount = 100
+        newer.feedingContent = .breastMilk
+
+        XCTAssertEqual(
+            RecordPrefillPolicy.lastFeedingContent(todayActivities: [older, newer], recentActivities: []),
+            .breastMilk, "최신 병수유의 내용물"
+        )
+        XCTAssertNil(RecordPrefillPolicy.lastFeedingContent(todayActivities: [], recentActivities: []))
+    }
+
     // MARK: - DashboardInsight 탭 목적지 매핑 (B5 — 읽기 전용 카드에 행동 연결)
 
     func testInsightTapDestination_mapping() {
