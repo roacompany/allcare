@@ -389,7 +389,7 @@ struct ContentView: View {
                     AnalyticsService.shared.trackScreen(AnalyticsScreens.calendar)
                 }
                 .tabItem {
-                    Label("기록", systemImage: "calendar")
+                    Label("캘린더", systemImage: "calendar")
                 }
                 .tag(1)
 
@@ -432,12 +432,12 @@ struct ContentView: View {
             activityVM.resetForm()
             initialRecordingCategory = nil
         }) {
-            RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
+            RecordLauncherSheet()
         }
         .overlay(alignment: .bottom) {
             VStack(spacing: 6) {
-                FloatingTimerBanner { category in
-                    initialRecordingCategory = category
+                FloatingTimerBanner { _ in
+                    // 타입-우선 런처로 진입 (실행 중 타이머 타입 타일 → UnifiedRecordSheet에서 정지·저장)
                     showRecording = true
                 }
                 FloatingMiniPlayer()
