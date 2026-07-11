@@ -6,6 +6,9 @@ final class ActivityViewModel: OptimisticReplaceable {
     var isLoading = false
     var errorMessage: String?
 
+    /// 투약 알림 인라인 제안 대기 (B2) — 투약 기록 저장 직후 생애 1회. ContentView가 alert로 표시.
+    var medicationPromptPending = false
+
     // Timer state (forwarded to timerManager)
     var isTimerRunning: Bool { timerManager.isTimerRunning }
     var elapsedTime: TimeInterval { timerManager.elapsedTime }

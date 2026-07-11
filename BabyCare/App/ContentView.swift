@@ -172,6 +172,17 @@ struct ContentView: View {
                 ProductDetailView(product: product)
             }
         }
+        .alert("다음 투약 알림", isPresented: Binding(
+            get: { activityVM.medicationPromptPending },
+            set: { if !$0 { activityVM.dismissMedicationPrompt() } }
+        )) {
+            Button("알림 켜기") {
+                activityVM.enableMedicationReminder(babyName: babyVM.selectedBaby?.name ?? "아기")
+            }
+            Button("나중에", role: .cancel) {}
+        } message: {
+            Text("다음 투약 시간에 알림을 받을까요? 설정 > 알림에서 언제든 바꿀 수 있어요.")
+        }
     }
 
     // MARK: - App Review Prompt (초크포인트)

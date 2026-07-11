@@ -10,6 +10,15 @@ extension ActivityViewModel {
         // 활동별 리마인더 규칙(아래 guard)과 무관하게 항상 갱신한다.
         NotificationService.shared.scheduleReturnNudge()
 
+        // 투약 알림 인라인 제안 (B2): 규칙 OFF + 미제안이면 생애 1회 제안
+        if type == .medication,
+           MedicationReminderPromptPolicy.shouldOffer(
+               ruleEnabled: ActivityReminderSettings.rule(for: .medication)?.enabled ?? false,
+               alreadyPrompted: MedicationReminderPromptPolicy.alreadyPrompted
+           ) {
+            medicationPromptPending = true
+        }
+
         guard let rule = ActivityReminderSettings.rule(for: type), rule.enabled else { return }
         NotificationService.shared.scheduleActivityReminder(
             type: type, babyName: babyName, afterMinutes: rule.intervalMinutes
@@ -20,6 +29,21 @@ extension ActivityViewModel {
            let predictedTime = nextFeedingEstimate {
             NotificationService.shared.scheduleFeedingOverdueAlert(babyName: babyName, predictedTime: predictedTime)
         }
+    }
+
+    /// 투약 알림 제안 소비 (켜기/나중에 무관 1회 — 재노출 방지)
+    func dismissMedicationPrompt() {
+        medicationPromptPending = false
+        MedicationReminderPromptPolicy.markPrompted()
+    }
+
+    /// 제안 수락: 투약 규칙 ON + 이번 투약 기준 체인 즉시 예약
+    func enableMedicationReminder(babyName: String) {
+        var rule = ActivityReminderSettings.rule(for: .medication)
+            ?? ActivityReminderRule(activityType: Activity.ActivityType.medication.rawValue, enabled: true, intervalMinutes: 480)
+        rule.enabled = true
+        ActivityReminderSettings.updateRule(rule)
+        NotificationService.shared.scheduleActivityReminder(type: .medication, babyName: babyName, afterMinutes: rule.intervalMinutes)
     }
 
     // MARK: - Widget Data Sync
