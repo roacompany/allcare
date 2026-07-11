@@ -76,6 +76,10 @@ enum AnalyticsEvents {
 
     // Return Nudge — 이탈 방지 P0-2: D1 복귀 넛지 알림 탭(복귀) 계측.
     static let returnNudgeOpened = "return_nudge_opened"
+
+    // Widget Promo — 이탈 P1(C2): 위젯 설치 유도 카드 노출/해제 계측.
+    static let widgetPromoShown = "widget_promo_shown"
+    static let widgetPromoDismissed = "widget_promo_dismissed"
 }
 
 // MARK: - Parameter Keys

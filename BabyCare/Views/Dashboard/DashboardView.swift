@@ -21,6 +21,8 @@ struct DashboardView: View {
     @State var quickInputType: Activity.ActivityType?
     @State var showMoreSection = false
     @State private var showPregnancyNote = false
+    // 위젯 유도 해제 (C2) — 기기 UI 상태 (사용자 데이터 아님, @AppStorage 허용 선례: OptionalModuleToggleCard)
+    @AppStorage(WidgetPromoPolicy.dismissedKey) private var widgetPromoDismissed = false
 
     // MARK: - Weekly Highlights v2
     // CR-R02: @State 기반 .task 평가는 bootstrap async와 race 가능.
@@ -57,8 +59,23 @@ struct DashboardView: View {
         highlightGridIfNeeded
         insightCardsSection
         BadgeHomeStrip()
+        widgetPromoIfNeeded
         reorderSummaryCard
         moreDisclosureGroup
+    }
+
+    /// 위젯 설치 유도 (C2) — 기록 습관이 생긴 사용자(3건+)에게 해제형 1회 안내.
+    @ViewBuilder
+    private var widgetPromoIfNeeded: some View {
+        if WidgetPromoPolicy.isVisible(
+            recordCount: activityVM.todayActivities.count + activityVM.recentWeekActivities.count,
+            dismissed: widgetPromoDismissed
+        ) {
+            WidgetPromoCard {
+                widgetPromoDismissed = true
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.widgetPromoDismissed)
+            }
+        }
     }
 
     /// 첫 기록 가이드 (이탈 방지 P0-1) — 아기 있음 + 오늘/최근 1주 기록 0 + 로딩 아님일 때만.

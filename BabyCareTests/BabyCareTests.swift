@@ -2827,6 +2827,15 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNil(RecordPrefillPolicy.lastFeedingContent(todayActivities: [], recentActivities: []))
     }
 
+    // MARK: - WidgetPromoPolicy (C2 — 위젯 설치 유도, 해제형 1회)
+
+    func testWidgetPromo_visibleAfterThreeRecordsUntilDismissed() {
+        XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 0, dismissed: false), "기록 없음 — 온보딩 소음 금지")
+        XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 2, dismissed: false))
+        XCTAssertTrue(WidgetPromoPolicy.isVisible(recordCount: 3, dismissed: false), "습관 시작(3건+)부터 노출")
+        XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
+    }
+
     // MARK: - DashboardInsight 탭 목적지 매핑 (B5 — 읽기 전용 카드에 행동 연결)
 
     func testInsightTapDestination_mapping() {
