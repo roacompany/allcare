@@ -151,93 +151,8 @@ final class ActivityViewModel: OptimisticReplaceable {
             // recentFeedingActivities 로드 완료 후 derive — 자정 경계 fallback 가능
             deriveLatestActivities()
 
-            // 주간 인사이트 — current [7일 전..오늘 00:00), previous [14일 전..7일 전)
-            // 두 기간 모두 정확히 7일로 맞춰 평균 비교 공정성 확보
-            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: todayStart) ?? todayStart
-            let previousWeekActivities: [Activity]
-            if twoWeeksAgo < weekAgo {
-                previousWeekActivities = try await RetryHelper.withRetry {
-                    try await self.firestoreService.fetchActivities(
-                        userId: userId, babyId: babyId, from: twoWeeksAgo, to: weekAgo
-                    )
-                }
-            } else {
-                previousWeekActivities = []
-            }
-            // current에는 오늘 제외 (부분일 = 불공정 비교) — 완료된 7일만 사용
-            let currentReport = PatternAnalysisService.analyze(
-                activities: recentWeekActivities,
-                period: "지난 7일",
-                startDate: weekAgo,
-                endDate: todayStart
-            )
-            let comparisonReport = PatternAnalysisService.analyzeComparison(
-                currentReport: currentReport,
-                previousActivities: previousWeekActivities,
-                previousPeriod: (start: twoWeeksAgo, end: weekAgo)
-            )
-            // metric history 로드 (Phase 1 ML — per-baby Z-score scorer 입력)
-            let historyWeeks = InsightWeights.fromRC().historyWeeks
-            let snapshots: [WeeklyMetricSnapshot]
-            do {
-                snapshots = try await firestoreService.fetchWeeklyMetricSnapshots(
-                    userId: userId, babyId: babyId, limit: historyWeeks
-                )
-            } catch {
-                logSilent("weekly metric snapshot 로드 실패", error: error, logger: AppLogger.ml)
-                snapshots = []
-            }
-            // 이번 분석 주차 스냅샷이 이전 오픈에서 저장돼 history 에 섞이면 Z-score 가 자기 자신과
-            // 비교돼 이상치 점수가 깎인다 (#11). 기준선에서 현재 주차를 제외한다.
-            let currentWeekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
-            let metricHistory = WeeklyInsightService.metricHistory(from: snapshots.excludingWeek(currentWeekKey))
-
-            weeklyInsights = WeeklyInsightService.generateInsights(
-                from: comparisonReport,
-                previousActivities: previousWeekActivities,
-                previousDays: 7,
-                currentDays: 7,
-                metricHistory: metricHistory
-            )
-
-            // Weekly Highlights v2 (CR-001): InsightService.topHighlights가 동일 입력을
-            // 사용하므로 ActivityViewModel이 컨텍스트를 push한다. 미연결 시 티커/그리드 빈 상태.
-            let highlightCtx = InsightContext(
-                current: currentReport,
-                previousActivities: previousWeekActivities,
-                previousDays: 7,
-                weights: InsightWeights.fromRC(),
-                currentDays: 7,
-                metricHistory: metricHistory
-            )
-            AppState.shared.insight.refreshHighlightContext(highlightCtx, snapshots: snapshots)
-
-            // 이번 주 metric 스냅샷 저장 (idempotent overwrite 가능)
-            let metrics = WeeklyInsightService.snapshotMetrics(
-                from: comparisonReport,
-                previousActivities: previousWeekActivities,
-                previousDays: 7,
-                currentDays: 7
-            )
-            let weekKey = currentWeekKey
-            let snapshot = WeeklyMetricSnapshot(weekKey: weekKey, weekStartDate: weekAgo, metrics: metrics)
-            do {
-                try await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
-            } catch {
-                // Phase 2 ML 학습 입력 손실 — non-fatal, 다음 주차 누적으로 회복 가능하나 진단 필수
-                logSilent("WeeklyMetricSnapshot 저장 실패 (weekKey=\(weekKey))", error: error, logger: AppLogger.ml)
-            }
-
-            // Analytics — Phase 2 ML 학습용 telemetry
-            for (idx, insight) in weeklyInsights.enumerated() {
-                AnalyticsService.shared.logInsightGenerated(
-                    metricKey: insight.metricKey,
-                    category: insight.category.rawValue,
-                    position: idx,
-                    scorerMode: InsightWeights.fromRC().scorerMode.rawValue,
-                    historyWeeks: snapshots.count
-                )
-            }
+            // 주간 인사이트 파이프라인 (비교 리포트·ML history·하이라이트·스냅샷·telemetry)
+            try await refreshWeeklyInsights(userId: userId, babyId: babyId, weekAgo: weekAgo, todayStart: todayStart)
 
             // 야간 발열 감지를 위해 최근 48시간 체온 데이터 로드 (자정 경계 문제 해결)
             let fortyEightHoursAgo = Date().addingTimeInterval(-2 * AppConstants.secondsPerDay)
@@ -248,6 +163,94 @@ final class ActivityViewModel: OptimisticReplaceable {
             }.filter { $0.type == .temperature }
         } catch {
             errorMessage = "활동 기록을 불러오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    /// 주간 인사이트 파이프라인 — current [7일 전..오늘 00:00) vs previous [14일 전..7일 전)
+    /// 두 기간 모두 정확히 7일로 맞춰 평균 비교 공정성 확보. current에는 오늘 제외(부분일 = 불공정 비교).
+    private func refreshWeeklyInsights(userId: String, babyId: String, weekAgo: Date, todayStart: Date) async throws {
+        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: todayStart) ?? todayStart
+        let previousWeekActivities: [Activity]
+        if twoWeeksAgo < weekAgo {
+            previousWeekActivities = try await RetryHelper.withRetry {
+                try await self.firestoreService.fetchActivities(
+                    userId: userId, babyId: babyId, from: twoWeeksAgo, to: weekAgo
+                )
+            }
+        } else {
+            previousWeekActivities = []
+        }
+        let currentReport = PatternAnalysisService.analyze(
+            activities: recentWeekActivities,
+            period: "지난 7일",
+            startDate: weekAgo,
+            endDate: todayStart
+        )
+        let comparisonReport = PatternAnalysisService.analyzeComparison(
+            currentReport: currentReport,
+            previousActivities: previousWeekActivities,
+            previousPeriod: (start: twoWeeksAgo, end: weekAgo)
+        )
+        // metric history 로드 (Phase 1 ML — per-baby Z-score scorer 입력)
+        let historyWeeks = InsightWeights.fromRC().historyWeeks
+        let snapshots: [WeeklyMetricSnapshot]
+        do {
+            snapshots = try await firestoreService.fetchWeeklyMetricSnapshots(
+                userId: userId, babyId: babyId, limit: historyWeeks
+            )
+        } catch {
+            logSilent("weekly metric snapshot 로드 실패", error: error, logger: AppLogger.ml)
+            snapshots = []
+        }
+        // 이번 분석 주차 스냅샷이 이전 오픈에서 저장돼 history 에 섞이면 Z-score 가 자기 자신과
+        // 비교돼 이상치 점수가 깎인다 (#11). 기준선에서 현재 주차를 제외한다.
+        let currentWeekKey = WeeklyMetricSnapshot.weekKey(for: weekAgo)
+        let metricHistory = WeeklyInsightService.metricHistory(from: snapshots.excludingWeek(currentWeekKey))
+
+        weeklyInsights = WeeklyInsightService.generateInsights(
+            from: comparisonReport,
+            previousActivities: previousWeekActivities,
+            previousDays: 7,
+            currentDays: 7,
+            metricHistory: metricHistory
+        )
+
+        // Weekly Highlights v2 (CR-001): InsightService.topHighlights가 동일 입력을
+        // 사용하므로 ActivityViewModel이 컨텍스트를 push한다. 미연결 시 티커/그리드 빈 상태.
+        let highlightCtx = InsightContext(
+            current: currentReport,
+            previousActivities: previousWeekActivities,
+            previousDays: 7,
+            weights: InsightWeights.fromRC(),
+            currentDays: 7,
+            metricHistory: metricHistory
+        )
+        AppState.shared.insight.refreshHighlightContext(highlightCtx, snapshots: snapshots)
+
+        // 이번 주 metric 스냅샷 저장 (idempotent overwrite 가능)
+        let metrics = WeeklyInsightService.snapshotMetrics(
+            from: comparisonReport,
+            previousActivities: previousWeekActivities,
+            previousDays: 7,
+            currentDays: 7
+        )
+        let snapshot = WeeklyMetricSnapshot(weekKey: currentWeekKey, weekStartDate: weekAgo, metrics: metrics)
+        do {
+            try await firestoreService.saveWeeklyMetricSnapshot(snapshot, userId: userId, babyId: babyId)
+        } catch {
+            // Phase 2 ML 학습 입력 손실 — non-fatal, 다음 주차 누적으로 회복 가능하나 진단 필수
+            logSilent("WeeklyMetricSnapshot 저장 실패 (weekKey=\(currentWeekKey))", error: error, logger: AppLogger.ml)
+        }
+
+        // Analytics — Phase 2 ML 학습용 telemetry
+        for (idx, insight) in weeklyInsights.enumerated() {
+            AnalyticsService.shared.logInsightGenerated(
+                metricKey: insight.metricKey,
+                category: insight.category.rawValue,
+                position: idx,
+                scorerMode: InsightWeights.fromRC().scorerMode.rawValue,
+                historyWeeks: snapshots.count
+            )
         }
     }
 
