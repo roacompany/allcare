@@ -27,7 +27,16 @@ final class GrowthViewModel {
     /// - Parameter userId: 데이터 저장 path (가족 공유 시 owner uid).
     /// - Parameter currentUserId: 배지 부여 본인 uid (H-4 회귀 fix).
     func saveRecord(_ record: GrowthRecord, userId: String, currentUserId: String, baby: Baby? = nil) async throws {
-        try await firestoreService.saveGrowthRecord(record, userId: userId)
+        do {
+            try await firestoreService.saveGrowthRecord(record, userId: userId)
+        } catch {
+            // 오프라인 폴백: 큐 적재 + 낙관 반영 (연결 시 자동 동기화). 배지/위젯은 다음 온라인 기록 때 재계산.
+            enqueueOfflineGrowthRecord(record, userId: userId, type: .create)
+            records.append(record)
+            records.sort { $0.date < $1.date }
+            saveError = "오프라인 저장됨 — 연결 시 자동 동기화"
+            return
+        }
         AnalyticsService.shared.trackEvent(AnalyticsEvents.growthDataInput)
         records.append(record)
         records.sort { $0.date < $1.date }
@@ -38,6 +47,14 @@ final class GrowthViewModel {
         // 위젯 성장 백분위 동기화
         if let baby {
             syncWidgetGrowthPercentile(record: record, baby: baby)
+        }
+    }
+
+    /// 오프라인 저장 폴백 — 연결 복구 시 자동 동기화 (Activity 큐 경로와 동일 계약).
+    private func enqueueOfflineGrowthRecord(_ record: GrowthRecord, userId: String, type: PendingOperation.OperationType) {
+        let path = FirestoreCollections.babyChildPath(userId: userId, babyId: record.babyId, collection: FirestoreCollections.growth)
+        if !OfflineQueue.shared.enqueueSave(record, collectionPath: path, documentId: record.id, type: type) {
+            AppLogger.firestore.error("오프라인 큐 인코딩 실패 — growth \(record.id) 큐잉 누락")
         }
     }
 
@@ -74,7 +91,12 @@ final class GrowthViewModel {
     // MARK: - Update
 
     func updateRecord(_ updated: GrowthRecord, userId: String) async throws {
-        try await firestoreService.updateGrowthRecord(updated, userId: userId)
+        do {
+            try await firestoreService.updateGrowthRecord(updated, userId: userId)
+        } catch {
+            enqueueOfflineGrowthRecord(updated, userId: userId, type: .update)
+            saveError = "오프라인 저장됨 — 연결 시 자동 동기화"
+        }
         if let idx = records.firstIndex(where: { $0.id == updated.id }) {
             records[idx] = updated
             records.sort { $0.date < $1.date }

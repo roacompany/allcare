@@ -2740,6 +2740,7 @@ final class BabyCareTests: XCTestCase {
         // 다른 사용자 경로는 미포함 (오삭제 방지)
         XCTAssertFalse(StoragePath.babyRoot(userId: "u2", babyId: "b1").hasPrefix(userRoot + "/"))
     }
+
 }
 
 // MARK: - HospitalChecklistService Tests (#10)

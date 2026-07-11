@@ -177,21 +177,11 @@ extension ActivityViewModel {
     private func enqueueOfflineActivity(_ activity: Activity, userId: String, babyId: String) {
         // 오프라인 큐는 saveActivity 가드를 우회하는 별도 쓰기 경로 → .unknown 차단 (데이터 손실 방지)
         guard activity.type != .unknown else { return logUnknownSaveBlocked() }
-        let collectionPath = "\(FirestoreCollections.users)/\(userId)/\(FirestoreCollections.babies)/\(babyId)/\(FirestoreCollections.activities)"
-        guard let jsonData = try? JSONEncoder().encode(activity) else {
-            // L3: 인코딩 실패 시 nil-payload op 를 큐잉하면 flush 에서 조용히 드롭(데이터 손실) → 적재 안 하고 로깅으로 가시화
+        let collectionPath = FirestoreCollections.babyChildPath(userId: userId, babyId: babyId, collection: FirestoreCollections.activities)
+        if !OfflineQueue.shared.enqueueSave(activity, collectionPath: collectionPath, documentId: activity.id) {
+            // L3: 인코딩 실패 시 적재 생략 — 로깅으로 데이터 손실 가시화
             AppLogger.firestore.error("오프라인 큐 인코딩 실패 — activity \(activity.id) 큐잉 누락")
-            return
         }
-        let pendingOp = PendingOperation(
-            id: UUID().uuidString,
-            timestamp: Date(),
-            type: .create,
-            collectionPath: collectionPath,
-            documentId: activity.id,
-            jsonData: jsonData
-        )
-        OfflineQueue.shared.enqueue(pendingOp)
     }
 
     /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)

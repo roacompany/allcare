@@ -82,6 +82,11 @@ enum AppConstants {
 }
 
 enum FirestoreCollections {
+    /// 아기 하위 컬렉션의 Firestore 경로 — 오프라인 큐 적재 경로가 온라인 save 경로와 동일함을 한곳에서 보장.
+    static func babyChildPath(userId: String, babyId: String, collection: String) -> String {
+        "\(users)/\(userId)/\(babies)/\(babyId)/\(collection)"
+    }
+
     static let users = "users"
     static let babies = "babies"
     static let activities = "activities"
