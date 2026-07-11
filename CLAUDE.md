@@ -267,7 +267,7 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.8 (빌드 92 committed, main `741bcde`, 2026-07-09 실측) — **App Store 미제출**. 임신 v3 전체(flag-off 휴면, #32~#38·#48~#52) + 데이터 무결성(#39~#44·#49) + GA4 태깅 위생(#30) + 부채(#45~#47) 포함. TestFlight 업로드 = v2.8.8 빌드 93/94(`tf/pregnancy-v3-test` 브랜치·flag-on QA 전용·머지 금지·#49~#52 미포함) + 95~97(쿠팡식 실험 워크트리) — **ASC 최고 빌드 97(2026-07-09 실측), main 기준 다음 TF 빌드 ≥98**. **App Store 라이브 = v2.8.6 (빌드 88, READY_FOR_SALE)** — 유축 + 병수유 + DS2 대시보드 + Sentry. v2.8.7(빌드 89)은 TF VALID·미제출(2.8.8 제출 시 동반 출시)
+- **Version**: v2.8.8 (빌드 99 committed+업로드, main `340853c`, 2026-07-11 실측) — **App Store 미제출**. 임신 v3 전체(flag-off 휴면, #32~#38·#48~#52) + 데이터 무결성(#39~#44·#49) + 이탈방지 P0(#53·#54) + **버그fix #55~#58(수면자정·접종콜드스타트·Storage사진purge·오프라인큐확대) + UX Clean Sweep #59~#73(코드청결 A1~A3·코어루프 B1~B5·리텐션 C1~C6·데이터 D1)** 포함. **ASC 최고 빌드 = 99(2026-07-11 업로드, 이전 98은 #53/#54까지)** — 빌드 93/94(`tf/pregnancy-v3-test` flag-on QA 전용·머지 금지)·95~97(쿠팡식 실험). **App Store 라이브 = v2.8.6 (빌드 88, READY_FOR_SALE)** — 유축 + 병수유 + DS2 대시보드 + Sentry. v2.8.7(빌드 89)은 TF VALID·미제출(2.8.8 제출 시 동반 출시)
 - **App Store**:
   - **v2.8.8 — main committed(빌드 92)·미제출** (임신 v3 flag-off 휴면 포함 — 제출해도 임신 UI 노출 0. rollout은 RC 재배선 + 의료감수 후. 제출 여부 = PO 결정)
   - **v2.8.7 — App Store 미제출** (TestFlight 빌드 89 VALID, 앱 평가 팝업 + #24~#28 누적수정. 2.8.8 제출 시 동반 출시)
