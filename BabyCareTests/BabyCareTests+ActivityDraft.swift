@@ -188,4 +188,20 @@ final class ActivityDraftBuilderTests: XCTestCase {
         XCTAssertEqual(vm.amount, "")   // resetForm 호출 확인
         XCTAssertNil(vm.errorMessage)
     }
+
+    // MARK: - P1: RecordEntryRule (instant vs detail)
+
+    func test_recordEntryRule_instantTypes() {
+        let instant: [Activity.ActivityType] = [.diaperWet, .diaperDirty, .diaperBoth, .bath, .feedingSnack]
+        for t in instant {
+            XCTAssertEqual(RecordEntryRule.mode(for: t), .instant, "\(t) should be instant")
+        }
+    }
+
+    func test_recordEntryRule_detailTypes() {
+        let detail: [Activity.ActivityType] = [.feedingBreast, .feedingBottle, .feedingPumping, .feedingSolid, .sleep, .temperature, .medication]
+        for t in detail {
+            XCTAssertEqual(RecordEntryRule.mode(for: t), .detail, "\(t) should be detail")
+        }
+    }
 }
