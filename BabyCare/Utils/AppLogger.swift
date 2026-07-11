@@ -23,6 +23,7 @@ enum AppLogger {
     static let pregnancy    = Logger(subsystem: subsystem, category: "Pregnancy")
     static let push         = Logger(subsystem: subsystem, category: "Push")
     static let sound        = Logger(subsystem: subsystem, category: "Sound")
+    static let storage      = Logger(subsystem: subsystem, category: "Storage")
     static let todo         = Logger(subsystem: subsystem, category: "Todo")
 }
 

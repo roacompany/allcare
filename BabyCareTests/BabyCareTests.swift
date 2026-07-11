@@ -2709,6 +2709,37 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(backfilled.allSatisfy(\.isCompleted))
         XCTAssertEqual(backfilled.first?.administeredDate, unrecorded.scheduledDate, "접종일은 예정일로 저장")
     }
+
+    // MARK: - StoragePath (사진 경로 단일 소스 — 삭제 프리픽스가 업로드 경로를 커버하는 불변 잠금)
+
+    func testStoragePath_matchesLiveUploadPaths() {
+        // ⚠️ 기존 업로드 파일 도달성 계약 — 경로 형식 변경 금지 (변경 시 이전 사진 orphan)
+        XCTAssertEqual(StoragePath.babyProfile(userId: "u1", babyId: "b1"), "users/u1/babies/b1/profile.jpg")
+        XCTAssertEqual(
+            StoragePath.activityPhoto(userId: "u1", babyId: "b1", activityId: "a1"),
+            "users/u1/babies/b1/activities/a1.jpg"
+        )
+        XCTAssertEqual(
+            StoragePath.diaryPhoto(userId: "u1", babyId: "b1", diaryId: "d1", index: 2),
+            "users/u1/babies/b1/diary/d1_2.jpg"
+        )
+    }
+
+    func testStoragePath_babyRootCoversAllUploadPaths() {
+        let root = StoragePath.babyRoot(userId: "u1", babyId: "b1")
+        XCTAssertTrue(StoragePath.babyProfile(userId: "u1", babyId: "b1").hasPrefix(root + "/"))
+        XCTAssertTrue(StoragePath.activityPhoto(userId: "u1", babyId: "b1", activityId: "a1").hasPrefix(root + "/"))
+        XCTAssertTrue(StoragePath.diaryPhoto(userId: "u1", babyId: "b1", diaryId: "d1", index: 0).hasPrefix(root + "/"))
+        // 다른 아기 경로는 미포함 (오삭제 방지)
+        XCTAssertFalse(StoragePath.babyProfile(userId: "u1", babyId: "b2").hasPrefix(root + "/"))
+    }
+
+    func testStoragePath_userRootCoversBabyRoot() {
+        let userRoot = StoragePath.userRoot(userId: "u1")
+        XCTAssertTrue(StoragePath.babyRoot(userId: "u1", babyId: "b1").hasPrefix(userRoot + "/"), "계정 purge가 아기 purge를 포함")
+        // 다른 사용자 경로는 미포함 (오삭제 방지)
+        XCTAssertFalse(StoragePath.babyRoot(userId: "u2", babyId: "b1").hasPrefix(userRoot + "/"))
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)

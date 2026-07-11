@@ -16,10 +16,15 @@ final class AuthViewModel {
 
     private let authService = AuthService.shared
     private let migration: AuthMigrationProviding
+    private let storageService: StorageServiceProviding
     nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
-    init(migration: AuthMigrationProviding = FirestoreService.shared) {
+    init(
+        migration: AuthMigrationProviding = FirestoreService.shared,
+        storageService: StorageServiceProviding = StorageService.shared
+    ) {
         self.migration = migration
+        self.storageService = storageService
         // UI 테스트 모드: Firebase 없이 인증 완료 상태로 시작
         if CommandLine.arguments.contains("UI_TESTING") {
             isAuthenticated = true
@@ -132,6 +137,12 @@ final class AuthViewModel {
                     try await deleteUserData(userId: userId)
                 } catch {
                     logSilent("계정 데이터 정리 실패 (Auth는 이미 삭제됨)", error: error, logger: AppLogger.auth)
+                }
+                // Storage 사진 정리 (PII 잔존 방지) — Firestore 정리와 독립 시도
+                do {
+                    try await storageService.deleteUserStorage(userId: userId)
+                } catch {
+                    logSilent("계정 Storage 사진 정리 실패 (Auth는 이미 삭제됨)", error: error, logger: AppLogger.storage)
                 }
             }
             // Auth state listener가 isAuthenticated=false로 전환 → ContentView가 LoginView 표시
