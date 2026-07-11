@@ -162,4 +162,30 @@ final class ActivityDraftBuilderTests: XCTestCase {
         XCTAssertEqual(d.startTime, t)
         XCTAssertTrue(d.wasManuallyAdjusted)
     }
+
+    // MARK: - Task 5: 풀폼 saveActivity 위임 (중복 경고 보존 + 저장/리셋)
+
+    @MainActor
+    func test_saveActivity_duplicate_setsWarning() async {
+        let vm = ActivityViewModel(firestoreService: MockActivityFirestore())
+        var existing = Activity(babyId: "b", type: .diaperWet)
+        existing.startTime = Date()
+        vm.todayActivities = [existing]
+        vm.isTimeAdjusted = true
+        vm.manualStartTime = existing.startTime   // 동일 시각 → 중복
+        await vm.saveActivity(userId: "u", currentUserId: "u", babyId: "b", type: .diaperWet)
+        XCTAssertTrue(vm.showDuplicateWarning)
+    }
+
+    @MainActor
+    func test_saveActivity_fullForm_pumping_savesAndResets() async {
+        let mock = MockActivityFirestore()
+        let vm = ActivityViewModel(firestoreService: mock)
+        vm.amount = "90"
+        vm.selectedSide = .both
+        await vm.saveActivity(userId: "u", currentUserId: "me", babyId: "b", type: .feedingPumping)
+        XCTAssertEqual(mock.saveActivityCalls.first?.amount, 90)
+        XCTAssertEqual(vm.amount, "")   // resetForm 호출 확인
+        XCTAssertNil(vm.errorMessage)
+    }
 }

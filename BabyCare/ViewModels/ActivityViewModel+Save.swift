@@ -10,57 +10,23 @@ extension ActivityViewModel {
     /// - Parameter currentUserId: 배지 부여 대상 본인 uid. 호출자(authVM.currentUserId).
     ///   (H-4 회귀 fix: 배지는 항상 본인 path에 저장 — 가족 공유 시 owner 배지 격리)
     func saveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
-        // 시작시간 결정 (타이머 or 수동)
-        let startTime = isTimeAdjusted ? manualStartTime : Date()
-
-        // 중복 체크
-        if hasDuplicateRecord(type: type, startTime: startTime) {
+        // 중복 체크는 타이머 stop 전 기준시간으로 (원본 동일 — 실행 중 타이머는 '지금'으로 판정).
+        let dupCheckStart = isTimeAdjusted ? manualStartTime : Date()
+        if hasDuplicateRecord(type: type, startTime: dupCheckStart) {
             pendingDuplicateSave = { [weak self] in
-                await self?.performSaveActivity(userId: userId, currentUserId: currentUserId, babyId: babyId, type: type)
+                guard let self else { return }
+                // 확정 시점에 타이머 stop (원본 performSaveActivity와 동일 — 취소 시 타이머 유지)
+                let draft = self.makeDraft(type: type, babyId: babyId)
+                _ = await self.commit(draft: draft, userId: userId, currentUserId: currentUserId)
+                if self.errorMessage == nil { self.resetForm() }
             }
             showDuplicateWarning = true
             return
         }
 
-        // 실제 저장
-        await performSaveActivity(userId: userId, currentUserId: currentUserId, babyId: babyId, type: type)
-    }
-
-    func performSaveActivity(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
-        guard type != .unknown else { return logUnknownSaveBlocked() }
-        var activity = Activity(babyId: babyId, type: type)
-        activity.createdBy = currentUserId
-
-        let timerBelongsToMe = isTimerRunning && activeTimerType == type
-        // stopTimer() 호출 전 수동 조정 여부 캡처 (stopTimer가 isTimeAdjusted를 덮어쓰기 전)
-        let wasManuallyAdjusted = isTimeAdjusted
-
-        guard applyTypeFields(to: &activity, type: type, timerBelongsToMe: timerBelongsToMe) else { return }
-
-        applyManualTimeAdjustment(to: &activity, wasManuallyAdjusted: wasManuallyAdjusted)
-
-        guard validateActivity(activity, type: type, wasManuallyAdjusted: wasManuallyAdjusted) else { return }
-
-        if !note.isEmpty { activity.note = note }
-
-        // 낙관적 업데이트: 먼저 UI 반영
-        todayActivities.insert(activity, at: 0)
-
-        do {
-            try await firestoreService.saveActivity(activity, userId: userId)
-            deriveLatestActivities()
-            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
-            if type == .temperature, registerTemperature(activity) {
-                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
-            }
-            await evaluateBadgesIfNeeded(type: type, babyId: babyId, currentUserId: currentUserId, at: activity.startTime)
-            resetForm()
-        } catch {
-            enqueueOfflineActivity(activity, userId: userId, babyId: babyId)
-            deriveLatestActivities()
-            resetForm()
-            InfoToastCenter.shared.offlineSaved()
-        }
+        let draft = makeDraft(type: type, babyId: babyId)
+        _ = await commit(draft: draft, userId: userId, currentUserId: currentUserId)
+        if errorMessage == nil { resetForm() }
     }
 
     // MARK: - Unified Pipeline (P0) — 단일 저장 경로
@@ -146,111 +112,6 @@ extension ActivityViewModel {
         }
     }
 
-    // MARK: - performSaveActivity Helpers
-
-    /// 각 activity type에 맞는 필드 적용. 유효성 실패 시 false 반환.
-    private func applyTypeFields(
-        to activity: inout Activity,
-        type: Activity.ActivityType,
-        timerBelongsToMe: Bool
-    ) -> Bool {
-        switch type {
-        case .feedingBreast:
-            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
-            activity.side = selectedSide
-
-        case .feedingBottle:
-            guard isAmountValid else {
-                errorMessage = "수유량을 올바르게 입력해주세요. (1~500ml)"
-                return false
-            }
-            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
-            activity.amount = Double(amount)
-            activity.feedingContent = selectedFeedingContent
-
-        case .feedingSolid:
-            activity.foodName = foodName.isEmpty ? nil : foodName
-            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
-            activity.foodReaction = foodReaction
-
-        case .feedingSnack:
-            activity.foodName = foodName.isEmpty ? nil : foodName
-            activity.foodAmount = foodAmount.isEmpty ? nil : foodAmount
-
-        case .sleep:
-            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: true)
-            activity.sleepQuality = sleepQuality
-            activity.sleepMethod = sleepMethod
-
-        case .diaperWet, .diaperDirty, .diaperBoth:
-            if type == .diaperDirty || type == .diaperBoth {
-                activity.stoolColor = stoolColor
-                activity.stoolConsistency = stoolConsistency
-                activity.hasRash = hasRash ? true : nil
-            }
-
-        case .temperature:
-            guard isTemperatureValid else {
-                errorMessage = "체온을 올바르게 입력해주세요. (34.0~43.0°C)"
-                return false
-            }
-            activity.temperature = Double(temperatureInput)
-
-        case .medication:
-            activity.medicationName = medicationName.isEmpty ? nil : medicationName
-            activity.medicationDosage = medicationDosage.isEmpty ? nil : medicationDosage
-
-        case .bath:
-            applyTimerDuration(to: &activity, timerBelongsToMe: timerBelongsToMe, includeEndTime: false)
-
-        case .feedingPumping:
-            // 유축 = 생산(.pumping). 빠른기록 미니시트 + 기록하기 양 경로 공용.
-            guard isAmountValid else {
-                errorMessage = "유축량을 올바르게 입력해주세요. (1~500ml)"
-                return false
-            }
-            activity.amount = Double(amount)
-            activity.side = selectedSide
-
-        case .unknown:
-            // forward-compat 센티넬은 영속 불가 — 진입점 가드로 도달 불가하나 exhaustive 보장 + 방어.
-            return false
-        }
-        return true
-    }
-
-    /// 타이머 경과시간을 activity에 적용
-    private func applyTimerDuration(to activity: inout Activity, timerBelongsToMe: Bool, includeEndTime: Bool) {
-        guard timerBelongsToMe else { return }
-        let duration = stopTimer()
-        activity.duration = duration
-        activity.startTime = Date().addingTimeInterval(-duration)
-        if includeEndTime { activity.endTime = Date() }
-    }
-
-    /// 수동 시간 조정 적용 (타이머보다 우선)
-    private func applyManualTimeAdjustment(to activity: inout Activity, wasManuallyAdjusted: Bool) {
-        guard wasManuallyAdjusted else { return }
-        activity.startTime = manualStartTime
-        if let endTime = manualEndTime {
-            activity.endTime = endTime
-            activity.duration = endTime.timeIntervalSince(manualStartTime)
-        }
-    }
-
-    /// 저장 전 공통 유효성 검사. 실패 시 false 반환.
-    private func validateActivity(_ activity: Activity, type: Activity.ActivityType, wasManuallyAdjusted: Bool) -> Bool {
-        if let duration = activity.duration, duration < 1, !wasManuallyAdjusted {
-            errorMessage = "최소 1초 이상 기록해주세요."
-            return false
-        }
-        if type == .sleep, let duration = activity.duration, duration > AppConstants.secondsPerDay {
-            errorMessage = "수면 시간이 24시간을 초과합니다. 시간을 확인해주세요."
-            return false
-        }
-        return true
-    }
-
     /// .unknown 저장 시도 진단 로깅 (forward-compat 센티넬은 정상 흐름에서 도달 불가 — 도달 시 버그 신호)
     private func logUnknownSaveBlocked() {
         AppLogger.firestore.warning("ActivityType.unknown 저장 차단 — read-only 센티넬은 영속 불가 (forward-compat)")
@@ -267,47 +128,20 @@ extension ActivityViewModel {
         }
     }
 
-    /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등)
+    /// QuickInputSheet에서 미리 구성된 Activity 저장 (체온/투약/분유 등) — 공용 persist 꼬리 경유(오프라인 큐 획득).
     func savePrebuiltActivity(_ activity: Activity, userId: String, currentUserId: String) async {
         guard activity.type != .unknown else { return logUnknownSaveBlocked() }
-        errorMessage = nil   // 이전 작업의 스테일 에러가 성공 판정(analytics/haptic)을 오염시키지 않도록
-        var activity = activity
-        activity.createdBy = currentUserId
-        todayActivities.insert(activity, at: 0)
-
-        do {
-            try await firestoreService.saveActivity(activity, userId: userId)
-            deriveLatestActivities()
-            scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
-            await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, currentUserId: currentUserId, at: activity.startTime)
-        } catch {
-            todayActivities.removeAll { $0.id == activity.id }
-            errorMessage = "기록 저장에 실패했습니다."
-        }
+        errorMessage = nil
+        var a = activity
+        a.createdBy = currentUserId
+        _ = await persist(a, userId: userId, currentUserId: currentUserId)
     }
 
     func quickSave(userId: String, currentUserId: String, babyId: String, type: Activity.ActivityType) async {
-        guard type != .unknown else { return logUnknownSaveBlocked() }
-        errorMessage = nil   // 이전 작업의 스테일 에러가 성공 판정(analytics/haptic)을 오염시키지 않도록
-        var activity = Activity(babyId: babyId, type: type)
-        activity.createdBy = currentUserId
-
-        // 빠른 기록에서도 최소한의 기본값 설정
-        if type == .feedingBreast {
-            activity.side = .left
-        }
-
-        todayActivities.insert(activity, at: 0)
-
-        do {
-            try await firestoreService.saveActivity(activity, userId: userId)
-            deriveLatestActivities()
-            scheduleActivityReminderIfNeeded(type: type, babyName: "아기")
-            await evaluateBadgesIfNeeded(type: type, babyId: babyId, currentUserId: currentUserId, at: activity.startTime)
-        } catch {
-            todayActivities.removeAll { $0.id == activity.id }
-            errorMessage = "기록 저장에 실패했습니다."
-        }
+        // 빠른 기록: 최소 draft로 commit (오프라인 큐·부수효과 전 경로 일관 — P0).
+        var draft = ActivityDraft(babyId: babyId, type: type)
+        if type == .feedingBreast { draft.side = .left }   // 모유수유 방향 기본값 보존
+        _ = await commit(draft: draft, userId: userId, currentUserId: currentUserId)
     }
 
     // MARK: - Badge Hook
