@@ -12,29 +12,41 @@ extension DashboardView {
                     .foregroundStyle(.primary)
 
                 ForEach(Array(activityVM.weeklyInsights.enumerated()), id: \.element.id) { idx, insight in
-                    HStack(spacing: 10) {
-                        Image(systemName: insightSymbol(for: insight.category))
-                            .font(.body)
-                            .foregroundStyle(insightColor(for: insight.category))
-                            .frame(width: 28)
+                    NavigationLink {
+                        StatsView()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: insightSymbol(for: insight.category))
+                                .font(.body)
+                                .foregroundStyle(insightColor(for: insight.category))
+                                .frame(width: 28)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(insight.title)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                            Text(insight.detail)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(insight.title)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                Text(insight.detail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                        Spacer()
+                            Spacer()
 
-                        if let changePercent = insight.changePercent, abs(changePercent) >= 5 {
-                            Text("\(changePercent > 0 ? "↑" : "↓")\(Int(abs(changePercent).rounded()))%")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(changePercent > 0 ? Color.green : Color.red)
+                            if let changePercent = insight.changePercent, abs(changePercent) >= 5 {
+                                Text("\(changePercent > 0 ? "↑" : "↓")\(Int(abs(changePercent).rounded()))%")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(changePercent > 0 ? Color.green : Color.red)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AnalyticsService.shared.logInsightTapped(
+                            metricKey: insight.metricKey,
+                            category: insight.category.rawValue,
+                            position: idx
+                        )
+                    })
                     .onAppear {
                         AnalyticsService.shared.logInsightShown(
                             metricKey: insight.metricKey,

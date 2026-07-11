@@ -13,10 +13,32 @@ struct DashboardInsightCards: View {
                     .font(.headline)
                     .foregroundStyle(.primary)
 
-                ForEach(insights) { insight in
-                    InsightCardRow(insight: insight)
+                ForEach(Array(insights.enumerated()), id: \.element.id) { idx, insight in
+                    NavigationLink {
+                        destination(for: insight)
+                    } label: {
+                        InsightCardRow(insight: insight)
+                    }
+                    .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AnalyticsService.shared.logInsightTapped(
+                            metricKey: insight.analyticsKey,
+                            category: insight.analyticsKey,
+                            position: idx
+                        )
+                    })
                 }
             }
+        }
+    }
+
+    /// 카드 kind → 목적지 (매핑 계약은 DashboardInsight.tapDestination 테스트가 잠금)
+    @ViewBuilder
+    private func destination(for insight: DashboardInsight) -> some View {
+        switch insight.tapDestination {
+        case .stats: StatsView()
+        case .milestones: MilestoneListView()
+        case .vaccinations: VaccinationListView()
         }
     }
 }

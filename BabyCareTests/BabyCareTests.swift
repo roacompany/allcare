@@ -2756,6 +2756,30 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(ids.count, 3)
     }
 
+    // MARK: - DashboardInsight 탭 목적지 매핑 (B5 — 읽기 전용 카드에 행동 연결)
+
+    func testInsightTapDestination_mapping() {
+        func insight(_ kind: DashboardInsight.Kind) -> DashboardInsight {
+            DashboardInsight(kind: kind, icon: "star", colorName: "feedingColor", primaryText: "t", secondaryText: nil)
+        }
+        XCTAssertEqual(insight(.feeding).tapDestination, .stats)
+        XCTAssertEqual(insight(.sleep).tapDestination, .stats)
+        XCTAssertEqual(insight(.health).tapDestination, .stats)
+        XCTAssertEqual(insight(.milestone).tapDestination, .milestones)
+        XCTAssertEqual(insight(.vaccination).tapDestination, .vaccinations)
+    }
+
+    func testInsightAnalyticsKey_perKind() {
+        func insight(_ kind: DashboardInsight.Kind) -> DashboardInsight {
+            DashboardInsight(kind: kind, icon: "star", colorName: "feedingColor", primaryText: "t", secondaryText: nil)
+        }
+        XCTAssertEqual(insight(.feeding).analyticsKey, "feeding")
+        XCTAssertEqual(insight(.sleep).analyticsKey, "sleep")
+        XCTAssertEqual(insight(.health).analyticsKey, "health")
+        XCTAssertEqual(insight(.milestone).analyticsKey, "milestone")
+        XCTAssertEqual(insight(.vaccination).analyticsKey, "vaccination")
+    }
+
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
