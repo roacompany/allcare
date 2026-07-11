@@ -85,6 +85,9 @@ enum AnalyticsEvents {
     static let partnerInvitePromoShown = "partner_invite_promo_shown"
     static let partnerInvitePromoTapped = "partner_invite_promo_tapped"
     static let partnerInvitePromoDismissed = "partner_invite_promo_dismissed"
+
+    // Welcome Back — C5: 복귀 웰컴백 카드 노출 계측 (D1 복귀 넛지 착지 효과 추적).
+    static let welcomeBackShown = "welcome_back_shown"
 }
 
 // MARK: - Parameter Keys
