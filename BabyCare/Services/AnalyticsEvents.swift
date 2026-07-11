@@ -85,6 +85,9 @@ enum AnalyticsEvents {
     static let partnerInvitePromoShown = "partner_invite_promo_shown"
     static let partnerInvitePromoTapped = "partner_invite_promo_tapped"
     static let partnerInvitePromoDismissed = "partner_invite_promo_dismissed"
+
+    // Next Record Suggestion — B4: 저장 토스트 '이어서 기록' 칩 탭 계측 (묶음 기록 효과).
+    static let nextRecordSuggestionTapped = "next_record_suggestion_tapped"
 }
 
 // MARK: - Parameter Keys
