@@ -71,7 +71,7 @@ enum HospitalChecklistService {
         }
 
         // 가장 가까운 예정 접종 (D-day 계산)
-        if let nextVax = pendingVaccinations.first(where: { !$0.isOverdue }),
+        if let nextVax = pendingVaccinations.first(where: { !$0.isOverdue && !$0.isUnrecordedPast }),
            let dDay = nextVax.daysUntilScheduled {
             let severity: HospitalChecklistItem.Severity = dDay <= 7 ? .medium : .low
             items.append(HospitalChecklistItem(

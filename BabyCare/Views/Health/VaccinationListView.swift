@@ -9,6 +9,7 @@ struct VaccinationListView: View {
     @State private var showCompleteSheet = false
     @State private var showUndoConfirmation = false
     @State private var showSideEffectSheet = false
+    @State private var showBackfillConfirmation = false
     @State private var savedMessage: String?
 
     var body: some View {
@@ -34,6 +35,31 @@ struct VaccinationListView: View {
                             .tint(AppColors.healthColor)
                     }
                     .padding(.vertical, 4)
+                }
+            }
+
+            // 기록 전 (앱 사용 전에 지난 일정 — 지연 아님)
+            let unrecorded = healthVM.unrecordedPastVaccinations
+            if !unrecorded.isEmpty {
+                Section {
+                    ForEach(unrecorded) { vax in
+                        VaccinationRow(vaccination: vax)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedVaccination = vax
+                                showCompleteSheet = true
+                            }
+                    }
+                    Button {
+                        showBackfillConfirmation = true
+                    } label: {
+                        Label("모두 접종 완료로 표시", systemImage: "checkmark.circle")
+                            .font(.subheadline.weight(.medium))
+                    }
+                } header: {
+                    SectionHeader(title: NSLocalizedString("vaccination.section.unrecorded", comment: ""), color: .secondary)
+                } footer: {
+                    Text(NSLocalizedString("vaccination.section.unrecorded.footer", comment: ""))
                 }
             }
 
@@ -73,7 +99,7 @@ struct VaccinationListView: View {
 
             // 예정 (14일 이후)
             let scheduled = healthVM.vaccinations.filter {
-                !$0.isCompleted && !$0.isOverdue && !$0.isDueSoon
+                !$0.isCompleted && !$0.isOverdue && !$0.isDueSoon && !$0.isUnrecordedPast
             }
             if !scheduled.isEmpty {
                 Section {
@@ -179,6 +205,26 @@ struct VaccinationListView: View {
             Button("닫기", role: .cancel) {
                 selectedVaccination = nil
             }
+        }
+        .confirmationDialog(
+            "지난 접종 일괄 기록",
+            isPresented: $showBackfillConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("\(healthVM.unrecordedPastVaccinations.count)건 모두 완료로 표시") {
+                guard let currentUserId = authVM.currentUserId else { return }
+                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                let count = healthVM.unrecordedPastVaccinations.count
+                Task {
+                    await healthVM.markAllUnrecordedPastComplete(userId: dataUserId)
+                    if healthVM.errorMessage == nil {
+                        withAnimation { savedMessage = "지난 접종 \(count)건 기록 완료" }
+                    }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("앱을 쓰기 전에 예정일이 지난 접종을 모두 완료로 기록해요. 접종일은 예정일로 저장되며, 각 항목에서 나중에 수정할 수 있어요.")
         }
         .sheet(isPresented: $showSideEffectSheet) {
             if let vax = selectedVaccination {

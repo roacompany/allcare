@@ -46,8 +46,26 @@ struct Vaccination: Identifiable, Codable, Hashable {
         return days >= 0 ? days : nil
     }
 
+    /// 일정 생성(시딩) 시점에 이미 예정일이 지나 있던 미완료 접종.
+    /// 앱을 쓰기 전 이력이므로 '지연'이 아니라 '기록 전'으로 취급한다 — 신규 가입 직후 지연 경고 오발 방지.
+    var isUnrecordedPast: Bool {
+        guard !isCompleted else { return false }
+        let cal = Calendar.current
+        return cal.startOfDay(for: scheduledDate) < cal.startOfDay(for: createdAt)
+    }
+
     var isOverdue: Bool {
-        !isCompleted && scheduledDate < Date()
+        !isCompleted && scheduledDate < Date() && !isUnrecordedPast
+    }
+
+    /// 미기록 과거 접종만 '완료(접종일=예정일)' 사본으로 변환. 사용자가 일괄 기록을 확인한 경우에만 호출.
+    static func completedBackfill(of vaccinations: [Vaccination]) -> [Vaccination] {
+        vaccinations.filter(\.isUnrecordedPast).map { vax in
+            var updated = vax
+            updated.isCompleted = true
+            updated.administeredDate = vax.scheduledDate
+            return updated
+        }
     }
 
     var isDueSoon: Bool {
@@ -58,6 +76,7 @@ struct Vaccination: Identifiable, Codable, Hashable {
 
     var statusText: String {
         if isCompleted { return "접종 완료" }
+        if isUnrecordedPast { return "기록 전" }
         if isOverdue { return "접종 지연" }
         if isDueSoon { return "접종 예정" }
         return "예정"

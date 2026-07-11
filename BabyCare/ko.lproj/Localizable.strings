@@ -108,6 +108,8 @@
 "vaccination.section.dueSoon" = "접종 예정 (14일 이내)";
 "vaccination.section.scheduled" = "예정";
 "vaccination.section.completed" = "완료";
+"vaccination.section.unrecorded" = "기록 전 (앱 사용 전 일정)";
+"vaccination.section.unrecorded.footer" = "이 앱을 쓰기 전에 예정일이 지난 접종이에요. 이미 맞았다면 완료로 기록해 주세요.";
 
 /* Vaccination — Progress */
 "vaccination.progress.text" = "%d/%d 완료 (%d%%)";

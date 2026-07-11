@@ -26,6 +26,12 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             .sorted { $0.scheduledDate < $1.scheduledDate }
     }
 
+    /// 앱 사용 전(일정 생성 전)에 예정일이 지난 미기록 접종 — 지연 경고 대신 기록 안내 대상
+    var unrecordedPastVaccinations: [Vaccination] {
+        vaccinations.filter { $0.isUnrecordedPast }
+            .sorted { $0.scheduledDate < $1.scheduledDate }
+    }
+
     var completedVaccinations: [Vaccination] {
         vaccinations.filter { $0.isCompleted }
     }
@@ -134,6 +140,26 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
             save: { try await self.firestoreService.saveVaccination(updated, userId: userId) }
         ) {
             errorMessage = "접종 기록 저장에 실패했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    /// 미기록 과거 접종 일괄 완료 (접종일=예정일). 사용자가 확인 다이얼로그를 거친 경우에만 호출.
+    func markAllUnrecordedPastComplete(userId: String) async {
+        let backfilled = Vaccination.completedBackfill(of: vaccinations)
+        guard !backfilled.isEmpty else { return }
+
+        let original = vaccinations
+        for item in backfilled {
+            if let idx = vaccinations.firstIndex(where: { $0.id == item.id }) {
+                vaccinations[idx] = item
+            }
+        }
+
+        do {
+            try await firestoreService.saveVaccinations(backfilled, userId: userId)
+        } catch {
+            vaccinations = original
+            errorMessage = "지난 접종 일괄 기록에 실패했습니다: \(error.localizedDescription)"
         }
     }
 

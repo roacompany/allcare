@@ -2642,6 +2642,73 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(Activity.ActivityType.medication.supportsEndTime)
         XCTAssertFalse(Activity.ActivityType.unknown.supportsEndTime)
     }
+
+    // MARK: - Vaccination Cold Start (가입 전 지난 일정 = 기록 전, 진짜 지연과 구분)
+
+    func testVaccination_pastAtSeeding_isUnrecordedPast_notOverdue() {
+        let now = Date()
+        let vax = Vaccination(
+            babyId: "b1", vaccine: .bcg, doseNumber: 1,
+            scheduledDate: now.addingTimeInterval(-30 * 86_400),
+            createdAt: now
+        )
+        XCTAssertTrue(vax.isUnrecordedPast, "시딩 시점에 이미 지난 일정은 미기록 과거")
+        XCTAssertFalse(vax.isOverdue, "미기록 과거는 지연으로 계산하지 않는다")
+        XCTAssertEqual(vax.statusText, "기록 전")
+    }
+
+    func testVaccination_scheduledSameDayAsSeeding_isNotUnrecordedPast() {
+        // 등록 당일 출생(BCG 예정일 = 오늘) — 미기록 아님
+        let now = Date()
+        let vax = Vaccination(babyId: "b1", vaccine: .bcg, doseNumber: 1, scheduledDate: now, createdAt: now)
+        XCTAssertFalse(vax.isUnrecordedPast)
+    }
+
+    func testVaccination_lapsedAfterSeeding_staysOverdue() {
+        // 시딩 이후 예정일이 실제로 경과 → 진짜 지연 유지 (회귀 가드)
+        let now = Date()
+        let vax = Vaccination(
+            babyId: "b1", vaccine: .hepB, doseNumber: 2,
+            scheduledDate: now.addingTimeInterval(-3_600),
+            createdAt: now.addingTimeInterval(-2 * 86_400)
+        )
+        XCTAssertFalse(vax.isUnrecordedPast)
+        XCTAssertTrue(vax.isOverdue)
+        XCTAssertEqual(vax.statusText, "접종 지연")
+    }
+
+    func testVaccination_completedPast_isNeitherUnrecordedNorOverdue() {
+        let now = Date()
+        var vax = Vaccination(
+            babyId: "b1", vaccine: .bcg, doseNumber: 1,
+            scheduledDate: now.addingTimeInterval(-30 * 86_400),
+            createdAt: now
+        )
+        vax.isCompleted = true
+        XCTAssertFalse(vax.isUnrecordedPast)
+        XCTAssertFalse(vax.isOverdue)
+    }
+
+    func testVaccination_completedBackfill_marksOnlyUnrecordedPast() {
+        let now = Date()
+        let unrecorded = Vaccination(
+            babyId: "b1", vaccine: .bcg, doseNumber: 1,
+            scheduledDate: now.addingTimeInterval(-30 * 86_400), createdAt: now
+        )
+        let future = Vaccination(
+            babyId: "b1", vaccine: .mmr, doseNumber: 1,
+            scheduledDate: now.addingTimeInterval(30 * 86_400), createdAt: now
+        )
+        let lapsed = Vaccination(
+            babyId: "b1", vaccine: .hepB, doseNumber: 2,
+            scheduledDate: now.addingTimeInterval(-3_600),
+            createdAt: now.addingTimeInterval(-2 * 86_400)
+        )
+        let backfilled = Vaccination.completedBackfill(of: [unrecorded, future, lapsed])
+        XCTAssertEqual(backfilled.map(\.id), [unrecorded.id], "미기록 과거만 대상 (미래·진짜 지연 제외)")
+        XCTAssertTrue(backfilled.allSatisfy(\.isCompleted))
+        XCTAssertEqual(backfilled.first?.administeredDate, unrecorded.scheduledDate, "접종일은 예정일로 저장")
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
@@ -2660,7 +2727,9 @@ final class HospitalChecklistServiceTests: XCTestCase {
             babyId: "b1",
             vaccine: .dtap,
             doseNumber: 1,
-            scheduledDate: schedDate
+            scheduledDate: schedDate,
+            // 시딩 1년 전 = 앱 사용 중 일정 (미기록 과거로 분류되지 않게 — 과거 예정일은 '진짜 지연' 의도 유지)
+            createdAt: Calendar.current.date(byAdding: .day, value: -365, to: Date())!
         )
         vax.isCompleted = completed
         return vax
@@ -2702,6 +2771,17 @@ final class HospitalChecklistServiceTests: XCTestCase {
         let items = HospitalChecklistService.vaccinationItems(from: [vax])
         let overdueItem = items.first { $0.severity == .high }
         XCTAssertNotNil(overdueItem, "지연된 접종은 severity .high 항목이 있어야 한다")
+    }
+
+    // Test 2b: 앱 사용 전(시딩 전)에 지난 접종은 지연(high) 항목을 만들지 않는다 — 콜드스타트 오발 방지
+    func testChecklist_unrecordedPastVaccination_noOverdueItem() {
+        let vax = Vaccination(
+            babyId: "b1", vaccine: .dtap, doseNumber: 1,
+            scheduledDate: Calendar.current.date(byAdding: .day, value: -3, to: Date())!,
+            createdAt: Date()
+        )
+        let items = HospitalChecklistService.vaccinationItems(from: [vax])
+        XCTAssertNil(items.first { $0.severity == .high }, "미기록 과거 접종은 지연 항목이 없어야 한다")
     }
 
     // Test 3: 완료된 접종만 있을 때 체크리스트 비어있음
