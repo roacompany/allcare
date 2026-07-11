@@ -223,12 +223,27 @@ struct DashboardView: View {
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.white)
 
-                    if lastSavedActivity != nil {
+                    if let saved = lastSavedActivity {
                         Divider()
                             .frame(height: 16)
                             .overlay(.white.opacity(0.5))
                         Button("수정") {
-                            editingActivity = lastSavedActivity
+                            editingActivity = saved
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+
+                        Divider()
+                            .frame(height: 16)
+                            .overlay(.white.opacity(0.5))
+                        // 되돌리기 — 연속 기록의 안전망(방금 저장분 삭제). 오기록 즉시 취소.
+                        Button("되돌리기") {
+                            if let currentUserId = authVM.currentUserId {
+                                let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                                Task { await activityVM.deleteActivity(saved, userId: dataUserId) }
+                            }
+                            savedActivityType = nil
+                            lastSavedActivity = nil
                         }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)

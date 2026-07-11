@@ -80,7 +80,7 @@ struct DiaperRecordView: View {
                         } else {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.title3)
-                            Text("바로 저장")
+                            Text("저장")
                                 .font(.headline)
                         }
                     }

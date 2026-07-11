@@ -56,12 +56,13 @@ struct RecordingView: View {
                 babyAge: baby.ageText
             )
         }
+        // 연속 기록: 강제 닫힘 폐기 — 폼만 리셋하고 시트는 유지(수유→기저귀→수면 연달아 기록).
+        activityVM.resetForm()
         withAnimation {
-            savedMessage = "기록이 저장되었습니다"
+            savedMessage = "저장됐어요 · 이어서 기록할 수 있어요"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            activityVM.resetForm()
-            isPresented = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { savedMessage = nil }
         }
     }
 
