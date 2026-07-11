@@ -73,7 +73,7 @@ struct RecordLauncherSheet: View {
                 .presentationDetents([.medium])
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])   // 전체 높이로 표시 — 구 RecordingView와 동일. 반높이면 그리드가 잘림
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
     }

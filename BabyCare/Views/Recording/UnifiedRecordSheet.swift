@@ -72,7 +72,7 @@ struct UnifiedRecordSheet: View {
                 .presentationDetents([.medium])
             }
         }
-        .presentationDetents(type.needsTimer ? [.large] : [.medium, .large])
+        .presentationDetents([.large])   // 전체 높이로 표시 — 반높이(.medium)면 폼이 잘려 "레이어 안 올라옴"
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
     }
