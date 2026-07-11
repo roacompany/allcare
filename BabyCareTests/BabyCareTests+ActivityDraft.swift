@@ -97,4 +97,69 @@ final class ActivityDraftBuilderTests: XCTestCase {
         XCTAssertEqual(a?.endTime, end)
         XCTAssertEqual(a?.duration, 3600)
     }
+
+    // MARK: - Task 3: commit / persist (유축 타입 = 배지 훅 우회 → Firestore 비결합)
+
+    @MainActor
+    func test_commit_pumping_success_insertsAndSaves() async {
+        let mock = MockActivityFirestore()
+        let vm = ActivityViewModel(firestoreService: mock)
+        var d = ActivityDraft(babyId: "b", type: .feedingPumping)
+        d.amountText = "80"; d.side = .both
+        let saved = await vm.commit(draft: d, userId: "owner", currentUserId: "me")
+        XCTAssertEqual(saved?.amount, 80)
+        XCTAssertEqual(saved?.createdBy, "me")   // 배지 path와 별개로 createdBy=본인
+        XCTAssertEqual(vm.todayActivities.first?.amount, 80)
+        XCTAssertEqual(mock.saveActivityCalls.count, 1)
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    @MainActor
+    func test_commit_buildFailure_setsError_noSave() async {
+        let mock = MockActivityFirestore()
+        let vm = ActivityViewModel(firestoreService: mock)
+        var d = ActivityDraft(babyId: "b", type: .feedingPumping)
+        d.amountText = "0"   // 검증 실패
+        let saved = await vm.commit(draft: d, userId: "u", currentUserId: "u")
+        XCTAssertNil(saved)
+        XCTAssertNotNil(vm.errorMessage)
+        XCTAssertEqual(mock.saveActivityCalls.count, 0)
+    }
+
+    @MainActor
+    func test_commit_offlineFallback_keepsActivity() async {
+        let mock = MockActivityFirestore()
+        mock.errorOnSave = NSError(domain: "test", code: 1)
+        let vm = ActivityViewModel(firestoreService: mock)
+        var d = ActivityDraft(babyId: "b", type: .feedingPumping)
+        d.amountText = "80"; d.side = .both
+        let saved = await vm.commit(draft: d, userId: "u", currentUserId: "u")
+        XCTAssertNotNil(saved)                       // 큐잉 = 사용자 관점 성공
+        XCTAssertEqual(vm.todayActivities.count, 1)  // 롤백 안 됨(오프라인 큐잉)
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    // MARK: - Task 4: makeDraft
+
+    @MainActor
+    func test_makeDraft_capturesFormState() {
+        let vm = ActivityViewModel(firestoreService: MockActivityFirestore())
+        vm.selectedSide = .right
+        vm.note = "hi"
+        let d = vm.makeDraft(type: .feedingBreast, babyId: "b")
+        XCTAssertEqual(d.side, .right)
+        XCTAssertEqual(d.type, .feedingBreast)
+        XCTAssertEqual(d.note, "hi")
+    }
+
+    @MainActor
+    func test_makeDraft_manualAdjust_usesManualStart() {
+        let vm = ActivityViewModel(firestoreService: MockActivityFirestore())
+        let t = Date(timeIntervalSince1970: 5000)
+        vm.isTimeAdjusted = true
+        vm.manualStartTime = t
+        let d = vm.makeDraft(type: .diaperWet, babyId: "b")
+        XCTAssertEqual(d.startTime, t)
+        XCTAssertTrue(d.wasManuallyAdjusted)
+    }
 }

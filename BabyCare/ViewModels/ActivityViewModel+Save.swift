@@ -63,6 +63,89 @@ extension ActivityViewModel {
         }
     }
 
+    // MARK: - Unified Pipeline (P0) — 단일 저장 경로
+
+    /// 현재 폼 상태를 순수 스냅샷(ActivityDraft)으로 캡처.
+    /// 타이머가 이 타입이면 stopTimer()로 duration 확정(부수효과), 수동 시간조정을 타이머보다 우선 반영.
+    /// (현행 applyTimerDuration / applyManualTimeAdjustment 로직 이관)
+    func makeDraft(type: Activity.ActivityType, babyId: String) -> ActivityDraft {
+        var d = ActivityDraft(babyId: babyId, type: type)
+        let timerBelongsToMe = isTimerRunning && activeTimerType == type
+        let wasManuallyAdjusted = isTimeAdjusted   // stopTimer 전 캡처(stopTimer가 isTimeAdjusted를 덮어씀)
+
+        if timerBelongsToMe {
+            let duration = stopTimer()
+            d.duration = duration
+            d.startTime = Date().addingTimeInterval(-duration)
+            if type == .sleep { d.endTime = Date() }   // 원본: sleep만 includeEndTime:true
+        }
+
+        if wasManuallyAdjusted {                        // 수동 조정이 타이머보다 우선
+            d.startTime = manualStartTime
+            d.wasManuallyAdjusted = true
+            if let end = manualEndTime {
+                d.endTime = end
+                d.duration = end.timeIntervalSince(manualStartTime)
+            }
+        } else if !timerBelongsToMe {
+            d.startTime = isTimeAdjusted ? manualStartTime : Date()
+        }
+
+        d.side = selectedSide
+        d.amountText = amount
+        d.feedingContent = selectedFeedingContent
+        d.foodName = foodName
+        d.foodAmount = foodAmount
+        d.foodReaction = foodReaction
+        d.temperatureText = temperatureInput
+        d.medicationName = medicationName
+        d.medicationDosage = medicationDosage
+        d.sleepQuality = sleepQuality
+        d.sleepMethod = sleepMethod
+        d.stoolColor = stoolColor
+        d.stoolConsistency = stoolConsistency
+        d.hasRash = hasRash
+        d.note = note
+        return d
+    }
+
+    /// 단일 저장 진입. draft 검증 → 성공 시 persist. 저장된 activity 반환(실패 시 nil + errorMessage).
+    @discardableResult
+    func commit(draft: ActivityDraft, userId: String, currentUserId: String) async -> Activity? {
+        errorMessage = nil
+        switch ActivityDraftBuilder.build(draft) {
+        case .failure(let err):
+            if err == .unknownType { logUnknownSaveBlocked() } else { errorMessage = err.message }
+            return nil
+        case .success(var activity):
+            activity.createdBy = currentUserId
+            let ok = await persist(activity, userId: userId, currentUserId: currentUserId)
+            return ok ? activity : nil
+        }
+    }
+
+    /// 공용 저장 꼬리 — 낙관적 insert → Firestore save → 부수효과, 실패 시 오프라인 큐(전 경로 일관).
+    /// 큐잉 = 사용자 관점 저장 성공이므로 true 반환.
+    @discardableResult
+    private func persist(_ activity: Activity, userId: String, currentUserId: String) async -> Bool {
+        todayActivities.insert(activity, at: 0)   // 낙관적 업데이트
+        do {
+            try await firestoreService.saveActivity(activity, userId: userId)
+            deriveLatestActivities()
+            scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
+            if activity.type == .temperature, registerTemperature(activity) {
+                NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
+            }
+            await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, currentUserId: currentUserId, at: activity.startTime)
+            return true
+        } catch {
+            enqueueOfflineActivity(activity, userId: userId, babyId: activity.babyId)
+            deriveLatestActivities()
+            InfoToastCenter.shared.offlineSaved()
+            return true   // 큐잉됨 = 사용자 관점 성공
+        }
+    }
+
     // MARK: - performSaveActivity Helpers
 
     /// 각 activity type에 맞는 필드 적용. 유효성 실패 시 false 반환.
