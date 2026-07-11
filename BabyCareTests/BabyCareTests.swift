@@ -2778,6 +2778,15 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(ids.count, 3)
     }
 
+    // MARK: - MedicationReminderPromptPolicy (B2 — 투약 알림 인라인 제안, 생애 1회)
+
+    func testMedicationPrompt_offersOnlyWhenRuleOffAndNeverPrompted() {
+        XCTAssertTrue(MedicationReminderPromptPolicy.shouldOffer(ruleEnabled: false, alreadyPrompted: false))
+        XCTAssertFalse(MedicationReminderPromptPolicy.shouldOffer(ruleEnabled: true, alreadyPrompted: false), "이미 켜져 있으면 제안 불필요")
+        XCTAssertFalse(MedicationReminderPromptPolicy.shouldOffer(ruleEnabled: false, alreadyPrompted: true), "생애 1회 — 재노출 금지")
+        XCTAssertFalse(MedicationReminderPromptPolicy.shouldOffer(ruleEnabled: true, alreadyPrompted: true))
+    }
+
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
