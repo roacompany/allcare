@@ -80,6 +80,11 @@ enum AnalyticsEvents {
     // Widget Promo — 이탈 P1(C2): 위젯 설치 유도 카드 노출/해제 계측.
     static let widgetPromoShown = "widget_promo_shown"
     static let widgetPromoDismissed = "widget_promo_dismissed"
+
+    // Partner Invite Promo — C3: 파트너 초대 유도 카드 노출/탭/해제 계측 (공유 사용률 퍼널).
+    static let partnerInvitePromoShown = "partner_invite_promo_shown"
+    static let partnerInvitePromoTapped = "partner_invite_promo_tapped"
+    static let partnerInvitePromoDismissed = "partner_invite_promo_dismissed"
 }
 
 // MARK: - Parameter Keys

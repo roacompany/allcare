@@ -23,6 +23,8 @@ struct DashboardView: View {
     @State private var showPregnancyNote = false
     // 위젯 유도 해제 (C2) — 기기 UI 상태 (사용자 데이터 아님, @AppStorage 허용 선례: OptionalModuleToggleCard)
     @AppStorage(WidgetPromoPolicy.dismissedKey) private var widgetPromoDismissed = false
+    // 파트너 초대 유도 해제 (C3) — 동일 성격의 기기 UI 상태
+    @AppStorage(PartnerInvitePromoPolicy.dismissedKey) private var partnerInvitePromoDismissed = false
 
     // MARK: - Weekly Highlights v2
     // CR-R02: @State 기반 .task 평가는 bootstrap async와 race 가능.
@@ -60,8 +62,24 @@ struct DashboardView: View {
         insightCardsSection
         BadgeHomeStrip()
         widgetPromoIfNeeded
+        partnerInvitePromoIfNeeded
         reorderSummaryCard
         moreDisclosureGroup
+    }
+
+    /// 파트너 초대 유도 (C3) — 공유 미사용 + 기록 7건+ 사용자에게 해제형 1회 안내.
+    @ViewBuilder
+    private var partnerInvitePromoIfNeeded: some View {
+        if PartnerInvitePromoPolicy.isVisible(
+            hasSharedBaby: babyVM.babies.contains { $0.ownerUserId != authVM.currentUserId },
+            recordCount: activityVM.todayActivities.count + activityVM.recentWeekActivities.count,
+            dismissed: partnerInvitePromoDismissed
+        ) {
+            PartnerInvitePromoCard {
+                partnerInvitePromoDismissed = true
+                AnalyticsService.shared.trackEvent(AnalyticsEvents.partnerInvitePromoDismissed)
+            }
+        }
     }
 
     /// 위젯 설치 유도 (C2) — 기록 습관이 생긴 사용자(3건+)에게 해제형 1회 안내.
