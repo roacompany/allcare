@@ -2754,6 +2754,8 @@ final class BabyCareTests: XCTestCase {
         let center = InfoToastCenter()
         center.offlineSaved()
         XCTAssertEqual(center.message, "오프라인 저장됨 — 연결 시 자동 동기화")
+    }
+
     // MARK: - ActivityReminderChainPolicy (B1 — 원샷 영구침묵 → 2발 체인)
 
     func testReminderChain_offsets_areIntervalAndDouble() {
