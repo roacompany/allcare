@@ -49,7 +49,8 @@ final class ProductViewModel {
                 catalogError = "Firestore 조회 성공, 문서 0개"
             }
         } catch {
-            catalogError = error.localizedDescription
+            logSilent("카탈로그 로드 실패", error: error, logger: AppLogger.catalog)
+            catalogError = "추천 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         }
         isCatalogLoading = false
     }

@@ -105,7 +105,8 @@ final class TodoViewModel {
         do {
             todos = try await firestoreService.fetchTodos(userId: userId)
         } catch {
-            errorMessage = "할 일을 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("할 일을 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "할 일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -117,7 +118,8 @@ final class TodoViewModel {
         do {
             completedTodosCache = try await firestoreService.fetchCompletedTodos(userId: userId)
         } catch {
-            errorMessage = "완료된 할 일을 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("완료된 할 일을 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "완료된 할 일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
             showCompleted = false
         }
     }
@@ -149,7 +151,8 @@ final class TodoViewModel {
             resetForm()
             showAddTodo = false
         } catch {
-            errorMessage = "할 일 추가에 실패했습니다: \(error.localizedDescription)"
+            logSilent("할 일 추가에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "할 일 추가에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

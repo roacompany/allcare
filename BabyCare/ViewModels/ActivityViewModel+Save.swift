@@ -59,7 +59,7 @@ extension ActivityViewModel {
             enqueueOfflineActivity(activity, userId: userId, babyId: babyId)
             deriveLatestActivities()
             resetForm()
-            errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+            InfoToastCenter.shared.offlineSaved()
         }
     }
 

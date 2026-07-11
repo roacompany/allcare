@@ -209,7 +209,8 @@ final class PatternReportViewModel {
             )
             aiInsight = AIGuardrailService.filter(response)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("패턴 리포트 생성 실패", error: error, logger: AppLogger.analysis)
+            errorMessage = "리포트를 만들지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 }

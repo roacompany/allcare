@@ -69,7 +69,8 @@ extension ProductViewModel {
             try await firestoreService.saveProduct(updated, userId: userId)
         } catch {
             products[index] = backup // 롤백
-            errorMessage = "수정에 실패했습니다: \(error.localizedDescription)"
+            logSilent("수정에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "수정에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

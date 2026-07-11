@@ -2734,6 +2734,28 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(StoragePath.babyRoot(userId: "u2", babyId: "b1").hasPrefix(userRoot + "/"))
     }
 
+    // MARK: - InfoToastCenter (A3 — 정보 안내를 에러 채널에서 분리)
+
+    @MainActor
+    func testInfoToast_dismissOnlyWhenStillShowingSameMessage() {
+        let center = InfoToastCenter()
+        center.show("첫 안내")
+        center.dismiss(ifStillShowing: "첫 안내")
+        XCTAssertNil(center.message, "표시 중인 같은 문구는 소거")
+
+        center.show("첫 안내")
+        center.show("나중 안내")
+        center.dismiss(ifStillShowing: "첫 안내")
+        XCTAssertEqual(center.message, "나중 안내", "소거 대기 중 새 토스트가 떴으면 유지 (레이스 가드)")
+    }
+
+    @MainActor
+    func testInfoToast_offlineSavedSingleCopy() {
+        let center = InfoToastCenter()
+        center.offlineSaved()
+        XCTAssertEqual(center.message, "오프라인 저장됨 — 연결 시 자동 동기화")
+    }
+
     // MARK: - ActivityReminderChainPolicy (B1 — 원샷 영구침묵 → 2발 체인)
 
     func testReminderChain_offsets_areIntervalAndDouble() {
