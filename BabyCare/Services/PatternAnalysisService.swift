@@ -174,7 +174,13 @@ enum PatternAnalysisService {
     ) -> SleepPattern {
         let sleepActivities = activities.filter { $0.type == .sleep }
 
-        let totalHours = sleepActivities.compactMap(\.duration).reduce(0, +) / 3600
+        // 기간 경계 클립 — 자정 넘김 수면이 기간 밖 시간까지 합산되는 왜곡 방지 (D1)
+        let totalHours = sleepActivities.reduce(0.0) {
+            $0 + ActivityDayAttribution.clippedDuration(
+                from: startDate, to: endDate,
+                startTime: $1.startTime, endTime: $1.endTime, duration: $1.duration
+            )
+        } / 3600
         let dailyAverageHours = totalHours / Double(days)
 
         let durations = sleepActivities.compactMap(\.duration)
