@@ -1,0 +1,100 @@
+import XCTest
+@testable import BabyCare
+
+/// 통합 기록 P0 — ActivityDraft / ActivityDraftBuilder 순수 로직 단위 테스트.
+/// 자체 클래스(도메인 분리 파일) — BabyCareTests.swift 첫 클래스 append 트랩 회피.
+final class ActivityDraftBuilderTests: XCTestCase {
+
+    // MARK: - Task 1: ActivityDraft
+
+    func test_draft_defaults() {
+        let d = ActivityDraft(babyId: "b1", type: .feedingBreast)
+        XCTAssertEqual(d.feedingContent, .formula)
+        XCTAssertFalse(d.wasManuallyAdjusted)
+        XCTAssertEqual(d.amountText, "")
+    }
+
+    // MARK: - Task 2: Builder — 타입별 필드 + 검증
+
+    func test_build_bottle_requiresValidAmount() {
+        var d = ActivityDraft(babyId: "b", type: .feedingBottle)
+        d.amountText = "0"
+        XCTAssertEqual(ActivityDraftBuilder.build(d), .failure(.invalidAmount(isPumping: false)))
+        d.amountText = "120"
+        let ok = try? ActivityDraftBuilder.build(d).get()
+        XCTAssertEqual(ok?.amount, 120)
+        XCTAssertEqual(ok?.feedingContent, .formula)
+    }
+
+    func test_build_breast_appliesSideAndDuration() {
+        var d = ActivityDraft(babyId: "b", type: .feedingBreast)
+        d.side = .right
+        d.duration = 600
+        d.startTime = Date(timeIntervalSince1970: 1000)
+        let a = try? ActivityDraftBuilder.build(d).get()
+        XCTAssertEqual(a?.side, .right)
+        XCTAssertEqual(a?.duration, 600)
+    }
+
+    func test_build_temperature_boundaries() {
+        var d = ActivityDraft(babyId: "b", type: .temperature)
+        d.temperatureText = "50"
+        XCTAssertEqual(ActivityDraftBuilder.build(d), .failure(.invalidTemperature))
+        d.temperatureText = "37.2"
+        XCTAssertEqual((try? ActivityDraftBuilder.build(d).get())?.temperature, 37.2)
+    }
+
+    func test_build_sleep_rejectsOver24h() {
+        var d = ActivityDraft(babyId: "b", type: .sleep)
+        d.duration = 90000
+        d.wasManuallyAdjusted = false
+        XCTAssertEqual(ActivityDraftBuilder.build(d), .failure(.sleepTooLong))
+    }
+
+    func test_build_pumping_amountAndSide() {
+        var d = ActivityDraft(babyId: "b", type: .feedingPumping)
+        d.amountText = "80"
+        d.side = .both
+        let a = try? ActivityDraftBuilder.build(d).get()
+        XCTAssertEqual(a?.amount, 80)
+        XCTAssertEqual(a?.side, .both)
+    }
+
+    func test_build_pumping_invalidAmount_pumpingMessage() {
+        var d = ActivityDraft(babyId: "b", type: .feedingPumping)
+        d.amountText = ""
+        let result = ActivityDraftBuilder.build(d)
+        XCTAssertEqual(result, .failure(.invalidAmount(isPumping: true)))
+        if case .failure(let err) = result {
+            XCTAssertTrue(err.message.contains("유축량"))   // 문구 보존(수유량 아님)
+        }
+    }
+
+    func test_build_diaperDirty_stoolFields() {
+        var d = ActivityDraft(babyId: "b", type: .diaperDirty)
+        d.stoolColor = .yellow
+        d.hasRash = true
+        let a = try? ActivityDraftBuilder.build(d).get()
+        XCTAssertEqual(a?.stoolColor, .yellow)
+        XCTAssertEqual(a?.hasRash, true)
+    }
+
+    func test_build_unknown_fails() {
+        let d = ActivityDraft(babyId: "b", type: .unknown)
+        XCTAssertEqual(ActivityDraftBuilder.build(d), .failure(.unknownType))
+    }
+
+    func test_build_manualTimeAdjustment_setsStartAndEnd() {
+        var d = ActivityDraft(babyId: "b", type: .sleep)
+        let start = Date(timeIntervalSince1970: 1000)
+        let end = Date(timeIntervalSince1970: 4600)
+        d.wasManuallyAdjusted = true
+        d.startTime = start
+        d.endTime = end
+        d.duration = 3600
+        let a = try? ActivityDraftBuilder.build(d).get()
+        XCTAssertEqual(a?.startTime, start)
+        XCTAssertEqual(a?.endTime, end)
+        XCTAssertEqual(a?.duration, 3600)
+    }
+}
