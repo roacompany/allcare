@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
     @Environment(ProductViewModel.self) private var productVM
+    @Environment(AnnouncementViewModel.self) private var announcementVM
     @Environment(PregnancyViewModel.self) private var pregnancyVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
@@ -245,7 +246,8 @@ struct ContentView: View {
             selectedTab = 0
 
         case .announcements:
-            selectedTab = 4 // 설정 탭
+            selectedTab = 4 // 설정 탭 → SettingsView가 플래그를 소비해 공지 목록까지 push
+            announcementVM.pendingOpenFromPush = true
 
         case .reorderProduct(let productId, let coupangURLString):
             if let urlString = coupangURLString, let url = URL(string: urlString) {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// DS2 디자인 시스템 Showcase.
-/// FeatureFlag `designSystemV2Preview` = true 일 때만 Settings → 개발자 진입점에서 노출.
+/// Settings → 실험실 진입점에서 노출 (#if DEBUG — 출시 빌드 제외, Track A 결정).
 struct DS2PreviewView: View {
     var body: some View {
         ScrollView {
