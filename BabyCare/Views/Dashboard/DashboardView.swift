@@ -52,6 +52,7 @@ struct DashboardView: View {
         pregnancyPortalCardIfNeeded
         alertBannersSection
         anniversaryIfNeeded
+        welcomeBackIfNeeded
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
@@ -66,6 +67,19 @@ struct DashboardView: View {
         partnerInvitePromoIfNeeded
         reorderSummaryCard
         moreDisclosureGroup
+    }
+
+    /// 웰컴백 (C5) — 3~7일 공백 후 복귀 시. 오늘 기록이 생기면 자동 소멸.
+    @ViewBuilder
+    private var welcomeBackIfNeeded: some View {
+        if !activityVM.isLoading,
+           let gap = WelcomeBackPolicy.gapDays(
+               lastRecordAt: activityVM.recentWeekActivities.map(\.startTime).max(),
+               todayCount: activityVM.todayActivities.count,
+               now: Date()
+           ) {
+            WelcomeBackCard(gapDays: gap)
+        }
     }
 
     /// 파트너 초대 유도 (C3) — 공유 미사용 + 기록 7건+ 사용자에게 해제형 1회 안내.
