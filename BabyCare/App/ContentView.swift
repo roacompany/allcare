@@ -17,7 +17,6 @@ struct ContentView: View {
         return 0
     }()
     @State private var showRecording = false
-    @State private var initialRecordingCategory: Activity.ActivityCategory?
     @State private var reorderProduct: BabyProduct?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
@@ -284,16 +283,8 @@ struct ContentView: View {
         guard authVM.isAuthenticated, !babyVM.babies.isEmpty else { return }
 
         switch destination {
-        case .record:
-            initialRecordingCategory = nil
-            showRecording = true
-
-        case .recordCategory(let category):
-            switch category {
-            case .feeding: initialRecordingCategory = .feeding
-            case .sleep:   initialRecordingCategory = .sleep
-            case .diaper:  initialRecordingCategory = .diaper
-            }
+        case .record, .recordCategory:
+            // 타입-우선 런처는 카테고리 프리셀렉트 없음 — 딥링크는 런처만 연다.
             showRecording = true
 
         case .quickSave(let quickType):
@@ -423,14 +414,12 @@ struct ContentView: View {
                 // + 탭 선택 → sheet 열고 이전 탭으로 복원
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 selectedTab = oldValue
-                initialRecordingCategory = nil
                 showRecording = true
             }
             // screen_view는 각 탭 루트의 onAppear로 일원화 (첫 진입 포함, 이중 발화 방지)
         }
         .sheet(isPresented: $showRecording, onDismiss: {
             activityVM.resetForm()
-            initialRecordingCategory = nil
         }) {
             RecordLauncherSheet()
         }

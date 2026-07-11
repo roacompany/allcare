@@ -271,30 +271,4 @@ struct MedicationSection: View {
     }
 }
 
-// MARK: - BathSection
-
-struct BathSection: View {
-    let accentColor: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
-            TimerView(type: .bath, accentColor: accentColor)
-                .padding(.vertical, 4)
-
-            Text("목욕 시작 시 타이머를 켜세요")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
-        .background(accentColor.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal)
-    }
-}
-
-#Preview {
-    HealthRecordView()
-        .environment(ActivityViewModel())
-        .environment(BabyViewModel())
-        .environment(AuthViewModel())
-}
+// BathSection 제거(P4) — 목욕은 instant 저장, 시간 상세는 타임라인 편집(ActivityEditSheet)으로.

@@ -89,37 +89,4 @@ extension DashboardView {
         }
     }
 
-    func quickSaveWithData(_ activity: Activity) async {
-        guard let userId = babyVM.resolvedUserId(auth: authVM),
-              let currentUserId = authVM.currentUserId else { return }
-        await activityVM.savePrebuiltActivity(activity, userId: userId, currentUserId: currentUserId)
-
-        if activityVM.errorMessage == nil {
-            if activity.type == .feedingPumping {
-                // 유축 telemetry — raw mL 금지, coarse bucket만 (spec §10). 섭취 이벤트와 분리.
-                AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
-                    AnalyticsParams.amountBucket: PumpingAnalytics.bucket(activity.amount),
-                    AnalyticsParams.side: activity.side?.rawValue ?? "none"
-                ])
-            } else {
-                // 미니시트 경로(temperature/medication/feedingBottle)도 빠른기록으로 계측
-                var params = [AnalyticsParams.category: activity.type.rawValue]
-                if activity.type == .feedingBottle {
-                    params[AnalyticsParams.content] = (activity.feedingContent ?? .formula).rawValue
-                }
-                AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: params)
-            }
-        }
-
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        lastSavedActivity = activityVM.todayActivities.first
-        withAnimation(.spring(duration: 0.3)) {
-            savedActivityType = activity.type
-        }
-        Task {
-            try? await Task.sleep(for: .seconds(3))
-            withAnimation { savedActivityType = nil; lastSavedActivity = nil }
-        }
-    }
 }

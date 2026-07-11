@@ -81,18 +81,8 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(Activity.ActivityType.feedingPumping.color, "pumpingColor")
     }
 
-    /// §7-2: QuickInputSheet 빌더가 유축 양 + side를 영속 (QuickInputSheet에 side 플러밍이 없던 갭)
-    func testQuickInput_pumping_persistsAmountAndSide() {
-        let activity = QuickInputSheet.buildActivity(
-            babyId: "b1",
-            type: .feedingPumping,
-            recordTime: Date(),
-            values: .init(amount: "120", side: .both)
-        )
-        XCTAssertEqual(activity.type, .feedingPumping)
-        XCTAssertEqual(activity.amount, 120)
-        XCTAssertEqual(activity.side, .both, "유축 방향이 저장되어야 한다 (side 플러밍)")
-    }
+    // testQuickInput_pumping_persistsAmountAndSide 제거(P4) —
+    // QuickInputSheet 삭제, 검증은 ActivityDraftBuilderTests.test_build_pumping_amountAndSide 가 대체.
 
     /// §7-3a: 유축이 섭취 집계(todayTotalMl/todayFeedingCount)에서 자동 배제 (의료 정합)
     @MainActor
@@ -344,22 +334,8 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(vm.todayFeedingCount, 2, "병수유 2건은 섭취 횟수. 유축은 미포함")
     }
 
-    func testQuickInput_bottle_persistsFeedingContent() {
-        let breast = QuickInputSheet.buildActivity(
-            babyId: "b1", type: .feedingBottle, recordTime: Date(),
-            values: .init(amount: "100", feedingContent: .breastMilk)
-        )
-        XCTAssertEqual(breast.amount, 100)
-        XCTAssertEqual(breast.feedingContent, .breastMilk, "병수유 내용물(모유) 영속")
-        XCTAssertTrue(breast.isBreastMilkBottle)
-
-        let formula = QuickInputSheet.buildActivity(
-            babyId: "b1", type: .feedingBottle, recordTime: Date(),
-            values: .init(amount: "100", feedingContent: .formula)
-        )
-        XCTAssertEqual(formula.feedingContent, .formula)
-        XCTAssertTrue(formula.isFormulaBottle)
-    }
+    // testQuickInput_bottle_persistsFeedingContent 제거(P4) —
+    // QuickInputSheet 삭제, 병수유 내용물 영속 검증은 ActivityDraftBuilderTests.test_build_bottle_requiresValidAmount 가 대체.
 
     // MARK: - TimeInterval Extension Tests
 

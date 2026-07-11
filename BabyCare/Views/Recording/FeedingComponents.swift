@@ -77,11 +77,3 @@ struct SideButton: View {
         }
     }
 }
-
-#Preview {
-    FeedingRecordView(type: .feedingBreast)
-        .environment(ActivityViewModel())
-        .environment(BabyViewModel())
-        .environment(AuthViewModel())
-        .environment(ProductViewModel())
-}
