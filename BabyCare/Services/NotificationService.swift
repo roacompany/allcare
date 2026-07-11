@@ -21,38 +21,43 @@ final class NotificationService {
 
     // MARK: - Activity Reminder (범용)
 
+    /// 2발 체인 예약 (B1): 마지막 기록 + interval에 1발, + 2×interval에 마지막 1발.
+    /// 기록마다 전체 취소 후 재예약 = 침묵 타이머 리셋. 2발 이후 침묵 — 24h은 복귀 넛지가 인계.
     func scheduleActivityReminder(type: Activity.ActivityType, babyName: String, afterMinutes: Int) {
         guard let rule = ActivityReminderSettings.rule(for: type), rule.enabled else { return }
 
-        let identifier = "activity-\(type.rawValue)"
-
-        // 이전 같은 타입 알림 취소 후 새로 예약
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: [identifier])
-
-        let content = UNMutableNotificationContent()
-        content.title = "\(type.displayName) 알림"
-        content.body = "\(babyName)의 \(type.displayName) 시간이에요!"
-        content.sound = .default
-        content.categoryIdentifier = "ACTIVITY_REMINDER"
-
-        let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: TimeInterval(afterMinutes * 60),
-            repeats: false
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(
+            withIdentifiers: ActivityReminderChainPolicy.cancellationIdentifiers(typeRaw: type.rawValue)
         )
 
-        let request = UNNotificationRequest(
-            identifier: identifier,
-            content: content,
-            trigger: trigger
-        )
+        let identifiers = ActivityReminderChainPolicy.identifiers(typeRaw: type.rawValue)
+        let offsets = ActivityReminderChainPolicy.offsetsMinutes(intervalMinutes: afterMinutes)
+        for (idx, offsetMinutes) in offsets.enumerated() {
+            let content = UNMutableNotificationContent()
+            content.title = "\(type.displayName) 알림"
+            content.body = idx == 0
+                ? "\(babyName)의 \(type.displayName) 시간이에요!"
+                : "\(type.displayName) 기록이 잠시 비어 있어요. 필요하면 기록해 주세요."
+            content.sound = .default
+            content.categoryIdentifier = "ACTIVITY_REMINDER"
 
-        UNUserNotificationCenter.current().add(request)
+            let request = UNNotificationRequest(
+                identifier: identifiers[idx],
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(
+                    timeInterval: TimeInterval(offsetMinutes * 60),
+                    repeats: false
+                )
+            )
+            center.add(request)
+        }
     }
 
     func cancelActivityReminder(type: Activity.ActivityType) {
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["activity-\(type.rawValue)"])
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: ActivityReminderChainPolicy.cancellationIdentifiers(typeRaw: type.rawValue)
+        )
     }
 
     // 하위 호환: 기존 feeding-reminder 정리

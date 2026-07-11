@@ -2754,6 +2754,26 @@ final class BabyCareTests: XCTestCase {
         let center = InfoToastCenter()
         center.offlineSaved()
         XCTAssertEqual(center.message, "오프라인 저장됨 — 연결 시 자동 동기화")
+    // MARK: - ActivityReminderChainPolicy (B1 — 원샷 영구침묵 → 2발 체인)
+
+    func testReminderChain_offsets_areIntervalAndDouble() {
+        XCTAssertEqual(ActivityReminderChainPolicy.offsetsMinutes(intervalMinutes: 180), [180, 360])
+        XCTAssertEqual(ActivityReminderChainPolicy.offsetsMinutes(intervalMinutes: 120), [120, 240])
+    }
+
+    func testReminderChain_identifiers_perTypeAndShot() {
+        XCTAssertEqual(
+            ActivityReminderChainPolicy.identifiers(typeRaw: "feeding_bottle"),
+            ["activity-feeding_bottle-1", "activity-feeding_bottle-2"]
+        )
+    }
+
+    func testReminderChain_cancellationIncludesLegacyOneShot() {
+        let ids = ActivityReminderChainPolicy.cancellationIdentifiers(typeRaw: "feeding_breast")
+        XCTAssertTrue(ids.contains("activity-feeding_breast"), "구버전 원샷 id도 취소 — 잔존 예약 방지")
+        XCTAssertTrue(ids.contains("activity-feeding_breast-1"))
+        XCTAssertTrue(ids.contains("activity-feeding_breast-2"))
+        XCTAssertEqual(ids.count, 3)
     }
 
 }
