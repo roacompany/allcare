@@ -17,6 +17,32 @@ struct DashboardInsight: Identifiable {
         case milestone
         case vaccination
     }
+
+    /// 카드 탭 목적지 (B5 — 읽기 전용 카드에 행동 연결).
+    enum TapDestination {
+        case stats
+        case milestones
+        case vaccinations
+    }
+
+    var tapDestination: TapDestination {
+        switch kind {
+        case .feeding, .sleep, .health: return .stats
+        case .milestone: return .milestones
+        case .vaccination: return .vaccinations
+        }
+    }
+
+    /// insight_tapped 계측용 kind 키 (Phase 2 ML 라벨 — logInsightShown 대칭).
+    var analyticsKey: String {
+        switch kind {
+        case .feeding: return "feeding"
+        case .sleep: return "sleep"
+        case .health: return "health"
+        case .milestone: return "milestone"
+        case .vaccination: return "vaccination"
+        }
+    }
 }
 
 // MARK: - InsightService
