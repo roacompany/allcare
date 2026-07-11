@@ -2836,6 +2836,23 @@ final class BabyCareTests: XCTestCase {
         XCTAssertFalse(WidgetPromoPolicy.isVisible(recordCount: 10, dismissed: true), "해제 후 재노출 금지")
     }
 
+    // MARK: - NextRecordSuggestionPolicy (B4 — 이어서 기록 제안)
+
+    func testNextRecordSuggestion_coreLoopCycle() {
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBreast), .diaperWet)
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBottle), .diaperWet)
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperWet), .sleep)
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperBoth), .sleep)
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .sleep), .feedingBreast)
+    }
+
+    func testNextRecordSuggestion_nonCyclicTypesSuppressed() {
+        XCTAssertNil(NextRecordSuggestionPolicy.suggestion(after: .temperature))
+        XCTAssertNil(NextRecordSuggestionPolicy.suggestion(after: .medication))
+        XCTAssertNil(NextRecordSuggestionPolicy.suggestion(after: .bath))
+        XCTAssertNil(NextRecordSuggestionPolicy.suggestion(after: .unknown))
+    }
+
     // MARK: - WelcomeBackPolicy (C5 — 복귀 웰컴백, 자동 소멸)
 
     func testWelcomeBack_gapDays() {

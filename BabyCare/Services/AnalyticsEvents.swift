@@ -86,6 +86,9 @@ enum AnalyticsEvents {
     static let partnerInvitePromoTapped = "partner_invite_promo_tapped"
     static let partnerInvitePromoDismissed = "partner_invite_promo_dismissed"
 
+    // Next Record Suggestion — B4: 저장 토스트 '이어서 기록' 칩 탭 계측 (묶음 기록 효과).
+    static let nextRecordSuggestionTapped = "next_record_suggestion_tapped"
+
     // Welcome Back — C5: 복귀 웰컴백 카드 노출 계측 (D1 복귀 넛지 착지 효과 추적).
     static let welcomeBackShown = "welcome_back_shown"
 }

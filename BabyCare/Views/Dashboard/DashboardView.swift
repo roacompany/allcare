@@ -233,6 +233,29 @@ struct DashboardView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                     }
+
+                    // B4: 이어서 기록 제안 — 핵심 루프(수유→기저귀→수면) 다음 1개 원탭
+                    if let nextType = NextRecordSuggestionPolicy.suggestion(after: type) {
+                        Divider()
+                            .frame(height: 16)
+                            .overlay(.white.opacity(0.5))
+                        Button {
+                            AnalyticsService.shared.trackEvent(
+                                AnalyticsEvents.nextRecordSuggestionTapped,
+                                parameters: [AnalyticsParams.category: nextType.rawValue]
+                            )
+                            savedActivityType = nil
+                            lastSavedActivity = nil
+                            Task { await quickSave(type: nextType) }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: nextType.icon)
+                                Text("\(nextType.displayName)?")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        }
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
