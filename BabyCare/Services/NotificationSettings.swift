@@ -128,6 +128,12 @@ enum ActivityReminderSettings {
             current[idx] = updated
         }
         rules = current
+        if !updated.enabled {
+            // OFF 저장 시 pending 체인 즉시 제거 — "껐는데 알림 옴" 방지 (ReturnNudge setter 선례)
+            UNUserNotificationCenter.current().removePendingNotificationRequests(
+                withIdentifiers: ActivityReminderChainPolicy.cancellationIdentifiers(typeRaw: updated.activityType)
+            )
+        }
     }
 
     static var feedingOverdueAlertEnabled: Bool {
