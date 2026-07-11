@@ -79,7 +79,8 @@ final class DiaryViewModel {
             lastDocument = result.lastDocument
             hasMorePages = result.lastDocument != nil
         } catch {
-            errorMessage = "일기를 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("일기를 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "일기를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -95,7 +96,8 @@ final class DiaryViewModel {
             lastDocument = result.lastDocument
             hasMorePages = result.lastDocument != nil
         } catch {
-            errorMessage = "일기를 더 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("일기를 더 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "일기를 더 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -138,7 +140,8 @@ final class DiaryViewModel {
                 updated.photoURLs = existingPhotoURLs + newPhotoURLs
             } catch {
                 // 사진 업로드는 온라인 필요 — 오프라인 큐 대상 아님 (작성 내용 유지, 재시도 가능)
-                errorMessage = "일기 수정에 실패했습니다: \(error.localizedDescription)"
+                logSilent("일기 수정에 실패했습니다", error: error, logger: AppLogger.firestore)
+                errorMessage = "일기 수정에 실패했습니다. 잠시 후 다시 시도해 주세요."
                 return
             }
 
@@ -146,7 +149,7 @@ final class DiaryViewModel {
                 try await firestoreService.saveDiaryEntry(updated, userId: userId)
             } catch {
                 enqueueOfflineDiaryEntry(updated, userId: userId, type: .update)
-                errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+                InfoToastCenter.shared.offlineSaved()
             }
             if let idx = entries.firstIndex(where: { $0.id == updated.id }) {
                 entries[idx] = updated
@@ -174,7 +177,8 @@ final class DiaryViewModel {
                 entry.photoURLs = photoURLs
             } catch {
                 // 사진 업로드는 온라인 필요 — 오프라인 큐 대상 아님 (작성 내용 유지, 재시도 가능)
-                errorMessage = "일기 저장에 실패했습니다: \(error.localizedDescription)"
+                logSilent("일기 저장에 실패했습니다", error: error, logger: AppLogger.firestore)
+                errorMessage = "일기 저장에 실패했습니다. 잠시 후 다시 시도해 주세요."
                 return
             }
 
@@ -182,7 +186,7 @@ final class DiaryViewModel {
                 try await firestoreService.saveDiaryEntry(entry, userId: userId)
             } catch {
                 enqueueOfflineDiaryEntry(entry, userId: userId, type: .create)
-                errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+                InfoToastCenter.shared.offlineSaved()
             }
             entries.insert(entry, at: 0)
             resetForm()
@@ -203,7 +207,8 @@ final class DiaryViewModel {
             try await firestoreService.deleteDiaryEntry(entry, userId: userId)
             entries.removeAll { $0.id == entry.id }
         } catch {
-            errorMessage = "일기 삭제에 실패했습니다: \(error.localizedDescription)"
+            logSilent("일기 삭제에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "일기 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

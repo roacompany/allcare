@@ -147,7 +147,8 @@ final class BabyViewModel {
             // 계정 전환 시 이전 계정 selectedBaby 잔존 방지 — 새 목록 기준 재검증
             selectedBaby = Self.resolveSelection(current: selectedBaby, in: babies)
         } catch {
-            errorMessage = "아기 정보를 불러오지 못했습니다: \(error.localizedDescription)"
+            logSilent("아기 정보를 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "아기 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -182,7 +183,8 @@ final class BabyViewModel {
             resetForm()
             showAddBaby = false
         } catch {
-            errorMessage = "아기 추가에 실패했습니다: \(error.localizedDescription)"
+            logSilent("아기 추가에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "아기 추가에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -204,7 +206,8 @@ final class BabyViewModel {
             if selectedBaby?.id == baby.id {
                 selectedBaby = backup
             }
-            errorMessage = "아기 정보 수정에 실패했습니다: \(error.localizedDescription)"
+            logSilent("아기 정보 수정에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "아기 정보 수정에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -218,7 +221,8 @@ final class BabyViewModel {
         do {
             updated.photoURL = try await storageService.uploadBabyPhoto(photo, userId: userId, babyId: baby.id)
         } catch {
-            errorMessage = "사진 업로드에 실패했습니다: \(error.localizedDescription)"
+            logSilent("사진 업로드에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "사진 업로드에 실패했습니다. 잠시 후 다시 시도해 주세요."
             return
         }
         await updateBaby(updated, userId: userId)
@@ -244,7 +248,8 @@ final class BabyViewModel {
         } catch {
             babies = backup // 롤백
             selectedBaby = backupSelected
-            errorMessage = "아기 삭제에 실패했습니다: \(error.localizedDescription)"
+            logSilent("아기 삭제에 실패했습니다", error: error, logger: AppLogger.firestore)
+            errorMessage = "아기 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
     }
 

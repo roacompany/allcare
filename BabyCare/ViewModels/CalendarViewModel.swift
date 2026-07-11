@@ -191,7 +191,8 @@ final class CalendarViewModel {
 
             eventDots = dots
         } catch {
-            errorMessage = "주간 데이터 로드 실패: \(error.localizedDescription)"
+            logSilent("주간 데이터 로드 실패", error: error, logger: AppLogger.firestore)
+            errorMessage = "주간 데이터 로드 실패. 잠시 후 다시 시도해 주세요."
         }
     }
 

@@ -82,7 +82,8 @@ final class PregnancyViewModel {
             // pending orphan 감지 (30초 임계값)
             detectPendingOrphan()
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -90,7 +91,8 @@ final class PregnancyViewModel {
         do {
             archivedPregnancies = try await firestoreService.fetchArchivedPregnancies(userId: userId)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -123,7 +125,8 @@ final class PregnancyViewModel {
             try await firestoreService.savePregnancy(pregnancy, userId: userId)
             await loadActivePregnancy(userId: userId)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -173,7 +176,8 @@ final class PregnancyViewModel {
             contractionSessions = []
             PregnancyWidgetSyncService.update(pregnancy: nil)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -192,7 +196,8 @@ final class PregnancyViewModel {
             self.activePregnancy = p
             PregnancyWidgetSyncService.update(pregnancy: p)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -205,7 +210,8 @@ final class PregnancyViewModel {
             try await firestoreService.savePregnancy(p, userId: userId)
             self.activePregnancy = p
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -221,7 +227,8 @@ final class PregnancyViewModel {
             try await firestoreService.savePregnancy(p, userId: owner)
             self.activePregnancy = p
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -245,7 +252,8 @@ final class PregnancyViewModel {
         do {
             try await firestoreService.saveKickSession(session, userId: owner, pregnancyId: pid)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -268,7 +276,8 @@ final class PregnancyViewModel {
                 kickSessions = try await firestoreService.fetchKickSessions(userId: owner, pregnancyId: pid)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -281,7 +290,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveKickSession(session, userId: owner, pregnancyId: pid)
             kickSessions = try await firestoreService.fetchKickSessions(userId: owner, pregnancyId: pid)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -299,7 +309,8 @@ final class PregnancyViewModel {
                 checklistItems[idx] = updated
             }
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -318,7 +329,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveChecklistItem(newItem, userId: owner, pregnancyId: pid)
             checklistItems.append(newItem)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -374,7 +386,8 @@ final class PregnancyViewModel {
                 prenatalVisits.append(visit)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -395,7 +408,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveWeightEntry(entry, userId: owner, pregnancyId: pid)
             weightEntries.append(entry)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -408,7 +422,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveSymptom(symptom, userId: owner, pregnancyId: pid)
             symptoms.insert(symptom, at: 0)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -421,7 +436,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveMood(mood, userId: owner, pregnancyId: pid)
             moods.insert(mood, at: 0)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -434,7 +450,8 @@ final class PregnancyViewModel {
             try await firestoreService.saveVitalEntry(entry, userId: owner, pregnancyId: pid)
             vitalEntries.insert(entry, at: 0)
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -452,7 +469,8 @@ final class PregnancyViewModel {
                 contractionSessions.insert(session, at: 0)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
@@ -523,7 +541,8 @@ final class PregnancyViewModel {
             restored.updatedAt = Date()
             activePregnancy = restored
         } catch {
-            errorMessage = error.localizedDescription
+            logSilent("임신 데이터 작업 실패", error: error, logger: AppLogger.pregnancy)
+            errorMessage = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
