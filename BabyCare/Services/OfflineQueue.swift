@@ -35,6 +35,27 @@ final class OfflineQueue {
         save()
     }
 
+    /// 저장 실패 문서를 큐 적재 (연결 복구 시 flush 가 typed 복원·재전송).
+    /// 인코딩 실패 시 적재하지 않고 false — 호출부에서 로깅해 데이터 손실을 가시화한다.
+    @discardableResult
+    func enqueueSave(
+        _ document: some Encodable,
+        collectionPath: String,
+        documentId: String,
+        type: PendingOperation.OperationType = .create
+    ) -> Bool {
+        guard let jsonData = try? JSONEncoder().encode(document) else { return false }
+        enqueue(PendingOperation(
+            id: UUID().uuidString,
+            timestamp: Date(),
+            type: type,
+            collectionPath: collectionPath,
+            documentId: documentId,
+            jsonData: jsonData
+        ))
+        return true
+    }
+
     func flush() async {
         guard !isFlushing, !operations.isEmpty else { return }
         isFlushing = true

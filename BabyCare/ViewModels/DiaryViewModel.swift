@@ -136,16 +136,23 @@ final class DiaryViewModel {
                     newPhotoURLs.append(url)
                 }
                 updated.photoURLs = existingPhotoURLs + newPhotoURLs
-
-                try await firestoreService.saveDiaryEntry(updated, userId: userId)
-                if let idx = entries.firstIndex(where: { $0.id == updated.id }) {
-                    entries[idx] = updated
-                }
-                resetForm()
-                showAddEntry = false
             } catch {
+                // 사진 업로드는 온라인 필요 — 오프라인 큐 대상 아님 (작성 내용 유지, 재시도 가능)
                 errorMessage = "일기 수정에 실패했습니다: \(error.localizedDescription)"
+                return
             }
+
+            do {
+                try await firestoreService.saveDiaryEntry(updated, userId: userId)
+            } catch {
+                enqueueOfflineDiaryEntry(updated, userId: userId, type: .update)
+                errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+            }
+            if let idx = entries.firstIndex(where: { $0.id == updated.id }) {
+                entries[idx] = updated
+            }
+            resetForm()
+            showAddEntry = false
         } else {
             // 신규 생성
             var entry = DiaryEntry(
@@ -165,14 +172,29 @@ final class DiaryViewModel {
                     photoURLs.append(url)
                 }
                 entry.photoURLs = photoURLs
-
-                try await firestoreService.saveDiaryEntry(entry, userId: userId)
-                entries.insert(entry, at: 0)
-                resetForm()
-                showAddEntry = false
             } catch {
+                // 사진 업로드는 온라인 필요 — 오프라인 큐 대상 아님 (작성 내용 유지, 재시도 가능)
                 errorMessage = "일기 저장에 실패했습니다: \(error.localizedDescription)"
+                return
             }
+
+            do {
+                try await firestoreService.saveDiaryEntry(entry, userId: userId)
+            } catch {
+                enqueueOfflineDiaryEntry(entry, userId: userId, type: .create)
+                errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
+            }
+            entries.insert(entry, at: 0)
+            resetForm()
+            showAddEntry = false
+        }
+    }
+
+    /// 오프라인 저장 폴백 — 연결 복구 시 자동 동기화 (Activity 큐 경로와 동일 계약).
+    private func enqueueOfflineDiaryEntry(_ entry: DiaryEntry, userId: String, type: PendingOperation.OperationType) {
+        let path = FirestoreCollections.babyChildPath(userId: userId, babyId: entry.babyId, collection: FirestoreCollections.diary)
+        if !OfflineQueue.shared.enqueueSave(entry, collectionPath: path, documentId: entry.id, type: type) {
+            AppLogger.firestore.error("오프라인 큐 인코딩 실패 — diary \(entry.id) 큐잉 누락")
         }
     }
 

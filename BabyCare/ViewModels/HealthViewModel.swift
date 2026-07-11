@@ -135,11 +135,12 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         updated.isCompleted = true
         updated.administeredDate = administeredDate
 
-        if let error = await optimisticReplace(
+        if await optimisticReplace(
             in: \.vaccinations, original: vaccination, with: updated,
             save: { try await self.firestoreService.saveVaccination(updated, userId: userId) }
-        ) {
-            errorMessage = "접종 기록 저장에 실패했습니다: \(error.localizedDescription)"
+        ) != nil {
+            queueHealthSaveOffline(updated, collection: FirestoreCollections.vaccinations, babyId: updated.babyId, documentId: updated.id, userId: userId)
+            reapply(updated, in: \.vaccinations)
         }
     }
 
@@ -168,12 +169,36 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         updated.isCompleted = false
         updated.administeredDate = nil
 
-        if let error = await optimisticReplace(
+        if await optimisticReplace(
             in: \.vaccinations, original: vaccination, with: updated,
             save: { try await self.firestoreService.saveVaccination(updated, userId: userId) }
-        ) {
-            errorMessage = "접종 취소에 실패했습니다: \(error.localizedDescription)"
+        ) != nil {
+            queueHealthSaveOffline(updated, collection: FirestoreCollections.vaccinations, babyId: updated.babyId, documentId: updated.id, userId: userId)
+            reapply(updated, in: \.vaccinations)
         }
+    }
+
+    /// optimisticReplace 실패(rollback 후) 시 낙관 상태 재적용 — 오프라인 큐 적재분을 화면에 유지.
+    private func reapply<Item: Identifiable>(_ item: Item, in keyPath: ReferenceWritableKeyPath<HealthViewModel, [Item]>) {
+        if let idx = self[keyPath: keyPath].firstIndex(where: { $0.id == item.id }) {
+            self[keyPath: keyPath][idx] = item
+        }
+    }
+
+    /// 오프라인 저장 폴백 — 연결 복구 시 자동 동기화 (Activity 큐 경로와 동일 계약).
+    private func queueHealthSaveOffline(
+        _ document: some Encodable,
+        collection: String,
+        babyId: String,
+        documentId: String,
+        userId: String,
+        type: PendingOperation.OperationType = .update
+    ) {
+        let path = FirestoreCollections.babyChildPath(userId: userId, babyId: babyId, collection: collection)
+        if !OfflineQueue.shared.enqueueSave(document, collectionPath: path, documentId: documentId, type: type) {
+            AppLogger.firestore.error("오프라인 큐 인코딩 실패 — \(collection)/\(documentId) 큐잉 누락")
+        }
+        errorMessage = "오프라인 저장됨 — 연결 시 자동 동기화"
     }
 
     // MARK: - Milestone Actions
@@ -183,11 +208,12 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         updated.isAchieved = !milestone.isAchieved
         updated.achievedDate = updated.isAchieved ? (achievedDate ?? Date()) : nil
 
-        if let error = await optimisticReplace(
+        if await optimisticReplace(
             in: \.milestones, original: milestone, with: updated,
             save: { try await self.firestoreService.saveMilestone(updated, userId: userId) }
-        ) {
-            errorMessage = "이정표 저장에 실패했습니다: \(error.localizedDescription)"
+        ) != nil {
+            queueHealthSaveOffline(updated, collection: FirestoreCollections.milestones, babyId: updated.babyId, documentId: updated.id, userId: userId)
+            reapply(updated, in: \.milestones)
         }
     }
 
@@ -195,11 +221,12 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
         var updated = milestone
         updated.achievedDate = achievedDate
 
-        if let error = await optimisticReplace(
+        if await optimisticReplace(
             in: \.milestones, original: milestone, with: updated,
             save: { try await self.firestoreService.saveMilestone(updated, userId: userId) }
-        ) {
-            errorMessage = "이정표 저장에 실패했습니다: \(error.localizedDescription)"
+        ) != nil {
+            queueHealthSaveOffline(updated, collection: FirestoreCollections.milestones, babyId: updated.babyId, documentId: updated.id, userId: userId)
+            reapply(updated, in: \.milestones)
         }
     }
 
@@ -253,8 +280,12 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
                 NotificationService.shared.scheduleHospitalVisitReminder(visit: visit, babyName: currentBabyName)
             }
         } catch {
-            hospitalVisits.removeAll { $0.id == visit.id }
-            errorMessage = "병원 기록 저장에 실패했습니다: \(error.localizedDescription)"
+            // 오프라인 폴백: 큐 적재 + 낙관 유지. D-1 리마인더는 로컬 알림이라 그대로 예약.
+            queueHealthSaveOffline(visit, collection: FirestoreCollections.hospitalVisits, babyId: visit.babyId, documentId: visit.id, userId: userId, type: .create)
+            let targetDate = visit.scheduledDate ?? visit.visitDate
+            if targetDate > Date() {
+                NotificationService.shared.scheduleHospitalVisitReminder(visit: visit, babyName: currentBabyName)
+            }
         }
     }
 
@@ -348,7 +379,11 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
     }
 
     func saveAllergyRecord(_ record: AllergyRecord, userId: String, babyId: String) async throws {
-        try await firestoreService.saveAllergyRecord(record, userId: userId, babyId: babyId)
+        do {
+            try await firestoreService.saveAllergyRecord(record, userId: userId, babyId: babyId)
+        } catch {
+            queueHealthSaveOffline(record, collection: FirestoreCollections.allergies, babyId: babyId, documentId: record.id, userId: userId, type: .create)
+        }
     }
 
     func deleteAllergyRecord(userId: String, babyId: String, recordId: String) async {
