@@ -67,6 +67,21 @@ enum NotificationSettings {
             }
         }
     }
+
+    /// 유축 유통기한 알림 (P5b) — 기본 ON. OFF 저장 시 예약된 유축 만료 알림 전부 취소(prefix 필터).
+    static var pumpExpiryAlertEnabled: Bool {
+        get { defaults.object(forKey: "pumpExpiryAlertEnabled") as? Bool ?? true }
+        set {
+            defaults.set(newValue, forKey: "pumpExpiryAlertEnabled")
+            if !newValue {
+                UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+                    let ids = requests.map(\.identifier).filter { $0.hasPrefix(NotificationService.pumpExpiryPrefix) }
+                    guard !ids.isEmpty else { return }
+                    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Activity Reminder Rules (활동별 알림 규칙)

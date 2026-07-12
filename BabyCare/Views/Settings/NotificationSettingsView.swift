@@ -7,6 +7,7 @@ struct NotificationSettingsView: View {
     @State private var rules = ActivityReminderSettings.rules
     @State private var feedingOverdueAlertEnabled = ActivityReminderSettings.feedingOverdueAlertEnabled
     @State private var returnNudgeEnabled = NotificationSettings.returnNudgeEnabled
+    @State private var pumpExpiryAlertEnabled = NotificationSettings.pumpExpiryAlertEnabled
     @State private var weeklyInsightEnabled = ActivityReminderSettings.weeklyInsightEnabled
     @State private var vaccinationEnabled = NotificationSettings.vaccinationReminderEnabled
     @State private var vaccinationDays = NotificationSettings.vaccinationDaysBefore
@@ -126,6 +127,27 @@ struct NotificationSettingsView: View {
                 Text("복귀 알림")
             } footer: {
                 Text("마지막 기록 후 24시간 동안 기록이 없으면 한 번만 부드럽게 알려드립니다.")
+            }
+
+            // 유축 유통기한 알림 (P5)
+            Section {
+                Toggle(isOn: $pumpExpiryAlertEnabled) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "drop.fill")
+                            .font(.body)
+                            .foregroundStyle(AppColors.pumpingColor)
+                            .frame(width: 24)
+                        Text("짜둔 모유 유통기한 알림")
+                    }
+                }
+                .onChange(of: pumpExpiryAlertEnabled) { _, val in
+                    // setter가 OFF 시 예약된 유축 만료 알림 제거까지 처리 (R1: View→Service 직접 호출 금지)
+                    NotificationSettings.pumpExpiryAlertEnabled = val
+                }
+            } header: {
+                Text("유축 재고")
+            } footer: {
+                Text("짜둔 모유의 유통기한이 다가오면 알려드려요. 유통기한은 의료 감수 전 초안이라 참고용이에요.")
             }
 
             // 접종 알림

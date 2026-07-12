@@ -391,6 +391,37 @@ final class NotificationService {
             .removePendingNotificationRequests(withIdentifiers: [ReturnNudgePolicy.notificationIdentifier])
     }
 
+    // MARK: - Pump Expiry (유축 유통기한 알림, P5b)
+
+    static let pumpExpiryPrefix = "pump-expiry-"
+    static func pumpExpiryIdentifier(_ activityId: String) -> String { pumpExpiryPrefix + activityId }
+
+    /// 짜기 배치 유통기한 임박 알림 — 배치 id별. 유통기한은 참고용(면책).
+    func schedulePumpExpiryAlert(activityId: String, fireDate: Date) {
+        guard NotificationSettings.pumpExpiryAlertEnabled else { return }
+        let identifier = Self.pumpExpiryIdentifier(activityId)
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = "짜둔 모유 유통기한이 다가와요"
+        content.body = "짜둔 모유를 확인해 주세요. 유통기한은 참고용이니 색·냄새도 함께 살펴봐 주세요."
+        content.sound = .default
+        content.categoryIdentifier = "PUMP_EXPIRY"
+        content.userInfo = ["type": "pump_expiry"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: max(fireDate.timeIntervalSinceNow, 60),
+            repeats: false
+        )
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func cancelPumpExpiryAlert(activityId: String) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [Self.pumpExpiryIdentifier(activityId)])
+    }
+
     // MARK: - Weekly Insight
 
     func scheduleWeeklyInsight(topInsightTitle: String) {

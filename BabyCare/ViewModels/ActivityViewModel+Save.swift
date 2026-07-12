@@ -100,6 +100,7 @@ extension ActivityViewModel {
             try await firestoreService.saveActivity(activity, userId: userId)
             deriveLatestActivities()
             scheduleActivityReminderIfNeeded(type: activity.type, babyName: "아기")
+            schedulePumpExpiryIfNeeded(activity)
             if activity.type == .temperature, registerTemperature(activity) {
                 NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
             }
@@ -249,9 +250,18 @@ extension ActivityViewModel {
         inventoryActivities[idx] = activity   // 낙관적
         do {
             try await firestoreService.saveActivity(activity, userId: userId)
+            NotificationService.shared.cancelPumpExpiryAlert(activityId: activityId)   // 폐기 확정 → 알림 취소
         } catch {
             inventoryActivities[idx] = original
             errorMessage = "재고 수정에 실패했습니다."
         }
+    }
+
+    /// 짜기(feedingPumping) 배치 저장 후 유통기한 임박 알림 예약 (토글 ON·발화 시각 미래일 때만).
+    private func schedulePumpExpiryIfNeeded(_ activity: Activity) {
+        guard activity.type == .feedingPumping, let storage = activity.pumpStorage,
+              let fire = PumpExpiryNotification.fireDate(pumpedAt: activity.startTime, storage: storage, now: Date())
+        else { return }
+        NotificationService.shared.schedulePumpExpiryAlert(activityId: activity.id, fireDate: fire)
     }
 }

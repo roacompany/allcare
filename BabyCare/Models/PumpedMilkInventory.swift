@@ -130,3 +130,22 @@ extension PumpedMilkInventory.Batch {
         return .fresh
     }
 }
+
+/// 유축 유통기한 로컬 알림 발화 시각 계산 (순수, P5b).
+enum PumpExpiryNotification {
+    /// 보관별 알림 리드타임 — 유통기한 이 시간 전에 발화.
+    static func lead(for storage: PumpStorage) -> TimeInterval {
+        switch storage {
+        case .room: 1 * 3600            // 1시간 전
+        case .fridge: 6 * 3600          // 6시간 전
+        case .freezer: 24 * 3600        // 1일 전
+        }
+    }
+
+    /// 발화 시각 = 유통기한 − 리드. 발화 시각이 과거(이미 지남)면 nil(예약 안 함).
+    static func fireDate(pumpedAt: Date, storage: PumpStorage, now: Date) -> Date? {
+        let expiry = PumpedMilkInventory.expiry(pumpedAt: pumpedAt, storage: storage)
+        let fire = expiry.addingTimeInterval(-lead(for: storage))
+        return fire > now ? fire : nil
+    }
+}

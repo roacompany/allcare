@@ -432,6 +432,15 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(batch(expiresIn: -3600).freshness(now: now), .expired, "지남=만료")
     }
 
+    func testPumpExpiryFireDate_futureVsPast() {
+        let now = Date()
+        let fridge = PumpExpiryNotification.fireDate(pumpedAt: now, storage: .fridge, now: now)
+        XCTAssertNotNil(fridge, "방금 짜낸 냉장 배치는 미래 발화 시각")
+        if let fridge { XCTAssertGreaterThan(fridge, now) }
+        let old = PumpExpiryNotification.fireDate(pumpedAt: now.addingTimeInterval(-10 * 24 * 3600), storage: .fridge, now: now)
+        XCTAssertNil(old, "발화 시각이 과거면 예약 안 함")
+    }
+
     @MainActor
     func testBottle_breastMilkCountsAsIntake_pumpingDoesNot() {
         let vm = ActivityViewModel()
