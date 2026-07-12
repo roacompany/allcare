@@ -10,7 +10,6 @@ struct RecordLauncherSheet: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(AuthViewModel.self) private var authVM
     @Environment(ProductViewModel.self) private var productVM
-    @Environment(\.dismiss) private var dismiss
 
     @State private var detailTile: RecordTile?
     @State private var savedFeedback: Activity.ActivityType?
@@ -43,12 +42,6 @@ struct RecordLauncherSheet: View {
             }
             .navigationTitle("기록하기")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("닫기") { dismiss() }
-                        .foregroundStyle(.secondary)
-                }
-            }
             .overlay(alignment: .bottom) { feedbackBar }
             .animation(.easeInOut, value: savedFeedback)
             .sheet(item: $detailTile) { tile in
@@ -69,9 +62,6 @@ struct RecordLauncherSheet: View {
                 .presentationDetents([.medium])
             }
         }
-        .presentationDetents([.large])   // 전체 높이로 표시 — 구 RecordingView와 동일. 반높이면 그리드가 잘림
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
     }
 
     // MARK: - Feedback bar (인라인 · 되돌리기)
@@ -121,6 +111,13 @@ struct RecordLauncherSheet: View {
             if let candidates = await productVM.deductStockForActivity(type, userId: currentUserId) {
                 productCandidates = candidates
             }
+        case .timer:
+            // 모유 등 시간-기록: 탭 → 타이머 즉시 시작 → '수유 중' 배너(오버레이). 정지 시 배너가 시간과 함께 저장.
+            let type = tile.type
+            guard let currentUserId = authVM.currentUserId, let baby = babyVM.selectedBaby else { return }
+            let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+            activityVM.startTimedRecord(type: type, userId: dataUserId, currentUserId: currentUserId, babyId: baby.id)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.rawValue])
         }
     }
 

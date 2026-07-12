@@ -16,8 +16,17 @@ struct RecordTile: Identifiable, Hashable {
 
     /// 분유/유축 타일이 같은 type이라도 별개로 식별 (sheet(item:)·ForEach 안정).
     var id: String { "\(type.rawValue)#\(contentPreset?.rawValue ?? "")" }
-    var icon: String { type.icon }
-    var colorName: String { type.color }
+
+    /// 유축(짜둔 모유 병)은 분유(컵)와 다른 아이콘 — 같은 feedingBottle이라도 한눈에 구분.
+    var icon: String {
+        if type == .feedingBottle, contentPreset == .breastMilk { return "waterbottle.fill" }
+        return type.icon
+    }
+    /// 유축 = 짜둔 모유 → 짜기와 같은 라일락 계열(분유 핑크와 구분).
+    var colorName: String {
+        if type == .feedingBottle, contentPreset == .breastMilk { return "pumpingColor" }
+        return type.color
+    }
 
     /// 타일 라벨 — feedingBottle은 프리셋별(분유/유축), 그 외는 type.displayName.
     var label: String {

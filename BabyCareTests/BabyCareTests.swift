@@ -441,6 +441,19 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNil(old, "발화 시각이 과거면 예약 안 함")
     }
 
+    // MARK: - 기록 진입 모드 (모유=타이머 fix, 2026-07-12)
+
+    func testRecordEntryRule_breastFeedingIsTimer() {
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingBreast), .timer,
+                       "모유수유는 시간이 핵심 → 원탭 타이머 시작(즉시저장 아님)")
+        // 회귀 가드: 나머지 모드는 그대로
+        XCTAssertEqual(RecordEntryRule.mode(for: .diaperWet), .instant)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingSnack), .instant)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingBottle), .detail)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingPumping), .detail, "짜기는 양 입력 시트")
+        XCTAssertEqual(RecordEntryRule.mode(for: .sleep), .detail)
+    }
+
     @MainActor
     func testBottle_breastMilkCountsAsIntake_pumpingDoesNot() {
         let vm = ActivityViewModel()

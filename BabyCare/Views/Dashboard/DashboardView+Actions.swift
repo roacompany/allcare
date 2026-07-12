@@ -62,6 +62,12 @@ extension DashboardView {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        if RecordEntryRule.mode(for: type) == .timer {
+            // 모유: 타이머 즉시 시작 → '수유 중' 배너, 정지 시 시간과 함께 저장
+            activityVM.startTimedRecord(type: type, userId: dataUserId, currentUserId: currentUserId, babyId: baby.id)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.rawValue])
+            return
+        }
         await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
         if activityVM.errorMessage == nil {
             // 저장 성공 후 발화. category = 영어 rawValue (한글 displayName 금지 — GA4 차원 파편화)

@@ -16,7 +16,6 @@ struct ContentView: View {
         }
         return 0
     }()
-    @State private var showRecording = false
     @State private var reorderProduct: BabyProduct?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
@@ -95,7 +94,10 @@ struct ContentView: View {
             // 강제 종료 전 진행 중이던 타이머 복구
             activityVM.resumeTimerIfNeeded()
             if let userId = authVM.currentUserId {
-                await authVM.migrateFamilySharingIfNeeded(userId: userId)
+                // UI 테스트 모드: Firestore 의존 마이그레이션 skip (렌더 차단 방지 — 하네스가 mock 아기로 렌더되도록)
+                if !CommandLine.arguments.contains("UI_TESTING") {
+                    await authVM.migrateFamilySharingIfNeeded(userId: userId)
+                }
                 await babyVM.loadBabies(userId: userId)
                 // 임신 모드 데이터 로드 + 위젯 동기화
                 if FeatureFlags.pregnancyModeEnabled {
@@ -284,8 +286,8 @@ struct ContentView: View {
 
         switch destination {
         case .record, .recordCategory:
-            // 타입-우선 런처는 카테고리 프리셀렉트 없음 — 딥링크는 런처만 연다.
-            showRecording = true
+            // 타입-우선 런처는 카테고리 프리셀렉트 없음 — 딥링크는 기록 탭으로.
+            selectedTab = 2
 
         case .quickSave(let quickType):
             guard let currentUserId = authVM.currentUserId,
@@ -384,8 +386,8 @@ struct ContentView: View {
                 }
                 .tag(1)
 
-            // 중간 자리: 빈 뷰 (+ 버튼 역할)
-            Color.clear
+            // 기록하기 탭 — 시트 팝업 없이 그리드 화면 직접(타입-우선 런처). 탭 → 즉시/타이머/상세.
+            RecordLauncherSheet()
                 .tabItem {
                     Label("기록하기", systemImage: "plus.circle.fill")
                 }
@@ -409,25 +411,11 @@ struct ContentView: View {
                 }
                 .tag(4)
         }
-        .onChange(of: selectedTab) { oldValue, newValue in
-            if newValue == 2 {
-                // + 탭 선택 → sheet 열고 이전 탭으로 복원
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                selectedTab = oldValue
-                showRecording = true
-            }
-            // screen_view는 각 탭 루트의 onAppear로 일원화 (첫 진입 포함, 이중 발화 방지)
-        }
-        .sheet(isPresented: $showRecording, onDismiss: {
-            activityVM.resetForm()
-        }) {
-            RecordLauncherSheet()
-        }
         .overlay(alignment: .bottom) {
             VStack(spacing: 6) {
                 FloatingTimerBanner { _ in
-                    // 타입-우선 런처로 진입 (실행 중 타이머 타입 타일 → UnifiedRecordSheet에서 정지·저장)
-                    showRecording = true
+                    // 배너 본문 탭 → 기록 탭(그리드). 정지·저장은 배너 정지 버튼이 처리(모유 등).
+                    selectedTab = 2
                 }
                 FloatingMiniPlayer()
             }
