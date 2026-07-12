@@ -12,18 +12,13 @@ struct RecordLauncherSheet: View {
     @Environment(ProductViewModel.self) private var productVM
     @Environment(\.dismiss) private var dismiss
 
-    @State private var detailType: Activity.ActivityType?
+    @State private var detailTile: RecordTile?
     @State private var savedFeedback: Activity.ActivityType?
     @State private var lastSaved: Activity?
     @State private var productCandidates: [BabyProduct] = []
 
-    // 카테고리별 시각 섹션 (정렬만 — 각 타일은 구체 타입)
-    private let sections: [(title: String, types: [Activity.ActivityType])] = [
-        ("수유", [.feedingBreast, .feedingBottle, .feedingSolid, .feedingSnack, .feedingPumping]),
-        ("수면", [.sleep]),
-        ("기저귀", [.diaperWet, .diaperDirty, .diaperBoth]),
-        ("건강", [.temperature, .medication, .bath])
-    ]
+    // 카테고리별 시각 섹션 (정렬만 — 각 타일은 구체 타입/프리셋). 분유·유축은 content 프리셋으로 분리.
+    private let sections = RecordTile.launcherSections
 
     private let columns = [GridItem(.adaptive(minimum: 72), spacing: 12)]
 
@@ -37,8 +32,8 @@ struct RecordLauncherSheet: View {
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.secondary)
                             LazyVGrid(columns: columns, spacing: 12) {
-                                ForEach(section.types, id: \.self) { type in
-                                    QuickActionButton(type: type) { await tap(type) }
+                                ForEach(section.tiles) { tile in
+                                    QuickActionButton(tile: tile) { await tap(tile) }
                                 }
                             }
                         }
@@ -56,8 +51,9 @@ struct RecordLauncherSheet: View {
             }
             .overlay(alignment: .bottom) { feedbackBar }
             .animation(.easeInOut, value: savedFeedback)
-            .sheet(item: $detailType) { type in
-                UnifiedRecordSheet(type: type, onSaved: { activity in showSaved(activity) })
+            .sheet(item: $detailTile) { tile in
+                UnifiedRecordSheet(type: tile.type, contentPreset: tile.contentPreset,
+                                   onSaved: { activity in showSaved(activity) })
             }
             .sheet(isPresented: Binding(
                 get: { !productCandidates.isEmpty },
@@ -83,10 +79,11 @@ struct RecordLauncherSheet: View {
     @ViewBuilder
     private var feedbackBar: some View {
         if let type = savedFeedback {
+            let title = lastSaved?.displayLabel ?? type.displayName
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.white)
-                Text("\(type.displayName) 저장됨")
+                Text("\(title) 저장됨")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
                 if let saved = lastSaved {
@@ -108,11 +105,12 @@ struct RecordLauncherSheet: View {
 
     // MARK: - Tap routing
 
-    private func tap(_ type: Activity.ActivityType) async {
-        switch RecordEntryRule.mode(for: type) {
+    private func tap(_ tile: RecordTile) async {
+        switch RecordEntryRule.mode(for: tile.type) {
         case .detail:
-            detailType = type
+            detailTile = tile
         case .instant:
+            let type = tile.type
             guard let currentUserId = authVM.currentUserId, let baby = babyVM.selectedBaby else { return }
             let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
             await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)

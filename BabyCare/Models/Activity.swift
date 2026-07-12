@@ -35,8 +35,8 @@ struct Activity: Identifiable, Codable, Hashable {
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
     /// 진짜 분유(formula) 병수유 — 분유재고 차감·병원리포트 '분유량' 집계 대상(nil=분유).
     var isFormulaBottle: Bool { type == .feedingBottle && feedingContent != .breastMilk }
-    /// 타임라인/표시용 라벨 — 모유 병수유는 '모유(병)'로 구분.
-    var displayLabel: String { isBreastMilkBottle ? "모유(병)" : type.displayName }
+    /// 타임라인/표시용 라벨 — 유축한 모유 병수유(섭취)는 '유축'으로 구분 (2026-07-12 용어정리).
+    var displayLabel: String { isBreastMilkBottle ? "유축" : type.displayName }
 
     enum ActivityType: String, Codable, CaseIterable, Identifiable {
         var id: String { rawValue }
@@ -84,7 +84,7 @@ struct Activity: Identifiable, Codable, Hashable {
 
         var displayName: String {
             switch self {
-            case .feedingBreast: "모유수유"
+            case .feedingBreast: "모유"
             case .feedingBottle: "분유"
             case .feedingSolid: "이유식"
             case .feedingSnack: "간식"
@@ -95,7 +95,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "목욕"
             case .temperature: "체온"
             case .medication: "투약"
-            case .feedingPumping: "유축"
+            case .feedingPumping: "짜기"
             case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
@@ -218,7 +218,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .sleep: "수면"
             case .diaper: "기저귀"
             case .health: "건강"
-            case .pumping: "유축"
+            case .pumping: "짜기"
             case .unknown: "앱 업데이트가 필요한 기록"
             }
         }

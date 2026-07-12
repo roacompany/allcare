@@ -13,6 +13,8 @@ struct UnifiedRecordSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let type: Activity.ActivityType
+    /// 분유/유축 타일 프리셋 (feedingBottle 전용) — 지정 시 히스토리 프리필보다 우선, 제목도 유축/분유 반영.
+    var contentPreset: Activity.FeedingContent? = nil
     var onSaved: ((Activity) -> Void)? = nil
 
     @State private var isSaving = false
@@ -77,8 +79,11 @@ struct UnifiedRecordSheet: View {
         .presentationCornerRadius(28)
     }
 
+    /// 타일 라벨 — 유축(breastMilk 병)은 '유축', 분유는 '분유', 그 외 type.displayName. (RecordTile 단일 소스)
+    private var tileLabel: String { RecordTile(type, content: contentPreset).label }
+
     private var navTitle: String {
-        babyVM.selectedBaby.map { "\($0.name) · \(type.displayName)" } ?? type.displayName
+        babyVM.selectedBaby.map { "\($0.name) · \(tileLabel)" } ?? tileLabel
     }
 
     private var header: some View {
@@ -86,7 +91,7 @@ struct UnifiedRecordSheet: View {
             Image(systemName: type.icon)
                 .font(.title2)
                 .foregroundStyle(accent)
-            Text(type.displayName)
+            Text(tileLabel)
                 .font(.title3.bold())
                 .foregroundStyle(.primary)
             Spacer()
@@ -164,7 +169,7 @@ struct UnifiedRecordSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Picker("내용물", selection: Bindable(vm).selectedFeedingContent) {
                 Text("분유").tag(Activity.FeedingContent.formula)
-                Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+                Text("유축").tag(Activity.FeedingContent.breastMilk)
             }
             .pickerStyle(.segmented)
             .accessibilityLabel("병수유 내용물")
@@ -206,7 +211,7 @@ struct UnifiedRecordSheet: View {
                     }
                 }
             }
-            Text("유축 기록은 ‘짜낸 양’이에요. 아기가 실제로 먹은 양은 분유/모유 수유로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+            Text("‘짜기’는 아기가 먹은 게 아니라 짜낸 양이에요. 실제로 먹인 건 모유·분유·유축(짜둔 모유)으로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -335,12 +340,15 @@ struct UnifiedRecordSheet: View {
            ) {
             activityVM.amount = last
         }
-        if type == .feedingBottle,
-           let content = RecordPrefillPolicy.lastFeedingContent(
-               todayActivities: activityVM.todayActivities,
-               recentActivities: activityVM.recentWeekActivities
-           ) {
-            activityVM.selectedFeedingContent = content
+        if type == .feedingBottle {
+            if let contentPreset {
+                activityVM.selectedFeedingContent = contentPreset   // 타일 프리셋(분유/유축)이 히스토리보다 우선
+            } else if let content = RecordPrefillPolicy.lastFeedingContent(
+                todayActivities: activityVM.todayActivities,
+                recentActivities: activityVM.recentWeekActivities
+            ) {
+                activityVM.selectedFeedingContent = content
+            }
         }
     }
 

@@ -256,14 +256,14 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(header.contains("유축량(ml)"), "헤더에 유축량(ml) 컬럼이 있어야 한다")
         XCTAssertTrue(header.contains("양(ml)"), "섭취 양(ml) 컬럼은 유지")
 
-        // 헤더("유축량(ml)")도 "유축"을 포함하므로 데이터 행만 탐색 (dropFirst)
-        let pumpRow = lines.dropFirst().first { $0.contains("유축") }
-        XCTAssertNotNil(pumpRow, "유축 row가 있어야 한다")
+        // pumping 행의 유형 컬럼 = '짜기'(생산 액션 라벨). 헤더 유축량(ml)과 무관하게 데이터 행만 탐색.
+        let pumpRow = lines.dropFirst().first { $0.contains("짜기") }
+        XCTAssertNotNil(pumpRow, "짜기(생산) row가 있어야 한다")
         let cols = pumpRow!.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
         let intakeIdx = header.firstIndex(of: "양(ml)")!
         let pumpIdx = header.firstIndex(of: "유축량(ml)")!
-        XCTAssertEqual(cols[pumpIdx], "200", "유축량은 유축량(ml) 컬럼에 들어가야 한다")
-        XCTAssertEqual(cols[intakeIdx], "", "유축 row의 섭취 양(ml)은 공란이어야 한다")
+        XCTAssertEqual(cols[pumpIdx], "200", "생산량은 유축량(ml) 컬럼에 들어가야 한다")
+        XCTAssertEqual(cols[intakeIdx], "", "짜기 row의 섭취 양(ml)은 공란이어야 한다")
     }
 
     /// §7-5: 유축은 캘린더 dot도, eventDots Set의 orphan 멤버도 만들지 않는다
@@ -312,11 +312,52 @@ final class BabyCareTests: XCTestCase {
     func testActivity_displayLabel_contentAware() {
         var breast = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
         breast.feedingContent = .breastMilk
-        XCTAssertEqual(breast.displayLabel, "모유(병)")
+        XCTAssertEqual(breast.displayLabel, "유축", "유축한 모유 병수유(섭취) = '유축' 타일 라벨")
         let formula = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
         XCTAssertEqual(formula.displayLabel, "분유")
         let pump = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 200)
-        XCTAssertEqual(pump.displayLabel, "유축")
+        XCTAssertEqual(pump.displayLabel, "짜기", "feedingPumping(생산) = '짜기' 라벨")
+    }
+
+    /// 수유 용어 정리 (2026-07-12 PO 확정) — 액션 라벨 짧게: 모유수유→모유, 유축(생산)→짜기.
+    /// 수량 명사(유축량)는 유지. 콘텐츠 인지 라벨은 testActivity_displayLabel_contentAware 참조.
+    func testDisplayName_shortenedActionLabels() {
+        XCTAssertEqual(Activity.ActivityType.feedingBreast.displayName, "모유",
+                       "모유수유→모유 (PO: 타일 라벨 짧게)")
+        XCTAssertEqual(Activity.ActivityType.feedingPumping.displayName, "짜기",
+                       "유축→짜기 (생산 행위. '유축'은 먹이기 타일이 가져감)")
+        XCTAssertEqual(Activity.ActivityCategory.pumping.displayName, "짜기",
+                       "생산 카테고리 라벨도 '짜기'로 일관")
+    }
+
+    // MARK: - RecordTile (분유/유축 타일 분리) — 2026-07-12 P2b
+
+    func testRecordTile_label_contentAware() {
+        XCTAssertEqual(RecordTile(.feedingBottle, content: .breastMilk).label, "유축",
+                       "유축 = feedingBottle + breastMilk 프리셋")
+        XCTAssertEqual(RecordTile(.feedingBottle, content: .formula).label, "분유")
+        XCTAssertEqual(RecordTile(.feedingBottle).label, "분유", "content nil = 분유(하위호환)")
+        XCTAssertEqual(RecordTile(.feedingPumping).label, "짜기", "짜기 = 생산")
+        XCTAssertEqual(RecordTile(.feedingBreast).label, "모유")
+        XCTAssertEqual(RecordTile(.feedingSolid).label, "이유식")
+    }
+
+    func testRecordTile_id_bottleTilesDistinct() {
+        // 분유/유축은 같은 feedingBottle이되 id가 달라야 sheet(item:)/ForEach가 안 섞인다.
+        XCTAssertNotEqual(RecordTile(.feedingBottle, content: .formula).id,
+                          RecordTile(.feedingBottle, content: .breastMilk).id)
+    }
+
+    func testLauncherSections_feedingSplitsBottle() {
+        let feeding = RecordTile.launcherSections.first { $0.title == "수유" }!.tiles
+        let bottleTiles = feeding.filter { $0.type == .feedingBottle }
+        XCTAssertEqual(bottleTiles.count, 2, "분유/유축 = feedingBottle 2타일로 분리")
+        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .formula && $0.label == "분유" },
+                      "분유 타일")
+        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .breastMilk && $0.label == "유축" },
+                      "유축 타일")
+        XCTAssertTrue(feeding.contains { $0.type == .feedingPumping && $0.label == "짜기" }, "짜기(생산) 타일")
+        XCTAssertTrue(feeding.contains { $0.type == .feedingBreast && $0.label == "모유" }, "모유 타일")
     }
 
     @MainActor

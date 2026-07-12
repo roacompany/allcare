@@ -27,10 +27,27 @@ struct DashboardAlertBanner: View {
 // MARK: - Quick Action Button
 
 struct QuickActionButton: View {
-    let type: Activity.ActivityType
+    let label: String
+    let icon: String
+    let colorName: String
     let action: () async -> Void
 
     @State private var isPressed = false
+
+    init(type: Activity.ActivityType, action: @escaping () async -> Void) {
+        self.label = type.displayName
+        self.icon = type.icon
+        self.colorName = type.color
+        self.action = action
+    }
+
+    /// content 프리셋 타일(분유/유축) 렌더용 — label이 type.displayName과 다를 수 있음.
+    init(tile: RecordTile, action: @escaping () async -> Void) {
+        self.label = tile.label
+        self.icon = tile.icon
+        self.colorName = tile.colorName
+        self.action = action
+    }
 
     var body: some View {
         Button {
@@ -40,14 +57,14 @@ struct QuickActionButton: View {
             VStack(spacing: 6) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(type.color).opacity(0.15))
+                        .fill(Color(colorName).opacity(0.15))
                         .frame(height: 52)
-                    Image(systemName: type.icon)
+                    Image(systemName: icon)
                         .font(.title3)
-                        .foregroundStyle(Color(type.color))
+                        .foregroundStyle(Color(colorName))
                         .accessibilityHidden(true)
                 }
-                Text(type.displayName)
+                Text(label)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -55,7 +72,7 @@ struct QuickActionButton: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(type.displayName) 빠른 기록")
+        .accessibilityLabel("\(label) 빠른 기록")
         .scaleEffect(isPressed ? 0.93 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
         .simultaneousGesture(
