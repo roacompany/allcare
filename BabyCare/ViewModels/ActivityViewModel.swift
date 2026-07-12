@@ -21,9 +21,16 @@ final class ActivityViewModel: OptimisticReplaceable {
     var selectedFeedingContent: Activity.FeedingContent = .formula   // 병수유 내용물(분유 기본)
     var selectedPumpStorage: PumpStorage = .fridge                   // 짜기 배치 보관(냉장 기본)
 
-    /// 유축 재고(짜기−유축먹이기, FIFO+유통기한). 최근 창(오늘+최근7일) 기준 — room/fridge 정확, freezer 장기분은 후속(P5).
+    /// 유축 재고(짜기−유축먹이기, FIFO+유통기한). 최근 창(오늘+최근7일) 기준 — room/fridge 정확, freezer 장기분은 fullPumpInventory.
     var pumpInventory: PumpedMilkInventory.State {
         PumpedMilkInventory.fromActivities(todayActivities + recentWeekActivities, now: Date())
+    }
+
+    var inventoryActivities: [Activity] = []   // 재고 화면용 6개월 창 (loadPumpInventory)
+
+    /// 재고 화면 정밀 재고 — 6개월 창(freezer 장기 배치 포함). 대시보드 카드(pumpInventory)는 최근7일 근사.
+    var fullPumpInventory: PumpedMilkInventory.State {
+        PumpedMilkInventory.fromActivities(inventoryActivities, now: Date())
     }
     var temperatureInput: String = ""
     var medicationName: String = ""

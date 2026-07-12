@@ -21,6 +21,7 @@ struct DashboardView: View {
     @State var quickInputType: Activity.ActivityType?
     @State var showMoreSection = false
     @State private var showPregnancyNote = false
+    @State private var showPumpStock = false
     // 위젯 유도 해제 (C2) — 기기 UI 상태 (사용자 데이터 아님, @AppStorage 허용 선례: OptionalModuleToggleCard)
     @AppStorage(WidgetPromoPolicy.dismissedKey) private var widgetPromoDismissed = false
     // 파트너 초대 유도 해제 (C3) — 동일 성격의 기기 UI 상태
@@ -56,7 +57,7 @@ struct DashboardView: View {
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
-        PumpedMilkStockCard(state: activityVM.pumpInventory)
+        PumpedMilkStockCard(state: activityVM.pumpInventory) { showPumpStock = true }
         predictionSection
         pregnancyHomeCardIfNeeded
         summaryCardsSection
@@ -280,6 +281,9 @@ struct DashboardView: View {
             UnifiedRecordSheet(type: type, onSaved: { activity in
                 showSavedFeedback(for: activity.type)
             })
+        }
+        .sheet(isPresented: $showPumpStock) {
+            PumpedMilkStockView()
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },

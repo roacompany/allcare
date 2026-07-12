@@ -226,4 +226,32 @@ extension ActivityViewModel {
         manualEndTime = nil
         isTimeAdjusted = false
     }
+
+    // MARK: - 유축 재고 (P5)
+
+    /// 재고 화면용 — 최근 6개월 짜기/유축먹이기 활동 로드(freezer 장기 배치 포함).
+    func loadPumpInventory(userId: String, babyId: String) async {
+        let sixMonthsAgo = Date().addingTimeInterval(-6 * 30 * AppConstants.secondsPerDay)
+        do {
+            let all = try await firestoreService.fetchActivities(userId: userId, babyId: babyId, from: sixMonthsAgo, to: Date())
+            inventoryActivities = all.filter { $0.type == .feedingPumping || $0.isBreastMilkBottle }
+        } catch {
+            logSilent("유축 재고를 불러오지 못했습니다", error: error, logger: AppLogger.firestore)
+        }
+    }
+
+    /// 짜기 배치 폐기 — pumpDiscarded=true 저장(재고서 제외). 낙관적 업데이트 + 실패 롤백.
+    func discardPumpBatch(_ activityId: String, userId: String) async {
+        guard let idx = inventoryActivities.firstIndex(where: { $0.id == activityId }) else { return }
+        let original = inventoryActivities[idx]
+        var activity = original
+        activity.pumpDiscarded = true
+        inventoryActivities[idx] = activity   // 낙관적
+        do {
+            try await firestoreService.saveActivity(activity, userId: userId)
+        } catch {
+            inventoryActivities[idx] = original
+            errorMessage = "재고 수정에 실패했습니다."
+        }
+    }
 }

@@ -118,3 +118,15 @@ extension PumpedMilkInventory {
         return compute(pumps: pumps, totalConsumed: consumed, now: now)
     }
 }
+
+extension PumpedMilkInventory.Batch {
+    /// 배치 신선도 — 재고 화면 상태 뱃지 (신선 / 임박=24h 내 / 만료).
+    enum Freshness: Equatable { case fresh, soon, expired }
+
+    func freshness(now: Date) -> Freshness {
+        let remaining = expiresAt.timeIntervalSince(now)
+        if remaining <= 0 { return .expired }
+        if remaining < AppConstants.secondsPerDay { return .soon }
+        return .fresh
+    }
+}

@@ -89,33 +89,42 @@ struct QuickActionButton: View {
 /// 유통기한은 의료 감수 전 초안이라 카피에 '참고용' 면책 동반(safety.md).
 struct PumpedMilkStockCard: View {
     let state: PumpedMilkInventory.State
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
         if state.totalRemaining > 0 {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Image(systemName: "drop.fill")
-                        .foregroundStyle(AppColors.pumpingColor)
-                    Text("짜둔 모유 약 \(Int(state.totalRemaining))mL")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    Spacer()
+            Button { onTap?() } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "drop.fill")
+                            .foregroundStyle(AppColors.pumpingColor)
+                        Text("짜둔 모유 약 \(Int(state.totalRemaining))mL")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    if let soonest = state.soonestExpiry, soonest.timeIntervalSinceNow < AppConstants.secondsPerDay {
+                        Text("일부가 곧 만료될 수 있어요 · 유통기한은 초안(참고용)")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.coralColor)
+                    } else {
+                        Text("유통기한은 의료 감수 전 초안이라 참고용이에요")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                if let soonest = state.soonestExpiry, soonest.timeIntervalSinceNow < AppConstants.secondsPerDay {
-                    Text("일부가 곧 만료될 수 있어요 · 유통기한은 초안(참고용)")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.coralColor)
-                } else {
-                    Text("유통기한은 의료 감수 전 초안이라 참고용이에요")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.pumpingColor.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(AppColors.pumpingColor.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+            .accessibilityHint("유축 재고 화면 열기")
         }
     }
 }

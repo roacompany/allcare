@@ -421,6 +421,17 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(draft.pumpStorage, .freezer, "makeDraft가 selectedPumpStorage를 draft에 캡처")
     }
 
+    func testBatchFreshness_classifies() {
+        let now = Date()
+        func batch(expiresIn: TimeInterval) -> PumpedMilkInventory.Batch {
+            PumpedMilkInventory.Batch(id: "x", amount: 100, pumpedAt: now, storage: .fridge,
+                                      expiresAt: now.addingTimeInterval(expiresIn), remaining: 100, isExpired: expiresIn <= 0)
+        }
+        XCTAssertEqual(batch(expiresIn: 3 * AppConstants.secondsPerDay).freshness(now: now), .fresh, "충분히 남음=신선")
+        XCTAssertEqual(batch(expiresIn: 3600).freshness(now: now), .soon, "24h 내=임박")
+        XCTAssertEqual(batch(expiresIn: -3600).freshness(now: now), .expired, "지남=만료")
+    }
+
     @MainActor
     func testBottle_breastMilkCountsAsIntake_pumpingDoesNot() {
         let vm = ActivityViewModel()
