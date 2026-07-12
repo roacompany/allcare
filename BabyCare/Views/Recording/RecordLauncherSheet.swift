@@ -19,18 +19,25 @@ struct RecordLauncherSheet: View {
     // 카테고리별 시각 섹션 (정렬만 — 각 타일은 구체 타입/프리셋). 분유·유축은 content 프리셋으로 분리.
     private let sections = RecordTile.launcherSections
 
-    private let columns = [GridItem(.adaptive(minimum: 72), spacing: 12)]
+    // 빈도 위계: 자주=큰 타일(적은 열) / 가끔=작은 타일(많은 열).
+    private func columns(for prominence: RecordTileProminence) -> [GridItem] {
+        switch prominence {
+        case .frequent:   return [GridItem(.adaptive(minimum: 78), spacing: 12)]
+        case .occasional: return [GridItem(.adaptive(minimum: 62), spacing: 10)]
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    ForEach(sections, id: \.title) { section in
+                    ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 10) {
                             Text(section.title)
                                 .font(.subheadline.bold())
                                 .foregroundStyle(.secondary)
-                            LazyVGrid(columns: columns, spacing: 12) {
+                            LazyVGrid(columns: columns(for: section.prominence),
+                                      spacing: section.prominence == .frequent ? 12 : 10) {
                                 ForEach(section.tiles) { tile in
                                     QuickActionButton(tile: tile) { await tap(tile) }
                                 }

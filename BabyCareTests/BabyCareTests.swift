@@ -348,16 +348,28 @@ final class BabyCareTests: XCTestCase {
                           RecordTile(.feedingBottle, content: .breastMilk).id)
     }
 
-    func testLauncherSections_feedingSplitsBottle() {
-        let feeding = RecordTile.launcherSections.first { $0.title == "수유" }!.tiles
-        let bottleTiles = feeding.filter { $0.type == .feedingBottle }
-        XCTAssertEqual(bottleTiles.count, 2, "분유/유축 = feedingBottle 2타일로 분리")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .formula && $0.label == "분유" },
-                      "분유 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .breastMilk && $0.label == "유축" },
-                      "유축 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingPumping && $0.label == "짜기" }, "짜기(생산) 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBreast && $0.label == "모유" }, "모유 타일")
+    func testLauncherSections_taxonomyAndProminence() {
+        // 재설계: 빈도 2계층(자주/가끔) + 젖먹임·고형식·생산 분리
+        let sections = RecordTile.launcherSections
+        XCTAssertEqual(sections.map(\.title), ["자주 기록", "가끔 기록"], "빈도 2계층 헤더")
+        let frequent = sections.first { $0.prominence == .frequent }!
+        let occasional = sections.first { $0.prominence == .occasional }!
+        // 자주 = 수유(모유·분유·유축)·수면·기저귀3
+        XCTAssertEqual(frequent.tiles.map(\.type),
+                       [.feedingBreast, .feedingBottle, .feedingBottle, .sleep, .diaperWet, .diaperDirty, .diaperBoth],
+                       "자주 기록 = 수유·수면·기저귀")
+        // 가끔 = 식사(이유식·간식)·건강(체온·투약·목욕)·짜기(생산)
+        XCTAssertEqual(occasional.tiles.map(\.type),
+                       [.feedingSolid, .feedingSnack, .temperature, .medication, .bath, .feedingPumping],
+                       "가끔 기록 = 식사·건강·짜기")
+        // 분유/유축 = feedingBottle 2타일 분리 유지
+        let bottle = frequent.tiles.filter { $0.type == .feedingBottle }
+        XCTAssertEqual(bottle.count, 2, "분유/유축 = feedingBottle 2타일")
+        XCTAssertTrue(bottle.contains { $0.contentPreset == .formula && $0.label == "분유" }, "분유 타일")
+        XCTAssertTrue(bottle.contains { $0.contentPreset == .breastMilk && $0.label == "유축" }, "유축 타일")
+        // 고형식·생산이 '자주(젖먹임=수유)'에서 분리됨
+        XCTAssertFalse(frequent.tiles.contains { [.feedingSolid, .feedingSnack, .feedingPumping].contains($0.type) },
+                       "이유식·간식·짜기는 자주(수유)에 없음")
     }
 
     // MARK: - 유축 재고 (P4) — Activity 확장 + Builder + fromActivities
