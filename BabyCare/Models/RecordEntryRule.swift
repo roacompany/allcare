@@ -12,11 +12,13 @@ enum RecordEntryRule {
     /// default: 없이 exhaustive 유지 — 신규 ActivityType이 조용히 누락되지 않도록(swift-conventions).
     static func mode(for type: Activity.ActivityType) -> RecordEntryMode {
         switch type {
-        case .diaperWet, .diaperDirty, .diaperBoth, .bath, .feedingSnack:
-            // 발생 자체가 기록 — 추가 입력 없이 즉시. (상세[대변 색/발진·간식 음식명]은 저장 후 타임라인 편집)
+        case .feedingBreast, .feedingSolid, .feedingSnack,
+             .diaperWet, .diaperDirty, .diaperBoth, .bath:
+            // 입력이 꼭 필요 없는 것 = 원탭 즉시(예전 그리드 속도 복원 — 시트+저장 강요 안 함).
+            // 상세(모유 방향·음식명·대변 색/발진)는 저장 후 타임라인 항목 탭→편집.
             return .instant
-        case .feedingBreast, .feedingBottle, .feedingPumping, .feedingSolid, .sleep, .temperature, .medication:
-            // 방향/양/타이머/음식명/체온/약 등 유의미한 입력 → 통합 시트
+        case .feedingBottle, .feedingPumping, .sleep, .temperature, .medication:
+            // 양(mL)·타이머·값이 없으면 저장이 무의미한 것만 시트.
             return .detail
         case .unknown:
             return .detail   // 방어적(그리드/피커에서 필터돼 실제 도달 불가)

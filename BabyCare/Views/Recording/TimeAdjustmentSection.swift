@@ -159,16 +159,15 @@ struct TimeAdjustmentSection: View {
                         }
                     }
 
-                    // 빠른 시간 버튼
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            quickTimeButton("지금", date: Date())
-                            quickTimeButton("5분 전", date: Date().adding(minutes: -5))
-                            quickTimeButton("15분 전", date: Date().adding(minutes: -15))
-                            quickTimeButton("30분 전", date: Date().adding(minutes: -30))
-                            quickTimeButton("1시간 전", date: Date().adding(hours: -1))
-                            quickTimeButton("2시간 전", date: Date().adding(hours: -2))
+                    // 빠른 시간 버튼 — 종료 시간이 있으면 시작/종료 각각 조정
+                    // (기존 버그: 15분 전 등이 항상 시작시간에만 먹힘)
+                    if showEndTime, vm.manualEndTime != nil {
+                        VStack(alignment: .leading, spacing: 8) {
+                            quickLabeledRow("시작 빠르게", target: .start)
+                            quickLabeledRow("종료 빠르게", target: .end)
                         }
+                    } else {
+                        quickRow(target: .start)
                     }
                 }
                 .padding(.horizontal, 14)
@@ -189,10 +188,44 @@ struct TimeAdjustmentSection: View {
         return "\(dateFormatter.string(from: date)) \(timeFormatter.string(from: date))"
     }
 
-    private func quickTimeButton(_ label: String, date: Date) -> some View {
+    private enum TimeTarget { case start, end }
+
+    private func quickLabeledRow(_ title: String, target: TimeTarget) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            quickRow(target: target)
+        }
+    }
+
+    private func quickRow(target: TimeTarget) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                quickTimeButton("지금", date: Date(), target: target)
+                quickTimeButton("5분 전", date: Date().adding(minutes: -5), target: target)
+                quickTimeButton("15분 전", date: Date().adding(minutes: -15), target: target)
+                quickTimeButton("30분 전", date: Date().adding(minutes: -30), target: target)
+                quickTimeButton("1시간 전", date: Date().adding(hours: -1), target: target)
+                quickTimeButton("2시간 전", date: Date().adding(hours: -2), target: target)
+            }
+        }
+    }
+
+    private func quickTimeButton(_ label: String, date: Date, target: TimeTarget) -> some View {
         Button(label) {
-            activityVM.manualStartTime = date
-            activityVM.isTimeAdjusted = label != "지금"
+            switch target {
+            case .start:
+                activityVM.manualStartTime = date
+                activityVM.isTimeAdjusted = (label != "지금")
+                // 종료가 새 시작보다 앞서면 함께 이동 (역전 방지)
+                if let end = activityVM.manualEndTime, end < date {
+                    activityVM.manualEndTime = min(date, Date())
+                }
+            case .end:
+                activityVM.manualEndTime = min(max(date, activityVM.manualStartTime), Date())
+                activityVM.isTimeAdjusted = true
+            }
         }
         .font(.system(size: 13, weight: .medium))
         .padding(.horizontal, 12)

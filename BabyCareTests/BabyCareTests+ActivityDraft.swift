@@ -192,14 +192,16 @@ final class ActivityDraftBuilderTests: XCTestCase {
     // MARK: - P1: RecordEntryRule (instant vs detail)
 
     func test_recordEntryRule_instantTypes() {
-        let instant: [Activity.ActivityType] = [.diaperWet, .diaperDirty, .diaperBoth, .bath, .feedingSnack]
+        // 입력 불필요 = 원탭 즉시(모유수유·이유식 포함 — 예전 그리드 속도)
+        let instant: [Activity.ActivityType] = [.feedingBreast, .feedingSolid, .feedingSnack, .diaperWet, .diaperDirty, .diaperBoth, .bath]
         for t in instant {
             XCTAssertEqual(RecordEntryRule.mode(for: t), .instant, "\(t) should be instant")
         }
     }
 
     func test_recordEntryRule_detailTypes() {
-        let detail: [Activity.ActivityType] = [.feedingBreast, .feedingBottle, .feedingPumping, .feedingSolid, .sleep, .temperature, .medication]
+        // 양·타이머·값 필요한 것만 시트
+        let detail: [Activity.ActivityType] = [.feedingBottle, .feedingPumping, .sleep, .temperature, .medication]
         for t in detail {
             XCTAssertEqual(RecordEntryRule.mode(for: t), .detail, "\(t) should be detail")
         }

@@ -227,16 +227,7 @@ struct DashboardView: View {
                         Divider()
                             .frame(height: 16)
                             .overlay(.white.opacity(0.5))
-                        Button("수정") {
-                            editingActivity = saved
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-
-                        Divider()
-                            .frame(height: 16)
-                            .overlay(.white.opacity(0.5))
-                        // 되돌리기 — 연속 기록의 안전망(방금 저장분 삭제). 오기록 즉시 취소.
+                        // 되돌리기 — 연속 기록의 안전망(방금 저장분 삭제). 수정은 타임라인 항목 탭으로(토스트 오버플로 방지).
                         Button("되돌리기") {
                             if let currentUserId = authVM.currentUserId {
                                 let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
