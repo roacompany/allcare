@@ -175,6 +175,13 @@ struct UnifiedRecordSheet: View {
             .accessibilityLabel("병수유 내용물")
             .padding(.bottom, 4)
 
+            if vm.selectedFeedingContent == .breastMilk, vm.pumpInventory.totalRemaining > 0 {
+                Label("현재 짜둔 모유 약 \(Int(vm.pumpInventory.totalRemaining))mL (최근 기록 기준)", systemImage: "drop.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.pumpingColor)
+                    .padding(.bottom, 4)
+            }
+
             Label("섭취량 (ml)", systemImage: "drop.fill")
                 .font(.subheadline.bold())
                 .foregroundStyle(.secondary)
@@ -210,6 +217,21 @@ struct UnifiedRecordSheet: View {
                         }
                     }
                 }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                Label("보관 방법", systemImage: "snowflake")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                Picker("보관", selection: Bindable(vm).selectedPumpStorage) {
+                    ForEach(PumpStorage.allCases, id: \.self) { storage in
+                        Text(storage.displayName).tag(storage)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text("유통기한(초안): 실온 약 4시간 · 냉장 약 4일 · 냉동 약 6개월. 의료 감수 전이라 참고용이에요.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Text("‘짜기’는 아기가 먹은 게 아니라 짜낸 양이에요. 실제로 먹인 건 모유·분유·유축(짜둔 모유)으로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
                 .font(.caption)

@@ -33,6 +33,7 @@ enum ActivityDraftBuilder {
             guard let ml = Double(draft.amountText), ml > 0, ml <= 500 else { return .invalidAmount(isPumping: true) }
             a.amount = ml
             a.side = draft.side
+            a.pumpStorage = draft.pumpStorage   // 짜기 배치 보관(유통기한·재고)
         case .feedingSolid:
             a.foodName = draft.foodName.isEmpty ? nil : draft.foodName
             a.foodAmount = draft.foodAmount.isEmpty ? nil : draft.foodAmount

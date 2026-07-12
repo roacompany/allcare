@@ -60,6 +60,7 @@ extension ActivityViewModel {
         d.side = selectedSide
         d.amountText = amount
         d.feedingContent = selectedFeedingContent
+        d.pumpStorage = selectedPumpStorage
         d.foodName = foodName
         d.foodAmount = foodAmount
         d.foodReaction = foodReaction
@@ -206,6 +207,7 @@ extension ActivityViewModel {
     func resetForm() {
         selectedSide = .left
         selectedFeedingContent = .formula
+        selectedPumpStorage = .fridge
         amount = ""
         temperatureInput = ""
         medicationName = ""

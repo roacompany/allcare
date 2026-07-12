@@ -30,6 +30,10 @@ struct Activity: Identifiable, Codable, Hashable {
     var medicationDosage: String?
     /// 활동을 기록한 보호자의 Firebase UID. nil = 과거 기록(소급 없음, 하위호환 optional).
     var createdBy: String?
+    /// 유축(짜기) 배치 보관 방식 — 유통기한 산정 (feedingPumping 전용, 신규 optional). nil = 구 기록/미지정→냉장 가정.
+    var pumpStorage: PumpStorage?
+    /// 유축 배치 폐기 표시 — 재고 계산서 제외 (feedingPumping 전용, 신규 optional).
+    var pumpDiscarded: Bool?
 
     /// 유축한 모유 병수유 — 섭취(.feeding)지만 'formula' 아님. 분유재고·분유량 집계서 제외용.
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }

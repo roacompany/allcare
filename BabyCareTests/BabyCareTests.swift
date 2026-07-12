@@ -360,6 +360,67 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(feeding.contains { $0.type == .feedingBreast && $0.label == "모유" }, "모유 타일")
     }
 
+    // MARK: - 유축 재고 (P4) — Activity 확장 + Builder + fromActivities
+
+    func testActivity_pumpStorage_codableRoundtrip() {
+        var a = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 200)
+        a.pumpStorage = .freezer
+        a.pumpDiscarded = true
+        let data = try! JSONEncoder().encode(a)
+        let decoded = try! JSONDecoder().decode(Activity.self, from: data)
+        XCTAssertEqual(decoded.pumpStorage, .freezer)
+        XCTAssertEqual(decoded.pumpDiscarded, true)
+        let plain = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 100)
+        XCTAssertNil(plain.pumpStorage, "미지정은 nil (하위호환·마이그0)")
+        XCTAssertNil(plain.pumpDiscarded)
+    }
+
+    func testDraftBuilder_pumping_mapsPumpStorage() {
+        var draft = ActivityDraft(babyId: "b1", type: .feedingPumping)
+        draft.amountText = "150"
+        draft.pumpStorage = .fridge
+        guard case .success(let a) = ActivityDraftBuilder.build(draft) else { return XCTFail("build 실패") }
+        XCTAssertEqual(a.pumpStorage, .fridge, "짜기(feedingPumping)는 보관 방식을 저장")
+    }
+
+    func testDraftBuilder_nonPumping_ignoresPumpStorage() {
+        var draft = ActivityDraft(babyId: "b1", type: .feedingBottle)
+        draft.amountText = "120"
+        draft.pumpStorage = .freezer   // 병수유엔 무의미
+        guard case .success(let a) = ActivityDraftBuilder.build(draft) else { return XCTFail("build 실패") }
+        XCTAssertNil(a.pumpStorage, "짜기 외 타입은 pumpStorage 미저장")
+    }
+
+    func testInventory_fromActivities_pumpsMinusBreastMilkFeeds() {
+        let now = Date()
+        var pump = Activity(babyId: "b1", type: .feedingPumping, startTime: now.addingTimeInterval(-3600), amount: 200)
+        pump.pumpStorage = .fridge
+        var feed = Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 50)
+        feed.feedingContent = .breastMilk   // 유축 먹이기(소비)
+        let formula = Activity(babyId: "b1", type: .feedingBottle, startTime: now, amount: 100)   // 분유(소비 아님)
+        let state = PumpedMilkInventory.fromActivities([pump, feed, formula], now: now)
+        XCTAssertEqual(state.totalRemaining, 150, "짜기 200 − 유축먹이기 50 = 150 (분유는 무관)")
+    }
+
+    func testInventory_fromActivities_storageNilDefaultsFridge_discardedExcluded() {
+        let now = Date()
+        let pumpNoStorage = Activity(babyId: "b1", type: .feedingPumping, startTime: now.addingTimeInterval(-3600), amount: 120)   // storage nil
+        var discarded = Activity(babyId: "b1", type: .feedingPumping, startTime: now.addingTimeInterval(-1800), amount: 80)
+        discarded.pumpStorage = .fridge
+        discarded.pumpDiscarded = true
+        let state = PumpedMilkInventory.fromActivities([pumpNoStorage, discarded], now: now)
+        XCTAssertEqual(state.totalRemaining, 120, "storage nil=냉장 가정 포함(120), 폐기 배치(80) 제외")
+    }
+
+    @MainActor
+    func testMakeDraft_pumping_capturesSelectedStorage() {
+        let vm = ActivityViewModel()
+        vm.selectedPumpStorage = .freezer
+        vm.amount = "130"
+        let draft = vm.makeDraft(type: .feedingPumping, babyId: "b1")
+        XCTAssertEqual(draft.pumpStorage, .freezer, "makeDraft가 selectedPumpStorage를 draft에 캡처")
+    }
+
     @MainActor
     func testBottle_breastMilkCountsAsIntake_pumpingDoesNot() {
         let vm = ActivityViewModel()

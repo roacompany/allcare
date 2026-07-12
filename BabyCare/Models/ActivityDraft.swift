@@ -16,6 +16,7 @@ struct ActivityDraft: Equatable {
     var side: Activity.BreastSide?
     var amountText: String = ""          // "" = 미입력; 검증은 Builder
     var feedingContent: Activity.FeedingContent = .formula
+    var pumpStorage: PumpStorage?        // 짜기(feedingPumping) 보관 방식 — Builder가 pumping에만 매핑
     var foodName: String = ""
     var foodAmount: String = ""
     var foodReaction: Activity.FoodReaction?

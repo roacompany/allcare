@@ -104,3 +104,17 @@ enum PumpedMilkInventory {
         return State(totalRemaining: total, batches: batches, soonestExpiry: soonest)
     }
 }
+
+extension PumpedMilkInventory {
+    /// Activity 목록 → 재고 State. feedingPumping(+storage)=배치, feedingBottle+breastMilk=소비.
+    /// storage nil(구 기록)=냉장 가정(spec §2.4). pumpDiscarded=true 배치 제외.
+    static func fromActivities(_ activities: [Activity], now: Date) -> State {
+        let pumps = activities
+            .filter { $0.type == .feedingPumping && $0.pumpDiscarded != true }
+            .map { PumpInput(id: $0.id, amount: $0.amount ?? 0, pumpedAt: $0.startTime, storage: $0.pumpStorage ?? .fridge) }
+        let consumed = activities
+            .filter { $0.isBreastMilkBottle }
+            .reduce(0.0) { $0 + ($1.amount ?? 0) }
+        return compute(pumps: pumps, totalConsumed: consumed, now: now)
+    }
+}
