@@ -17,6 +17,8 @@ struct ContentView: View {
         return 0
     }()
     @State private var reorderProduct: BabyProduct?
+    @State private var showRecording = false
+    @State private var initialRecordingCategory: Activity.ActivityCategory?
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
     @Environment(\.scenePhase) private var scenePhase
@@ -286,8 +288,8 @@ struct ContentView: View {
 
         switch destination {
         case .record, .recordCategory:
-            // 타입-우선 런처는 카테고리 프리셀렉트 없음 — 딥링크는 기록 탭으로.
-            selectedTab = 2
+            initialRecordingCategory = nil
+            showRecording = true
 
         case .quickSave(let quickType):
             guard let currentUserId = authVM.currentUserId,
@@ -386,8 +388,8 @@ struct ContentView: View {
                 }
                 .tag(1)
 
-            // 기록하기 탭 — 시트 팝업 없이 그리드 화면 직접(타입-우선 런처). 탭 → 즉시/타이머/상세.
-            RecordLauncherSheet()
+            // 기록하기 = 중앙 + 버튼 — 탭 선택 시 RecordingView 시트, 이전 탭 유지 (라이브 v2.8.6 폼 복원)
+            Color.clear
                 .tabItem {
                     Label("기록하기", systemImage: "plus.circle.fill")
                 }
@@ -411,11 +413,26 @@ struct ContentView: View {
                 }
                 .tag(4)
         }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == 2 {
+                // + 탭 선택 → RecordingView 시트 열고 이전 탭 복원 (라이브 v2.8.6 폼)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                selectedTab = oldValue
+                initialRecordingCategory = nil
+                showRecording = true
+            }
+        }
+        .sheet(isPresented: $showRecording, onDismiss: {
+            activityVM.resetForm()
+            initialRecordingCategory = nil
+        }) {
+            RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
+        }
         .overlay(alignment: .bottom) {
             VStack(spacing: 6) {
-                FloatingTimerBanner { _ in
-                    // 배너 본문 탭 → 기록 탭(그리드). 정지·저장은 배너 정지 버튼이 처리(모유 등).
-                    selectedTab = 2
+                FloatingTimerBanner { category in
+                    initialRecordingCategory = category
+                    showRecording = true
                 }
                 FloatingMiniPlayer()
             }
