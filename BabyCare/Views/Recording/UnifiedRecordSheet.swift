@@ -233,7 +233,7 @@ struct UnifiedRecordSheet: View {
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("‘짜기’는 아기가 먹은 게 아니라 짜낸 양이에요. 실제로 먹인 건 모유·분유·유축(짜둔 모유)으로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+            Text("‘유축’은 아기가 먹은 게 아니라 짜낸 양이에요. 실제로 먹인 건 모유·분유·모유(병)으로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

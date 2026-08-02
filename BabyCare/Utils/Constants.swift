@@ -4,7 +4,8 @@ enum AppColors {
     // MARK: - Activity Colors (Asset Catalog, 다크 모드 대응)
     static let feedingColor = Color("feedingColor")
     static let sleepColor = Color("sleepColor")
-    static let diaperColor = Color("diaperColor")
+    static let diaperColor = Color("diaperColor")           // 소변 — 앰버
+    static let diaperDirtyColor = Color("diaperDirtyColor") // 대변 — 브라운 (D4 2026-07-12)
     static let solidColor = Color("solidColor")
     static let bathColor = Color("bathColor")
     static let temperatureColor = Color("temperatureColor")

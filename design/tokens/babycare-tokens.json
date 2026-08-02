@@ -35,7 +35,13 @@
       "$value": "#FFD59F",
       "$valueDark": "#FFE0B2",
       "$source": "diaperColor.colorset",
-      "$description": "Diaper activity — peach orange"
+      "$description": "Diaper activity (urine/소변) — peach orange"
+    },
+    "diaperDirty": {
+      "$value": "#B07C4F",
+      "$valueDark": "#C79A6A",
+      "$source": "diaperDirtyColor.colorset",
+      "$description": "Diaper activity (stool/대변) — brown"
     },
     "solid": {
       "$value": "#9FDFBF",

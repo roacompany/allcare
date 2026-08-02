@@ -260,6 +260,21 @@ struct FeedingRecordView: View {
                         }
                     }
                 }
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("보관 방법", systemImage: "snowflake")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    Picker("보관", selection: Bindable(vm).selectedPumpStorage) {
+                        ForEach(PumpStorage.allCases, id: \.self) { storage in
+                            Text(storage.displayName).tag(storage)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("유통기한(초안): 실온 약 4시간 · 냉장 약 4일 · 냉동 약 6개월. 의료 감수 전이라 참고용이에요.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Text("유축 기록은 ‘짜낸 양’이에요. 아기가 실제로 먹은 양은 분유/모유 수유로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

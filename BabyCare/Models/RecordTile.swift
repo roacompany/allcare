@@ -28,10 +28,11 @@ struct RecordTile: Identifiable, Hashable {
         return type.color
     }
 
-    /// 타일 라벨 — feedingBottle은 프리셋별(분유/유축), 그 외는 type.displayName.
+    /// 타일 라벨 — feedingBottle은 프리셋별(분유/모유(병)), 그 외는 type.displayName.
+    /// PO 지시(2026-07-12): '짜기' 금지 — 짜는 행위(feedingPumping)가 '유축'. 먹이는 쪽은 '모유(병)'.
     var label: String {
         guard type == .feedingBottle, let contentPreset else { return type.displayName }
-        return contentPreset == .breastMilk ? "유축" : "분유"
+        return contentPreset == .breastMilk ? "모유(병)" : "분유"
     }
 
     /// 기록 런처 섹션 — 빈도 2계층(자주/가끔). 젖먹임(수유)·고형식(식사)·생산(짜기)을 분리.
@@ -43,8 +44,7 @@ struct RecordTile: Identifiable, Hashable {
             RecordTile(.feedingBottle, content: .breastMilk), // 유축(짜둔 모유 먹이기)
             RecordTile(.sleep),                               // 수면
             RecordTile(.diaperWet),                           // 소변
-            RecordTile(.diaperDirty),                         // 대변
-            RecordTile(.diaperBoth)                           // 소변+대변
+            RecordTile(.diaperDirty)                          // 대변 (D2: 소변+대변 타일 제거 · diaperBoth enum은 옛 기록 표시용 유지)
         ]),
         RecordTileSection(title: "가끔 기록", prominence: .occasional, tiles: [
             RecordTile(.feedingSolid),                        // 이유식

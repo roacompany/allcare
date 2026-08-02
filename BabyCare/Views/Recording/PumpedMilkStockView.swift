@@ -22,7 +22,7 @@ struct PumpedMilkStockView: View {
                     ContentUnavailableView(
                         "짜둔 모유가 없어요",
                         systemImage: "drop",
-                        description: Text("‘짜기’로 기록하면 여기서 재고와 유통기한을 관리할 수 있어요.")
+                        description: Text("‘유축’으로 기록하면 여기서 재고와 유통기한을 관리할 수 있어요.")
                     )
                 } else {
                     List {

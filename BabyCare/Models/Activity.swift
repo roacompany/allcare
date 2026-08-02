@@ -40,7 +40,9 @@ struct Activity: Identifiable, Codable, Hashable {
     /// 진짜 분유(formula) 병수유 — 분유재고 차감·병원리포트 '분유량' 집계 대상(nil=분유).
     var isFormulaBottle: Bool { type == .feedingBottle && feedingContent != .breastMilk }
     /// 타임라인/표시용 라벨 — 유축한 모유 병수유(섭취)는 '유축'으로 구분 (2026-07-12 용어정리).
-    var displayLabel: String { isBreastMilkBottle ? "유축" : type.displayName }
+    /// 화면 라벨 — 짜둔 모유 병수유(섭취)는 '모유(병)'. 짜는 행위(feedingPumping)가 '유축'을 가져간다.
+    /// PO 지시(2026-07-12): '짜기'라는 말은 쓰지 않는다.
+    var displayLabel: String { isBreastMilkBottle ? "모유(병)" : type.displayName }
 
     enum ActivityType: String, Codable, CaseIterable, Identifiable {
         var id: String { rawValue }
@@ -99,7 +101,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "목욕"
             case .temperature: "체온"
             case .medication: "투약"
-            case .feedingPumping: "짜기"
+            case .feedingPumping: "유축"   // PO 지시: '짜기' 금지 — 짜는 행위 = 유축
             case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
@@ -107,11 +109,12 @@ struct Activity: Identifiable, Codable, Hashable {
         var icon: String {
             switch self {
             case .feedingBreast: "figure.and.child.holdinghands"
-            case .feedingBottle: "cup.and.saucer.fill"
+            case .feedingBottle: "waterbottle.fill"          // 병(진단3: 커피잔→병) · 유축과는 색으로 구분
             case .feedingSolid: "fork.knife"
             case .feedingSnack: "carrot.fill"
             case .sleep: "moon.zzz.fill"
-            case .diaperWet, .diaperDirty, .diaperBoth: "humidity.fill"
+            case .diaperWet: "drop.fill"                      // 소변 = 물방울
+            case .diaperDirty, .diaperBoth: "humidity.fill"  // 대변(+소변대변) = 습기 · 색이 주 변별자(SF Symbols 대변 심볼 부재)
             case .bath: "bathtub.fill"
             case .temperature: "thermometer.medium"
             case .medication: "pills.fill"
@@ -125,7 +128,8 @@ struct Activity: Identifiable, Codable, Hashable {
             case .feedingBreast, .feedingBottle: "feedingColor"
             case .feedingSolid, .feedingSnack: "solidColor"
             case .sleep: "sleepColor"
-            case .diaperWet, .diaperDirty, .diaperBoth: "diaperColor"
+            case .diaperWet: "diaperColor"                       // 소변 = 앰버(현행)
+            case .diaperDirty, .diaperBoth: "diaperDirtyColor"   // 대변(+소변대변) = 브라운(신규 · D4)
             case .bath: "bathColor"
             case .temperature: "temperatureColor"
             case .medication: "medicationColor"
@@ -222,7 +226,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .sleep: "수면"
             case .diaper: "기저귀"
             case .health: "건강"
-            case .pumping: "짜기"
+            case .pumping: "유축"
             case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
