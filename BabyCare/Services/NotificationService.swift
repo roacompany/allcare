@@ -10,6 +10,8 @@ final class NotificationService {
     private init() {}
 
     func requestPermission() async -> Bool {
+        // UI_TESTING: 시스템 권한 다이얼로그가 헤드리스 스크린샷을 가리므로 skip.
+        if CommandLine.arguments.contains("UI_TESTING") { return false }
         do {
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
