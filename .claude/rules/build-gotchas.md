@@ -4,6 +4,13 @@ globs: "**/project.yml,**/Package.*"
 
 # Build Gotchas
 
+## `build/DerivedData`는 화석 — 설치할 .app을 find로 집지 말 것 (2026-08-20)
+
+- `make build`는 `-derivedDataPath` 없이 돌아 **기본 DerivedData(~/Library/Developer/Xcode/DerivedData/BabyCare-*)**에 빌드한다.
+- repo 안 `build/DerivedData`·`build/smoke-dd` 등은 **수개월 낡은 화석**일 수 있다(실사례: 4월 산출물을 8월에 설치해 UI_TESTING 백지 — 코드 회귀로 오인, A/B·이분탐색까지 소모).
+- 시뮬레이터 검증용 .app은 **방금 그 게이트가 쓴 DerivedData 경로에서 명시적으로** 가져오거나, 검증 전용 `-derivedDataPath`로 직접 빌드해 그 산출물을 설치할 것.
+- 산출물 신선도 의심 시: 한글 문자열은 `strings`(ASCII 전용)로 못 찾는다 — **python 바이트 검색**으로 새 코드 문자열 포함 여부를 확인.
+
 ## GoogleService-Info.plist 누락으로 인한 즉시 crash (worktree)
 
 - **`.gitignore`에 등재된 plist는 worktree 생성 시 자동 복사 X** → `FirebaseApp.configure()` 호출 시 'com.firebase.core' 예외로 앱 실행 즉시 crash
