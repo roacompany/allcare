@@ -20,7 +20,16 @@ struct UnifiedRecordSheet: View {
     @State private var isSaving = false
     @State private var productCandidates: [BabyProduct] = []
 
-    private var accent: Color { Self.accentColor(for: type) }
+    /// 유축 허브 모드 (A안, 2026-08-20 PO 승인) — [유축(생산) | 먹이기(섭취=모유(병))] 한 공간.
+    private enum PumpHubMode { case pump, feed }
+    @State private var pumpMode: PumpHubMode = .pump
+
+    private var isPumpFeedMode: Bool { type == .feedingPumping && pumpMode == .feed }
+
+    // 액센트 = Activity 단일 소스(emphasisColor). 허브 '먹이기' 모드는 섭취라 수유 계열 색.
+    private var accent: Color {
+        Color(isPumpFeedMode ? Activity.ActivityType.feedingBottle.emphasisColor : type.emphasisColor)
+    }
     private var showEndTime: Bool { type.needsTimer }
 
     private var canSave: Bool {
@@ -37,16 +46,17 @@ struct UnifiedRecordSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    header
+                    // header 제거 — 내비 제목이 이미 '아기 · 타입'(3중 제목 해소, 2026-08-20 재작업)
                     TimeAdjustmentSection(accentColor: accent, showEndTime: showEndTime)
                     typeBody(vm: vm)
                     NoteField(note: $vm.note, accentColor: accent)
                         .padding(.horizontal)
-                    SaveButton(isSaving: isSaving, isEnabled: canSave, color: accent, action: save)
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 12)
                 }
                 .padding(.top, 8)
+            }
+            .safeAreaInset(edge: .bottom) {
+                SaveBar(isSaving: isSaving, isEnabled: canSave, color: accent, action: save)
             }
             .navigationTitle(navTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -86,19 +96,6 @@ struct UnifiedRecordSheet: View {
         babyVM.selectedBaby.map { "\($0.name) · \(tileLabel)" } ?? tileLabel
     }
 
-    private var header: some View {
-        HStack(spacing: 10) {
-            Image(systemName: type.icon)
-                .font(.title2)
-                .foregroundStyle(accent)
-            Text(tileLabel)
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-            Spacer()
-        }
-        .padding(.horizontal)
-    }
-
     // MARK: - Type-specific body
 
     @ViewBuilder
@@ -115,7 +112,15 @@ struct UnifiedRecordSheet: View {
                 bottleAmountSection(vm: vm)
             }
         case .feedingPumping:
-            pumpingSection(vm: vm)
+            // 유축 허브 (A안) — 생산(유축)과 사용(먹이기=모유(병))이 한 공간. 기록 종류는 그대로 둘.
+            VStack(spacing: 16) {
+                pumpModePicker
+                if pumpMode == .pump {
+                    pumpingSection(vm: vm)
+                } else {
+                    pumpFeedSection(vm: vm)
+                }
+            }
         case .feedingSolid:
             SolidFoodSection(accentColor: accent)
                 .padding(.horizontal)
@@ -168,17 +173,19 @@ struct UnifiedRecordSheet: View {
     private func bottleAmountSection(vm: ActivityViewModel) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Picker("내용물", selection: Bindable(vm).selectedFeedingContent) {
-                Text("분유").tag(Activity.FeedingContent.formula)
-                Text("유축").tag(Activity.FeedingContent.breastMilk)
+                // 라벨 = FeedingContent.displayName 단일 소스 — '유축/유축한 모유' 혼용 제거 (2026-08-20 용어 한 벌)
+                ForEach(Activity.FeedingContent.allCases, id: \.self) { content in
+                    Text(content.displayName).tag(content)
+                }
             }
             .pickerStyle(.segmented)
             .accessibilityLabel("병수유 내용물")
             .padding(.bottom, 4)
 
             if vm.selectedFeedingContent == .breastMilk, vm.pumpInventory.totalRemaining > 0 {
-                Label("현재 짜둔 모유 약 \(Int(vm.pumpInventory.totalRemaining))mL (최근 기록 기준)", systemImage: "drop.fill")
+                Label("유축한 모유 약 \(Int(vm.pumpInventory.totalRemaining))mL 남아 있어요 (최근 기록 기준)", systemImage: "drop.fill")
                     .font(.caption)
-                    .foregroundStyle(AppColors.pumpingColor)
+                    .foregroundStyle(AppColors.pumpingEmphasis)
                     .padding(.bottom, 4)
             }
 
@@ -228,14 +235,97 @@ struct UnifiedRecordSheet: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                Text("유통기한(초안): 실온 약 4시간 · 냉장 약 4일 · 냉동 약 6개월. 의료 감수 전이라 참고용이에요.")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // 고른 보관의 유통기한만 한 줄로 — 세 값 나열 문단 제거 (2026-08-20 안내 압축)
+                HStack(spacing: 6) {
+                    Image(systemName: "snowflake")
+                        .font(.caption2)
+                        .foregroundStyle(accent)
+                    Text("\(vm.selectedPumpStorage.displayName) 보관 · 유통기한 \(vm.selectedPumpStorage.expiryText)")
+                        .font(.caption.weight(.semibold))
+                    Text("(초안 · 참고용)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
-            Text("‘유축’은 아기가 먹은 게 아니라 짜낸 양이에요. 실제로 먹인 건 모유·분유·모유(병)으로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            DisclosureGroup {
+                Text("‘유축’은 아기가 먹은 기록이 아니라 유축한 양(생산)이에요. 실제로 먹인 건 모유·분유·모유(병)로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            } label: {
+                Label("왜 유축은 먹인 기록이 아닌가요?", systemImage: "info.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .tint(.secondary)
+        }
+        .padding()
+        .background(accent.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+    }
+
+    // MARK: - 유축 허브 (A안, 2026-08-20)
+
+    private var pumpModePicker: some View {
+        HStack(spacing: 8) {
+            pumpModeButton(.pump, icon: "drop.fill", label: "유축")
+            pumpModeButton(.feed, icon: "waterbottle.fill", label: "먹이기")
+        }
+        .padding(.horizontal)
+    }
+
+    private func pumpModeButton(_ mode: PumpHubMode, icon: String, label: String) -> some View {
+        let isSelected = pumpMode == mode
+        let color = Color(mode == .pump
+            ? Activity.ActivityType.feedingPumping.emphasisColor
+            : Activity.ActivityType.feedingBottle.emphasisColor)
+        return Button {
+            guard pumpMode != mode else { return }
+            withAnimation(.spring(duration: 0.25)) { pumpMode = mode }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .accessibilityHidden(true)
+                Text(label)
+                    .font(.subheadline.weight(.bold))
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(isSelected ? color : Color(.systemGray6))
+            .foregroundStyle(isSelected ? Color.white : Color.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    /// '먹이기' 모드 — 유축한 모유 병수유. 저장은 모유(병)(feedingBottle + breastMilk)로 = 섭취 통계·재고 차감 그대로.
+    private func pumpFeedSection(vm: ActivityViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if vm.pumpInventory.totalRemaining > 0 {
+                Label("유축한 모유 약 \(Int(vm.pumpInventory.totalRemaining))mL 보관 중 · 오래된 것부터 차감돼요",
+                      systemImage: "drop.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.pumpingEmphasis)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                Label("먹인 양 (ml)", systemImage: "drop.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+                amountField(vm: vm)
+                quickFillButtons
+            }
+            if let fed = Int(vm.amount), fed > 0, vm.pumpInventory.totalRemaining > 0 {
+                Text("저장하면 약 \(max(0, Int(vm.pumpInventory.totalRemaining) - fed))mL 남아요")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.pumpingEmphasis)
+            }
+            Text("이 기록은 먹인 것(섭취)으로 저장돼요 — 통계와 병원 리포트에 ‘모유(병)’로 들어가요.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
@@ -379,16 +469,19 @@ struct UnifiedRecordSheet: View {
     private func save() {
         guard let currentUserId = authVM.currentUserId, let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        // 유축 허브 '먹이기' 모드 = 모유(병) 기록 — 저장 타입은 feedingBottle + breastMilk (섭취 통계·재고 차감 그대로).
+        let saveType: Activity.ActivityType = isPumpFeedMode ? .feedingBottle : type
+        if isPumpFeedMode { activityVM.selectedFeedingContent = .breastMilk }
         isSaving = true
         Task {
-            let draft = activityVM.makeDraft(type: type, babyId: baby.id)
+            let draft = activityVM.makeDraft(type: saveType, babyId: baby.id)
             let saved = await activityVM.commit(draft: draft, userId: dataUserId, currentUserId: currentUserId)
             guard let saved, activityVM.errorMessage == nil else { isSaving = false; return }
-            trackSaveSuccess()
+            trackSaveSuccess(saveType: saveType)
             let feedAmount = Int(activityVM.amount)
-            let skipFormula = (type == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
+            let skipFormula = (saveType == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
             if !skipFormula,
-               let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
+               let candidates = await productVM.deductStockForActivity(saveType, userId: currentUserId, recordedAmount: feedAmount) {
                 productCandidates = candidates   // ProductPickerSheet → finishSave
             } else {
                 finishSave(saved)
@@ -404,35 +497,19 @@ struct UnifiedRecordSheet: View {
     }
 
     /// 그리드 경로 애널리틱스 계약 보존(dashboardQuickRecord / pumpingRecorded).
-    private func trackSaveSuccess() {
-        if type == .feedingPumping {
+    /// 허브 '먹이기' 모드는 실제 저장 타입(feedingBottle)으로 발화 — GA4 차원 일관.
+    private func trackSaveSuccess(saveType: Activity.ActivityType) {
+        if saveType == .feedingPumping {
             AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
                 AnalyticsParams.amountBucket: PumpingAnalytics.bucket(Double(activityVM.amount)),
                 AnalyticsParams.side: activityVM.selectedSide.rawValue
             ])
             return
         }
-        var params = [AnalyticsParams.category: type.rawValue]
-        if type == .feedingBottle {
+        var params = [AnalyticsParams.category: saveType.rawValue]
+        if saveType == .feedingBottle {
             params[AnalyticsParams.content] = activityVM.selectedFeedingContent.rawValue
         }
         AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: params)
-    }
-
-    // MARK: - Accent
-
-    static func accentColor(for type: Activity.ActivityType) -> Color {
-        switch type {
-        case .feedingBreast: return .pink
-        case .feedingBottle: return AppColors.indigoColor
-        case .feedingSolid, .feedingSnack: return AppColors.warmOrangeColor
-        case .feedingPumping: return AppColors.pumpingColor
-        case .sleep: return AppColors.indigoColor
-        case .temperature: return AppColors.coralColor
-        case .medication: return AppColors.softPurpleColor
-        case .diaperWet, .diaperDirty, .diaperBoth: return AppColors.sageColor
-        case .bath: return AppColors.skyBlueColor
-        case .unknown: return AppColors.neutralGray
-        }
     }
 }

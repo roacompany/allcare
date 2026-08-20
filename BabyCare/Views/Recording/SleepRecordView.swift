@@ -12,24 +12,15 @@ struct SleepRecordView: View {
 
     @State private var isSaving = false
 
-    private let accentColor = AppColors.indigoColor
+    // 액센트 = Activity 단일 소스(emphasisColor) — 수면은 홈 정본과 같은 페리윙클 계열 (기존 인디고 하드코딩 제거).
+    private let accentColor = Color(Activity.ActivityType.sleep.emphasisColor)
 
     var body: some View {
         @Bindable var vm = activityVM
 
         ScrollView {
             VStack(spacing: 24) {
-
-                // ── Header ─────────────────────────────────────────────────
-                HStack(spacing: 10) {
-                    Image(systemName: Activity.ActivityType.sleep.icon)
-                        .font(.title2)
-                        .foregroundStyle(accentColor)
-                    Text("수면")
-                        .font(.title3.bold())
-                    Spacer()
-                }
-                .padding(.horizontal)
+                // Header 제거 — 내비 제목 + 수면 탭이 이미 같은 정보 (3중 제목 해소, 2026-08-20 재작업)
 
                 // ── Time adjustment ───────────────────────────────────────
                 TimeAdjustmentSection(accentColor: accentColor, showEndTime: true)
@@ -119,13 +110,12 @@ struct SleepRecordView: View {
                 // ── Note ───────────────────────────────────────────────────
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
-
-                // ── Save ───────────────────────────────────────────────────
-                SaveButton(isSaving: isSaving, color: accentColor, action: save)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 12)
             }
             .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            SaveBar(isSaving: isSaving, color: accentColor, action: save)
         }
         .onAppear {
             AnalyticsService.shared.trackScreen(AnalyticsScreens.sleepRecording)

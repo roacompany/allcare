@@ -18,7 +18,8 @@ struct DashboardView: View {
     @State var productCandidates: [BabyProduct] = []
     @State var savedActivityType: Activity.ActivityType?
     @State var lastSavedActivity: Activity?
-    @State var quickInputType: Activity.ActivityType?
+    // 상세 시트 진입은 타일 단위 — 분유/모유(병) 프리셋 구분 (유축 동선 B안, 2026-08-20. 기존 quickInputType 대체)
+    @State var quickInputTile: RecordTile?
     @State var showMoreSection = false
     @State private var showPregnancyNote = false
     @State private var showPumpStock = false
@@ -221,7 +222,8 @@ struct DashboardView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.white)
-                    Text("\(type.displayName) 저장됨")
+                    // displayLabel — 모유(병) 저장이 '분유 저장됨'으로 보이던 표기 통일 (2026-08-20 용어 한 벌)
+                    Text("\(lastSavedActivity?.displayLabel ?? type.displayName) 저장됨")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.white)
 
@@ -242,23 +244,23 @@ struct DashboardView: View {
                         .foregroundStyle(.white)
                     }
 
-                    // B4: 이어서 기록 제안 — 핵심 루프(수유→기저귀→수면) 다음 1개 원탭
-                    if let nextType = NextRecordSuggestionPolicy.suggestion(after: type) {
+                    // B4: 이어서 기록 제안 — 핵심 루프(수유→기저귀→수면) + 유축→모유(병) 문 잇기 (B안 2026-08-20)
+                    if let next = NextRecordSuggestionPolicy.suggestion(after: type) {
                         Divider()
                             .frame(height: 16)
                             .overlay(.white.opacity(0.5))
                         Button {
                             AnalyticsService.shared.trackEvent(
                                 AnalyticsEvents.nextRecordSuggestionTapped,
-                                parameters: [AnalyticsParams.category: nextType.rawValue]
+                                parameters: [AnalyticsParams.category: next.type.rawValue]
                             )
                             savedActivityType = nil
                             lastSavedActivity = nil
-                            Task { await quickSave(type: nextType) }
+                            Task { await quickSave(tile: next) }
                         } label: {
                             HStack(spacing: 3) {
-                                Image(systemName: nextType.icon)
-                                Text("\(nextType.displayName)?")
+                                Image(systemName: next.icon)
+                                Text("\(next.label)?")
                             }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
@@ -276,9 +278,9 @@ struct DashboardView: View {
                 .padding(.top, 8)
             }
         }
-        .sheet(item: $quickInputType) { type in
+        .sheet(item: $quickInputTile) { tile in
             // 통합 기록 시트 — 상세 타입(RecordEntryRule .detail)을 단일 시트로. (QuickInputSheet 대체)
-            UnifiedRecordSheet(type: type, onSaved: { activity in
+            UnifiedRecordSheet(type: tile.type, contentPreset: tile.contentPreset, onSaved: { activity in
                 showSavedFeedback(for: activity.type)
             })
         }

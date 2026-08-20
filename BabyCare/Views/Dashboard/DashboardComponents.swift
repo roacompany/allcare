@@ -30,6 +30,7 @@ struct QuickActionButton: View {
     let label: String
     let icon: String
     let colorName: String
+    let showsBothBadge: Bool
     let action: () async -> Void
 
     @State private var isPressed = false
@@ -38,14 +39,16 @@ struct QuickActionButton: View {
         self.label = type.displayName
         self.icon = type.icon
         self.colorName = type.color
+        self.showsBothBadge = (type == .diaperBoth)
         self.action = action
     }
 
-    /// content 프리셋 타일(분유/유축) 렌더용 — label이 type.displayName과 다를 수 있음.
+    /// content 프리셋 타일(분유/모유(병)) 렌더용 — label이 type.displayName과 다를 수 있음.
     init(tile: RecordTile, action: @escaping () async -> Void) {
         self.label = tile.label
         self.icon = tile.icon
         self.colorName = tile.colorName
+        self.showsBothBadge = (tile.type == .diaperBoth)
         self.action = action
     }
 
@@ -64,9 +67,25 @@ struct QuickActionButton: View {
                         .foregroundStyle(Color(colorName))
                         .accessibilityHidden(true)
                 }
+                .overlay(alignment: .bottomTrailing) {
+                    // 소변+대변 배지 — 대변 타일과 아이콘·색이 같아(SF 한계) 이름 외 변별자 추가 (2026-08-20 재작업)
+                    if showsBothBadge {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.systemBackground))
+                                .frame(width: 18, height: 18)
+                                .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(AppColors.diaperEmphasis)
+                        }
+                        .offset(x: -4, y: -4)
+                        .accessibilityHidden(true)
+                    }
+                }
                 Text(label)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)   // 타일 이름 회색 → 진하게 (2026-08-20 재작업)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -85,7 +104,7 @@ struct QuickActionButton: View {
 
 // MARK: - Pumped Milk Stock Card (유축 재고)
 
-/// 대시보드 유축 재고 카드 — 짜둔 모유 총 잔량 + 유통기한 임박 힌트. 잔량 0이면 미노출.
+/// 대시보드 유축 재고 카드 — 유축한 모유 총 잔량 + 유통기한 임박 힌트. 잔량 0이면 미노출.
 /// 유통기한은 의료 감수 전 초안이라 카피에 '참고용' 면책 동반(safety.md).
 struct PumpedMilkStockCard: View {
     let state: PumpedMilkInventory.State
@@ -98,7 +117,7 @@ struct PumpedMilkStockCard: View {
                     HStack(spacing: 8) {
                         Image(systemName: "drop.fill")
                             .foregroundStyle(AppColors.pumpingColor)
-                        Text("짜둔 모유 약 \(Int(state.totalRemaining))mL")
+                        Text("유축한 모유 약 \(Int(state.totalRemaining))mL")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                         Spacer()
@@ -160,7 +179,8 @@ struct TimelineRow: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(activity.type.displayName)
+                // displayLabel — 모유(병) 기록이 홈 타임라인에서만 '분유'로 보이던 표기 이원화 수리 (2026-08-20)
+                Text(activity.displayLabel)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.primary)
 
@@ -199,7 +219,7 @@ struct TimelineRow: View {
         .padding(.horizontal, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel({
-            var parts = [activity.type.displayName]
+            var parts = [activity.displayLabel]
             if let durationText = activity.durationText { parts.append(durationText) }
             if let amountText = activity.amountText { parts.append(amountText) }
             parts.append(activity.startTime.timeAgo())

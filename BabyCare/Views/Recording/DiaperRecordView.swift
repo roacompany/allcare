@@ -15,42 +15,31 @@ struct DiaperRecordView: View {
     @State private var isSaving = false
     @State private var productCandidates: [BabyProduct] = []
 
-    private let accentColor = AppColors.sageColor
+    // 액센트 = 선택한 타입의 강조색 (소변=앰버 · 대변/소변+대변=브라운) — 홈 정본과 같은 색 언어 (2026-08-20 재작업).
+    private var accentColor: Color { Color(selectedDiaperType.emphasisColor) }
 
-    private let diaperTypes: [(Activity.ActivityType, String, String)] = [
-        (.diaperWet,   "소변",       "drop.fill"),
-        (.diaperDirty, "대변",       "leaf.fill"),
-        (.diaperBoth,  "소변+대변",  "humidity.fill"),
-    ]
+    // 아이콘 = Activity 단일 소스(type.icon) — 잎사귀 등 폼 자체 아이콘 제거, 홈 타일·타임라인과 일치.
+    private let diaperTypes: [Activity.ActivityType] = [.diaperWet, .diaperDirty, .diaperBoth]
 
     var body: some View {
         @Bindable var vm = activityVM
 
         ScrollView {
             VStack(spacing: 24) {
-
-                // ── Header ─────────────────────────────────────────────────
-                HStack(spacing: 10) {
-                    Image(systemName: "humidity.fill")
-                        .font(.title2)
-                        .foregroundStyle(accentColor)
-                    Text("기저귀")
-                        .font(.title3.bold())
-                    Spacer()
-                }
-                .padding(.horizontal)
+                // Header 제거 — 내비 제목 + 기저귀 탭이 이미 같은 정보 (3중 제목 해소, 2026-08-20 재작업)
 
                 // ── Time adjustment ───────────────────────────────────────
                 TimeAdjustmentSection(accentColor: accentColor)
 
                 // ── Type cards ─────────────────────────────────────────────
                 VStack(spacing: 12) {
-                    ForEach(diaperTypes, id: \.0) { (type, label, icon) in
+                    ForEach(diaperTypes, id: \.self) { type in
                         DiaperTypeCard(
-                            label: label,
-                            icon: icon,
+                            label: type.displayName,
+                            icon: type.icon,
                             isSelected: selectedDiaperType == type,
-                            color: cardColor(for: type)
+                            color: cardColor(for: type),
+                            showsBothBadge: type == .diaperBoth
                         ) {
                             withAnimation(.spring(duration: 0.25)) {
                                 selectedDiaperType = type
@@ -70,31 +59,12 @@ struct DiaperRecordView: View {
                 // ── Note ───────────────────────────────────────────────────
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
-
-                // ── Quick save ─────────────────────────────────────────────
-                Button(action: quickSave) {
-                    HStack(spacing: 10) {
-                        if isSaving {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.title3)
-                            Text("저장")
-                                .font(.headline)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(accentColor)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: accentColor.opacity(0.35), radius: 8, y: 4)
-                }
-                .disabled(isSaving)
-                .padding(.horizontal)
-                .padding(.bottom, 16)
+                    .padding(.bottom, 12)
             }
             .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            SaveBar(isSaving: isSaving, color: accentColor, action: quickSave)
         }
         .onAppear {
             AnalyticsService.shared.trackScreen(AnalyticsScreens.diaperRecording)
@@ -145,11 +115,8 @@ struct DiaperRecordView: View {
         }
     }
 
+    // 카드 색 = Activity 단일 소스(emphasisColor) — 소변=앰버, 대변/소변+대변=브라운 (홈 정본과 일치).
     private func cardColor(for type: Activity.ActivityType) -> Color {
-        switch type {
-        case .diaperWet:   AppColors.sageColor
-        case .diaperDirty: AppColors.warmOrangeColor
-        default:           AppColors.softPurpleColor
-        }
+        Color(type.emphasisColor)
     }
 }

@@ -126,8 +126,10 @@ struct ActivityEditSheet: View {
                 if activity.type == .feedingBottle {
                     Section("수유량 (ml)") {
                         Picker("내용물", selection: $editedFeedingContent) {
-                            Text("분유").tag(Activity.FeedingContent.formula)
-                            Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+                            // 라벨 = FeedingContent.displayName 단일 소스 (2026-08-20 용어 한 벌)
+                            ForEach(Activity.FeedingContent.allCases, id: \.self) { content in
+                                Text(content.displayName).tag(content)
+                            }
                         }
                         .pickerStyle(.segmented)
                         .accessibilityLabel("병수유 내용물")

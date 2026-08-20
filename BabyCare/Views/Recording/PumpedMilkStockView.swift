@@ -10,6 +10,9 @@ struct PumpedMilkStockView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
 
+    /// 재고 → 먹이기 문 잇기 (유축 동선 B안, 2026-08-20) — 모유(병) 시트 직행.
+    @State private var showFeedSheet = false
+
     private var state: PumpedMilkInventory.State { activityVM.fullPumpInventory }
     private var batches: [PumpedMilkInventory.Batch] {
         state.batches.filter { $0.remaining > 0 }   // 현재 재고 + 미폐기 만료분(정리 유도)
@@ -20,7 +23,7 @@ struct PumpedMilkStockView: View {
             Group {
                 if batches.isEmpty {
                     ContentUnavailableView(
-                        "짜둔 모유가 없어요",
+                        "유축한 모유가 없어요",
                         systemImage: "drop",
                         description: Text("‘유축’으로 기록하면 여기서 재고와 유통기한을 관리할 수 있어요.")
                     )
@@ -53,6 +56,28 @@ struct PumpedMilkStockView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                // 재고에서 바로 소비 기록 — 유축(생산)과 그 사용(모유(병))을 한 공간에 (2026-08-20 A안 보조 문)
+                if !batches.isEmpty {
+                    Button { showFeedSheet = true } label: {
+                        Label("먹이기 기록 — 모유(병)", systemImage: "waterbottle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(AppColors.feedingEmphasis)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    .padding(.bottom, 6)
+                    .background(.thinMaterial)
+                    .overlay(alignment: .top) { Divider() }
+                }
+            }
+            .sheet(isPresented: $showFeedSheet) {
+                UnifiedRecordSheet(type: .feedingBottle, contentPreset: .breastMilk)
+            }
             .task { await load() }
         }
         .presentationDetents([.large])
@@ -65,7 +90,7 @@ struct PumpedMilkStockView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(Int(batch.remaining))mL · \(batch.storage.displayName)")
                     .font(.subheadline.weight(.medium))
-                Text("짜낸 시각 \(Self.dateText(batch.pumpedAt))")
+                Text("유축 시각 \(Self.dateText(batch.pumpedAt))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

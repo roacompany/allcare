@@ -39,12 +39,9 @@ struct HealthRecordView: View {
             }
         }
 
+        // 액센트 = Activity 단일 소스(emphasisColor) — 폼 자체 색(코랄/소프트퍼플/스카이) 하드코딩 제거 (2026-08-20 재작업).
         var accentColor: Color {
-            switch self {
-            case .temperature: AppColors.coralColor
-            case .medication:  AppColors.softPurpleColor
-            case .bath:        AppColors.skyBlueColor
-            }
+            Color(activityType.emphasisColor)
         }
     }
 
@@ -67,22 +64,19 @@ struct HealthRecordView: View {
                                 selectedHealthType = hType
                             }
                         } label: {
+                            // 색은 '선택된 것'만 — 미선택은 중립 + 타입색 아이콘 (탭바와 동일 규칙, 2026-08-20 재작업)
+                            let isSelected = selectedHealthType == hType
                             VStack(spacing: 4) {
                                 Image(systemName: hType.icon)
                                     .font(.body)
+                                    .foregroundStyle(isSelected ? Color.white : hType.accentColor)
                                 Text(hType.rawValue)
                                     .font(.caption.bold())
+                                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
-                            .background(
-                                selectedHealthType == hType
-                                    ? hType.accentColor
-                                    : hType.accentColor.opacity(0.08)
-                            )
-                            .foregroundStyle(
-                                selectedHealthType == hType ? .white : hType.accentColor
-                            )
+                            .background(isSelected ? hType.accentColor : Color(.systemGray6))
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 0))
 
@@ -122,13 +116,12 @@ struct HealthRecordView: View {
                 // ── Note ───────────────────────────────────────────────────
                 NoteField(note: $vm.note, accentColor: accent)
                     .padding(.horizontal)
-
-                // ── Save ───────────────────────────────────────────────────
-                SaveButton(isSaving: isSaving, color: accent, action: save)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 12)
             }
             .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            SaveBar(isSaving: isSaving, color: accent, action: save)
         }
         .sheet(isPresented: Binding(
             get: { !productCandidates.isEmpty },

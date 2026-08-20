@@ -7,6 +7,8 @@ struct DiaperTypeCard: View {
     let icon: String
     let isSelected: Bool
     let color: Color
+    /// 소변+대변 전용 앰버 물방울 배지 — 대변과 아이콘이 같아(SF 한계) 라벨 외 변별자 추가 (2026-08-20 재작업).
+    var showsBothBadge: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -20,6 +22,21 @@ struct DiaperTypeCard: View {
                         .font(.title3)
                         .foregroundStyle(isSelected ? .white : color)
                         .accessibilityHidden(true)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if showsBothBadge {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.systemBackground))
+                                .frame(width: 20, height: 20)
+                                .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(AppColors.diaperEmphasis)
+                        }
+                        .offset(x: 3, y: 3)
+                        .accessibilityHidden(true)
+                    }
                 }
 
                 Text(label)

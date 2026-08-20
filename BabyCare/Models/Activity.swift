@@ -39,8 +39,7 @@ struct Activity: Identifiable, Codable, Hashable {
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
     /// 진짜 분유(formula) 병수유 — 분유재고 차감·병원리포트 '분유량' 집계 대상(nil=분유).
     var isFormulaBottle: Bool { type == .feedingBottle && feedingContent != .breastMilk }
-    /// 타임라인/표시용 라벨 — 유축한 모유 병수유(섭취)는 '유축'으로 구분 (2026-07-12 용어정리).
-    /// 화면 라벨 — 짜둔 모유 병수유(섭취)는 '모유(병)'. 짜는 행위(feedingPumping)가 '유축'을 가져간다.
+    /// 화면 라벨 — 유축한 모유 병수유(섭취)는 '모유(병)'. 유축(feedingPumping)은 생산.
     /// PO 지시(2026-07-12): '짜기'라는 말은 쓰지 않는다.
     var displayLabel: String { isBreastMilkBottle ? "모유(병)" : type.displayName }
 
@@ -138,6 +137,23 @@ struct Activity: Identifiable, Codable, Hashable {
             }
         }
 
+        /// 강조색 자산 이름 — 선택 상태·저장 버튼 등 흰 글자를 얹는 자리 전용 (기록 UX 재작업 2026-08-20).
+        /// "한 활동 = 한 색": 표면은 `color`(파스텔), 강조는 같은 계열의 진한 톤. 폼별 색 하드코딩 금지 — 여기만 고친다.
+        var emphasisColor: String {
+            switch self {
+            case .feedingBreast, .feedingBottle: "feedingEmphasisColor"
+            case .feedingSolid, .feedingSnack: "solidEmphasisColor"
+            case .sleep: "sleepEmphasisColor"
+            case .diaperWet: "diaperEmphasisColor"
+            case .diaperDirty, .diaperBoth: "diaperDirtyEmphasisColor"
+            case .bath: "bathEmphasisColor"
+            case .temperature: "temperatureEmphasisColor"
+            case .medication: "medicationEmphasisColor"
+            case .feedingPumping: "pumpingEmphasisColor"
+            case .unknown: "neutralGrayColor"
+            }
+        }
+
         var category: ActivityCategory {
             switch self {
             case .feedingBreast, .feedingBottle, .feedingSolid, .feedingSnack:
@@ -193,10 +209,12 @@ struct Activity: Identifiable, Codable, Hashable {
     enum FeedingContent: String, Codable, CaseIterable {
         case formula = "formula"          // 분유 (rawValue = Firestore 영구계약)
         case breastMilk = "breast_milk"   // 유축한 모유
+        /// 병수유 내용물 세그먼트의 단일 라벨 소스 — 짜둔 모유 먹인 "기록"의 이름은 어디서나 '모유(병)'.
+        /// (2026-08-20 용어 한 벌: '유축'/'유축한 모유' 혼용 제거. '유축'은 생산 기록 전용.)
         var displayName: String {
             switch self {
             case .formula: "분유"
-            case .breastMilk: "모유"
+            case .breastMilk: "모유(병)"
             }
         }
     }
@@ -228,6 +246,19 @@ struct Activity: Identifiable, Codable, Hashable {
             case .health: "건강"
             case .pumping: "유축"
             case .unknown: "앱 업데이트가 필요한 기록"
+            }
+        }
+
+        /// 카테고리 강조색 — 기록 폼 탭바의 선택 상태 전용 (타입 강조색과 같은 단일 소스 원칙).
+        /// 기저귀=앰버(자산 diaperColor 계열), 건강=체온 계열(코랄 톤 대표).
+        var emphasisColor: String {
+            switch self {
+            case .feeding: "feedingEmphasisColor"
+            case .sleep: "sleepEmphasisColor"
+            case .diaper: "diaperEmphasisColor"
+            case .health: "temperatureEmphasisColor"
+            case .pumping: "pumpingEmphasisColor"
+            case .unknown: "neutralGrayColor"
             }
         }
     }

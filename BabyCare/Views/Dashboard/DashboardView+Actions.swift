@@ -55,10 +55,19 @@ extension DashboardView {
         )
     }
 
+    /// 타일 단위 진입 — 분유/모유(병) 프리셋 구분 지원 (유축 동선 B안, 2026-08-20).
+    func quickSave(tile: RecordTile) async {
+        if RecordEntryRule.mode(for: tile.type) == .detail {
+            quickInputTile = tile
+            return
+        }
+        await quickSave(type: tile.type)
+    }
+
     func quickSave(type: Activity.ActivityType) async {
         // 상세 입력이 필요한 타입은 통합 기록 시트로 (RecordEntryRule 단일 정책 — 기존 needsQuickInput 대체)
         if RecordEntryRule.mode(for: type) == .detail {
-            quickInputType = type
+            quickInputTile = RecordTile(type)
             return
         }
 

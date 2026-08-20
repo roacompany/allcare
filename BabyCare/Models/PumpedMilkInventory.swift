@@ -23,6 +23,16 @@ enum PumpStorage: String, Codable, CaseIterable, Hashable {
         case .freezer: 6 * 30 * 24 * 3600    // 약 6개월
         }
     }
+
+    /// 유통기한 표시용 한 줄 — `shelfLife`와 같은 초안 값의 사람 말. 감수 후 함께 교체.
+    /// UI는 "선택한 보관"의 것만 보여주고 면책(초안·참고용)을 동반한다 (기록 UX 재작업 2026-08-20).
+    var expiryText: String {
+        switch self {
+        case .room: "약 4시간"
+        case .fridge: "약 4일"
+        case .freezer: "약 6개월"
+        }
+    }
 }
 
 /// 유축 재고 순수 계산 — 짜기(생산) − 유축 먹이기(소비), FIFO 차감 + 유통기한. 부수효과 없음(TDD).

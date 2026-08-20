@@ -22,17 +22,9 @@ struct FeedingRecordView: View {
         return true
     }
 
-    // Accent colour per sub-type
-    private var accentColor: Color {
-        switch type {
-        case .feedingBreast:  .pink
-        case .feedingBottle:  AppColors.indigoColor
-        case .feedingSolid:   AppColors.warmOrangeColor
-        case .feedingSnack:   AppColors.sageColor
-        case .feedingPumping: AppColors.pumpingColor
-        default:              .pink
-        }
-    }
+    // 액센트 = Activity 단일 소스(emphasisColor) — "한 활동 = 한 색".
+    // (기존: 분유=인디고(수면 색)·간식=세이지(기저귀 색) 등 폼 자체 색 → 2026-08-20 재작업으로 제거)
+    private var accentColor: Color { Color(type.emphasisColor) }
 
     var body: some View {
         @Bindable var vm = activityVM
@@ -40,7 +32,7 @@ struct FeedingRecordView: View {
         ScrollView {
 
             VStack(spacing: 20) {
-                typeHeader
+                // typeHeader 제거 — 내비 제목 + 선택된 칩이 이미 같은 정보(3중 제목 해소, 2026-08-20 재작업)
                 TimeAdjustmentSection(
                     accentColor: accentColor,
                     showEndTime: type.needsTimer
@@ -53,12 +45,12 @@ struct FeedingRecordView: View {
 
                 NoteField(note: $vm.note, accentColor: accentColor)
                     .padding(.horizontal)
-
-                SaveButton(isSaving: isSaving, isEnabled: canSave, color: accentColor, action: save)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 12)
             }
             .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            SaveBar(isSaving: isSaving, isEnabled: canSave, color: accentColor, action: save)
         }
         .onAppear {
             AnalyticsService.shared.trackScreen(AnalyticsScreens.feedRecording)
@@ -110,19 +102,6 @@ struct FeedingRecordView: View {
     }
 
     // MARK: - Body Sections
-
-    private var typeHeader: some View {
-        HStack(spacing: 10) {
-            Image(systemName: type.icon)
-                .font(.title2)
-                .foregroundStyle(accentColor)
-            Text(type.displayName)
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-            Spacer()
-        }
-        .padding(.horizontal)
-    }
 
     @ViewBuilder
     private var timerSection: some View {
@@ -184,8 +163,10 @@ struct FeedingRecordView: View {
         if type == .feedingBottle {
             VStack(alignment: .leading, spacing: 10) {
                 Picker("내용물", selection: Bindable(vm).selectedFeedingContent) {
-                    Text("분유").tag(Activity.FeedingContent.formula)
-                    Text("유축한 모유").tag(Activity.FeedingContent.breastMilk)
+                    // 라벨 = FeedingContent.displayName 단일 소스 — '유축/유축한 모유' 혼용 제거 (2026-08-20 용어 한 벌)
+                    ForEach(Activity.FeedingContent.allCases, id: \.self) { content in
+                        Text(content.displayName).tag(content)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityLabel("병수유 내용물")
@@ -270,15 +251,30 @@ struct FeedingRecordView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    Text("유통기한(초안): 실온 약 4시간 · 냉장 약 4일 · 냉동 약 6개월. 의료 감수 전이라 참고용이에요.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // 고른 보관의 유통기한만 한 줄로 — 세 값 나열 문단 제거 (2026-08-20 안내 압축)
+                    HStack(spacing: 6) {
+                        Image(systemName: "snowflake")
+                            .font(.caption2)
+                            .foregroundStyle(accentColor)
+                        Text("\(vm.selectedPumpStorage.displayName) 보관 · 유통기한 \(vm.selectedPumpStorage.expiryText)")
+                            .font(.caption.weight(.semibold))
+                        Text("(초안 · 참고용)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
-                Text("유축 기록은 ‘짜낸 양’이에요. 아기가 실제로 먹은 양은 분유/모유 수유로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                DisclosureGroup {
+                    Text("‘유축’은 아기가 먹은 기록이 아니라 유축한 양(생산)이에요. 실제로 먹인 건 모유·분유·모유(병)로 따로 기록해 주세요. 그래야 섭취량 통계와 병원 리포트가 정확해요.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                } label: {
+                    Label("왜 유축은 먹인 기록이 아닌가요?", systemImage: "info.circle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .tint(.secondary)
             }
             .padding()
             .background(accentColor.opacity(0.06))
