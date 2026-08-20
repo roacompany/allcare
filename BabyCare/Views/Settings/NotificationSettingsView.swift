@@ -137,7 +137,7 @@ struct NotificationSettingsView: View {
                             .font(.body)
                             .foregroundStyle(AppColors.pumpingColor)
                             .frame(width: 24)
-                        Text("짜둔 모유 유통기한 알림")
+                        Text("유축한 모유 유통기한 알림")
                     }
                 }
                 .onChange(of: pumpExpiryAlertEnabled) { _, val in
@@ -147,7 +147,7 @@ struct NotificationSettingsView: View {
             } header: {
                 Text("유축 재고")
             } footer: {
-                Text("짜둔 모유의 유통기한이 다가오면 알려드려요. 유통기한은 의료 감수 전 초안이라 참고용이에요.")
+                Text("유축한 모유의 유통기한이 다가오면 알려드려요. 유통기한은 의료 감수 전 초안이라 참고용이에요.")
             }
 
             // 접종 알림

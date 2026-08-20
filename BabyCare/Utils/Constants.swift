@@ -4,13 +4,27 @@ enum AppColors {
     // MARK: - Activity Colors (Asset Catalog, 다크 모드 대응)
     static let feedingColor = Color("feedingColor")
     static let sleepColor = Color("sleepColor")
-    static let diaperColor = Color("diaperColor")
+    static let diaperColor = Color("diaperColor")           // 소변 — 앰버
+    static let diaperDirtyColor = Color("diaperDirtyColor") // 대변 — 브라운 (D4 2026-07-12)
     static let solidColor = Color("solidColor")
     static let bathColor = Color("bathColor")
     static let temperatureColor = Color("temperatureColor")
     static let medicationColor = Color("medicationColor")
     static let pumpingColor = Color("pumpingColor")        // 유축 — 보라/자두 (mint/teal palette collision 회피, spec §8)
     static let neutralGray = Color("neutralGrayColor")     // .unknown(forward-compat 센티넬) 중립 회색
+
+    // MARK: - Activity Emphasis Colors (기록 UX 재작업 2026-08-20 — 선택 상태·저장 버튼 등 흰 글자용 진한 톤)
+    // 파스텔 자산과 1:1 같은 계열. 매핑의 단일 소스는 Activity.ActivityType/Category.emphasisColor —
+    // 뷰에서는 Color(type.emphasisColor)를 쓰고, 이 statics는 타입 문맥이 없는 자리(배지 등) 전용.
+    static let feedingEmphasis = Color("feedingEmphasisColor")
+    static let solidEmphasis = Color("solidEmphasisColor")
+    static let sleepEmphasis = Color("sleepEmphasisColor")
+    static let diaperEmphasis = Color("diaperEmphasisColor")
+    static let diaperDirtyEmphasis = Color("diaperDirtyEmphasisColor")
+    static let bathEmphasis = Color("bathEmphasisColor")
+    static let temperatureEmphasis = Color("temperatureEmphasisColor")
+    static let medicationEmphasis = Color("medicationEmphasisColor")
+    static let pumpingEmphasis = Color("pumpingEmphasisColor")
 
     // MARK: - Semantic Colors (Asset Catalog, 다크 모드 대응)
     static let background = Color("backgroundColor")

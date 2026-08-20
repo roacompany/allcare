@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import BabyCare
 
 final class BabyCareTests: XCTestCase {
@@ -256,9 +257,11 @@ final class BabyCareTests: XCTestCase {
         XCTAssertTrue(header.contains("유축량(ml)"), "헤더에 유축량(ml) 컬럼이 있어야 한다")
         XCTAssertTrue(header.contains("양(ml)"), "섭취 양(ml) 컬럼은 유지")
 
-        // pumping 행의 유형 컬럼 = '짜기'(생산 액션 라벨). 헤더 유축량(ml)과 무관하게 데이터 행만 탐색.
-        let pumpRow = lines.dropFirst().first { $0.contains("짜기") }
-        XCTAssertNotNil(pumpRow, "짜기(생산) row가 있어야 한다")
+        // pumping 행의 유형 컬럼 = 생산 액션 라벨. 라벨 문구가 바뀌어도 안 깨지게 모델을 단일 소스로 쓴다.
+        // (헤더 '유축량(ml)'과 겹치지 않도록 데이터 행만 탐색)
+        let pumpLabel = Activity.ActivityType.feedingPumping.displayName
+        let pumpRow = lines.dropFirst().first { $0.contains(pumpLabel) }
+        XCTAssertNotNil(pumpRow, "생산(유축) row가 있어야 한다")
         let cols = pumpRow!.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
         let intakeIdx = header.firstIndex(of: "양(ml)")!
         let pumpIdx = header.firstIndex(of: "유축량(ml)")!
@@ -283,8 +286,9 @@ final class BabyCareTests: XCTestCase {
     // MARK: - 병수유 내용물 (분유/모유) — 2026-06-09
 
     func testFeedingContent_displayNameAndRawValue() {
+        // displayName = 세그먼트 단일 라벨 소스 — breastMilk는 '모유(병)' (2026-08-20 용어 한 벌, PO 승인)
         XCTAssertEqual(Activity.FeedingContent.formula.displayName, "분유")
-        XCTAssertEqual(Activity.FeedingContent.breastMilk.displayName, "모유")
+        XCTAssertEqual(Activity.FeedingContent.breastMilk.displayName, "모유(병)")
         XCTAssertEqual(Activity.FeedingContent.formula.rawValue, "formula")
         XCTAssertEqual(Activity.FeedingContent.breastMilk.rawValue, "breast_milk")
     }
@@ -312,32 +316,69 @@ final class BabyCareTests: XCTestCase {
     func testActivity_displayLabel_contentAware() {
         var breast = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
         breast.feedingContent = .breastMilk
-        XCTAssertEqual(breast.displayLabel, "유축", "유축한 모유 병수유(섭취) = '유축' 타일 라벨")
+        XCTAssertEqual(breast.displayLabel, "모유(병)", "짜둔 모유 병수유(섭취) = '모유(병)' — '유축'은 생산이 가져감")
         let formula = Activity(babyId: "b1", type: .feedingBottle, startTime: Date(), amount: 100)
         XCTAssertEqual(formula.displayLabel, "분유")
         let pump = Activity(babyId: "b1", type: .feedingPumping, startTime: Date(), amount: 200)
-        XCTAssertEqual(pump.displayLabel, "짜기", "feedingPumping(생산) = '짜기' 라벨")
+        XCTAssertEqual(pump.displayLabel, "유축", "feedingPumping(생산) = '유축' 라벨")
     }
 
-    /// 수유 용어 정리 (2026-07-12 PO 확정) — 액션 라벨 짧게: 모유수유→모유, 유축(생산)→짜기.
-    /// 수량 명사(유축량)는 유지. 콘텐츠 인지 라벨은 testActivity_displayLabel_contentAware 참조.
-    func testDisplayName_shortenedActionLabels() {
+    /// 수유 용어 (2026-08-02 기준) — PO 지시: **'짜기'라는 말은 쓰지 않는다.**
+    /// 짜는 행위(feedingPumping) = '유축' 유지. 짜둔 모유를 먹이는 건 '모유(병)'.
+    /// 적용 유지: 모유수유→모유(PO 승인분). 수량 명사(유축량)도 유지.
+    func testDisplayName_pumpingIsYuchukNotSqueeze() {
         XCTAssertEqual(Activity.ActivityType.feedingBreast.displayName, "모유",
                        "모유수유→모유 (PO: 타일 라벨 짧게)")
-        XCTAssertEqual(Activity.ActivityType.feedingPumping.displayName, "짜기",
-                       "유축→짜기 (생산 행위. '유축'은 먹이기 타일이 가져감)")
-        XCTAssertEqual(Activity.ActivityCategory.pumping.displayName, "짜기",
-                       "생산 카테고리 라벨도 '짜기'로 일관")
+        XCTAssertEqual(Activity.ActivityType.feedingPumping.displayName, "유축",
+                       "PO 지시: '짜기' 금지 — 짜는 행위는 '유축'")
+        XCTAssertEqual(Activity.ActivityCategory.pumping.displayName, "유축",
+                       "생산 카테고리 라벨도 '유축'으로 일관")
+    }
+
+    // MARK: - 활동 강조색 (기록 UX 재작업 2026-08-20 — "한 활동 = 한 색")
+
+    /// 결함 회귀 방지: 분유 폼이 인디고(수면 색)였던 색 이원화 — 강조색은 단일 소스에서만 나온다.
+    func testEmphasisColor_singleSourceMapping() {
+        XCTAssertEqual(Activity.ActivityType.feedingBottle.emphasisColor,
+                       Activity.ActivityType.feedingBreast.emphasisColor,
+                       "분유는 수유 계열 — 인디고 재발 방지")
+        XCTAssertNotEqual(Activity.ActivityType.feedingBottle.emphasisColor,
+                          Activity.ActivityType.sleep.emphasisColor,
+                          "분유와 수면이 같은 색이던 결함의 회귀 방지")
+        XCTAssertEqual(Activity.ActivityType.diaperWet.emphasisColor, "diaperEmphasisColor")
+        XCTAssertEqual(Activity.ActivityType.diaperDirty.emphasisColor, "diaperDirtyEmphasisColor")
+        XCTAssertEqual(Activity.ActivityCategory.diaper.emphasisColor, "diaperEmphasisColor")
+        XCTAssertEqual(Activity.ActivityCategory.pumping.emphasisColor, "pumpingEmphasisColor")
+    }
+
+    /// 강조색 자산 실존 게이트 — 이름만 선언되고 colorset이 빠지는 조용한 결함 차단.
+    func testEmphasisColor_assetExistsForEveryTypeAndCategory() {
+        let bundle = Bundle(for: ActivityViewModel.self)
+        for type in Activity.ActivityType.allCases {
+            XCTAssertNotNil(UIColor(named: type.emphasisColor, in: bundle, compatibleWith: nil),
+                            "강조색 자산 누락: \(type.rawValue) → \(type.emphasisColor)")
+        }
+        for category in Activity.ActivityCategory.allCases {
+            XCTAssertNotNil(UIColor(named: category.emphasisColor, in: bundle, compatibleWith: nil),
+                            "강조색 자산 누락: \(category.rawValue) → \(category.emphasisColor)")
+        }
+    }
+
+    /// 유축 폼 안내 압축 — 고른 보관의 유통기한만 한 줄로 (의료 감수 전 초안, 면책은 UI가 동반).
+    func testPumpStorage_expiryText() {
+        XCTAssertEqual(PumpStorage.room.expiryText, "약 4시간")
+        XCTAssertEqual(PumpStorage.fridge.expiryText, "약 4일")
+        XCTAssertEqual(PumpStorage.freezer.expiryText, "약 6개월")
     }
 
     // MARK: - RecordTile (분유/유축 타일 분리) — 2026-07-12 P2b
 
     func testRecordTile_label_contentAware() {
-        XCTAssertEqual(RecordTile(.feedingBottle, content: .breastMilk).label, "유축",
-                       "유축 = feedingBottle + breastMilk 프리셋")
+        XCTAssertEqual(RecordTile(.feedingBottle, content: .breastMilk).label, "모유(병)",
+                       "짜둔 모유 먹이기 = feedingBottle + breastMilk 프리셋")
         XCTAssertEqual(RecordTile(.feedingBottle, content: .formula).label, "분유")
         XCTAssertEqual(RecordTile(.feedingBottle).label, "분유", "content nil = 분유(하위호환)")
-        XCTAssertEqual(RecordTile(.feedingPumping).label, "짜기", "짜기 = 생산")
+        XCTAssertEqual(RecordTile(.feedingPumping).label, "유축", "유축 = 생산('짜기' 금지)")
         XCTAssertEqual(RecordTile(.feedingBreast).label, "모유")
         XCTAssertEqual(RecordTile(.feedingSolid).label, "이유식")
     }
@@ -348,16 +389,67 @@ final class BabyCareTests: XCTestCase {
                           RecordTile(.feedingBottle, content: .breastMilk).id)
     }
 
-    func testLauncherSections_feedingSplitsBottle() {
-        let feeding = RecordTile.launcherSections.first { $0.title == "수유" }!.tiles
-        let bottleTiles = feeding.filter { $0.type == .feedingBottle }
-        XCTAssertEqual(bottleTiles.count, 2, "분유/유축 = feedingBottle 2타일로 분리")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .formula && $0.label == "분유" },
-                      "분유 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBottle && $0.contentPreset == .breastMilk && $0.label == "유축" },
-                      "유축 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingPumping && $0.label == "짜기" }, "짜기(생산) 타일")
-        XCTAssertTrue(feeding.contains { $0.type == .feedingBreast && $0.label == "모유" }, "모유 타일")
+    // MARK: - 색/아이콘 변별 (P1-2 · D3/D4, 2026-07-12): 분유 병 · 기저귀 소변/대변
+
+    func testActivityType_bottleIcon_isBottleNotCup() {
+        // 진단3: 분유=커피잔(cup.and.saucer) → 병(waterbottle)으로. 전 화면 공통(타임라인·대시보드·통계).
+        XCTAssertEqual(Activity.ActivityType.feedingBottle.icon, "waterbottle.fill",
+                       "분유 = 병 아이콘 (커피잔 아님)")
+    }
+
+    func testActivityType_diaperVariants_iconColorDistinct() {
+        // 진단3·4: 소변/대변이 같은 아이콘·색이던 것 → 소변=물방울/앰버, 대변=습기/브라운.
+        XCTAssertEqual(Activity.ActivityType.diaperWet.icon, "drop.fill", "소변 = 물방울")
+        XCTAssertEqual(Activity.ActivityType.diaperWet.color, "diaperColor", "소변 = 앰버(현행)")
+        XCTAssertEqual(Activity.ActivityType.diaperDirty.icon, "humidity.fill", "대변 = 습기")
+        XCTAssertEqual(Activity.ActivityType.diaperDirty.color, "diaperDirtyColor", "대변 = 브라운(신규)")
+        XCTAssertNotEqual(Activity.ActivityType.diaperWet.icon, Activity.ActivityType.diaperDirty.icon,
+                          "소변·대변 아이콘 변별")
+        XCTAssertNotEqual(Activity.ActivityType.diaperWet.color, Activity.ActivityType.diaperDirty.color,
+                          "소변·대변 색 변별")
+    }
+
+    func testActivityType_diaperBoth_rendersAsStool() {
+        // diaperBoth(옛 기록)은 대변 스타일로 표시 — 타일은 제거됐어도 타임라인 등에서 렌더.
+        XCTAssertEqual(Activity.ActivityType.diaperBoth.icon, "humidity.fill", "소변+대변 = 대변 아이콘")
+        XCTAssertEqual(Activity.ActivityType.diaperBoth.color, "diaperDirtyColor", "소변+대변 = 대변 색(브라운)")
+    }
+
+    func testRecordTile_bottleTiles_iconColorDistinct() {
+        // 분유·유축 둘 다 병 아이콘, 색으로 구분(분유 핑크 / 유축 라일락).
+        let formula = RecordTile(.feedingBottle, content: .formula)
+        let breast = RecordTile(.feedingBottle, content: .breastMilk)
+        XCTAssertEqual(formula.icon, "waterbottle.fill")
+        XCTAssertEqual(breast.icon, "waterbottle.fill")
+        XCTAssertEqual(formula.colorName, "feedingColor", "분유 = 핑크")
+        XCTAssertEqual(breast.colorName, "pumpingColor", "유축 = 라일락")
+        XCTAssertNotEqual(formula.colorName, breast.colorName, "색으로 분유/유축 구분")
+    }
+
+    func testLauncherSections_taxonomyAndProminence() {
+        // 재설계: 빈도 2계층(자주/가끔) + 젖먹임·고형식·생산 분리
+        let sections = RecordTile.launcherSections
+        XCTAssertEqual(sections.map(\.title), ["자주 기록", "가끔 기록"], "빈도 2계층 헤더")
+        let frequent = sections.first { $0.prominence == .frequent }!
+        let occasional = sections.first { $0.prominence == .occasional }!
+        // 자주 = 수유(모유·분유·유축)·수면·기저귀(소변·대변 2타일) — D2(2026-07-12): diaperBoth 타일 제거
+        XCTAssertEqual(frequent.tiles.map(\.type),
+                       [.feedingBreast, .feedingBottle, .feedingBottle, .sleep, .diaperWet, .diaperDirty],
+                       "자주 기록 = 수유·수면·기저귀(소변·대변)")
+        XCTAssertFalse(frequent.tiles.contains { $0.type == .diaperBoth },
+                       "diaperBoth 타일 제거(enum은 옛 기록 표시용 유지) — D2 소변/대변 2타일")
+        // 가끔 = 식사(이유식·간식)·건강(체온·투약·목욕)·짜기(생산)
+        XCTAssertEqual(occasional.tiles.map(\.type),
+                       [.feedingSolid, .feedingSnack, .temperature, .medication, .bath, .feedingPumping],
+                       "가끔 기록 = 식사·건강·짜기")
+        // 분유/유축 = feedingBottle 2타일 분리 유지
+        let bottle = frequent.tiles.filter { $0.type == .feedingBottle }
+        XCTAssertEqual(bottle.count, 2, "분유/유축 = feedingBottle 2타일")
+        XCTAssertTrue(bottle.contains { $0.contentPreset == .formula && $0.label == "분유" }, "분유 타일")
+        XCTAssertTrue(bottle.contains { $0.contentPreset == .breastMilk && $0.label == "모유(병)" }, "모유(병) 타일")
+        // 고형식·생산이 '자주(젖먹임=수유)'에서 분리됨
+        XCTAssertFalse(frequent.tiles.contains { [.feedingSolid, .feedingSnack, .feedingPumping].contains($0.type) },
+                       "이유식·간식·유축(생산)은 자주(수유)에 없음")
     }
 
     // MARK: - 유축 재고 (P4) — Activity 확장 + Builder + fromActivities
@@ -439,6 +531,19 @@ final class BabyCareTests: XCTestCase {
         if let fridge { XCTAssertGreaterThan(fridge, now) }
         let old = PumpExpiryNotification.fireDate(pumpedAt: now.addingTimeInterval(-10 * 24 * 3600), storage: .fridge, now: now)
         XCTAssertNil(old, "발화 시각이 과거면 예약 안 함")
+    }
+
+    // MARK: - 기록 진입 모드 (모유=타이머 fix, 2026-07-12)
+
+    func testRecordEntryRule_breastFeedingIsTimer() {
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingBreast), .timer,
+                       "모유수유는 시간이 핵심 → 원탭 타이머 시작(즉시저장 아님)")
+        // 회귀 가드: 나머지 모드는 그대로
+        XCTAssertEqual(RecordEntryRule.mode(for: .diaperWet), .instant)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingSnack), .instant)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingBottle), .detail)
+        XCTAssertEqual(RecordEntryRule.mode(for: .feedingPumping), .detail, "짜기는 양 입력 시트")
+        XCTAssertEqual(RecordEntryRule.mode(for: .sleep), .detail)
     }
 
     @MainActor
@@ -2991,11 +3096,18 @@ final class BabyCareTests: XCTestCase {
     // MARK: - NextRecordSuggestionPolicy (B4 — 이어서 기록 제안)
 
     func testNextRecordSuggestion_coreLoopCycle() {
-        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBreast), .diaperWet)
-        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBottle), .diaperWet)
-        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperWet), .sleep)
-        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperBoth), .sleep)
-        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .sleep), .feedingBreast)
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBreast), RecordTile(.diaperWet))
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingBottle), RecordTile(.diaperWet))
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperWet), RecordTile(.sleep))
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .diaperBoth), RecordTile(.sleep))
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .sleep), RecordTile(.feedingBreast))
+    }
+
+    /// 유축 동선 B안 (2026-08-20 PO 승인): 유축(생산) 직후엔 기저귀가 아니라
+    /// '모유(병)'(유축한 모유 먹이기)을 잇는다 — 생산→섭취 문 잇기.
+    func testNextRecordSuggestion_pumpingLinksToBottledBreastMilk() {
+        XCTAssertEqual(NextRecordSuggestionPolicy.suggestion(after: .feedingPumping),
+                       RecordTile(.feedingBottle, content: .breastMilk))
     }
 
     func testNextRecordSuggestion_nonCyclicTypesSuppressed() {

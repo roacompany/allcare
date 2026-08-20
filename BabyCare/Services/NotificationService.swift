@@ -10,6 +10,8 @@ final class NotificationService {
     private init() {}
 
     func requestPermission() async -> Bool {
+        // UI_TESTING: 시스템 권한 다이얼로그가 헤드리스 스크린샷을 가리므로 skip.
+        if CommandLine.arguments.contains("UI_TESTING") { return false }
         do {
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
@@ -403,8 +405,8 @@ final class NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
 
         let content = UNMutableNotificationContent()
-        content.title = "짜둔 모유 유통기한이 다가와요"
-        content.body = "짜둔 모유를 확인해 주세요. 유통기한은 참고용이니 색·냄새도 함께 살펴봐 주세요."
+        content.title = "유축한 모유 유통기한이 다가와요"
+        content.body = "유축한 모유를 확인해 주세요. 유통기한은 참고용이니 색·냄새도 함께 살펴봐 주세요."
         content.sound = .default
         content.categoryIdentifier = "PUMP_EXPIRY"
         content.userInfo = ["type": "pump_expiry"]

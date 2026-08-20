@@ -32,8 +32,9 @@ struct FloatingTimerBanner: View {
                 Spacer()
 
                 Button {
-                    _ = activityVM.stopTimer()
                     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                    // 타이머 정지 + 시간과 함께 저장(모유 등 시간-기록). 컨텍스트 없으면 정지만(기존).
+                    Task { await activityVM.stopAndSaveActiveTimer() }
                 } label: {
                     Image(systemName: "stop.fill")
                         .font(.system(size: 14))

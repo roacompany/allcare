@@ -96,7 +96,8 @@ struct CalendarView: View {
                 activityVM.resetForm()
                 Task { await loadDateData() }
             }) {
-                RecordLauncherSheet()
+                // ＋탭과 같은 기록 폼(라이브 v2.8.6) — 캘린더만 다른 UI를 여는 불일치 제거.
+                RecordingView(isPresented: $showRecording, initialCategory: nil)
             }
         }
     }

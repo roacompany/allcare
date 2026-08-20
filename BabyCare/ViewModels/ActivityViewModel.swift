@@ -318,6 +318,29 @@ final class ActivityViewModel: OptimisticReplaceable {
         return duration
     }
 
+    /// 타이머-기반 기록(모유)의 저장 컨텍스트 — 타일 탭 시점(authVM/babyVM 접근 가능)에 캐시.
+    /// 배너 정지 시 이 컨텍스트로 저장(배너는 activityVM만 접근 가능해서 필요).
+    private var timerSaveContext: (userId: String, currentUserId: String, babyId: String)?
+
+    /// 모유 등 시간-기록 타입: 타일 탭 → 타이머 즉시 시작 + 저장 컨텍스트 캐시.
+    /// 정지·저장은 '수유 중' 배너가 stopAndSaveActiveTimer로 처리.
+    func startTimedRecord(type: Activity.ActivityType, userId: String, currentUserId: String, babyId: String) {
+        timerSaveContext = (userId: userId, currentUserId: currentUserId, babyId: babyId)
+        startTimer(type: type)
+    }
+
+    /// 실행 중 타이머 정지 + 저장(makeDraft가 duration 캡처). 시간이 함께 기록된다.
+    /// 컨텍스트 없으면(시트에서 시작된 타이머) 저장 없이 정지 — 기존 동작 보존(시트가 저장 담당).
+    func stopAndSaveActiveTimer() async {
+        guard let type = activeTimerType, let ctx = timerSaveContext else {
+            _ = stopTimer()
+            return
+        }
+        let draft = makeDraft(type: type, babyId: ctx.babyId)   // 타이머 running → stopTimer 호출·duration 캡처
+        _ = await commit(draft: draft, userId: ctx.userId, currentUserId: ctx.currentUserId)
+        timerSaveContext = nil
+    }
+
     /// 앱 시작 시 강제 종료 전에 진행 중이던 타이머 복구
     func resumeTimerIfNeeded() {
         guard let resumed = timerManager.resumeTimerIfNeeded() else { return }

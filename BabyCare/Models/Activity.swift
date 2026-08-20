@@ -39,8 +39,9 @@ struct Activity: Identifiable, Codable, Hashable {
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
     /// 진짜 분유(formula) 병수유 — 분유재고 차감·병원리포트 '분유량' 집계 대상(nil=분유).
     var isFormulaBottle: Bool { type == .feedingBottle && feedingContent != .breastMilk }
-    /// 타임라인/표시용 라벨 — 유축한 모유 병수유(섭취)는 '유축'으로 구분 (2026-07-12 용어정리).
-    var displayLabel: String { isBreastMilkBottle ? "유축" : type.displayName }
+    /// 화면 라벨 — 유축한 모유 병수유(섭취)는 '모유(병)'. 유축(feedingPumping)은 생산.
+    /// PO 지시(2026-07-12): '짜기'라는 말은 쓰지 않는다.
+    var displayLabel: String { isBreastMilkBottle ? "모유(병)" : type.displayName }
 
     enum ActivityType: String, Codable, CaseIterable, Identifiable {
         var id: String { rawValue }
@@ -99,7 +100,7 @@ struct Activity: Identifiable, Codable, Hashable {
             case .bath: "목욕"
             case .temperature: "체온"
             case .medication: "투약"
-            case .feedingPumping: "짜기"
+            case .feedingPumping: "유축"   // PO 지시: '짜기' 금지 — 짜는 행위 = 유축
             case .unknown: "앱 업데이트가 필요한 기록"
             }
         }
@@ -107,11 +108,12 @@ struct Activity: Identifiable, Codable, Hashable {
         var icon: String {
             switch self {
             case .feedingBreast: "figure.and.child.holdinghands"
-            case .feedingBottle: "cup.and.saucer.fill"
+            case .feedingBottle: "waterbottle.fill"          // 병(진단3: 커피잔→병) · 유축과는 색으로 구분
             case .feedingSolid: "fork.knife"
             case .feedingSnack: "carrot.fill"
             case .sleep: "moon.zzz.fill"
-            case .diaperWet, .diaperDirty, .diaperBoth: "humidity.fill"
+            case .diaperWet: "drop.fill"                      // 소변 = 물방울
+            case .diaperDirty, .diaperBoth: "humidity.fill"  // 대변(+소변대변) = 습기 · 색이 주 변별자(SF Symbols 대변 심볼 부재)
             case .bath: "bathtub.fill"
             case .temperature: "thermometer.medium"
             case .medication: "pills.fill"
@@ -125,11 +127,29 @@ struct Activity: Identifiable, Codable, Hashable {
             case .feedingBreast, .feedingBottle: "feedingColor"
             case .feedingSolid, .feedingSnack: "solidColor"
             case .sleep: "sleepColor"
-            case .diaperWet, .diaperDirty, .diaperBoth: "diaperColor"
+            case .diaperWet: "diaperColor"                       // 소변 = 앰버(현행)
+            case .diaperDirty, .diaperBoth: "diaperDirtyColor"   // 대변(+소변대변) = 브라운(신규 · D4)
             case .bath: "bathColor"
             case .temperature: "temperatureColor"
             case .medication: "medicationColor"
             case .feedingPumping: "pumpingColor"
+            case .unknown: "neutralGrayColor"
+            }
+        }
+
+        /// 강조색 자산 이름 — 선택 상태·저장 버튼 등 흰 글자를 얹는 자리 전용 (기록 UX 재작업 2026-08-20).
+        /// "한 활동 = 한 색": 표면은 `color`(파스텔), 강조는 같은 계열의 진한 톤. 폼별 색 하드코딩 금지 — 여기만 고친다.
+        var emphasisColor: String {
+            switch self {
+            case .feedingBreast, .feedingBottle: "feedingEmphasisColor"
+            case .feedingSolid, .feedingSnack: "solidEmphasisColor"
+            case .sleep: "sleepEmphasisColor"
+            case .diaperWet: "diaperEmphasisColor"
+            case .diaperDirty, .diaperBoth: "diaperDirtyEmphasisColor"
+            case .bath: "bathEmphasisColor"
+            case .temperature: "temperatureEmphasisColor"
+            case .medication: "medicationEmphasisColor"
+            case .feedingPumping: "pumpingEmphasisColor"
             case .unknown: "neutralGrayColor"
             }
         }
@@ -189,10 +209,12 @@ struct Activity: Identifiable, Codable, Hashable {
     enum FeedingContent: String, Codable, CaseIterable {
         case formula = "formula"          // 분유 (rawValue = Firestore 영구계약)
         case breastMilk = "breast_milk"   // 유축한 모유
+        /// 병수유 내용물 세그먼트의 단일 라벨 소스 — 짜둔 모유 먹인 "기록"의 이름은 어디서나 '모유(병)'.
+        /// (2026-08-20 용어 한 벌: '유축'/'유축한 모유' 혼용 제거. '유축'은 생산 기록 전용.)
         var displayName: String {
             switch self {
             case .formula: "분유"
-            case .breastMilk: "모유"
+            case .breastMilk: "모유(병)"
             }
         }
     }
@@ -222,8 +244,21 @@ struct Activity: Identifiable, Codable, Hashable {
             case .sleep: "수면"
             case .diaper: "기저귀"
             case .health: "건강"
-            case .pumping: "짜기"
+            case .pumping: "유축"
             case .unknown: "앱 업데이트가 필요한 기록"
+            }
+        }
+
+        /// 카테고리 강조색 — 기록 폼 탭바의 선택 상태 전용 (타입 강조색과 같은 단일 소스 원칙).
+        /// 기저귀=앰버(자산 diaperColor 계열), 건강=체온 계열(코랄 톤 대표).
+        var emphasisColor: String {
+            switch self {
+            case .feeding: "feedingEmphasisColor"
+            case .sleep: "sleepEmphasisColor"
+            case .diaper: "diaperEmphasisColor"
+            case .health: "temperatureEmphasisColor"
+            case .pumping: "pumpingEmphasisColor"
+            case .unknown: "neutralGrayColor"
             }
         }
     }

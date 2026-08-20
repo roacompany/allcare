@@ -9,12 +9,15 @@ extension DashboardView {
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
 
-        // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task
-        Task {
-            do {
-                _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
-            } catch {
-                logSilent("알림 권한 요청 실패", error: error, logger: AppLogger.push)
+        // 알림 권한 요청 — 데이터 로딩을 차단하지 않도록 별도 Task.
+        // UI_TESTING: 시스템 권한 다이얼로그가 헤드리스 스크린샷을 가리므로 skip (ContentView 마이그레이션 skip과 동일 패턴).
+        if !CommandLine.arguments.contains("UI_TESTING") {
+            Task {
+                do {
+                    _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+                } catch {
+                    logSilent("알림 권한 요청 실패", error: error, logger: AppLogger.push)
+                }
             }
         }
 
@@ -52,16 +55,31 @@ extension DashboardView {
         )
     }
 
+    /// 타일 단위 진입 — 분유/모유(병) 프리셋 구분 지원 (유축 동선 B안, 2026-08-20).
+    func quickSave(tile: RecordTile) async {
+        if RecordEntryRule.mode(for: tile.type) == .detail {
+            quickInputTile = tile
+            return
+        }
+        await quickSave(type: tile.type)
+    }
+
     func quickSave(type: Activity.ActivityType) async {
         // 상세 입력이 필요한 타입은 통합 기록 시트로 (RecordEntryRule 단일 정책 — 기존 needsQuickInput 대체)
         if RecordEntryRule.mode(for: type) == .detail {
-            quickInputType = type
+            quickInputTile = RecordTile(type)
             return
         }
 
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+        if RecordEntryRule.mode(for: type) == .timer {
+            // 모유: 타이머 즉시 시작 → '수유 중' 배너, 정지 시 시간과 함께 저장
+            activityVM.startTimedRecord(type: type, userId: dataUserId, currentUserId: currentUserId, babyId: baby.id)
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.dashboardQuickRecord, parameters: [AnalyticsParams.category: type.rawValue])
+            return
+        }
         await activityVM.quickSave(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
         if activityVM.errorMessage == nil {
             // 저장 성공 후 발화. category = 영어 rawValue (한글 displayName 금지 — GA4 차원 파편화)
