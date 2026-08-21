@@ -2,9 +2,9 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.8] - Unreleased (TestFlight 빌드 104 — App Store 미제출)
+## [2.8.8] - 2026-08-21 (App Store 출시 — 빌드 104)
 
-> **TestFlight 빌드 104(2026-08-20) = 빌드 103 + 기록 UX 원복·재작업(#74)**. 빌드 99=#30~#73, 100~103=재설계·유축 재고, 104=#74. 빌드 93/94는 `tf/pregnancy-v3-test`(임신 v3 flag-on QA 전용), 95~97은 쿠팡식 실험 워크트리가 소비. 2.8.8 제출 시 미출시 2.8.7 내용도 함께 출시된다. 임신 v3는 컴파일 flag-off 휴면(사용자 노출 0).
+> **TestFlight 빌드 104(2026-08-20) = 빌드 103 + 기록 UX 원복·재작업(#74)**. 빌드 99=#30~#73, 100~103=재설계·유축 재고, 104=#74. 빌드 93/94는 `tf/pregnancy-v3-test`(임신 v3 flag-on QA 전용), 95~97은 쿠팡식 실험 워크트리가 소비. **2026-08-20 제출 → 2026-08-21 READY_FOR_SALE(AFTER_APPROVAL 자동 출시)**. 미출시였던 2.8.7 내용도 함께 출시됐다. 이 train 은 닫혔으므로 다음 fix 는 2.8.9 bump 필수. 임신 v3는 컴파일 flag-off 휴면(사용자 노출 0).
 
 ### Added/Changed — 기록 UX 원복 + 재작업 (#74, 빌드 104, 2026-08-20)
 
@@ -62,9 +62,9 @@ All notable changes to BabyCare are documented here.
 - GA4 태깅 위생 일괄(#30): PrivacyInfo stale 광고 선언 제거 · `category` 영어 rawValue 통일 · orphan 이벤트 발화 연결 · 병수유 content 태깅 · screen_view 11/11 + 자동 보고 OFF
 - CI `actions/checkout` v5 + arch_test `--update-baseline` (#45) · Sentry 임신정보 redact 심화 — exceptions/extra/breadcrumb.data 커버 (#46) · InsightService 606→110줄 분할 (#47)
 
-## [2.8.7] - 2026-06-10 (TestFlight 빌드 89 — 미출시)
+## [2.8.7] - 2026-06-10 (TestFlight 빌드 89 — 단독 릴리스 없음, 2.8.8 에 포함돼 2026-08-21 출시)
 
-> 앱 평가 팝업 + v2.8.6 이후 누적된 미출시 수정(#24~#28)을 묶은 빌드. TestFlight 업로드 완료(VALID), App Store 심사 미제출.
+> 앱 평가 팝업 + v2.8.6 이후 누적된 미출시 수정(#24~#28)을 묶은 빌드. TestFlight 업로드 완료(VALID). **2.8.7 단독으로는 심사 제출한 적이 없고, 이 내용은 v2.8.8(빌드 104)에 포함돼 2026-08-21 함께 출시됐다.**
 
 ### Added — 앱 평가(App Store 리뷰) 팝업 (#29)
 

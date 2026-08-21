@@ -74,7 +74,7 @@
 + (전략·코드무관) **의사·변호사 감수** = PO 병행 섭외 — zero-base가 짚은 진짜 출시 관문(v1·v2를 죽인 H-items). 코드 품질과 무관.
 
 ## 11. 현행 (v2 비활성)
-v2 = **main에서 `pregnancyModeEnabled=false`**(v2.8.8/빌드91, PR #31 `9755e19`). App Store 미제출(별도 PO 결정). 라이브 P0 차단됨, 데이터 보존. v3 완료 시 새 구현으로 재활성.
+v2 = **main에서 `pregnancyModeEnabled=false`**(PR #31 `9755e19`). ⚠️ 2026-08-21 갱신: **v2.8.8(빌드 104)은 App Store 출시 완료** — 즉 임신 코드는 라이브 앱에 들어 있으나 **컴파일 flag-off 라 사용자 노출은 0**이다(「미제출이라 안전」이 아니라 「flag-off 라 안전」). 라이브 P0 차단 유지, 데이터 보존. v3 완료 시 새 구현으로 재활성 — rollout 은 RC 재배선 + 의료감수 후.
 
 ## 패키지 / 열람
 `FEATURES.md` · `IA.md` · `SCREENS.md` · `site.html`(모바일: https://docs.roafinance.me/babycare-pregnancy-v3.html?k=911015) · `context/{zerobase-review·ia-research·feature-inventory·issues(v2 stale)}`.
