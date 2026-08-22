@@ -54,6 +54,25 @@ final class AnalyticsService: AnalyticsTracking {
         Analytics.logEvent(name, parameters: params.isEmpty ? nil : params)
     }
 
+    // MARK: - 기록 출처 (record_saved)
+
+    /// 기록 저장 telemetry 파라미터 — **기록 자신이** 말한다.
+    /// 진입점(앱/시리)이 각자 적으면 두 경로가 조용히 어긋난다 → activity.source 단일 소스.
+    ///
+    /// nil = **보내지 않는다**:
+    /// - 출처 미상(v2.8.9 이하 기록) — 모르는 것을 app 으로 세면 채택률이 거짓이 된다
+    /// - `.unknown` forward-compat 센티넬 — 영속 금지와 같은 원칙으로 밖에도 안 내보낸다
+    nonisolated static func recordSavedParameters(for activity: Activity) -> [String: String]? {
+        guard let source = activity.source, activity.type != .unknown else { return nil }
+        return ["record_type": activity.type.rawValue, "source": source.rawValue]
+    }
+
+    /// 앱·시리 양쪽 저장 꼬리에서 호출.
+    func logRecordSaved(_ activity: Activity) {
+        guard let parameters = Self.recordSavedParameters(for: activity) else { return }
+        trackEvent(AnalyticsEvents.recordSaved, parameters: parameters)
+    }
+
     func setUserProperty(_ value: String?, forName name: String) {
         guard isEnabled, !isPreview else { return }
         Analytics.setUserProperty(value, forName: name)

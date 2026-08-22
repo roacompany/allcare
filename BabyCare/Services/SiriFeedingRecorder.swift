@@ -20,6 +20,9 @@ enum SiriFeedingRecorder {
             AppLogger.firestore.error("시리 기록 인코딩 실패 — activity \(plan.activity.id) 큐잉 누락")
             return
         }
+        // 큐 적재 = 이 앱의 저장 성공 계약(앱 경로 persist 와 동일) → 같은 이벤트를 낸다.
+        AnalyticsService.shared.logRecordSaved(plan.activity)   // 출처=siri
+
         // 인증이 살아 있을 때만 즉시 전송 시도. 아니면 앱이 다음에 뜰 때/연결 복구 때 나간다.
         guard Auth.auth().currentUser != nil else { return }
         await OfflineQueue.shared.flush()

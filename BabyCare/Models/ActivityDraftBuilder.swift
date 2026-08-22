@@ -7,6 +7,7 @@ enum ActivityDraftBuilder {
         guard draft.type != .unknown else { return .failure(.unknownType) }
 
         var a = Activity(babyId: draft.babyId, type: draft.type)
+        a.source = draft.source          // 어디서 만든 기록인지 — 앱/시리 채택률의 유일한 근거
         a.startTime = draft.startTime
         if let end = draft.endTime { a.endTime = end }
         if let dur = draft.duration { a.duration = dur }

@@ -41,6 +41,7 @@ struct SiriFeedingRequest: Sendable {
 
     func draft(babyId: String, at date: Date) -> ActivityDraft {
         var draft = ActivityDraft(babyId: babyId, type: kind.activityType, startTime: date)
+        draft.source = .siri             // 진입점이 스스로 선언한다 — 호출부가 적지 않는다
         draft.feedingContent = kind.feedingContent
         if let amountMl { draft.amountText = String(amountMl) }
         return draft

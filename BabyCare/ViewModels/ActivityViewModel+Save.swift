@@ -105,11 +105,14 @@ extension ActivityViewModel {
                 NotificationService.shared.scheduleTemperatureTrendAlert(babyName: currentBabyName)
             }
             await evaluateBadgesIfNeeded(type: activity.type, babyId: activity.babyId, currentUserId: currentUserId, at: activity.startTime)
+            AnalyticsService.shared.logRecordSaved(activity)   // 출처=app (activity.source 가 말한다)
             return true
         } catch {
             enqueueOfflineActivity(activity, userId: userId, babyId: activity.babyId)
             deriveLatestActivities()
             InfoToastCenter.shared.offlineSaved()
+            // 큐잉 = 이 앱의 저장 성공 계약과 동일 → 같은 이벤트를 낸다(오프라인 사용자가 통계에서 사라지지 않게).
+            AnalyticsService.shared.logRecordSaved(activity)
             return true   // 큐잉됨 = 사용자 관점 성공
         }
     }
