@@ -115,6 +115,10 @@ struct ContentView: View {
                 await FirestoreService.shared.updateLastAccessedAt(userId: userId)
             }
         }
+        .onChange(of: babyVM.selectedBaby?.id) { _, _ in
+            // 시리는 앱 화면 없이 도는 별도 진입점 — 어디에 기록할지를 App Group 에 남긴다.
+            babyVM.publishSiriContext(currentUserId: authVM.currentUserId)
+        }
         .onChange(of: pregnancyVM.pendingOrphan) { _, orphan in
             // DP-4: pending 1개 orphan 감지 시 모달 표시.
             // babyVM.hasInitialLoad guard: 로딩 경쟁 방지.
