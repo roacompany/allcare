@@ -2,6 +2,21 @@
 
 All notable changes to BabyCare are documented here.
 
+## [2.8.9] - Unreleased (TestFlight 빌드 105)
+
+> **빌드 105 = 시리 수유 기록 기기 QA 빌드.** PR #75 머지 **전**, 브랜치 `feat/siri-feeding-record` 에서 올렸다. 시뮬레이터에서 시리가 제대로 동작하지 않아 코드·CI 로는 확인할 수 없는 구간(**앱 미실행 상태의 백그라운드 실행 · 인증 복원**)을 실기기에서 재기 위함. 2.8.8 train 이 닫혀 2.8.9 로 올렸다. App Store 제출은 PO 결정.
+
+### Added — 시리로 수유 기록 (#75, 빌드 105, 2026-08-22)
+
+- **설정 0단계 시리 명령 3종**(iOS 16+ App Shortcuts): 「베이비케어에 모유 수유 기록」/「분유 기록」/「모유 병수유 기록」. 앱을 띄우지 않는다(`openAppWhenRun = false`) — 밤중 수유는 두 손이 다 차 있다. 단축어 앱에도 자동 노출돼 자기 말로 바꿔 쓰는 길이 함께 열린다
+- **판정은 순수 함수 3종**: `SiriRecordContext`(어디에) · `SiriFeedingRequest`(무엇을) · `SiriFeedingPlanner`(경로·문구·거절). 저장 규칙은 `ActivityDraftBuilder` 재사용 — 시리가 폼과 다른 규칙을 갖지 않게(판정은 하나). **데이터 모델 변경 0**
+- **App Group 다리**: `SiriRecordContextStore` 가 소유자 경로·아기를 남기고 `BabyViewModel.publishSiriContext` 가 아기 선택마다 갱신. 시리는 앱 화면 없이 도는 별도 진입점이라 ViewModel 을 못 본다
+- 병수유는 양이 필수(1~500ml)라 시리가 되묻는다 — 조용히 실패시키지 않는다
+- Security: 로그아웃 잔존 차단(`dataUserId` 는 `currentUserId` 가 nil 이어도 공유 아기의 소유자 uid 를 돌려준다 → `publishSiriContext` 가 먼저 막고 `resetUserScopedState` 가 스냅샷 삭제) · 공백 uid 거절(`users//babies/…` 방지)
+- Fixed(예방): 인증이 없을 때는 큐 flush 를 시도하지 않는다 — `OfflineQueue` 는 5회 실패 시 항목을 버려서, 백그라운드 실행 중 flush 하면 시리를 몇 번 쓰는 것만으로 먼저 쌓인 기록이 재시도를 소진한다
+- 단위 테스트 25개 신규(전부 RED 확인 후 구현) · `make verify` ALL CHECKS PASSED(695 tests / 실패 0) · CI Verify PASS
+- ⚠️ 아기가 여럿이면 **앱에서 고른 아기**에만 기록된다(시리로 아기 고르기는 범위 밖) · 위젯 '마지막 수유'는 앱을 다음에 열 때 갱신된다
+
 ## [2.8.8] - 2026-08-21 (App Store 출시 — 빌드 104)
 
 > **TestFlight 빌드 104(2026-08-20) = 빌드 103 + 기록 UX 원복·재작업(#74)**. 빌드 99=#30~#73, 100~103=재설계·유축 재고, 104=#74. 빌드 93/94는 `tf/pregnancy-v3-test`(임신 v3 flag-on QA 전용), 95~97은 쿠팡식 실험 워크트리가 소비. **2026-08-20 제출 → 2026-08-21 READY_FOR_SALE(AFTER_APPROVAL 자동 출시)**. 미출시였던 2.8.7 내용도 함께 출시됐다. 이 train 은 닫혔으므로 다음 fix 는 2.8.9 bump 필수. 임신 v3는 컴파일 flag-off 휴면(사용자 노출 0).

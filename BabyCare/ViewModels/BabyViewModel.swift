@@ -39,6 +39,22 @@ final class BabyViewModel {
         return dataUserId(currentUserId: currentUserId) ?? currentUserId
     }
 
+    /// 시리(App Intents)가 읽을 "어디에 기록할지" 스냅샷을 갱신한다.
+    ///
+    /// 🔒 로그인 안 됐거나 아기를 안 골랐으면 **지운다**. 남겨두면 시리가 로그아웃 뒤에도
+    ///    이전 경로에 계속 쓴다 — 공유 아기면 `dataUserId` 가 `currentUserId` 없이도
+    ///    소유자 uid 를 돌려주므로 여기서 막지 않으면 새지 않는 것처럼 보이면서 샌다.
+    func publishSiriContext(currentUserId: String?) {
+        guard let currentUserId, let baby = selectedBaby else {
+            return SiriRecordContextStore.clear()
+        }
+        SiriRecordContextStore.update(
+            ownerUserId: dataUserId(currentUserId: currentUserId),
+            babyId: baby.id,
+            babyName: baby.name
+        )
+    }
+
     // MARK: - Account Switch Reset
 
     /// 로그아웃/계정 전환 시 사용자 데이터 초기화 (계정 간 잔존 방지).

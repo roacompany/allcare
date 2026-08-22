@@ -3251,6 +3251,264 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(insight(.vaccination).analyticsKey, "vaccination")
     }
 
+
+    // MARK: - Siri 수유 기록 — 컨텍스트 해석 (owner-path 격리)
+
+    /// 시리는 앱 UI 없이 별도 진입점으로 기록한다 → 소유자 경로(dataUserId)와 아기를
+    /// App Group 스냅샷에서 읽는다. 값이 온전할 때만 기록 가능해야 한다.
+    func testSiriRecordContext_readyWhenOwnerAndBabyPresent() {
+        let ctx = SiriRecordContext.resolve(ownerUserId: "owner-1", babyId: "baby-1", babyName: "서준")
+        XCTAssertEqual(ctx, .ready(ownerUserId: "owner-1", babyId: "baby-1", babyName: "서준"))
+    }
+
+    func testSiriRecordContext_notReadyWhenNoAccount() {
+        let ctx = SiriRecordContext.resolve(ownerUserId: nil, babyId: "baby-1", babyName: "서준")
+        XCTAssertEqual(ctx, .notReady(.noAccount))
+    }
+
+    func testSiriRecordContext_notReadyWhenNoBaby() {
+        let ctx = SiriRecordContext.resolve(ownerUserId: "owner-1", babyId: nil, babyName: nil)
+        XCTAssertEqual(ctx, .notReady(.noBaby))
+    }
+
+    /// 🔒 공백 uid 가 통과하면 "users//babies/..." 로 써서 남의 경로/깨진 경로가 된다.
+    /// #49 에서 owner-path 미변환 5종을 고친 그 결함군과 같은 자리.
+    func testSiriRecordContext_notReadyWhenOwnerIsBlank() {
+        XCTAssertEqual(SiriRecordContext.resolve(ownerUserId: "   ", babyId: "baby-1", babyName: "서준"),
+                       .notReady(.noAccount))
+        XCTAssertEqual(SiriRecordContext.resolve(ownerUserId: "owner-1", babyId: "  ", babyName: "서준"),
+                       .notReady(.noBaby))
+    }
+
+    /// 아기 이름이 비어도 기록은 되어야 한다(응답 문구만 일반명사로 떨어진다).
+    func testSiriRecordContext_readyEvenWhenBabyNameMissing() {
+        let ctx = SiriRecordContext.resolve(ownerUserId: "owner-1", babyId: "baby-1", babyName: nil)
+        XCTAssertEqual(ctx, .ready(ownerUserId: "owner-1", babyId: "baby-1", babyName: nil))
+    }
+
+    // MARK: - Siri 수유 기록 — 요청 → 기존 저장 판정(ActivityDraftBuilder) 재사용
+
+    func testSiriFeeding_breastNeedsNoAmount() {
+        let draft = SiriFeedingRequest(kind: .breast, amountMl: nil).draft(babyId: "baby-1", at: Date())
+        XCTAssertEqual(draft.type, .feedingBreast)
+        guard case .success(let activity) = ActivityDraftBuilder.build(draft) else {
+            return XCTFail("모유 수유는 양 없이도 기록되어야 한다")
+        }
+        XCTAssertEqual(activity.type, .feedingBreast)
+    }
+
+    func testSiriFeeding_bottleFormulaCarriesAmount() {
+        let draft = SiriFeedingRequest(kind: .bottleFormula, amountMl: 120).draft(babyId: "baby-1", at: Date())
+        XCTAssertEqual(draft.type, .feedingBottle)
+        XCTAssertEqual(draft.amountText, "120")
+        XCTAssertEqual(draft.feedingContent, .formula)
+        guard case .success(let activity) = ActivityDraftBuilder.build(draft) else {
+            return XCTFail("양이 있는 분유는 기록되어야 한다")
+        }
+        XCTAssertEqual(activity.amount, 120)
+        XCTAssertTrue(activity.isFormulaBottle)
+    }
+
+    /// 용어 한 벌(2026-08-20): 유축한 모유를 먹인 기록의 이름은 '모유(병)'.
+    func testSiriFeeding_bottleBreastMilkIsLabeledMoyuBottle() {
+        let draft = SiriFeedingRequest(kind: .bottleBreastMilk, amountMl: 100).draft(babyId: "baby-1", at: Date())
+        XCTAssertEqual(draft.feedingContent, .breastMilk)
+        guard case .success(let activity) = ActivityDraftBuilder.build(draft) else {
+            return XCTFail("유축한 모유 병수유는 기록되어야 한다")
+        }
+        XCTAssertTrue(activity.isBreastMilkBottle)
+        XCTAssertEqual(activity.displayLabel, "모유(병)")
+    }
+
+    /// 병수유는 양이 필수다 → 시리가 양을 되물어야 한다는 근거.
+    func testSiriFeeding_bottleWithoutAmountIsRejected() {
+        let draft = SiriFeedingRequest(kind: .bottleFormula, amountMl: nil).draft(babyId: "baby-1", at: Date())
+        guard case .failure(let err) = ActivityDraftBuilder.build(draft) else {
+            return XCTFail("양 없는 병수유는 거절되어야 한다")
+        }
+        XCTAssertEqual(err, .invalidAmount(isPumping: false))
+    }
+
+    func testSiriFeeding_requiresAmountFlagMatchesBuilder() {
+        XCTAssertFalse(SiriFeedingRequest.Kind.breast.requiresAmount)
+        XCTAssertTrue(SiriFeedingRequest.Kind.bottleFormula.requiresAmount)
+        XCTAssertTrue(SiriFeedingRequest.Kind.bottleBreastMilk.requiresAmount)
+    }
+
+    // MARK: - Siri 수유 기록 — App Group 다리 (계정 전환 격리)
+
+    /// 앱이 남긴 스냅샷을 시리(별도 프로세스)가 읽는다.
+    func testSiriContextStore_roundTrip() {
+        SiriRecordContextStore.clear()
+        SiriRecordContextStore.update(ownerUserId: "owner-9", babyId: "baby-9", babyName: "하윤")
+        XCTAssertEqual(SiriRecordContextStore.current(),
+                       .ready(ownerUserId: "owner-9", babyId: "baby-9", babyName: "하윤"))
+        SiriRecordContextStore.clear()
+    }
+
+    /// 🔒 로그아웃/계정 전환에서 안 지워지면 시리가 **이전 계정 경로**에 계속 쓴다.
+    /// #39(계정 전환 잔존)와 같은 결함군 — 큐를 비우는 것만으로는 못 막는다.
+    func testSiriContextStore_clearedOnLogout() {
+        SiriRecordContextStore.update(ownerUserId: "owner-9", babyId: "baby-9", babyName: "하윤")
+        SiriRecordContextStore.clear()
+        XCTAssertEqual(SiriRecordContextStore.current(), .notReady(.noAccount))
+    }
+
+    /// 아기를 안 고른 계정 — 로그인은 됐지만 기록 대상이 없다.
+    func testSiriContextStore_notReadyWhenBabyMissing() {
+        SiriRecordContextStore.clear()
+        SiriRecordContextStore.update(ownerUserId: "owner-9", babyId: nil, babyName: nil)
+        XCTAssertEqual(SiriRecordContextStore.current(), .notReady(.noBaby))
+        SiriRecordContextStore.clear()
+    }
+
+
+    // MARK: - Siri 수유 기록 — 컨텍스트 발행 (owner-path · 로그아웃)
+
+    /// 🔒 가족 공유 아기면 시리도 **소유자 경로**로 써야 한다.
+    /// 내 uid 로 쓰면 파트너가 남긴 기록과 갈라진다(#49 owner-path 5종과 같은 자리).
+    @MainActor
+    func testPublishSiriContext_usesOwnerPathForSharedBaby() {
+        SiriRecordContextStore.clear()
+        var shared = Baby(name: "하윤", birthDate: Date(), gender: .female)
+        shared.ownerUserId = "owner-partner"
+        let vm = BabyViewModel()
+        vm.selectedBaby = shared
+
+        vm.publishSiriContext(currentUserId: "me")
+
+        XCTAssertEqual(SiriRecordContextStore.current(),
+                       .ready(ownerUserId: "owner-partner", babyId: shared.id, babyName: "하윤"))
+        SiriRecordContextStore.clear()
+    }
+
+    @MainActor
+    func testPublishSiriContext_usesOwnUidForOwnBaby() {
+        SiriRecordContextStore.clear()
+        let vm = BabyViewModel()
+        vm.selectedBaby = Baby(name: "서준", birthDate: Date(), gender: .male)
+
+        vm.publishSiriContext(currentUserId: "me")
+
+        guard case .ready(let owner, _, let name) = SiriRecordContextStore.current() else {
+            return XCTFail("내 아기는 내 uid 경로로 기록되어야 한다")
+        }
+        XCTAssertEqual(owner, "me")
+        XCTAssertEqual(name, "서준")
+        SiriRecordContextStore.clear()
+    }
+
+    /// 🔒 로그아웃 상태에서 **공유 아기의 소유자 uid 가 남으면** 시리가 로그아웃 뒤에도 그 경로에 쓴다.
+    /// dataUserId 는 currentUserId 가 nil 이어도 ownerUserId 를 돌려주므로 여기서 막아야 한다.
+    @MainActor
+    func testPublishSiriContext_sharedBabyDoesNotSurviveSignOut() {
+        var shared = Baby(name: "하윤", birthDate: Date(), gender: .female)
+        shared.ownerUserId = "owner-partner"
+        let vm = BabyViewModel()
+        vm.selectedBaby = shared
+
+        vm.publishSiriContext(currentUserId: nil)
+
+        XCTAssertEqual(SiriRecordContextStore.current(), .notReady(.noAccount))
+        SiriRecordContextStore.clear()
+    }
+
+    /// 아기를 지우거나 안 골랐으면 시리도 기록 대상이 없어야 한다.
+    @MainActor
+    func testPublishSiriContext_clearsWhenNoBabySelected() {
+        SiriRecordContextStore.update(ownerUserId: "stale", babyId: "stale", babyName: "옛것")
+        let vm = BabyViewModel()
+        vm.selectedBaby = nil
+
+        vm.publishSiriContext(currentUserId: "me")
+
+        XCTAssertEqual(SiriRecordContextStore.current(), .notReady(.noAccount))
+        SiriRecordContextStore.clear()
+    }
+
+
+    // MARK: - Siri 수유 기록 — 판정(부수효과 없음)
+
+    /// 🔒 저장 경로가 **소유자 경로**여야 한다. 여기가 틀리면 공유 아기 기록이 갈라진다.
+    func testSiriPlan_writesToOwnerPath() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "owner-1", babyId: "baby-1", babyName: "서준")
+        let out = SiriFeedingPlanner.plan(context: ctx,
+                                          request: SiriFeedingRequest(kind: .breast, amountMl: nil),
+                                          now: Date())
+        guard case .ready(let plan) = out else { return XCTFail("기록 가능해야 한다") }
+        XCTAssertEqual(plan.collectionPath, "users/owner-1/babies/baby-1/activities")
+        XCTAssertEqual(plan.activity.babyId, "baby-1")
+        XCTAssertEqual(plan.activity.type, .feedingBreast)
+    }
+
+    func testSiriPlan_notReadyPassesReasonThrough() {
+        let out = SiriFeedingPlanner.plan(context: .notReady(.noBaby),
+                                          request: SiriFeedingRequest(kind: .breast, amountMl: nil),
+                                          now: Date())
+        guard case .notReady(let reason) = out else { return XCTFail("사유가 그대로 와야 한다") }
+        XCTAssertEqual(reason, .noBaby)
+    }
+
+    /// 병수유인데 양을 안 말했으면 시리가 되물어야 한다 — 조용히 실패하면 안 된다.
+    func testSiriPlan_asksForAmountWhenBottleHasNone() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        let out = SiriFeedingPlanner.plan(context: ctx,
+                                          request: SiriFeedingRequest(kind: .bottleFormula, amountMl: nil),
+                                          now: Date())
+        XCTAssertEqual(out, .needsAmount)
+    }
+
+    /// 범위 밖 양은 기존 저장 판정(1~500ml)이 거절하고, 그 문구를 그대로 쓴다.
+    func testSiriPlan_rejectsOutOfRangeAmountWithExistingMessage() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        let out = SiriFeedingPlanner.plan(context: ctx,
+                                          request: SiriFeedingRequest(kind: .bottleFormula, amountMl: 900),
+                                          now: Date())
+        guard case .invalid(let message) = out else { return XCTFail("500ml 초과는 거절되어야 한다") }
+        XCTAssertEqual(message, RecordValidationError.invalidAmount(isPumping: false).message)
+    }
+
+    func testSiriPlan_dialogNamesBabyAndKind() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: "서준")
+        guard case .ready(let breast) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .breast, amountMl: nil), now: Date())
+        else { return XCTFail("모유 기록 가능해야 한다") }
+        XCTAssertEqual(breast.dialog, "서준의 모유 수유를 기록했어요")
+
+        guard case .ready(let bottle) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .bottleFormula, amountMl: 120), now: Date())
+        else { return XCTFail("분유 기록 가능해야 한다") }
+        XCTAssertEqual(bottle.dialog, "서준의 분유 120ml를 기록했어요")
+    }
+
+    /// 이름을 모르면 이름 없이 말한다 — "의 " 가 붙은 채로 새면 안 된다.
+    func testSiriPlan_dialogOmitsNameWhenUnknown() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        guard case .ready(let plan) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .bottleBreastMilk, amountMl: 100), now: Date())
+        else { return XCTFail("모유(병) 기록 가능해야 한다") }
+        XCTAssertEqual(plan.dialog, "모유(병) 100ml를 기록했어요")
+    }
+
+    /// 기록 시각은 "지금"이어야 한다 — 시리는 먹인 직후에 부른다.
+    func testSiriPlan_usesGivenMoment() {
+        let moment = Date(timeIntervalSince1970: 1_700_000_000)
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        guard case .ready(let plan) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .breast, amountMl: nil), now: moment)
+        else { return XCTFail("기록 가능해야 한다") }
+        XCTAssertEqual(plan.activity.startTime, moment)
+    }
+
+
+    /// 기록 못 할 때 시리가 하는 말 — 무엇을 해야 하는지 알려줘야 한다("실패했어요"로 끝내지 않는다).
+    func testSiriReason_tellsUserWhatToDo() {
+        XCTAssertEqual(SiriRecordContext.Reason.noAccount.siriMessage,
+                       "베이비케어에 먼저 로그인해 주세요")
+        XCTAssertEqual(SiriRecordContext.Reason.noBaby.siriMessage,
+                       "베이비케어에서 아기를 먼저 등록해 주세요")
+    }
+
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
@@ -3808,4 +4066,3 @@ final class BadgeEvaluatorIntegrationTests: XCTestCase {
         XCTAssertEqual(AppReviewPromptService.coreActivityTotal(stats), 20)
     }
 }
-
