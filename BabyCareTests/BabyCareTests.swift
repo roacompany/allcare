@@ -3509,6 +3509,97 @@ final class BabyCareTests: XCTestCase {
                        "베이비케어에서 아기를 먼저 등록해 주세요")
     }
 
+
+    // MARK: - 기록 출처 (source) — 앱에서 왔나 시리에서 왔나
+
+    /// rawValue 는 Firestore 영구계약. 바꾸면 이미 쌓인 기록의 출처가 통째로 어긋난다.
+    func testRecordSource_rawValuesAreFrozen() {
+        XCTAssertEqual(Activity.RecordSource.app.rawValue, "app")
+        XCTAssertEqual(Activity.RecordSource.siri.rawValue, "siri")
+        XCTAssertEqual(Activity.RecordSource.allCases.count, 2)
+    }
+
+    /// 🔒 출처가 없던 시절 기록은 **nil 로 열려야** 한다 — 소급해서 'app' 으로 읽으면
+    /// "앱에서 왔다"는 거짓이 데이터에 섞인다(없는 것과 앱에서 온 것은 다르다).
+    func testRecordSource_legacyDocumentWithoutFieldDecodesToNil() throws {
+        var activity = Activity(babyId: "b", type: .feedingBreast)
+        activity.source = .app
+        var dict = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(activity)) as? [String: Any])
+        XCTAssertNotNil(dict["source"], "지금 기록에는 출처가 있어야 한다")
+        dict.removeValue(forKey: "source")          // 출처 이전 기록 재현
+
+        let legacy = try JSONDecoder().decode(
+            Activity.self, from: JSONSerialization.data(withJSONObject: dict))
+        XCTAssertNil(legacy.source)
+        XCTAssertEqual(legacy.type, .feedingBreast) // 나머지는 멀쩡히 열린다
+    }
+
+    /// 폼에서 만든 기록은 앱 출처 — 기존 저장 경로는 아무것도 안 해도 app 이 된다.
+    func testRecordSource_formDraftIsApp() {
+        let draft = ActivityDraft(babyId: "b", type: .feedingBreast)
+        XCTAssertEqual(draft.source, .app)
+        guard case .success(let activity) = ActivityDraftBuilder.build(draft) else {
+            return XCTFail("모유 수유는 저장되어야 한다")
+        }
+        XCTAssertEqual(activity.source, .app)
+    }
+
+    /// 🔑 출처는 **요청이 스스로 선언한다**(호출부가 적는 게 아니라).
+    /// 호출부가 적으면 새 진입점이 생겼을 때 조용히 app 으로 섞인다.
+    func testRecordSource_siriRequestDeclaresItself() {
+        let draft = SiriFeedingRequest(kind: .breast, amountMl: nil).draft(babyId: "b", at: Date())
+        XCTAssertEqual(draft.source, .siri)
+    }
+
+    /// 시리 경로 끝까지 siri 로 남는다.
+    func testRecordSource_siriPlanCarriesSiriToActivity() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        guard case .ready(let plan) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .bottleFormula, amountMl: 120), now: Date())
+        else { return XCTFail("분유 기록 가능해야 한다") }
+        XCTAssertEqual(plan.activity.source, .siri)
+    }
+
+
+    // MARK: - 기록 출처 telemetry (record_saved)
+
+    func testRecordSavedEvent_nameIsFrozen() {
+        XCTAssertEqual(AnalyticsEvents.recordSaved, "record_saved")
+    }
+
+    /// 🔑 파라미터는 **기록 자신이** 말한다 — 진입점이 각자 적으면 두 경로가 어긋난다.
+    func testRecordSavedParameters_readSourceFromActivity() {
+        let ctx = SiriRecordContext.ready(ownerUserId: "o", babyId: "b", babyName: nil)
+        guard case .ready(let plan) = SiriFeedingPlanner.plan(
+            context: ctx, request: SiriFeedingRequest(kind: .bottleFormula, amountMl: 120), now: Date())
+        else { return XCTFail("분유 기록 가능해야 한다") }
+
+        XCTAssertEqual(AnalyticsService.recordSavedParameters(for: plan.activity),
+                       ["record_type": "feeding_bottle", "source": "siri"])
+
+        guard case .success(let appActivity) =
+            ActivityDraftBuilder.build(ActivityDraft(babyId: "b", type: .sleep)) else {
+            return XCTFail("수면 기록 가능해야 한다")
+        }
+        XCTAssertEqual(AnalyticsService.recordSavedParameters(for: appActivity),
+                       ["record_type": "sleep", "source": "app"])
+    }
+
+    /// 출처를 모르는 기록(이전 버전)은 **보내지 않는다** — 모르는 것을 app 으로 세면 채택률이 거짓이 된다.
+    func testRecordSavedParameters_nilWhenSourceUnknown() {
+        var legacy = Activity(babyId: "b", type: .feedingBreast)
+        legacy.source = nil
+        XCTAssertNil(AnalyticsService.recordSavedParameters(for: legacy))
+    }
+
+    /// forward-compat 센티넬은 어디로도 내보내지 않는다(영속 금지와 같은 원칙).
+    func testRecordSavedParameters_nilForUnknownType() {
+        var sentinel = Activity(babyId: "b", type: .unknown)
+        sentinel.source = .app
+        XCTAssertNil(AnalyticsService.recordSavedParameters(for: sentinel))
+    }
+
 }
 
 // MARK: - HospitalChecklistService Tests (#10)

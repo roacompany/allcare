@@ -30,6 +30,10 @@ struct ActivityDraft: Equatable {
     var hasRash: Bool = false
     var note: String = ""
 
+    /// 이 입력이 어디서 왔나. 기본은 앱 화면 — 다른 진입점(시리 등)은 **자기가 만드는 draft 에서
+    /// 직접 선언한다**(호출부가 적으면 새 진입점이 생겼을 때 조용히 app 으로 섞인다).
+    var source: Activity.RecordSource = .app
+
     init(babyId: String, type: Activity.ActivityType, startTime: Date = Date()) {
         self.babyId = babyId
         self.type = type

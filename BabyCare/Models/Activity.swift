@@ -34,6 +34,10 @@ struct Activity: Identifiable, Codable, Hashable {
     var pumpStorage: PumpStorage?
     /// 유축 배치 폐기 표시 — 재고 계산서 제외 (feedingPumping 전용, 신규 optional).
     var pumpDiscarded: Bool?
+    /// 이 기록이 **어디서** 만들어졌나 — 앱 화면인지 시리인지.
+    /// nil = 출처를 남기기 전(v2.8.9 이하) 기록. **소급하지 않는다** —
+    /// "없는 것"과 "앱에서 온 것"은 다르고, 섞으면 채택률이 거짓이 된다.
+    var source: RecordSource?
 
     /// 유축한 모유 병수유 — 섭취(.feeding)지만 'formula' 아님. 분유재고·분유량 집계서 제외용.
     var isBreastMilkBottle: Bool { type == .feedingBottle && feedingContent == .breastMilk }
@@ -217,6 +221,13 @@ struct Activity: Identifiable, Codable, Hashable {
             case .breastMilk: "모유(병)"
             }
         }
+    }
+
+    /// 기록 진입점. rawValue = **Firestore 영구계약** (바꾸면 이미 쌓인 기록의 출처가 어긋난다).
+    /// 새 진입점(위젯·워치 등)을 추가하면 여기에 case 를 더하고, **그 진입점이 스스로 선언**하게 한다.
+    enum RecordSource: String, Codable, CaseIterable, Sendable {
+        case app = "app"     // 앱 화면(폼·빠른기록·미니시트)
+        case siri = "siri"   // 시리 / 단축어 (App Intents)
     }
 
     enum BreastSide: String, Codable, CaseIterable {

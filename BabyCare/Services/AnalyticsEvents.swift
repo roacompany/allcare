@@ -34,6 +34,9 @@ enum AnalyticsEvents {
     /// 유축 기록 telemetry — default-on 그리드 효과/Phase 2 우선순위 판단용 (spec §10).
     /// raw mL 금지: amount는 coarse bucket으로만 전송.
     static let pumpingRecorded = "pumping_recorded"
+    /// 기록이 **어디서** 저장됐나 — 앱/시리 채택률의 실시간 근거.
+    /// 화면별 이벤트(feed_record_save 등)는 그대로 두고, 이건 앱·시리 **양쪽 저장 꼬리**에서 하나로 발화한다.
+    static let recordSaved = "record_saved"
 
     // Health
     static let healthDataView = "health_data_view"
