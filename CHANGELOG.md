@@ -2,9 +2,11 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.9] - Unreleased (TestFlight 빌드 105)
+## [2.8.9] - 2026-08-22 (App Store 심사 제출 — 빌드 105)
 
-> **빌드 105 = 시리 수유 기록 기기 QA 빌드.** PR #75 머지 **전**, 브랜치 `feat/siri-feeding-record` 에서 올렸다. 시뮬레이터에서 시리가 제대로 동작하지 않아 코드·CI 로는 확인할 수 없는 구간(**앱 미실행 상태의 백그라운드 실행 · 인증 복원**)을 실기기에서 재기 위함. 2.8.8 train 이 닫혀 2.8.9 로 올렸다. App Store 제출은 PO 결정.
+> **빌드 105 = 시리 수유 기록.** PR #75 는 **머지 완료**(main `83675a2`) — 빌드는 머지 전 같은 내용의 브랜치에서 올렸다.
+> PO 기기 QA 통과 확인 후 **2026-08-22 App Store 제출**(`WAITING_FOR_REVIEW` · `AFTER_APPROVAL` 자동 출시 ·
+> versionId `41a6f84b-5615-4eea-98b6-7b8615800e65`). 원래는 시뮬레이터에서 시리가 제대로 동작하지 않아 코드·CI 로는 확인할 수 없는 구간(**앱 미실행 상태의 백그라운드 실행 · 인증 복원**)을 실기기에서 재기 위함. 2.8.8 train 이 닫혀 2.8.9 로 올렸다. App Store 제출은 PO 결정.
 
 ### Added — 시리로 수유 기록 (#75, 빌드 105, 2026-08-22)
 
