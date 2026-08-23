@@ -17,10 +17,9 @@ final class ActivityTimerManager {
 
     private var timerTask: Task<Void, Never>?
 
-    // MARK: - Timer Persistence Keys
-
-    private static let timerStartKey = "babycare_timer_start"
-    private static let timerTypeKey = "babycare_timer_type"
+    // MARK: - Timer Persistence
+    // 상태는 App Group(`RunningTimerStore`)에 둔다 — 시리(별도 진입점)가 같은 것을 봐야
+    // 「잠들었어」와 앱 배너가 갈라지지 않는다.
 
     // MARK: - Timer Control
 
@@ -33,9 +32,8 @@ final class ActivityTimerManager {
         activeTimerType = type
         elapsedTime = 0
 
-        // UserDefaults에 시작 시간 + 타입 저장 (앱 강제 종료 후 복구용)
-        UserDefaults.standard.set(startTime.timeIntervalSince1970, forKey: Self.timerStartKey)
-        UserDefaults.standard.set(type.rawValue, forKey: Self.timerTypeKey)
+        // App Group 에 시작 시간 + 타입 저장 (앱 강제 종료 후 복구용 + 시리 공유)
+        RunningTimerStore.start(type: type, at: startTime)
 
         // Live Activity 시작 (수유/수면 타이머만)
         if type.category == .feeding || type == .sleep {
@@ -68,9 +66,7 @@ final class ActivityTimerManager {
         activeTimerType = nil
         elapsedTime = 0
 
-        // UserDefaults 타이머 상태 제거
-        UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
-        UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
+        RunningTimerStore.clear()
 
         // Live Activity 종료
         LiveActivityManager.shared.stopFeedingTimer()
@@ -82,22 +78,21 @@ final class ActivityTimerManager {
     /// - Returns: 복구된 경우 (타입, 시작 시간) 튜플; 복구되지 않은 경우 nil
     @discardableResult
     func resumeTimerIfNeeded() -> (type: Activity.ActivityType, startTime: Date)? {
-        let startInterval = UserDefaults.standard.double(forKey: Self.timerStartKey)
-        guard startInterval > 0,
-              let typeRaw = UserDefaults.standard.string(forKey: Self.timerTypeKey),
-              let type = Activity.ActivityType.known(rawValue: typeRaw) else {
+        RunningTimerStore.migrateFromStandardDefaultsIfNeeded()
+
+        guard let running = RunningTimerStore.current() else {
             // 복구할 타이머 없음 — 시스템에 leftover Live Activity가 있으면 정리
             LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)
             return nil
         }
 
-        let startTime = Date(timeIntervalSince1970: startInterval)
+        let startTime = running.startedAt
+        let type = running.type
         let elapsed = Date().timeIntervalSince(startTime)
 
         // 24시간 이상 지난 타이머는 복구하지 않음 (비정상 상태)
         guard elapsed < AppConstants.secondsPerDay else {
-            UserDefaults.standard.removeObject(forKey: Self.timerStartKey)
-            UserDefaults.standard.removeObject(forKey: Self.timerTypeKey)
+            RunningTimerStore.clear()
             LiveActivityManager.shared.reconcileWithRunningTimer(isTimerRunning: false)
             return nil
         }

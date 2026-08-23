@@ -175,8 +175,10 @@ struct Activity: Identifiable, Codable, Hashable {
             }
         }
 
-        // needs* 3종은 default: 없이 exhaustive 유지 (spec §4.1).
+        // default: 없이 exhaustive 유지 (spec §4.1).
         // default:를 두면 신규 ActivityType이 silent false로 떨어져 입력 UX가 조용히 깨진다.
+        // (needsAmount·needsQuickInput 은 프로덕션 호출이 0 이라 제거했다 —
+        //  '무엇을 물어야 하나'는 RecordEntryRule[화면]·SiriPromptPolicy[시리]가 답한다.)
         var needsTimer: Bool {
             switch self {
             case .feedingBreast, .feedingBottle, .sleep:
@@ -184,27 +186,6 @@ struct Activity: Identifiable, Codable, Hashable {
             case .feedingSolid, .feedingSnack, .feedingPumping,
                  .diaperWet, .diaperDirty, .diaperBoth,
                  .bath, .temperature, .medication, .unknown:
-                return false
-            }
-        }
-
-        var needsAmount: Bool {
-            switch self {
-            case .feedingBottle, .feedingPumping:
-                return true
-            case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
-                 .diaperWet, .diaperDirty, .diaperBoth,
-                 .bath, .temperature, .medication, .unknown:
-                return false
-            }
-        }
-
-        var needsQuickInput: Bool {
-            switch self {
-            case .temperature, .medication, .feedingBottle, .feedingPumping:
-                return true
-            case .feedingBreast, .feedingSolid, .feedingSnack, .sleep,
-                 .diaperWet, .diaperDirty, .diaperBoth, .bath, .unknown:
                 return false
             }
         }

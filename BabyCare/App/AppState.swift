@@ -101,8 +101,9 @@ final class AppState {
         UserDefaults.standard.removeObject(forKey: AnnouncementViewModel.readStorageKey)
 
         OfflineQueue.shared.clear()
-        // 시리(App Intents)가 읽는 기록 대상 스냅샷 — 안 지우면 로그아웃 뒤에도
+        // 시리(App Intents)가 App Group 에 남긴 사용자 범위 값 일괄 삭제 — 안 지우면 로그아웃 뒤에도
         // 시리가 이전 계정 경로에 계속 쓴다(큐를 비우는 것만으로는 못 막는다).
-        SiriRecordContextStore.clear()
+        // 🔑 여기에 항목을 나열하지 않는다 — 새 시리 값은 `siri_` 접두를 쓰면 저절로 지워진다.
+        SiriSharedStore.clearAll()
     }
 }
