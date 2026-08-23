@@ -40,10 +40,10 @@
     "name": "베이비케어 - AI 육아기록",
     "operatingSystem": "iOS",
     "applicationCategory": "HealthApplication",
-    "softwareVersion": "2.8.8",
+    "softwareVersion": "2.8.10",
     "countriesSupported": "KR",
     "inLanguage": "ko",
-    "featureList": "임신 D-day·주차 정보, 태동 카운터, 산전 체크리스트, 체중 추적, 산전 방문 기록, 출산 후 육아 모드 자동 전환, 임신 위젯(홈·잠금화면), 파트너 공유, HealthKit 연동, 수유 기록·예측, 수면 분석·퇴행 감지, 기저귀 기록, 성장 곡선(WHO), 예방접종 D-day, 발달이정표, 이유식·알레르기, AI 조언, 병원 AI 리포트, 다크 모드, PDF 내보내기, 가족 공유, 홈/잠금화면 위젯, 울음 분석(베타), 유축 기록(유축량·방향, 섭취와 분리 집계), 유축 모유 보관 재고·유통기한 관리, 유축에서 모유(병)으로 이어 기록, 병수유 분유·모유 구분",
+    "featureList": "시리로 기록(모든 기록 종류·설정 불필요·앱 안 열고), 시리 수면 시작/종료 음성 기록, 임신 D-day·주차 정보, 태동 카운터, 산전 체크리스트, 체중 추적, 산전 방문 기록, 출산 후 육아 모드 자동 전환, 임신 위젯(홈·잠금화면), 파트너 공유, HealthKit 연동, 수유 기록·예측, 수면 분석·퇴행 감지, 기저귀 기록, 성장 곡선(WHO), 예방접종 D-day, 발달이정표, 이유식·알레르기, AI 조언, 병원 AI 리포트, 다크 모드, PDF 내보내기, 가족 공유, 홈/잠금화면 위젯, 울음 분석(베타), 유축 기록(유축량·방향, 섭취와 분리 집계), 유축 모유 보관 재고·유통기한 관리, 유축에서 모유(병)으로 이어 기록, 병수유 분유·모유 구분",
     "screenshot": [
       {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_01_dashboard.png"},
       {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_02_recording.png"},
@@ -149,6 +149,10 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      /* 한국어는 어절 단위로 끊는다 — 없으면 "소변 기 / 록" 처럼 낱말 중간에서 깨진다.
+         break-word 는 끊을 데가 없는 아주 긴 낱말(URL 등)의 넘침 방지용. */
+      word-break: keep-all;
+      overflow-wrap: break-word;
     }
 
     /* ===== TYPOGRAPHY (iOS 17 Scale) ===== */
@@ -739,8 +743,8 @@
       <div class="hero-pills">
         <span class="pill">iOS 17+</span>
         <span class="pill">무료 다운로드</span>
-        <span class="pill accent">🍼 유축 재고 NEW</span>
-        <span class="pill accent">✨ v2.8.8</span>
+        <span class="pill accent">🗣️ 시리 기록 NEW</span>
+        <span class="pill accent">✨ v2.8.10</span>
       </div>
       <div class="rating-row" aria-label="평점 4.8점 만점 5점">
         <span class="rating-stars" aria-hidden="true">★★★★★</span>
@@ -817,9 +821,17 @@
     <div class="container">
       <div class="group-header fade-in">
         <h2 class="title2">빠른 기록</h2>
-        <p class="footnote">원탭으로 빠르게, 타이머로 정확하게</p>
+        <p class="footnote">말로 한마디, 원탭으로 빠르게, 타이머로 정확하게</p>
       </div>
       <div class="group-inset fade-in">
+        <div class="group-row">
+          <div class="row-icon purple">🗣️</div>
+          <div class="row-content">
+            <div class="headline">시리로 기록</div>
+            <div class="footnote">"시리야, 베이비케어에 소변 기록" — 앱을 열지 않고 말로</div>
+          </div>
+          <span class="row-chevron">›</span>
+        </div>
         <div class="group-row">
           <div class="row-icon pink">🍼</div>
           <div class="row-content">
@@ -1015,25 +1027,25 @@
     </div>
   </div>
 
-  <!-- NEW IN v2.8.8 -->
+  <!-- NEW IN v2.8.10 -->
   <div class="grouped-section">
     <div class="container">
       <div class="group-header fade-in">
-        <h2 class="title2">v2.8.8 새 기능</h2>
-        <p class="footnote">유축 모유 재고 + 한결같아진 기록 화면</p>
+        <h2 class="title2">v2.8.10 새 기능</h2>
+        <p class="footnote">두 손이 다 차 있어도, 말로 기록</p>
       </div>
       <div class="premium-container fade-in">
         <div class="premium-badge">&#x2728; NEW</div>
-        <h3 class="title2">유축부터 먹이기까지</h3>
-        <p class="subheadline">보관한 모유의 남은 양과 유통기한을<br>앱이 대신 챙겨 드려요</p>
+        <h3 class="title2">"시리야, 베이비케어에 소변 기록"</h3>
+        <p class="subheadline">한 손엔 아기, 한 손엔 젖병.<br>그럴 때를 위해 만들었어요</p>
         <ul class="premium-list">
-          <li>유축할 때 보관 방법(실온·냉장·냉동) 선택</li>
-          <li>남은 재고와 유통기한을 홈에서 확인 (수치는 참고용)</li>
-          <li>유축 화면에서 바로 '먹이기'까지, 오래된 것부터 차감</li>
-          <li>유축 직후 '모유(병)' 기록을 원탭으로 이어서</li>
-          <li>화면마다 다르던 활동 색·이름을 하나로 통일</li>
-          <li>저장 버튼이 항상 화면 아래에 고정</li>
-          <li>밤잠(자정을 넘긴 수면)이 다음날 화면에도 정확히</li>
+          <li>소변·대변·목욕·이유식·간식은 말 한마디로 바로 저장</li>
+          <li>"잠들었어" / "깼어" — 잔 시간까지 계산해서 알려줘요</li>
+          <li>유축·체온은 시리가 "몇 ml인가요?" 하고 물어봐요</li>
+          <li>앱을 열지 않아요 — 화면을 안 봐도 기록돼요</li>
+          <li>따로 설정할 게 없어요. 앱에 로그인만 돼 있으면 바로 됩니다</li>
+          <li>'단축어' 앱에서 "서준이 쉬했어"처럼 내 말로 바꿔도 돼요</li>
+          <li>말로 남긴 기록도 통계·병원 리포트·유축 재고에 그대로 반영</li>
         </ul>
         <a href="https://apps.apple.com/kr/app/id6759935352" class="premium-cta">무료 다운로드</a>
       </div>
