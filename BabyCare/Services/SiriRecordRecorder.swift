@@ -1,7 +1,7 @@
 import FirebaseAuth
 import Foundation
 
-/// 시리 기록의 **부수효과** — 판정은 `SiriFeedingPlanner` 가 이미 끝냈다.
+/// 시리 기록의 **부수효과** — 판정은 `SiriRecordPlanner` / `SiriSleepPlanner` 가 이미 끝냈다.
 ///
 /// 오프라인 큐에 적는 것을 저장 성공으로 본다(앱의 기존 계약과 동일 — `persist` 도 큐잉을 성공으로 돌려준다).
 ///
@@ -9,8 +9,8 @@ import Foundation
 ///    백그라운드 실행이라 인증이 아직 복원되지 않았을 때 flush 하면 시리를 몇 번 쓰는 것만으로
 ///    먼저 쌓인 기록이 재시도를 소진하고 조용히 사라진다.
 @MainActor
-enum SiriFeedingRecorder {
-    static func record(_ plan: SiriFeedingPlanner.Plan) async {
+enum SiriRecordRecorder {
+    static func record(_ plan: SiriRecordPlanner.Plan) async {
         let queued = OfflineQueue.shared.enqueueSave(
             plan.activity,
             collectionPath: plan.collectionPath,
