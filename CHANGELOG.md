@@ -2,11 +2,14 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.10] - 2026-08-23 (TestFlight 빌드 106)
+## [2.8.10] - 2026-08-23 (App Store 심사 제출 — 빌드 106)
 
 > **빌드 106 = 시리로 모든 기록.** v2.8.9(빌드 105)는 수유 3종만 시리로 됐다 — 기록 런처 12종 중 9종이 막혀 있었다.
 > 이 판은 그 9종을 열고, 같은 판에 **#76(기록 출처)** 이 처음으로 손님에게 나간다.
-> ⚠️ v2.8.9 출시로 train 이 닫혀 2.8.10 으로 올렸다. App Store 제출은 PO 결정.
+> PR #77 머지(main `b35aecc`) → 빌드 106 VALID → **PO 기기 QA 통과** → **2026-08-23 App Store 제출**
+> (`WAITING_FOR_REVIEW` · `AFTER_APPROVAL` 자동 출시 · versionId `73e87394-ddca-4ab1-9506-fba04f0874c1`
+> · submissionId `bad1d173-4243-49ff-831b-67f9a48809de`). 릴리스 노트 = `.dev/release-notes/v2.8.10.md`(550자).
+> ⚠️ v2.8.9 출시로 train 이 닫혀 2.8.10 으로 올렸다.
 
 ### Added — 시리로 모든 기록 (빌드 106, 2026-08-23)
 
