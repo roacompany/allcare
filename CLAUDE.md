@@ -267,23 +267,23 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: v2.8.9 (빌드 105, main `6e8334f`, 2026-08-22 ASC 실측) — **App Store 심사 중(`WAITING_FOR_REVIEW`)**. v2.8.8(빌드 104)은 2026-08-21 출시돼 **현재 라이브**. v2.8.9 = **시리로 수유 기록(App Intents, #75)** 단일 기능 릴리스 — iOS 16+ App Shortcuts 라 손님이 단축어를 만들 필요가 없다(레퍼런스 베이비타임은 구형 Siri Shortcuts 4단계). **ASC 최고 빌드 = 105 VALID → 다음 main TF ≥106**. 임신 v3 는 컴파일 flag-off 휴면(노출 0). ⚠️ 승인되면 **2.8.9 train 이 닫힌다** — 다음 fix 는 v2.8.10 bump 필수 (build-gotchas.md `code 90186/90062`)
+- **Version**: **v2.8.10 (빌드 106) 개발 중** — 브랜치 `feat/siri-all-records` · **시리로 모든 기록**(기록 12종 전부 · 수면은 「잠들었어」/「깼어」로 앱 타이머 공유) + **#76 기록 출처 첫 출시**. ⛔push·제출은 PO 승인 대기. **v2.8.9(빌드 105)는 2026-08-22 출시돼 현재 라이브**(iTunes lookup 실측: 버전 2.8.9). v2.8.9 = **시리로 수유 기록(App Intents, #75)** 단일 기능 릴리스 — iOS 16+ App Shortcuts 라 손님이 단축어를 만들 필요가 없다(레퍼런스 베이비타임은 구형 Siri Shortcuts 4단계). **ASC 최고 빌드 = 105 VALID → 다음 main TF = 106**(2026-08-23 실측). 임신 v3 는 컴파일 flag-off 휴면(노출 0). ⚠️ **2.8.9 train 은 이미 닫혔다**(출시 완료) — 그래서 이번 판이 v2.8.10 (build-gotchas.md `code 90186/90062`)
 - **App Store**:
-  - **v2.8.9 WAITING_FOR_REVIEW** (제출 2026-08-22 — 시리로 수유 기록(#75). 빌드 105 · `AFTER_APPROVAL` 자동 출시. versionId `41a6f84b-5615-4eea-98b6-7b8615800e65`, submissionId `5eb04910-6aa2-4948-95b9-e57e79f09536`, ASC API 확인 2026-08-22). ⚠️ **기기 QA 는 PO 가 빌드 105 로 통과 확인**(앱 미실행 상태의 시리 기록 포함) — 시뮬레이터로는 검증 불가한 구간이었다
-  - **v2.8.8 READY_FOR_SALE** (출시 2026-08-21 — 기록 UX 원복·재작업(#74) + 유축 재고 + 이탈방지 P0 + 버그fix 누적. 빌드 104 승인 + AFTER_APPROVAL 자동출시. versionId `6cbea40b-39fe-4fab-8af2-bd21b8f572a4`, ASC API 확인 2026-08-21). 임신 v3 는 컴파일 flag-off 라 출시본에서도 임신 UI 노출 0 — rollout 은 RC 재배선 + 의료감수 후. **train closed** — 다음 fix 는 v2.8.9 bump 필수
+  - **v2.8.9 READY_FOR_SALE** (출시 **2026-08-22** — 시리로 수유 기록(#75). 빌드 105 승인 + `AFTER_APPROVAL` 자동출시로 v2.8.8 을 교체. versionId `41a6f84b-5615-4eea-98b6-7b8615800e65`, ASC API + iTunes lookup 실측 2026-08-23). **train closed** — 다음 fix 는 v2.8.10 bump 필수. ⚠️ **기기 QA 는 PO 가 빌드 105 로 통과 확인**(앱 미실행 상태의 시리 기록 포함) — 시뮬레이터로는 검증 불가한 구간이었다
+  - **v2.8.8 READY_FOR_SALE** (출시 2026-08-21 — 기록 UX 원복·재작업(#74) + 유축 재고 + 이탈방지 P0 + 버그fix 누적. 빌드 104 승인 + AFTER_APPROVAL 자동출시 → **2026-08-22 v2.8.9 로 교체**. versionId `6cbea40b-39fe-4fab-8af2-bd21b8f572a4`, ASC API 확인 2026-08-21). 임신 v3 는 컴파일 flag-off 라 출시본에서도 임신 UI 노출 0 — rollout 은 RC 재배선 + 의료감수 후. **train closed** — 다음 fix 는 v2.8.9 bump 필수
   - **v2.8.7 — 단독 릴리스 없음** (TestFlight 빌드 89 VALID. 앱 평가 팝업 + #24~#28 누적수정 — v2.8.8 에 포함돼 2026-08-21 동반 출시 완료)
   - **v2.8.6 READY_FOR_SALE** (2026-06-10 출시 → **2026-08-21 v2.8.8 로 교체**. 유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry 첫 릴리즈. 빌드 88 승인+AFTER_APPROVAL 자동출시. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
   - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
   - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
   - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
   - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
-- **TestFlight**: **v2.8.9 빌드 105**(`d397eaed-b72c-4675-bca6-29b2a958be47`, VALID·2026-08-21 업로드·**심사 제출본** — 시리 수유 기록) / **v2.8.8 빌드 104**(`206d4aba-dbd0-46c5-b614-7560512647ff`, VALID·2026-08-20 업로드·**App Store 출시본**) / 빌드 100~103(기록하기 재설계·유축 재고) / 빌드 98~99(#53~#58) / **빌드 95~97**(쿠팡식 실험 워크트리, 2026-06-28) / **빌드 94/93**(`tf/pregnancy-v3-test` 브랜치 — 임신 v3 flag-on QA 전용·머지 금지), v2.8.7 빌드 89 (`87739d1f-...`, VALID), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **2026-06-10~08-21 라이브**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
+- **TestFlight**: **v2.8.10 빌드 106**(⏳미업로드 — 시리로 모든 기록 · PO 승인 대기) / **v2.8.9 빌드 105**(`d397eaed-b72c-4675-bca6-29b2a958be47`, VALID·2026-08-21 업로드·**v2.8.9 출시본** — 시리 수유 기록) / **v2.8.8 빌드 104**(`206d4aba-dbd0-46c5-b614-7560512647ff`, VALID·2026-08-20 업로드·v2.8.8 출시본, 2026-08-22 교체됨) / 빌드 100~103(기록하기 재설계·유축 재고) / 빌드 98~99(#53~#58) / **빌드 95~97**(쿠팡식 실험 워크트리, 2026-06-28) / **빌드 94/93**(`tf/pregnancy-v3-test` 브랜치 — 임신 v3 flag-on QA 전용·머지 금지), v2.8.7 빌드 89 (`87739d1f-...`, VALID), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **2026-06-10~08-21 라이브**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
   - 이전: v2.8.3 빌드 69 (`c040f15f-...`, nested NavigationStack fix), 68/67, 66 (v2.8.2 ML), 65 (v2.8.1), 64 (v2.8.0)
 - **Firebase**: 11.9.0
 - **Firestore**: 35개 컬렉션 상수 (24 기본 + 9 pregnancy[v3에서 pregnancyVitals/contractionSessions/pregnancyMoods 추가] + weeklyMetrics/highlightCache). rules/index deploy 완료
 - **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
-- **테스트**: 단위 테스트 함수 **695** + XCUITest **27** (정적 집계 2026-08-22 실측 — `grep -rh "func test"` 기준). `make verify` ALL CHECKS PASSED + 전 클래스 실행 **695개 통과·실패 0**(2 skip=사전 부채) + CI Verify PASS — 2026-08-22 main 실행. ⚠️ `make test` 는 `-quiet` 라 개수가 안 보인다 — 숫자를 보려면 `-only-testing:BabyCareTests` 를 `-quiet` 없이 따로 돌린다
-- **규모**: **376** Swift 파일(앱 타깃) + 15(위젯), 23개 VM, 35개 Firestore 컬렉션 상수 (2026-08-22 실측)
+- **테스트**: 단위 테스트 함수 **736** (2026-08-23 실측 — `grep -rh "func test"`). `make verify` ALL CHECKS PASSED + 전 클래스 실행 **736개 통과·실패 0**(2 skip=사전 부채) + design 29/29 — 2026-08-23 `feat/siri-all-records` 실행. ⚠️ `make test` 는 `-quiet` 라 개수가 안 보인다 — 숫자를 보려면 `-only-testing:BabyCareTests` 를 `-quiet` 없이 따로 돌린다
+- **규모**: **385** Swift 파일(앱 타깃) + 15(위젯), 23개 VM, 35개 Firestore 컬렉션 상수 (2026-08-23 실측)
 - **AdMob**: 완전 폐기 (2026-05-10 `ddb63d1`) — SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거 12 파일 -467 lines
 - **Admin**: Vercel 자동 배포 (Insights ML 탭 + lastAccessedAt fallback + Weekly Highlights worker `c283ef5`)
 - **Privacy Policy**: https://roacompany.github.io/allcare/privacy.html v2.8.0 §3 라이브 (법무 검토 미수령)

@@ -9,8 +9,6 @@ struct StartSleepIntent: AppIntent {
     static let description = IntentDescription("아기가 자기 시작했다고 기록합니다.")
     static let openAppWhenRun = false
 
-    init() {}
-
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let now = Date()
@@ -42,8 +40,6 @@ struct StopSleepIntent: AppIntent {
     static let title: LocalizedStringResource = "수면 종료"
     static let description = IntentDescription("아기가 깼다고 기록합니다.")
     static let openAppWhenRun = false
-
-    init() {}
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
