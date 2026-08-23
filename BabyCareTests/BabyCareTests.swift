@@ -68,15 +68,12 @@ final class BabyCareTests: XCTestCase {
 
     // MARK: - 유축(Pumping) Tests (Phase 1, spec §7)
 
-    /// §7-1: needs* 플래그 — needsTimer/needsAmount/needsQuickInput는 default: 보유 switch라
-    /// case만 추가하면 silent false가 되는 트랩(spec §4.1). 이 테스트가 유일한 가드.
+    /// §7-1: needsTimer 는 default: 보유 switch라 case만 추가하면 silent false가 되는 트랩(spec §4.1).
+    /// (needsAmount·needsQuickInput 은 프로덕션 호출 0 이라 제거 —
+    ///  '무엇을 물어야 하나'는 SiriPromptPolicy 가 답하고 Builder 와 대조로 잠근다.)
     func testActivityType_feedingPumping_inputFlags() {
         XCTAssertEqual(Activity.ActivityType.feedingPumping.category, .pumping,
                        "유축은 절대 .feeding이 아니라 신규 .pumping 카테고리")
-        XCTAssertTrue(Activity.ActivityType.feedingPumping.needsAmount,
-                      "유축은 양 입력 필요 — default:false 트랩 가드")
-        XCTAssertTrue(Activity.ActivityType.feedingPumping.needsQuickInput,
-                      "유축은 빠른기록 미니시트 경로 — default:false 트랩 가드")
         XCTAssertFalse(Activity.ActivityType.feedingPumping.needsTimer,
                        "유축은 양이 ground-truth라 타이머 불필요")
         XCTAssertEqual(Activity.ActivityType.feedingPumping.color, "pumpingColor")
@@ -169,8 +166,6 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(Activity.ActivityType.unknown.category, .unknown)
         XCTAssertNotEqual(Activity.ActivityType.unknown.category, .feeding)
         XCTAssertFalse(Activity.ActivityType.unknown.needsTimer)
-        XCTAssertFalse(Activity.ActivityType.unknown.needsAmount)
-        XCTAssertFalse(Activity.ActivityType.unknown.needsQuickInput)
     }
 
     /// init?(rawValue:) 부활 차단 — 센티넬 "unknown" 은 known(rawValue:)에서 nil
@@ -3600,6 +3595,73 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNil(AnalyticsService.recordSavedParameters(for: sentinel))
     }
 
+
+    // MARK: - 시리 전 종류 — 되묻기 판정 ↔ 저장 검증 일치
+
+    /// 🔑 이 테스트가 이 트랙의 안전줄이다.
+    /// "안 물어도 된다"고 판정한 종류는 값 없이 저장이 통과해야 하고,
+    /// "물어야 한다"고 판정한 종류는 값 없이 **거절**돼야 한다.
+    /// 둘이 어긋나면 시리가 조용히 실패하거나 쓸데없이 되묻는다.
+    func testSiriPromptPolicy_matchesDraftBuilderForEveryKind() {
+        for kind in SiriRecordKind.allCases {
+            let draft = SiriRecordRequest(kind: kind).draft(babyId: "baby-1", at: Date())
+            let built = ActivityDraftBuilder.build(draft)
+            let mustAsk = SiriPromptPolicy.prompt(for: kind)?.isRequired ?? false
+
+            switch built {
+            case .success:
+                XCTAssertFalse(mustAsk, "\(kind.rawValue): 값 없이 저장되는데 되묻고 있다")
+            case .failure:
+                XCTAssertTrue(mustAsk, "\(kind.rawValue): 값 없이는 거절되는데 안 되묻는다")
+            }
+        }
+    }
+
+    /// 투약은 예외 — 앱도 약 이름 없이 저장된다. 물어보되 못 들으면 그냥 저장한다.
+    func testSiriPromptPolicy_medicationAsksButIsNotRequired() {
+        XCTAssertEqual(SiriPromptPolicy.prompt(for: .medication), .medicationName)
+        XCTAssertFalse(SiriPromptPolicy.Prompt.medicationName.isRequired)
+    }
+
+    /// 값이 꼭 필요한 것 — 없으면 저장이 안 되므로 반드시 되물어야 한다.
+    func testSiriPromptPolicy_requiredPrompts() {
+        XCTAssertEqual(SiriPromptPolicy.prompt(for: .bottleFormula), .amountMl)
+        XCTAssertEqual(SiriPromptPolicy.prompt(for: .bottleBreastMilk), .amountMl)
+        XCTAssertEqual(SiriPromptPolicy.prompt(for: .pumping), .amountMl)
+        XCTAssertEqual(SiriPromptPolicy.prompt(for: .temperature), .temperatureCelsius)
+        XCTAssertTrue(SiriPromptPolicy.Prompt.amountMl.isRequired)
+        XCTAssertTrue(SiriPromptPolicy.Prompt.temperatureCelsius.isRequired)
+    }
+
+    /// 값을 안 물어도 되는 것 — 말 한마디로 저장된다.
+    func testSiriPromptPolicy_instantKindsAskNothing() {
+        for kind in [SiriRecordKind.breast, .solid, .snack, .diaperWet, .diaperDirty, .bath] {
+            XCTAssertNil(SiriPromptPolicy.prompt(for: kind), "\(kind.rawValue) 는 되물을 게 없어야 한다")
+        }
+    }
+
+    // MARK: - 시리 종류 목록 — 런처에 있으면 시리에도 있어야 한다
+
+    /// 🩸 이름을 열거하면 새 것이 조용히 빠진다 — 대조로 잠근다.
+    /// 기록 런처에 타일을 하나 추가하면 이 테스트가 빨강이 되어 시리에도 넣게 만든다.
+    func testSiriRecordKind_coversEveryLauncherTileExceptSleep() {
+        let launcher = Set(RecordTile.launcherSections.flatMap(\.tiles).map(\.id))
+        let siri = Set(SiriRecordKind.allCases.map(\.tile.id))
+        let sleep = RecordTile(.sleep).id   // 수면은 「잠들었어」/「깼어」 전용 인텐트가 맡는다
+
+        XCTAssertEqual(launcher.subtracting(siri), [sleep],
+                       "런처에 있는데 시리로 못 하는 기록이 있다 — SiriRecordKind 에 추가할 것")
+        XCTAssertTrue(siri.subtracting(launcher).isEmpty,
+                      "시리에만 있고 런처에 없는 기록이 있다 — 손님이 화면에서 못 찾는다")
+    }
+
+    /// 시리가 말하는 이름은 화면 라벨과 같아야 한다(용어가 갈라지지 않게).
+    func testSiriRecordKind_displayNameMatchesLauncherLabel() {
+        XCTAssertEqual(SiriRecordKind.bottleBreastMilk.displayName, "모유(병)")
+        XCTAssertEqual(SiriRecordKind.bottleFormula.displayName, "분유")
+        XCTAssertEqual(SiriRecordKind.pumping.displayName, "유축")
+        XCTAssertEqual(SiriRecordKind.diaperWet.displayName, "소변")
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)
