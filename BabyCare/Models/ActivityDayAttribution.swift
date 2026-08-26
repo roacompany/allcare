@@ -82,6 +82,29 @@ extension ActivityDayAttribution {
         clippedDuration(on: day, startTime: activity.startTime, endTime: activity.endTime, duration: activity.duration, calendar: calendar)
     }
 
+    /// 그 날짜에 귀속되는 활동 시간의 합(초) — 자정 클립.
+    /// 🔑 「이 날 총 몇 시간」을 말하는 자리는 화면·리포트·분석 가릴 것 없이 전부 이걸 쓴다.
+    /// 하루 조회는 「그날 시작」 + 「그날 끝」 두 쿼리를 합쳐 오므로(FirestoreService+Activity),
+    /// 여기서 전체 duration 을 더하면 자정 넘김 밤잠 하나가 어제·오늘 양쪽에서 통째로 세어진다.
+    static func totalClippedDuration(_ activities: [Activity], on day: Date, calendar: Calendar = .current) -> TimeInterval {
+        activities.reduce(0) { $0 + clippedDuration($1, on: day, calendar: calendar) }
+    }
+
+    /// 그 날짜에 「일어난 것으로 세는」 기록 — 시작 시각 기준 하루 귀속.
+    /// 🔑 시간(duration)은 자정에서 잘라 두 날에 나눠 주지만, **횟수·양은 나눌 수 없다**.
+    /// 하루 조회는 「그날 끝난」 기록도 실어 오므로, 거르지 않고 세면 자정을 넘긴 수유 한 번이
+    /// 어제도 1회·오늘도 1회가 된다(양도 같이 두 번 더해진다).
+    static func startedOn(_ activities: [Activity], day: Date, calendar: Calendar = .current) -> [Activity] {
+        activities.filter { calendar.isDate($0.startTime, inSameDayAs: day) }
+    }
+
+    /// 기간 안에서 시작한 기록 — 횟수·분포·평균이 세는 것.
+    /// 🔑 기간 조회는 자정 넘김 밤잠을 잡으려고 **하루 앞당겨** 부른다. 그 앞당긴 하루가
+    /// 횟수와 그래프 막대로 새지 않도록, 세는 자리는 이걸로 걷어낸 목록을 본다.
+    static func startedWithin(_ activities: [Activity], from: Date, to: Date) -> [Activity] {
+        activities.filter { $0.startTime >= from && $0.startTime <= to }
+    }
+
     static func spannedDays(_ activity: Activity, calendar: Calendar = .current) -> [Date] {
         spannedDays(startTime: activity.startTime, endTime: activity.endTime, duration: activity.duration, calendar: calendar)
     }

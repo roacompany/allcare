@@ -53,7 +53,7 @@ final class AppState {
         baby.reset()
         pregnancy.reset()
 
-        activity.todayActivities = []
+        activity.reset()
 
         calendar.activitiesForDate = []
         calendar.hospitalVisitsForDate = []
@@ -65,6 +65,7 @@ final class AppState {
         todo.completedTodosCache = []
 
         stats.weeklyActivities = []
+        stats.spanningActivities = []
         diary.entries = []
 
         health.vaccinations = []

@@ -87,9 +87,9 @@ enum Preprocessor {
 
         for date in dates {
             let dayActivities = grouped[date] ?? []
-            let sleepMinutes = sleepActivities.reduce(0.0) {
-                $0 + ActivityDayAttribution.clippedDuration($1, on: date, calendar: calendar)
-            } / 60.0
+            let sleepMinutes = ActivityDayAttribution.totalClippedDuration(
+                sleepActivities, on: date, calendar: calendar
+            ) / 60.0
 
             if dayActivities.isEmpty {
                 if sleepMinutes > 0 {

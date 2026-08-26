@@ -73,10 +73,12 @@ final class HospitalReportViewModel {
 
         let activities: [Activity]
         do {
+            // -1d: 전날 밤 시작해 기간 첫날 새벽에 끝난 잠까지. Preprocessor 는 세는 것을
+            // 이미 기간으로 걸러 내고(aggregate 내부 filter) 수면만 자정 클립하므로 그대로 넘긴다.
             activities = try await FirestoreService.shared.fetchActivities(
                 userId: userId,
                 babyId: baby.id,
-                from: period.from,
+                from: period.from.adding(days: -1),
                 to: period.to
             )
         } catch {

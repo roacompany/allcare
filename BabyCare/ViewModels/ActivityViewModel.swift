@@ -68,26 +68,46 @@ final class ActivityViewModel: OptimisticReplaceable {
         self.firestoreService = firestoreService
     }
 
+    // MARK: - Reset (로그아웃/계정 전환)
+
+    /// 사용자 스코프 캐시 초기화 — AppState.resetUserScopedState 에서 호출.
+    /// 🔑 목록을 AppState 가 아니라 **속성 옆인 여기** 둔다. 새 캐시를 더할 때 같은 파일에서 눈에 띈다
+    /// (이 레포에서 「지울 것을 딴 파일에 나열」하다 조용히 빠뜨린 적이 있다).
+    func reset() {
+        todayActivities = []
+        recentWeekActivities = []   // recentFeedingActivities 는 여기서 파생 — 따로 지울 것 없다
+        recentTemperatureActivities = []
+        inventoryActivities = []
+        weeklyInsights = []
+        lastFeeding = nil
+        lastSleep = nil
+        lastDiaper = nil
+    }
+
     // MARK: - Computed Summaries (중복 상태 제거)
 
+    /// 횟수·양은 오늘 시작한 것만 — 하루 조회가 「오늘 끝난」 어젯밤 기록도 실어 온다 (ActivityDayAttribution)
+    private var activitiesStartedToday: [Activity] {
+        ActivityDayAttribution.startedOn(todayActivities, day: Date())
+    }
+
     var todayFeedingCount: Int {
-        todayActivities.filter { $0.type.category == .feeding }.count
+        activitiesStartedToday.filter { $0.type.category == .feeding }.count
     }
 
     var todaySleepDuration: TimeInterval {
         // 자정 클립 — 전날 밤 시작해 오늘 아침 끝난 수면은 오늘 구간만 합산 (ActivityDayAttribution)
-        let today = Date()
-        return todayActivities.filter { $0.type == .sleep }
-            .map { ActivityDayAttribution.clippedDuration($0, on: today) }
-            .reduce(0, +)
+        ActivityDayAttribution.totalClippedDuration(
+            todayActivities.filter { $0.type == .sleep }, on: Date()
+        )
     }
 
     var todayDiaperCount: Int {
-        todayActivities.filter { $0.type.category == .diaper }.count
+        activitiesStartedToday.filter { $0.type.category == .diaper }.count
     }
 
     var todayTotalMl: Double {
-        todayActivities.filter { $0.type.category == .feeding }.compactMap(\.amount).reduce(0, +)
+        activitiesStartedToday.filter { $0.type.category == .feeding }.compactMap(\.amount).reduce(0, +)
     }
 
     // MARK: - Weekly Insights
@@ -97,8 +117,11 @@ final class ActivityViewModel: OptimisticReplaceable {
 
     // MARK: - Predictions
 
-    /// 최근 7일 수유 데이터 (loadTodayActivities에서 함께 로드)
-    var recentFeedingActivities: [Activity] = []
+    /// 최근 7일 수유 데이터 — `recentWeekActivities` 에서 **파생**한다.
+    /// 🔑 따로 담아 두면 둘이 갈라진다(한쪽만 채운 채 「마지막 수유」를 물으면 빈칸이 된다).
+    var recentFeedingActivities: [Activity] {
+        recentWeekActivities.filter { $0.type.category == .feeding }
+    }
     /// 최근 7일 전체 활동 (주간 인사이트/컨텍스트 계산용)
     var recentWeekActivities: [Activity] = []
     /// 최근 48시간 체온 데이터 — 자정 경계 야간 발열 감지용
@@ -162,7 +185,6 @@ final class ActivityViewModel: OptimisticReplaceable {
                         userId: userId, babyId: babyId, from: weekAgo, to: todayStart
                     )
                 }
-                recentFeedingActivities = recentWeekActivities.filter { $0.type.category == .feeding }
             }
             // recentFeedingActivities 로드 완료 후 derive — 자정 경계 fallback 가능
             deriveLatestActivities()
@@ -272,21 +294,18 @@ final class ActivityViewModel: OptimisticReplaceable {
     }
 
     /// todayActivities에서 최근 수유/수면/기저귀를 추출 (Firestore 추가 쿼리 없음)
-    /// 자정 경계: todayActivities에 수유 기록이 없으면 recentFeedingActivities에서 fallback
+    /// 🔑 자정 경계 fallback — 오늘 기록이 아직 없으면 최근 7일에서 가장 최근 것을 보여준다.
+    /// 새벽 0시 10분에 1시간 전 기저귀가 「오늘 기록 없음」이 되던 결함(수유에만 fallback 이 있었다).
+    /// 셋이 같은 규칙을 쓰도록 한 자리에 모은다 — 여기 하나만 빠지면 그 칸만 조용히 빈다.
     func deriveLatestActivities() {
-        let feedings = todayActivities.filter { $0.type.category == .feeding }
-        if let todayLatest = feedings.max(by: { $0.startTime < $1.startTime }) {
-            lastFeeding = todayLatest
-        } else {
-            // 자정 경계 fallback — 오늘 수유가 없을 경우 최근 7일 수유 중 가장 최근 항목 사용
-            lastFeeding = recentFeedingActivities.max(by: { $0.startTime < $1.startTime })
+        func latest(_ isMatch: (Activity) -> Bool) -> Activity? {
+            todayActivities.filter(isMatch).max(by: { $0.startTime < $1.startTime })
+                ?? recentWeekActivities.filter(isMatch).max(by: { $0.startTime < $1.startTime })
         }
 
-        let sleeps = todayActivities.filter { $0.type == .sleep }
-        lastSleep = sleeps.max(by: { $0.startTime < $1.startTime })
-
-        let diapers = todayActivities.filter { $0.type.category == .diaper }
-        lastDiaper = diapers.max(by: { $0.startTime < $1.startTime })
+        lastFeeding = latest { $0.type.category == .feeding }
+        lastSleep = latest { $0.type == .sleep }
+        lastDiaper = latest { $0.type.category == .diaper }
     }
 
     // MARK: - Timer (ActivityTimerManager에 위임)

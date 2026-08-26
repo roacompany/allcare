@@ -97,9 +97,11 @@ final class PatternReportViewModel {
         }
 
         do {
+            // -1d: 전날 밤 시작해 기간 첫날 새벽에 끝난 잠까지 불러온다.
+            // 기간 밖에서 시작한 것은 analyze 안에서 걷어낸다(횟수·막대엔 안 들어간다).
             let activities = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
-                from: startDate.startOfDay, to: endDate.endOfDay
+                from: startDate.startOfDay.adding(days: -1), to: endDate.endOfDay
             )
 
             report = PatternAnalysisService.analyze(
@@ -158,7 +160,7 @@ final class PatternReportViewModel {
         do {
             let previousActivities = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
-                from: previousStart.startOfDay, to: previousEnd.endOfDay
+                from: previousStart.startOfDay.adding(days: -1), to: previousEnd.endOfDay
             )
 
             self.report = PatternAnalysisService.analyzeComparison(

@@ -119,6 +119,10 @@ extension PumpedMilkInventory {
     /// Activity 목록 → 재고 State. feedingPumping(+storage)=배치, feedingBottle+breastMilk=소비.
     /// storage nil(구 기록)=냉장 가정(spec §2.4). pumpDiscarded=true 배치 제외.
     static func fromActivities(_ activities: [Activity], now: Date) -> State {
+        // 🔑 id 중복 제거 — 호출부가 여러 목록을 합쳐 넘긴다(todayActivities + recentWeekActivities).
+        // 자정을 넘긴 모유(병) 수유는 양쪽 목록에 다 들어오므로, 거르지 않으면 재고에서 두 번 차감된다.
+        var seen = Set<String>()
+        let activities = activities.filter { seen.insert($0.id).inserted }
         let pumps = activities
             .filter { $0.type == .feedingPumping && $0.pumpDiscarded != true }
             .map { PumpInput(id: $0.id, amount: $0.amount ?? 0, pumpedAt: $0.startTime, storage: $0.pumpStorage ?? .fridge) }
