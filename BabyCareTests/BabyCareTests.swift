@@ -1214,7 +1214,7 @@ final class BabyCareTests: XCTestCase {
         let yesterday = Date().addingTimeInterval(-3600) // 1시간 전 (어제 혹은 오늘 초반)
         let recentFeeding = Activity(id: "rf1", babyId: "b1", type: .feedingBreast, startTime: yesterday)
         vm.todayActivities = []
-        vm.recentFeedingActivities = [recentFeeding]
+        vm.recentWeekActivities = [recentFeeding]   // recentFeedingActivities 는 여기서 파생된다
         vm.deriveLatestActivities()
         XCTAssertNotNil(vm.lastFeeding, "오늘 수유 없을 때 recentFeedingActivities에서 lastFeeding을 fallback해야 합니다")
         XCTAssertEqual(vm.lastFeeding?.id, "rf1", "fallback된 lastFeeding은 recentFeedingActivities의 항목이어야 합니다")
@@ -2176,11 +2176,19 @@ final class BabyCareTests: XCTestCase {
 
         let ratios = SleepAnalysisService.computeNapNightRatios(sleepActivities: activities)
         XCTAssertFalse(ratios.isEmpty)
-        if let ratio = ratios.first {
-            XCTAssertEqual(ratio.napHours ?? 0, 2.0, accuracy: 0.01)
-            XCTAssertEqual(ratio.nightHours ?? 0, 8.0, accuracy: 0.01)
-            XCTAssertEqual(ratio.napRatio ?? 0, 0.2, accuracy: 0.01)
-        }
+
+        // 🔑 밤잠은 자정을 넘으면 두 날이 나눠 갖는다 — 21시 시작 8시간이면 그날 3시간·다음날 5시간.
+        // (예전엔 시작일에 8시간이 통째로 몰려, 잔 날의 새벽 몫이 사라졌다)
+        XCTAssertEqual(ratios.first?.napHours ?? 0, 2.0, accuracy: 0.01, "낮잠은 그날 안에 끝난다")
+        XCTAssertEqual(ratios.first?.nightHours ?? 0, 3.0, accuracy: 0.01, "첫날 밤잠 몫 = 21~24시")
+        XCTAssertEqual(ratios.first?.napRatio ?? 0, 2.0 / 5.0, accuracy: 0.01)
+        XCTAssertEqual(ratios.last?.nightHours ?? 0, 5.0, accuracy: 0.01, "다음날 몫 = 0~5시")
+
+        // 나눠 갖더라도 잔 시간의 총합은 그대로여야 한다
+        XCTAssertEqual(ratios.reduce(0) { $0 + ($1.nightHours ?? 0) }, 8.0, accuracy: 0.01,
+                       "밤잠 총합 8시간 보존")
+        XCTAssertEqual(ratios.reduce(0) { $0 + ($1.napHours ?? 0) }, 2.0, accuracy: 0.01,
+                       "낮잠 총합 2시간 보존")
     }
 
     func testSleepAnalysis_computeQualityScore_noData_returnsNil() {
@@ -2821,6 +2829,250 @@ final class BabyCareTests: XCTestCase {
         let merged = ActivityDayAttribution.mergeDayResults([c, b], [a, b])
         XCTAssertEqual(merged.map(\.id), ["c", "b", "a"], "id dedupe + startTime 내림차순 (기존 fetch 정렬 계약 유지)")
     }
+
+    // MARK: - 달력 일일 요약: 자정 넘김 수면 (PO 신고 2026-08-26)
+    // 하루 조회는 「그날 시작」 + 「그날 끝」 두 쿼리를 합쳐 오므로, 자정을 넘긴 밤잠 하나가
+    // 어제·오늘 양쪽 목록에 들어온다. 여기서 전체 duration 을 더하면 같은 잠이 양쪽에서
+    // 통째로 세어져 오늘 합계에 어젯밤 시간이 섞인다.
+
+    /// 어제 22:00 취침 → 오늘 07:00 기상(9h) + 오늘 낮잠 13~14시(1h)
+    private func overnightSleepFixture() -> (yesterdayNoon: Date, todayNoon: Date, activities: [Activity]) {
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart)!
+        let overnight = sleepActivity(
+            id: "overnight",
+            start: todayStart.addingTimeInterval(-2 * 3600),   // 어제 22:00
+            end: todayStart.addingTimeInterval(7 * 3600)       // 오늘 07:00
+        )
+        let nap = sleepActivity(
+            id: "nap",
+            start: todayStart.addingTimeInterval(13 * 3600),
+            end: todayStart.addingTimeInterval(14 * 3600)
+        )
+        return (yesterdayStart.addingTimeInterval(12 * 3600),
+                todayStart.addingTimeInterval(12 * 3600),
+                [overnight, nap])
+    }
+
+    @MainActor
+    func testCalendarSleepHours_overnightSleepDoesNotLeakIntoNextDay() {
+        let f = overnightSleepFixture()
+        let vm = CalendarViewModel()
+        vm.selectedDate = f.todayNoon
+        vm.activitiesForDate = f.activities   // 하루 조회가 자정 넘김 기록을 함께 실어 온다
+
+        XCTAssertEqual(vm.sleepHours, 8.0, accuracy: 0.01,
+                       "오늘 몫은 자정~07시 7시간 + 낮잠 1시간 = 8시간. 어젯밤 22~24시가 섞이면 안 된다")
+    }
+
+    @MainActor
+    func testCalendarSleepHours_overnightSleepCountsOnlyPreMidnightPartOnStartDay() {
+        let f = overnightSleepFixture()
+        let vm = CalendarViewModel()
+        vm.selectedDate = f.yesterdayNoon
+        vm.activitiesForDate = [f.activities[0]]   // 어제 목록엔 그 밤잠만 (그날 시작한 기록)
+
+        XCTAssertEqual(vm.sleepHours, 2.0, accuracy: 0.01,
+                       "어제 몫은 22~24시 2시간. 다음날 아침까지 잔 9시간 전부가 어제로 가면 안 된다")
+    }
+
+    /// 🔑 판정은 하나 — 「그날 총 수면」을 말하는 자리가 갈라지면 여기서 빨강.
+    /// 새 화면이 자기 식으로 duration 을 더하기 시작하면 이 대조가 잡는다.
+    @MainActor
+    func testDailySleepHours_everySurfaceAgreesOnMidnightCrossingSleep() {
+        let f = overnightSleepFixture()
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: f.todayNoon)
+        let yesterdayStart = cal.date(byAdding: .day, value: -1, to: todayStart)!
+        let expectedToday = 8.0    // 자정~07시 7h + 낮잠 1h
+        let expectedYesterday = 2.0 // 22~24시
+
+        func hours(_ pairs: [(date: Date, hours: Double)], on day: Date) -> Double? {
+            pairs.first { cal.isDate($0.date, inSameDayAs: day) }?.hours
+        }
+
+        // ① 공용 판정 (기준)
+        XCTAssertEqual(ActivityDayAttribution.totalClippedDuration(f.activities, on: f.todayNoon) / 3600,
+                       expectedToday, accuracy: 0.01, "공용 판정")
+
+        // ② 달력 일일 요약
+        let calVM = CalendarViewModel()
+        calVM.selectedDate = f.todayNoon
+        calVM.activitiesForDate = f.activities
+        XCTAssertEqual(calVM.sleepHours, expectedToday, accuracy: 0.01, "달력 일일 요약")
+
+        // ③ 통계 일별 막대
+        let statsVM = StatsViewModel()
+        statsVM.weeklyActivities = f.activities
+        XCTAssertEqual(hours(statsVM.dailySleepDurations, on: f.todayNoon) ?? -1,
+                       expectedToday, accuracy: 0.01, "통계 일별 막대(오늘)")
+        XCTAssertEqual(hours(statsVM.dailySleepDurations, on: f.yesterdayNoon) ?? -1,
+                       expectedYesterday, accuracy: 0.01, "통계 일별 막대(어제)")
+
+        // ④ 패턴 리포트 일별 그래프
+        let pattern = PatternAnalysisService.analyzeSleep(
+            activities: f.activities, days: 2,
+            startDate: yesterdayStart, endDate: todayStart.addingTimeInterval(24 * 3600 - 1)
+        )
+        XCTAssertEqual(hours(pattern.dailyHours, on: f.todayNoon) ?? -1,
+                       expectedToday, accuracy: 0.01, "패턴 리포트(오늘)")
+        XCTAssertEqual(hours(pattern.dailyHours, on: f.yesterdayNoon) ?? -1,
+                       expectedYesterday, accuracy: 0.01, "패턴 리포트(어제)")
+
+        // ⑤ 두 날을 합쳐도 실제 잔 시간(10h)을 넘지 않는다 — 이중 계상 봉쇄
+        let both = (hours(statsVM.dailySleepDurations, on: f.yesterdayNoon) ?? 0)
+            + (hours(statsVM.dailySleepDurations, on: f.todayNoon) ?? 0)
+        XCTAssertEqual(both, 10.0, accuracy: 0.01, "밤잠 9h + 낮잠 1h = 10h. 같은 잠이 두 번 세어지면 안 된다")
+    }
+
+    /// 어제 23:55 시작 → 오늘 00:15 종료, 모유(병) 120ml
+    private func midnightCrossingBottle() -> Activity {
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        var a = Activity(babyId: "b1", type: .feedingBottle)
+        a.id = "cross-feed"
+        a.feedingContent = .breastMilk
+        a.startTime = todayStart.addingTimeInterval(-5 * 60)
+        a.endTime = todayStart.addingTimeInterval(15 * 60)
+        a.duration = 20 * 60
+        a.amount = 120
+        return a
+    }
+
+    /// 횟수·양은 나눌 수 없으니 시작한 날 하루에만 — 양쪽에서 1회씩 세어지면 안 된다
+    @MainActor
+    func testDailyCounts_midnightCrossingFeedingCountedOnStartDayOnly() {
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let feed = midnightCrossingBottle()
+
+        let vm = CalendarViewModel()
+        vm.activitiesForDate = [feed]   // 하루 조회는 양쪽 날짜에 이 기록을 실어 온다
+
+        vm.selectedDate = todayStart.addingTimeInterval(12 * 3600)
+        XCTAssertEqual(vm.feedingCount, 0, "오늘 시작한 수유는 없다")
+        XCTAssertEqual(vm.totalMl, 0, accuracy: 0.01, "어젯밤 수유량이 오늘로 넘어오면 안 된다")
+
+        vm.selectedDate = todayStart.addingTimeInterval(-12 * 3600)
+        XCTAssertEqual(vm.feedingCount, 1, "시작한 날인 어제에 1회")
+        XCTAssertEqual(vm.totalMl, 120, accuracy: 0.01, "양도 시작한 날에만")
+    }
+
+    /// 홈 오늘 요약 = 위젯이 그대로 싣는 값 — 어젯밤 수유가 오늘로 새면 위젯까지 틀린다
+    @MainActor
+    func testTodaySummary_midnightCrossingFeedingDoesNotLeakIntoToday() {
+        let vm = ActivityViewModel()
+        vm.todayActivities = [midnightCrossingBottle()]
+        XCTAssertEqual(vm.todayFeedingCount, 0, "오늘 시작한 수유 0회")
+        XCTAssertEqual(vm.todayTotalMl, 0, accuracy: 0.01, "오늘 먹인 양 0ml")
+    }
+
+    /// 유축 재고 — 호출부가 두 목록을 합쳐 넘기므로 같은 기록이 두 번 들어올 수 있다
+    func testPumpedMilkInventory_duplicateActivityConsumedOnlyOnce() {
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        var pump = Activity(babyId: "b1", type: .feedingPumping)
+        pump.id = "pump-1"
+        pump.startTime = todayStart.addingTimeInterval(-6 * 3600)
+        pump.amount = 200
+        pump.pumpStorage = .fridge
+        let feed = midnightCrossingBottle()
+
+        let once = PumpedMilkInventory.fromActivities([pump, feed], now: Date())
+        let duplicated = PumpedMilkInventory.fromActivities([pump, feed, feed], now: Date())
+
+        XCTAssertEqual(once.totalRemaining, 80, accuracy: 0.01, "유축 200 - 먹인 120 = 80")
+        XCTAssertEqual(duplicated.totalRemaining, once.totalRemaining, accuracy: 0.01,
+                       "같은 기록이 두 번 들어와도 재고는 같아야 한다 (두 번 차감 금지)")
+    }
+
+    // MARK: - 자정 넘김 ①②③ (PO 지시 2026-08-26)
+
+    /// ① 기간 리포트: 기간 밖에서 시작해 기간 안으로 이어진 밤잠은
+    ///    (ㄱ) 첫날 몫이 잡혀야 하고 (ㄴ) 기간 밖 날짜에 유령 막대를 만들면 안 된다.
+    func testPeriodReport_carriedInSleepCountsOnFirstDayWithoutGhostBar() {
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let carriedIn = sleepActivity(                       // 어제 22:00 → 오늘 07:00
+            id: "carried",
+            start: todayStart.addingTimeInterval(-2 * 3600),
+            end: todayStart.addingTimeInterval(7 * 3600)
+        )
+        let nap = sleepActivity(                             // 오늘 13~14시
+            id: "nap",
+            start: todayStart.addingTimeInterval(13 * 3600),
+            end: todayStart.addingTimeInterval(14 * 3600)
+        )
+
+        var carriedInFeed = Activity(babyId: "b1", type: .feedingBottle)   // 어제 23:55 → 오늘 00:15
+        carriedInFeed.id = "carried-feed"
+        carriedInFeed.startTime = todayStart.addingTimeInterval(-5 * 60)
+        carriedInFeed.endTime = todayStart.addingTimeInterval(15 * 60)
+        carriedInFeed.duration = 20 * 60
+        carriedInFeed.amount = 120
+
+        let report = PatternAnalysisService.analyze(
+            activities: [carriedIn, carriedInFeed, nap], period: "주간",
+            startDate: todayStart, endDate: todayStart.addingTimeInterval(24 * 3600 - 1)
+        )
+
+        XCTAssertEqual(report.sleep.dailyHours.count, 1,
+                       "기간은 오늘 하루뿐 — 어제 막대가 생기면 안 된다(조회를 하루 앞당겨 부르므로)")
+        XCTAssertEqual(report.sleep.dailyHours.first?.hours ?? -1, 8.0, accuracy: 0.01,
+                       "오늘 몫 = 자정~07시 7시간 + 낮잠 1시간")
+        XCTAssertEqual(report.feeding.totalCount, 0,
+                       "기간 밖에서 시작한 기록은 횟수에 들어오면 안 된다")
+    }
+
+    /// ② 자정 직후 — 오늘 기록이 아직 없어도 「마지막 …」은 어제 것을 보여준다.
+    ///    수유에만 있던 fallback 이 수면·기저귀엔 없어 새벽에 빈칸이 됐다.
+    @MainActor
+    func testLatestActivities_fallsBackToRecentWeekForSleepAndDiaperAfterMidnight() {
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        var ySleep = Activity(babyId: "b1", type: .sleep)
+        ySleep.id = "y-sleep"
+        ySleep.startTime = todayStart.addingTimeInterval(-4 * 3600)
+        ySleep.endTime = todayStart.addingTimeInterval(-3 * 3600)
+        ySleep.duration = 3600
+        var yDiaper = Activity(babyId: "b1", type: .diaperWet)
+        yDiaper.id = "y-diaper"
+        yDiaper.startTime = todayStart.addingTimeInterval(-1 * 3600)
+        var yFeed = Activity(babyId: "b1", type: .feedingBottle)
+        yFeed.id = "y-feed"
+        yFeed.startTime = todayStart.addingTimeInterval(-2 * 3600)
+        yFeed.amount = 100
+
+        let vm = ActivityViewModel()
+        vm.todayActivities = []                       // 자정 직후 — 오늘 기록 아직 없음
+        vm.recentWeekActivities = [ySleep, yDiaper, yFeed]
+        vm.deriveLatestActivities()
+
+        XCTAssertEqual(vm.lastFeeding?.id, "y-feed", "수유는 원래도 됐다")
+        XCTAssertEqual(vm.lastSleep?.id, "y-sleep", "새벽에 마지막 수면이 빈칸이 되면 안 된다")
+        XCTAssertEqual(vm.lastDiaper?.id, "y-diaper", "1시간 전에 간 기저귀가 「오늘 기록 없음」이면 안 된다")
+    }
+
+    /// ③ 낮잠/밤잠 비율 — 밤잠이 시작한 날에 통째로 몰리면 안 되고,
+    ///    넘어간 날의 몫도 사라지면 안 된다.
+    func testNapNightRatios_overnightSleepSplitsAcrossBothDays() {
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: Date())
+        let yesterday = cal.date(byAdding: .day, value: -1, to: todayStart)!
+        let overnight = sleepActivity(id: "n", start: todayStart.addingTimeInterval(-2 * 3600),
+                                      end: todayStart.addingTimeInterval(7 * 3600))
+        let nap = sleepActivity(id: "d", start: todayStart.addingTimeInterval(13 * 3600),
+                                end: todayStart.addingTimeInterval(14 * 3600))
+
+        let ratios = SleepAnalysisService.computeNapNightRatios(sleepActivities: [overnight, nap])
+        func row(_ day: Date) -> NapNightRatio? {
+            ratios.first { $0.date.map { cal.isDate($0, inSameDayAs: day) } ?? false }
+        }
+
+        XCTAssertEqual(row(yesterday)?.nightHours ?? -1, 2.0, accuracy: 0.01, "어제 몫은 22~24시 2시간")
+        XCTAssertEqual(row(todayStart)?.nightHours ?? -1, 7.0, accuracy: 0.01, "오늘 새벽 7시간이 사라지면 안 된다")
+        XCTAssertEqual(row(todayStart)?.napHours ?? -1, 1.0, accuracy: 0.01, "오늘 낮잠 1시간")
+    }
+
+
 
     func testSupportsEndTime_matchesRecordViewShowEndTimeSet() {
         // 기록 뷰 showEndTime 집합과 동일: needsTimer(모유/병수유/수면) + 목욕

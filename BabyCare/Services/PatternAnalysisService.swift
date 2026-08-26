@@ -13,11 +13,15 @@ enum PatternAnalysisService {
         let calendar = Calendar.current
         let days = max(1, calendar.dateComponents([.day], from: startDate.startOfDay, to: endDate.startOfDay).day ?? 1)
 
-        let feeding = analyzeFeeding(activities: activities, days: days, startDate: startDate, endDate: endDate)
-        let sleep = analyzeSleep(activities: activities, days: days, startDate: startDate, endDate: endDate)
-        let diaper = analyzeDiaper(activities: activities, days: days)
-        let health = analyzeHealth(activities: activities)
-        let summary = analyzeSummary(activities: activities, startDate: startDate, endDate: endDate)
+        // 🔑 기간 조회는 자정 넘김 밤잠을 잡으려고 **하루 앞당겨** 부른다(호출부).
+        // 세는 자리(횟수·분포·막대)는 기간 안에서 시작한 것만 보고,
+        // 시간 합계만 걸친 것 전체를 보고 기간·날짜 경계로 자른다.
+        let inWindow = ActivityDayAttribution.startedWithin(activities, from: startDate.startOfDay, to: endDate)
+        let feeding = analyzeFeeding(activities: inWindow, days: days, startDate: startDate, endDate: endDate)
+        let sleep = analyzeSleep(activities: inWindow, spanning: activities, days: days, startDate: startDate, endDate: endDate)
+        let diaper = analyzeDiaper(activities: inWindow, days: days)
+        let health = analyzeHealth(activities: inWindow)
+        let summary = analyzeSummary(activities: inWindow, startDate: startDate, endDate: endDate)
 
         return PatternReport(
             period: period,
@@ -41,17 +45,28 @@ enum PatternAnalysisService {
         let calendar = Calendar.current
         let previousDays = max(1, calendar.dateComponents([.day], from: previousPeriod.start.startOfDay, to: previousPeriod.end.startOfDay).day ?? 1)
 
+        // 🔑 이번 기간과 **같은 자로** 재야 한다 — 이번 주는 자정으로 잘라 재는데
+        // 지난주만 통째로 더하면 비교가 사과 대 오렌지가 된다.
+        let prevInWindow = ActivityDayAttribution.startedWithin(
+            previousActivities, from: previousPeriod.start.startOfDay, to: previousPeriod.end
+        )
+
         // Previous feeding daily average
-        let prevFeedingCount = previousActivities.filter { $0.type.category == .feeding }.count
+        let prevFeedingCount = prevInWindow.filter { $0.type.category == .feeding }.count
         let prevFeedingDailyAverage = Double(prevFeedingCount) / Double(previousDays)
 
-        // Previous sleep daily average (hours)
+        // Previous sleep daily average (hours) — 기간 경계 클립
         let prevSleepActivities = previousActivities.filter { $0.type == .sleep }
-        let prevSleepTotalHours = prevSleepActivities.compactMap(\.duration).reduce(0, +) / 3600
+        let prevSleepTotalHours = prevSleepActivities.reduce(0.0) {
+            $0 + ActivityDayAttribution.clippedDuration(
+                from: previousPeriod.start, to: previousPeriod.end,
+                startTime: $1.startTime, endTime: $1.endTime, duration: $1.duration
+            )
+        } / 3600
         let prevSleepDailyAverageHours = prevSleepTotalHours / Double(previousDays)
 
         // Previous diaper daily average
-        let prevDiaperCount = previousActivities.filter { $0.type.category == .diaper }.count
+        let prevDiaperCount = prevInWindow.filter { $0.type.category == .diaper }.count
         let prevDiaperDailyAverage = Double(prevDiaperCount) / Double(previousDays)
 
         // Build updated pattern structs
@@ -169,13 +184,16 @@ enum PatternAnalysisService {
 
     // MARK: - Sleep
 
+    /// - Parameter spanning: 기간에 **걸친** 기록까지 포함한 목록(하루 앞당겨 부른 조회 결과).
+    ///   시간 합계만 이걸 보고 자른다. nil 이면 activities 와 같다(옛 호출부 호환).
     static func analyzeSleep(
-        activities: [Activity], days: Int, startDate: Date, endDate: Date
+        activities: [Activity], spanning: [Activity]? = nil, days: Int, startDate: Date, endDate: Date
     ) -> SleepPattern {
         let sleepActivities = activities.filter { $0.type == .sleep }
+        let spanningSleeps = (spanning ?? activities).filter { $0.type == .sleep }
 
         // 기간 경계 클립 — 자정 넘김 수면이 기간 밖 시간까지 합산되는 왜곡 방지 (D1)
-        let totalHours = sleepActivities.reduce(0.0) {
+        let totalHours = spanningSleeps.reduce(0.0) {
             $0 + ActivityDayAttribution.clippedDuration(
                 from: startDate, to: endDate,
                 startTime: $1.startTime, endTime: $1.endTime, duration: $1.duration
@@ -209,8 +227,10 @@ enum PatternAnalysisService {
         let peakSleepHours = computePeakHours(activities: sleepActivities, topN: 3)
 
         // Daily hours
-        let dailyHours = groupByDay(sleepActivities).map { date, acts in
-            (date: date, hours: acts.compactMap(\.duration).reduce(0, +) / 3600)
+        // 자정 클립 — 막대는 기간 안에서 시작한 날에만 세우고(유령 막대 방지),
+        // 그 날의 시간은 걸친 기록 전체에서 그 날짜 몫만 잘라 더한다.
+        let dailyHours = groupByDay(sleepActivities).map { date, _ in
+            (date: date, hours: ActivityDayAttribution.totalClippedDuration(spanningSleeps, on: date) / 3600)
         }.sorted { $0.date < $1.date }
 
         let analysis = SleepAnalysisService.analyze(sleepActivities: sleepActivities)

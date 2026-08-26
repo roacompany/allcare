@@ -38,10 +38,14 @@ enum PDFReportService {
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -periodDays, to: endDate) ?? endDate
         let filtered = activities.filter { $0.startTime >= startDate.startOfDay && $0.startTime <= endDate.endOfDay }
+        // 기간 밖(전날 밤)에서 시작해 기간 첫날 새벽으로 이어진 잠은 filtered 에서 빠진다.
+        // 시간 합계는 걸린 구간만큼 세야 하므로 거르지 않은 목록을 따로 들고 간다.
+        let spanningSleeps = activities.filter { $0.type == .sleep }
 
         let renderCtx = RenderContext(
             baby: baby, dateStr: dateStr, periodLabel: periodLabel,
-            filtered: filtered, startDate: startDate, periodDays: periodDays,
+            filtered: filtered, spanningSleeps: spanningSleeps,
+            startDate: startDate, endDate: endDate, periodDays: periodDays,
             growthRecords: growthRecords, checklistItems: checklistItems,
             margin: margin, contentWidth: contentWidth, pageHeight: pageHeight
         )
@@ -64,7 +68,9 @@ enum PDFReportService {
         let dateStr: String
         let periodLabel: String
         let filtered: [Activity]
+        let spanningSleeps: [Activity]
         let startDate: Date
+        let endDate: Date
         let periodDays: Int
         let growthRecords: [GrowthRecord]
         let checklistItems: [HospitalChecklistItem]
@@ -93,9 +99,8 @@ enum PDFReportService {
         let totalDays = max(1, ctx.periodDays)
 
         currentY = drawSummarySection(
-            feedings: feedings, sleeps: sleeps, diapers: diapers,
-            temperatures: temperatures, totalDays: totalDays,
-            margin: ctx.margin, contentWidth: ctx.contentWidth, currentY: currentY
+            ctx: ctx, feedings: feedings, sleeps: sleeps, diapers: diapers,
+            temperatures: temperatures, totalDays: totalDays, currentY: currentY
         )
         currentY = drawFeedingSection(
             context: context, feedings: feedings, startDate: ctx.startDate,
@@ -103,9 +108,7 @@ enum PDFReportService {
             pageHeight: ctx.pageHeight, currentY: currentY
         )
         currentY = drawSleepSection(
-            context: context, sleeps: sleeps, startDate: ctx.startDate,
-            periodDays: ctx.periodDays, margin: ctx.margin, contentWidth: ctx.contentWidth,
-            pageHeight: ctx.pageHeight, currentY: currentY
+            context: context, ctx: ctx, sleeps: sleeps, currentY: currentY
         )
         currentY = drawTemperatureSection(
             context: context, temperatures: temperatures,
@@ -182,19 +185,28 @@ enum PDFReportService {
 
     @discardableResult
     private static func drawSummarySection(
+        ctx: RenderContext,
         feedings: [Activity], sleeps: [Activity], diapers: [Activity],
-        temperatures: [Activity], totalDays: Int,
-        margin: CGFloat, contentWidth: CGFloat, currentY: CGFloat
+        temperatures: [Activity], totalDays: Int, currentY: CGFloat
     ) -> CGFloat {
         var y = currentY
+        let margin = ctx.margin
+        let contentWidth = ctx.contentWidth
+        // 기간 경계 클립 — 기간 밖으로 넘어간 잠은 넘어간 만큼 빼고, 넘어 들어온 잠은 들어온 만큼 더한다.
+        let sleepTotalHours = ctx.spanningSleeps.reduce(0.0) {
+            $0 + ActivityDayAttribution.clippedDuration(
+                from: ctx.startDate.startOfDay, to: ctx.endDate.endOfDay,
+                startTime: $1.startTime, endTime: $1.endTime, duration: $1.duration
+            )
+        } / 3600
         y = drawSectionTitle("종합 요약", at: CGPoint(x: margin, y: y), width: contentWidth)
         y += 8
         let summaryItems: [(String, String)] = [
             ("총 수유 횟수", "\(feedings.count)회 (일평균 \(String(format: "%.1f", Double(feedings.count) / Double(totalDays)))회)"),
             ("총 분유량", "\(Int(feedings.filter { $0.isFormulaBottle }.compactMap(\.amount).reduce(0, +)))ml"),
             ("총 수면 횟수", "\(sleeps.count)회"),
-            ("총 수면 시간", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600)),
-            ("일평균 수면", String(format: "%.1f시간", sleeps.compactMap(\.duration).reduce(0, +) / 3600 / Double(totalDays))),
+            ("총 수면 시간", String(format: "%.1f시간", sleepTotalHours)),
+            ("일평균 수면", String(format: "%.1f시간", sleepTotalHours / Double(totalDays))),
             ("총 기저귀 교체", "\(diapers.count)회"),
             ("체온 측정 횟수", "\(temperatures.count)회"),
         ]
@@ -246,20 +258,27 @@ enum PDFReportService {
 
     @discardableResult
     private static func drawSleepSection(
-        context: UIGraphicsPDFRendererContext,
-        sleeps: [Activity], startDate: Date, periodDays: Int,
-        margin: CGFloat, contentWidth: CGFloat, pageHeight: CGFloat, currentY: CGFloat
+        context: UIGraphicsPDFRendererContext, ctx: RenderContext,
+        sleeps: [Activity], currentY: CGFloat
     ) -> CGFloat {
+        let margin = ctx.margin
+        let contentWidth = ctx.contentWidth
+        let pageHeight = ctx.pageHeight
+        let spanningSleeps = ctx.spanningSleeps
         var y = checkPageBreak(context: context, currentY: currentY, needed: 200, pageHeight: pageHeight, margin: margin)
         y = drawDivider(y: y, x: margin, width: contentWidth); y += 12
         y = drawSectionTitle("수면 기록 상세", at: CGPoint(x: margin, y: y), width: contentWidth); y += 8
 
-        let sleepByDay = groupByDay(sleeps, startDate: startDate, days: periodDays)
+        let sleepByDay = groupByDay(sleeps, startDate: ctx.startDate, days: ctx.periodDays)
         y = drawDailyTable(
             context: context, title: "일자",
             headers: ["날짜", "횟수", "총 수면(시간)", "최장 수면"],
             rows: sleepByDay.map { day in
-                let totalHours = String(format: "%.1f", day.activities.compactMap(\.duration).reduce(0, +) / 3600)
+                // 자정 클립 — 총 수면은 그 날짜에 실제로 걸친 구간만 (횟수·최장 수면은 기록 단위라 시작일 귀속)
+                let totalHours = String(
+                    format: "%.1f",
+                    ActivityDayAttribution.totalClippedDuration(spanningSleeps, on: day.date) / 3600
+                )
                 let longestStr = day.activities.compactMap(\.duration).max().map { TimeInterval($0).shortDuration } ?? "-"
                 return [day.dateLabel, "\(day.activities.count)", totalHours, longestStr]
             },
@@ -734,6 +753,7 @@ enum PDFReportService {
     // MARK: - Data Grouping
 
     private struct DayGroup {
+        let date: Date
         let dateLabel: String
         let activities: [Activity]
     }
@@ -748,7 +768,7 @@ enum PDFReportService {
             let dayActivities = grouped[day] ?? []
             guard !dayActivities.isEmpty else { continue }
             let label = DateFormatters.shortDate.string(from: day)
-            result.append(DayGroup(dateLabel: label, activities: dayActivities))
+            result.append(DayGroup(date: day, dateLabel: label, activities: dayActivities))
         }
         return result
     }

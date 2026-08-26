@@ -28,21 +28,29 @@ final class CalendarViewModel {
 
     // MARK: - Daily Summary (선택 날짜 기준)
 
+    /// 횟수·양은 시작한 날 하루에만 — 하루 조회가 「그날 끝난」 기록도 실어 오기 때문 (ActivityDayAttribution)
+    private var activitiesStartedOnSelectedDate: [Activity] {
+        ActivityDayAttribution.startedOn(activitiesForDate, day: selectedDate)
+    }
+
     var feedingCount: Int {
-        activitiesForDate.filter { $0.type.category == .feeding }.count
+        activitiesStartedOnSelectedDate.filter { $0.type.category == .feeding }.count
     }
 
     var sleepHours: Double {
-        activitiesForDate.filter { $0.type == .sleep }
-            .compactMap(\.duration).reduce(0, +) / 3600
+        // 자정 클립 — 하루 조회가 「그날 끝난」 밤잠도 실어 오므로, 전체 duration 을 더하면
+        // 같은 잠이 어제·오늘 양쪽에서 통째로 세어진다 (ActivityDayAttribution)
+        ActivityDayAttribution.totalClippedDuration(
+            activitiesForDate.filter { $0.type == .sleep }, on: selectedDate
+        ) / 3600
     }
 
     var diaperCount: Int {
-        activitiesForDate.filter { $0.type.category == .diaper }.count
+        activitiesStartedOnSelectedDate.filter { $0.type.category == .diaper }.count
     }
 
     var totalMl: Double {
-        activitiesForDate.filter { $0.type.category == .feeding }
+        activitiesStartedOnSelectedDate.filter { $0.type.category == .feeding }
             .compactMap(\.amount).reduce(0, +)
     }
 

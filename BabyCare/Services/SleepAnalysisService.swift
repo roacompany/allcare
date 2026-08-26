@@ -151,20 +151,19 @@ enum SleepAnalysisService {
     /// 일별 낮잠/밤잠 시간 비율을 반환합니다 (낮 기준 06~18시).
     static func computeNapNightRatios(sleepActivities: [Activity]) -> [NapNightRatio] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: sleepActivities) {
-            calendar.startOfDay(for: $0.startTime)
+        // 자정 클립 — 밤잠은 두 날에 걸친다. 시작일에 통째로 몰면 넘어간 날의 몫이 사라진다.
+        // 낮잠/밤잠 구분은 기록의 시작 시각이 정한다(구간을 잘라도 그 잠의 성격은 그대로).
+        func isNap(_ act: Activity) -> Bool {
+            let hour = calendar.component(.hour, from: act.startTime)
+            return hour >= napStartHour && hour < napEndHour
         }
+        let naps = sleepActivities.filter(isNap)
+        let nights = sleepActivities.filter { !isNap($0) }
+        let days = Set(sleepActivities.flatMap { ActivityDayAttribution.spannedDays($0, calendar: calendar) })
 
-        return grouped.map { date, acts in
-            let napHours = acts.filter { act in
-                let hour = calendar.component(.hour, from: act.startTime)
-                return hour >= napStartHour && hour < napEndHour
-            }.compactMap(\.duration).reduce(0, +) / 3600
-
-            let nightHours = acts.filter { act in
-                let hour = calendar.component(.hour, from: act.startTime)
-                return hour < napStartHour || hour >= napEndHour
-            }.compactMap(\.duration).reduce(0, +) / 3600
+        return days.map { date -> NapNightRatio in
+            let napHours = ActivityDayAttribution.totalClippedDuration(naps, on: date, calendar: calendar) / 3600
+            let nightHours = ActivityDayAttribution.totalClippedDuration(nights, on: date, calendar: calendar) / 3600
 
             let totalHours = napHours + nightHours
             let napRatio = totalHours > 0 ? napHours / totalHours : 0.0

@@ -3,6 +3,9 @@ import Foundation
 @MainActor @Observable
 final class StatsViewModel {
     var weeklyActivities: [Activity] = []
+    /// 기간에 **걸친** 기록까지 포함(하루 앞당겨 부른 조회 결과) — 시간 합계 전용.
+    /// weeklyActivities 는 기간 안에서 시작한 것만 담아 CSV·PDF·횟수의 뜻이 바뀌지 않게 한다.
+    var spanningActivities: [Activity] = []
     var isLoading = false
     var errorMessage: String?
     var selectedPeriod: StatsPeriod = .week
@@ -66,13 +69,16 @@ final class StatsViewModel {
         weeklyActivities.filter { $0.type == .sleep }
     }
 
+    /// 전날 밤 시작해 기간 첫날 새벽까지 이어진 잠을 포함한 목록 — 시간 합계는 이걸 자른다.
+    private var spanningSleepActivities: [Activity] {
+        spanningActivities.isEmpty ? sleepActivities : spanningActivities.filter { $0.type == .sleep }
+    }
+
     var dailySleepDurations: [(date: Date, hours: Double)] {
         // 하루 귀속(자정 클립) — 자정 넘김 밤잠이 시작일 막대에 몰리는 왜곡 방지 (D1).
         // 한계: 해당 날짜에 시작 기록이 하나도 없으면 막대 자체가 없음(키 생성은 시작일 기준 유지).
         groupByDay(sleepActivities).map { date, _ in
-            let hours = sleepActivities.reduce(0.0) {
-                $0 + ActivityDayAttribution.clippedDuration($1, on: date)
-            } / 3600
+            let hours = ActivityDayAttribution.totalClippedDuration(spanningSleepActivities, on: date) / 3600
             return (date, hours)
         }
         .sorted { $0.date < $1.date }
@@ -113,12 +119,19 @@ final class StatsViewModel {
         }
 
         do {
-            weeklyActivities = try await firestoreService.fetchActivities(
+            // -1d: 전날 밤 시작해 기간 첫날 새벽에 끝난 잠을 함께 불러온다.
+            // (기간 조회는 시작 시각만 묻기 때문에, 앞당기지 않으면 첫날 새벽 몫이 통째로 빠진다)
+            let fetched = try await firestoreService.fetchActivities(
                 userId: userId, babyId: babyId,
-                from: startDate.startOfDay, to: endDate.endOfDay
+                from: startDate.startOfDay.adding(days: -1), to: endDate.endOfDay
+            )
+            spanningActivities = fetched
+            weeklyActivities = ActivityDayAttribution.startedWithin(
+                fetched, from: startDate.startOfDay, to: endDate.endOfDay
             )
         } catch {
             weeklyActivities = []
+            spanningActivities = []
             errorMessage = "통계 데이터를 불러오지 못했습니다."
         }
     }
