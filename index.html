@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>베이비케어 - 임신부터 육아까지, AI 육아기록</title>
+
+  <!-- 글꼴: 한글=Pretendard / 영문·숫자=Outfit.
+       Outfit 을 먼저 적는 이유 = 브라우저는 글자마다 앞에서부터 찾는다.
+       Outfit 에 한글 글리프가 없으므로 한글은 자동으로 Pretendard 로 떨어진다.
+       (순서를 뒤집으면 영문까지 Pretendard 가 먹어 Outfit 이 한 글자도 안 쓰인다)
+       Outfit 은 우리가 직접 갖고 있다 → fonts/outfit-latin.woff2 (아래 @font-face) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="fonts/outfit-latin.woff2" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
   <meta name="description" content="임신 D-day·태동부터 유축·수유 기록, 수면 분석, 성장 곡선, 병원 AI 리포트까지. 유축한 모유의 재고와 먹인 양을 따로 기록해 통계가 정확한 임신·육아 기록 앱.">
   <meta name="keywords" content="임신 기록, 임신 앱, 태동 카운터, 산전 체크리스트, 임신 위젯, 출산 예정일, D-day, 육아 기록, 아기 성장, 수유 기록, 수유 예측, 수면 분석, 수면 퇴행, 예방접종, 베이비케어, 육아 앱, 아기 건강기록, 성장곡선, 이유식, 알레르기, AI 육아 조언, 위젯">
   <meta name="robots" content="index, follow">
@@ -54,13 +63,6 @@
       "price": "0",
       "priceCurrency": "KRW"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "12",
-      "bestRating": "5",
-      "worstRating": "1"
-    },
     "description": "임신 D-day·태동·산전 체크리스트부터 AI 수유·수면·성장 분석, 병원 AI 리포트까지. 임신부터 육아까지 끊김 없이.",
     "url": "https://roacompany.github.io/allcare/",
     "downloadUrl": "https://apps.apple.com/kr/app/id6759935352",
@@ -93,6 +95,21 @@
   }
   </script>
   <style>
+    /* Outfit — SIL Open Font License 1.1 (fonts/OFL.txt). 라틴 서브셋 가변 woff2 32KB.
+       🩸 범위를 자르는 것이 이 선언의 핵심이다.
+          Outfit 은 U+0000-00FF 를 통째로 주장하는데, 거기엔 한국어 구분점 「·」(U+00B7) 이 들어 있다.
+          그러면 「소변·대변·목욕」의 점이 라틴용 좁은 점(1.94px)으로 그려져 눈에 안 보인다
+          — 실제로 이 페이지 52곳이 「소변대변목욕」처럼 붙어 보였다(실측으로 걸렸다).
+          그래서 Outfit 에게는 영문자·숫자·+ 만 맡기고, 문장부호는 Pretendard 가 맡는다. */
+    @font-face {
+      font-family: 'Outfit';
+      src: url('fonts/outfit-latin.woff2') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+      unicode-range: U+0041-005A, U+0061-007A, U+0030-0039, U+002B;
+    }
+
     :root {
       --system-bg: #FFFFFF;
       --secondary-bg: #F2F2F7;
@@ -116,7 +133,25 @@
       --indigo: #5856D6;
       --card-radius: 16px;
       --section-radius: 20px;
-      --system-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+      --system-font: 'Outfit', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+      /* ── 글자 ──────────────────────────────────────────────
+         자간은 한 곳에서만 정한다. 규칙마다 적으면 12종으로 흩어진다(전에 그랬다). */
+      --tracking: -0.04em;
+
+      /* 크기 7단 — 이 목록에 없는 크기는 쓰지 않는다 */
+      --fs-display:  34px;  /* 앱 이름. 이 페이지에 한 곳 */
+      --fs-title:    24px;  /* 큰 제목 */
+      --fs-section:  20px;  /* 섹션 제목 */
+      --fs-subtitle: 17px;  /* 섹션 부제 · 버튼 */
+      --fs-body:     15px;  /* 본문 · 행 제목 */
+      --fs-caption:  13px;  /* 행 설명 · 보조 */
+      --fs-micro:    11px;  /* 배지 · 푸터 */
+
+      /* 굵기 3단 — 700 은 앱 이름 한 곳에만 */
+      --w-bold:   600;  /* 제목 */
+      --w-medium: 500;  /* 행 제목 · 버튼 · 라벨 */
+      --w-body:   400;  /* 나머지 전부 */
     }
 
     @media (prefers-color-scheme: dark) {
@@ -137,7 +172,14 @@
       }
     }
 
+    /* 자간은 여기 한 줄이 전부다.
+       ⚠️ body 에만 주면 안 된다 — em 자간은 "선언한 그 요소의 크기"로 px 이 되어 상속되므로
+          body(16px) 기준 -0.64px 이 34px 제목까지 따라간다(-1.9%). 실측으로 걸렸다.
+       * 로 주면 요소마다 제 크기로 다시 풀려 어디서나 정확히 -4% 다.
+       ★ 별 간격처럼 일부러 벌린 자리는 클래스가 이겨서 그대로 남는다. */
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* ::before/::after 는 * 가 안 잡는다 — 빼면 그 자리만 조용히 다른 자간이 된다(실측 -2.8%) */
+    *, *::before, *::after { letter-spacing: var(--tracking); }
 
     html { scroll-behavior: smooth; }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -155,40 +197,27 @@
       overflow-wrap: break-word;
     }
 
-    /* ===== TYPOGRAPHY (iOS 17 Scale) ===== */
-    .large-title {
-      font-size: 34px; font-weight: 700; letter-spacing: 0.37px; line-height: 1.2;
-    }
-    .title1 {
-      font-size: 28px; font-weight: 700; letter-spacing: 0.36px; line-height: 1.2;
-    }
-    .title2 {
-      font-size: 22px; font-weight: 700; letter-spacing: 0.35px; line-height: 1.27;
-    }
-    .title3 {
-      font-size: 20px; font-weight: 600; letter-spacing: 0.38px; line-height: 1.25;
-    }
-    .headline {
-      font-size: 17px; font-weight: 600; letter-spacing: -0.41px; line-height: 1.3;
-    }
-    .body-text {
-      font-size: 17px; font-weight: 400; letter-spacing: -0.41px; line-height: 1.47;
-    }
-    .callout {
-      font-size: 16px; font-weight: 400; letter-spacing: -0.32px; line-height: 1.375;
-    }
-    .subheadline {
-      font-size: 15px; font-weight: 400; letter-spacing: -0.24px; line-height: 1.33;
-    }
-    .footnote {
-      font-size: 13px; font-weight: 400; letter-spacing: -0.08px; line-height: 1.38;
-    }
-    .caption1 {
-      font-size: 12px; font-weight: 400; letter-spacing: 0; line-height: 1.33;
-    }
-    .caption2 {
-      font-size: 11px; font-weight: 400; letter-spacing: 0.07px; line-height: 1.18;
-    }
+    /* ===== 글자 — 역할 6개가 전부다 =====
+       ⛔ 새 크기·굵기를 규칙마다 적지 말 것. 위 :root 토큰에서 고른다.
+          (전에는 크기 14종 · 자간 12종이 흩어져 있었고, 이름만 있고 아무 데도 안 쓰는
+           클래스가 5개였다. 늘리기는 쉽고 되돌리기는 어렵다.)
+       🩸 자간은 역할마다 적어야 한다. em 자간을 body 에만 주면 그 자리(16px)에서 px 로 굳어
+          상속되므로, 34px 제목에도 16px 기준값(-0.64px = -1.9%)이 간다. 실측으로 걸렸다. */
+
+    /* 앱 이름. 이 페이지에서 700 을 쓰는 유일한 자리 */
+    .large-title { font-size: var(--fs-display);  font-weight: 700;             line-height: 1.15; }
+    /* 큰 제목 */
+    .title1      { font-size: var(--fs-title);    font-weight: var(--w-bold);   line-height: 1.25; }
+    /* 섹션 제목 */
+    .title2      { font-size: var(--fs-section);  font-weight: var(--w-bold);   line-height: 1.3; }
+    /* 제목 아래 한 줄 설명 */
+    .subheadline { font-size: var(--fs-subtitle); font-weight: var(--w-body);   line-height: 1.5; }
+    /* 목록 행 제목 — 굵게가 아니라 중간 굵기로 구분한다 */
+    .headline    { font-size: var(--fs-body);     font-weight: var(--w-medium); line-height: 1.4; }
+    /* 행 설명 · 보조 문구 */
+    .footnote    { font-size: var(--fs-caption);  font-weight: var(--w-body);   line-height: 1.5; }
+    /* 배지 · 푸터 같은 최소 글자 */
+    .micro       { font-size: var(--fs-micro);    font-weight: var(--w-medium); line-height: 1.4; }
 
     /* ===== NAV (iOS Navigation Bar) ===== */
     nav {
@@ -217,12 +246,12 @@
       nav.scrolled { background: rgba(29,29,31,0.94); }
     }
     .nav-title {
-      font-size: 17px; font-weight: 600; letter-spacing: -0.41px;
+      font-size: var(--fs-subtitle); font-weight: var(--w-bold);
       color: var(--label);
     }
     .nav-btn {
-      color: var(--tint-text); font-size: 17px; font-weight: 600;
-      text-decoration: none; letter-spacing: -0.41px;
+      color: var(--tint-text); font-size: var(--fs-body); font-weight: var(--w-medium);
+      text-decoration: none;
       padding: 8px 0;
     }
 
@@ -294,7 +323,7 @@
       background: var(--fill);
       border-radius: 100px;
       padding: 6px 14px;
-      font-size: 13px; font-weight: 500;
+      font-size: var(--fs-caption); font-weight: var(--w-medium);
       color: var(--label-secondary);
     }
     .pill.accent { background: var(--tint-light); color: var(--tint-text); }
@@ -306,8 +335,7 @@
       color: #FFFFFF;
       border: none; border-radius: 100px;
       padding: 15px 34px;
-      font-size: 17px; font-weight: 600;
-      letter-spacing: -0.41px;
+      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
       text-decoration: none;
       cursor: pointer;
       box-shadow: 0 8px 24px rgba(217,107,133,0.35);
@@ -322,9 +350,8 @@
       display: inline-block;
       margin-top: 14px;
       color: var(--label-tertiary);
-      font-size: 14px; font-weight: 500;
+      font-size: var(--fs-caption); font-weight: var(--w-body);
       text-decoration: none;
-      letter-spacing: -0.24px;
     }
     .ghost-link:hover { color: var(--tint-text); }
 
@@ -333,9 +360,14 @@
       display: inline-flex; align-items: center; gap: 8px;
       margin-bottom: 20px;
       color: var(--label-secondary);
-      font-size: 13px; font-weight: 500;
+      font-size: var(--fs-caption); font-weight: var(--w-body);
+      /* 값이 오기 전엔 자리만 잡고 안 보인다 — 뒤늦게 나타나며 아래를 밀지 않게.
+         display:none 이 아니라 visibility 인 이유가 이것이다. */
+      min-height: 20px;
+      visibility: hidden;
     }
-    .rating-stars { color: #FF9500; letter-spacing: 1px; font-size: 14px; }
+    .rating-row.is-loaded { visibility: visible; }
+    .rating-stars { color: #FF9500; letter-spacing: 1px; font-size: var(--fs-body); }
     .rating-row .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--label-quaternary); }
 
     /* Stats row under hero */
@@ -354,8 +386,8 @@
       text-align: center;
       border: 0.5px solid var(--separator);
     }
-    .stat-value { font-size: 20px; font-weight: 700; color: var(--label); letter-spacing: -0.4px; }
-    .stat-label { font-size: 11px; font-weight: 500; color: var(--label-tertiary); margin-top: 2px; letter-spacing: 0.07px; }
+    .stat-value { font-size: var(--fs-section); font-weight: var(--w-bold); color: var(--label); }
+    .stat-label { font-size: var(--fs-micro); font-weight: var(--w-medium); color: var(--label-tertiary); margin-top: 2px; }
 
     /* ===== DEVICE FRAME (Real screenshot) ===== */
     .device-frame {
@@ -403,11 +435,11 @@
     }
     .screenshot-hint {
       display: inline-flex; align-items: center; gap: 4px;
-      font-size: 11px; color: var(--label-quaternary);
-      margin: 0 16px 8px; letter-spacing: 0.07px;
+      font-size: var(--fs-micro); color: var(--label-quaternary);
+      margin: 0 16px 8px;
     }
     .screenshot-hint::before {
-      content: '›'; font-size: 16px; font-weight: 600;
+      content: '›'; font-size: 16px; font-weight: var(--w-bold);
       animation: hintpulse 1.6s ease-in-out infinite;
     }
     @keyframes hintpulse {
@@ -434,7 +466,7 @@
     .screenshot-label {
       text-align: center;
       margin-top: 10px;
-      font-size: 13px; font-weight: 500;
+      font-size: var(--fs-caption); font-weight: var(--w-medium);
       color: var(--label-tertiary);
     }
 
@@ -535,7 +567,7 @@
       background: rgba(255,255,255,0.1);
       border-radius: 100px;
       padding: 4px 12px;
-      font-size: 12px; font-weight: 600;
+      font-size: var(--fs-micro); font-weight: var(--w-medium);
       color: rgba(255,255,255,0.7);
       margin-bottom: 16px;
     }
@@ -545,7 +577,7 @@
     .premium-list li {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 0;
-      font-size: 15px; color: rgba(255,255,255,0.85);
+      font-size: var(--fs-body); color: rgba(255,255,255,0.85);
     }
     .premium-list li::before {
       content: ''; width: 6px; height: 6px;
@@ -558,14 +590,14 @@
       margin-bottom: 16px;
     }
     .premium-price-row .amount {
-      font-size: 28px; font-weight: 700; color: #FFFFFF;
+      font-size: var(--fs-title); font-weight: var(--w-bold); color: #FFFFFF;
     }
     .premium-price-row .period {
-      font-size: 15px; color: rgba(255,255,255,0.4);
+      font-size: var(--fs-body); color: rgba(255,255,255,0.4);
     }
     .premium-price-row .trial-badge {
       margin-left: auto;
-      font-size: 12px; font-weight: 600;
+      font-size: var(--fs-micro); font-weight: var(--w-medium);
       color: var(--tint);
       background: rgba(255,159,181,0.15);
       padding: 4px 10px; border-radius: 100px;
@@ -575,8 +607,7 @@
       background: var(--tint-btn);
       color: #FFFFFF; text-decoration: none;
       padding: 14px; border-radius: 14px;
-      font-size: 17px; font-weight: 600;
-      letter-spacing: -0.41px;
+      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
       border: none; cursor: pointer;
     }
 
@@ -597,15 +628,14 @@
       padding: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px var(--separator);
     }
-    .review-stars { color: #FF9500; font-size: 12px; letter-spacing: 1px; margin-bottom: 10px; }
+    .review-stars { color: #FF9500; font-size: var(--fs-caption); letter-spacing: 1px; margin-bottom: 10px; }
     .review-card blockquote {
-      font-size: 15px; font-weight: 400;
-      letter-spacing: -0.24px; line-height: 1.47;
+      font-size: var(--fs-body); font-weight: var(--w-body); line-height: 1.47;
       color: var(--label);
       margin-bottom: 12px;
       font-style: normal;
     }
-    .review-author { font-size: 13px; color: var(--label-tertiary); }
+    .review-author { font-size: var(--fs-caption); color: var(--label-tertiary); }
 
     /* ===== TRUST (Inline grouped) ===== */
     .trust-row {
@@ -638,8 +668,8 @@
       text-align: center;
       padding: 24px 16px 40px;
     }
-    footer p { font-size: 12px; color: var(--label-secondary); margin-bottom: 4px; }
-    footer a { color: var(--label-secondary); text-decoration: none; font-size: 12px; }
+    footer p { font-size: var(--fs-caption); color: var(--label-secondary); margin-bottom: 4px; }
+    footer a { color: var(--label-secondary); text-decoration: none; font-size: var(--fs-caption); }
     footer a:hover { text-decoration: underline; }
     .footer-links { margin: 8px 0; display: flex; justify-content: center; gap: 16px; }
 
@@ -661,7 +691,7 @@
       display: block; text-align: center;
       background: var(--tint-btn); color: #FFFFFF;
       padding: 14px; border-radius: 14px;
-      font-size: 17px; font-weight: 600;
+      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
       text-decoration: none;
     }
 
@@ -698,7 +728,7 @@
       width: auto; height: auto;
       background: var(--tint); color: #fff;
       padding: 8px 16px; border-radius: 8px;
-      font-size: 14px; font-weight: 600;
+      font-size: var(--fs-caption); font-weight: var(--w-medium);
       z-index: 999;
     }
 
@@ -744,11 +774,16 @@
         <span class="pill">iOS 17+</span>
         <span class="pill">무료 다운로드</span>
         <span class="pill accent">🗣️ 시리 기록 NEW</span>
-        <span class="pill accent">✨ v2.8.10</span>
+        <!-- 지금 앱스토어에 올라가 있는 버전. 못 가져오면 아래 적힌 값이 그대로 보인다.
+             ⛔ 아래 「vN 새 기능」 섹션 제목은 여기 따라 바뀌면 안 된다 —
+                그건 "지금 버전"이 아니라 "그 기능이 나온 판"을 가리키는 글이다. -->
+        <span class="pill accent" id="versionPill">✨ v2.8.10</span>
       </div>
-      <div class="rating-row" aria-label="평점 4.8점 만점 5점">
-        <span class="rating-stars" aria-hidden="true">★★★★★</span>
-        <span><strong style="color:var(--label);">4.8</strong> · 리뷰 12+</span>
+      <!-- 평점은 앱스토어에서 그때그때 가져온다. 손으로 적지 않는다.
+           못 가져오면 이 줄은 아예 안 보인다 — 낡은 숫자를 보여 주느니 안 보여 준다. -->
+      <div class="rating-row" id="ratingRow">
+        <span class="rating-stars" id="ratingStars" aria-hidden="true"></span>
+        <span><strong id="ratingValue" style="color:var(--label);"></strong> · 평가 <span id="ratingCount"></span>개</span>
         <span class="dot" aria-hidden="true"></span>
         <span>한국 육아 카테고리</span>
       </div>
@@ -879,7 +914,7 @@
         <div class="widget-card span-2">
           <div class="widget-accent pink-bg"></div>
           <div class="widget-icon">🤰</div>
-          <div class="headline">임신 모드 <span class="pill accent" style="font-size:10px;padding:2px 8px;margin-left:4px;">NEW</span></div>
+          <div class="headline">임신 모드 <span class="pill accent" style="font-size:var(--fs-micro);padding:2px 8px;margin-left:4px;">NEW</span></div>
           <div class="footnote">D-day · 주차, 태동 카운터, 산전 체크리스트, 출산 후 자동 전환</div>
         </div>
         <div class="widget-card">
@@ -1163,6 +1198,42 @@
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
     fadeEls.forEach(el => fadeObs.observe(el));
+  </script>
+
+  <!-- 평점 — 앱스토어가 진실이다.
+       ⚠️ 위 스크립트와 일부러 따로 둔다: 한 블록에서 에러가 나면 그 블록의 나머지가 통째로 안 돈다.
+       규칙 하나 — 값을 못 얻으면 아무것도 보여 주지 않는다. 낡은 숫자는 거짓말이 된다. -->
+  <script>
+    (function () {
+      var row = document.getElementById('ratingRow');
+      if (!row) return;
+
+      fetch('https://itunes.apple.com/lookup?id=6759935352&country=kr')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          var app = d && d.results && d.results[0];
+          if (!app) return;
+
+          // 버전 — 여기도 손으로 적으면 배포마다 낡는다
+          var pill = document.getElementById('versionPill');
+          if (pill && app.version) pill.textContent = '✨ v' + app.version;
+
+          var value = Number(app.averageUserRating);
+          var count = Number(app.userRatingCount);
+          // 평가가 0건이면 평점 자체가 없다 — 별 다섯 개를 그리면 거짓이 된다
+          if (!isFinite(value) || !isFinite(count) || count < 1) return;
+
+          var shown = value.toFixed(1);
+          var full = Math.round(value);
+          document.getElementById('ratingStars').textContent =
+            '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
+          document.getElementById('ratingValue').textContent = shown;
+          document.getElementById('ratingCount').textContent = count.toLocaleString('ko-KR');
+          row.setAttribute('aria-label', '평점 ' + shown + '점 만점 5점, 평가 ' + count + '개');
+          row.classList.add('is-loaded');
+        })
+        .catch(function () { /* 못 가져오면 그냥 안 보여 준다 */ });
+    })();
   </script>
 </body>
 </html>
