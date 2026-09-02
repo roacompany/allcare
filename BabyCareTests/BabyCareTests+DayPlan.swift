@@ -978,3 +978,48 @@ final class PlanEntryRecordTypeTests: XCTestCase {
         XCTAssertEqual(cells[0].kind, .done)
     }
 }
+
+// MARK: - Task 4 · 밤 요약
+
+final class DaySummaryTests: XCTestCase {
+
+    private func cell(_ type: Activity.ActivityType, _ kind: DayCell.Kind) -> DayCell {
+        DayCell(id: UUID().uuidString, slotId: nil, title: type.displayName,
+                activityType: type.rawValue, lane: .baby, kind: kind, at: Date(), order: 0)
+    }
+
+    /// 시안 밤 화면 — 「서준이 일곱 번 먹고 세 번 잤어요」.
+    func testCountsWhatHappened() {
+        let cells = Array(repeating: cell(.feedingBottle, .done), count: 6)
+            + [cell(.feedingBreast, .done)]
+            + Array(repeating: cell(.sleep, .done), count: 3)
+        let line = DaySummary.babyLine(cells: cells, babyName: "서준")
+        XCTAssertEqual(line, "서준이 일곱 번 먹고 세 번 잤어요")
+    }
+
+    /// 🔴 설계 §5 — **못 한 것은 세지 않는다.** 빈 칸이 문장에 나타나면 안 된다.
+    func testNeverCountsWhatDidNotHappen() {
+        let cells = [cell(.feedingBottle, .done)] + Array(repeating: cell(.feedingBottle, .planned), count: 5)
+        let line = DaySummary.babyLine(cells: cells, babyName: "서준")
+        XCTAssertEqual(line, "서준이 한 번 먹었어요")
+        XCTAssertFalse(line?.contains("5") ?? false)
+        XCTAssertFalse(line?.contains("못") ?? false)
+    }
+
+    /// 끼어든 칸도 **한 것**이다 — 계획 밖이라고 빼면 실제보다 적게 말하게 된다.
+    func testExtraCellsCountToo() {
+        XCTAssertEqual(DaySummary.babyLine(cells: [cell(.feedingBottle, .extra)], babyName: "서준"),
+                       "서준이 한 번 먹었어요")
+    }
+
+    /// 아무것도 안 한 날엔 **아무 말도 하지 않는다** — 「0번 먹었어요」는 비난이다.
+    func testSaysNothingWhenNothingHappened() {
+        XCTAssertNil(DaySummary.babyLine(cells: [cell(.sleep, .planned)], babyName: "서준"))
+    }
+
+    /// 🩸 받침 — 「서아가」가 아니라 이름 뒤 주격은 이/가 규칙을 탄다.
+    func testNameParticleFollowsFinalConsonant() {
+        XCTAssertEqual(DaySummary.babyLine(cells: [cell(.sleep, .done)], babyName: "서아"),
+                       "서아가 한 번 잤어요")
+    }
+}
