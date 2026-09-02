@@ -792,3 +792,102 @@ final class DayAnchorsBuilderTests: XCTestCase {
         XCTAssertTrue(DayAnchorsBuilder.anchors(from: [], on: at(12), calendar: cal).firstRecordByType.isEmpty)
     }
 }
+
+// MARK: - Task 3 · 기록이 칸을 채운다
+
+final class DaySlotFillerTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date, end: Date? = nil) -> Activity {
+        Activity(id: "a-\(type.rawValue)-\(start.timeIntervalSince1970)", babyId: "b", type: type,
+                 startTime: start, endTime: end, createdAt: start)
+    }
+
+    private func slot(_ id: String, _ type: Activity.ActivityType?, at plannedAt: Date?, order: Int = 0) -> DayPlanExpander.Slot {
+        DayPlanExpander.Slot(id: id, entryId: id, title: id, activityType: type?.rawValue,
+                             lane: .baby, plannedAt: plannedAt, order: order)
+    }
+
+    func testRecordFillsTheNearestSlotOfTheSameType() {
+        let slots = [slot("s1", .feedingBottle, at: at(9)), slot("s2", .feedingBottle, at: at(12))]
+        let acts = [activity(.feedingBottle, at(12, 10))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s2" })?.kind, .done)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+    }
+
+    /// 채워진 칸은 **실제 시각**으로 보인다 — 밑그림을 실제가 덮어쓴다(결정 5).
+    func testFilledCellShowsTheActualTimeNotThePlannedTime() {
+        let slots = [slot("s1", .bath, at: at(19, 30))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.bath, at(8))], on: at(20), calendar: cal)
+        XCTAssertEqual(cells[0].at, at(8))
+    }
+
+    /// 시안 「② 낮」 — 8칸 계획에 9번째 기록이 오면 **칸이 하나 늘어난다**.
+    func testUnmatchedRecordBecomesAnExtraCell() {
+        let slots = [slot("s1", .feedingBottle, at: at(9))]
+        let acts = [activity(.feedingBottle, at(9, 5)), activity(.feedingBottle, at(15))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(16), calendar: cal)
+        XCTAssertEqual(cells.count, 2)
+        XCTAssertEqual(cells.filter { $0.kind == .extra }.count, 1)
+        XCTAssertEqual(cells.first(where: { $0.kind == .extra })?.at, at(15))
+    }
+
+    /// 종류가 다르면 절대 안 붙는다 — 목욕 기록이 수유 칸을 채우면 하루가 거짓이 된다.
+    func testDifferentTypeNeverFillsASlot() {
+        let slots = [slot("s1", .feedingBottle, at: at(9))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.bath, at(9))], on: at(10), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+        XCTAssertEqual(cells.filter { $0.kind == .extra }.count, 1)
+    }
+
+    /// 기록 종류가 없는 항목(내 밥·샤워)은 기록으로 채워지지 않는다 — 빈 채로 남는다.
+    func testSlotWithoutActivityTypeStaysPlanned() {
+        let slots = [slot("s1", nil, at: at(12))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.feedingBottle, at(12))], on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+    }
+
+    /// 정박 전(plannedAt=nil) 칸도 짝을 받는다 — 「첫 수유를 기다리는 중」이 채워지는 순간.
+    func testUnscheduledSlotCanBeFilled() {
+        let slots = [slot("s1", .feedingBottle, at: nil)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.feedingBottle, at(6, 30))], on: at(9), calendar: cal)
+        XCTAssertEqual(cells[0].kind, .done)
+        XCTAssertEqual(cells[0].at, at(6, 30))
+    }
+
+    /// 🔴 어젯밤 잠이 오늘 칸을 채우면 안 된다(`todayActivities` 는 그것도 갖고 있다).
+    func testActivityThatStartedYesterdayDoesNotFillTodaysSlot() {
+        let slots = [slot("s1", .sleep, at: at(13))]
+        let overnight = activity(.sleep, at(22, 0, day: 2), end: at(7, 0, day: 3))
+        let cells = DaySlotFiller.fill(slots: slots, activities: [overnight], on: at(14), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+        XCTAssertTrue(cells.allSatisfy { $0.kind != .extra }, "어젯밤 잠이 오늘 칸으로 끼어들었다")
+    }
+
+    /// 가까운 쌍부터 붙는다 — 순서에 따라 답이 달라지면 안 된다.
+    func testClosestPairWinsRegardlessOfInputOrder() {
+        let slots = [slot("s1", .feedingBottle, at: at(9)), slot("s2", .feedingBottle, at: at(15))]
+        let acts = [activity(.feedingBottle, at(14, 50)), activity(.feedingBottle, at(9, 10))]
+        let forward = DaySlotFiller.fill(slots: slots, activities: acts, on: at(16), calendar: cal)
+        let reversed = DaySlotFiller.fill(slots: slots.reversed(), activities: acts.reversed(), on: at(16), calendar: cal)
+        XCTAssertEqual(forward.first(where: { $0.slotId == "s1" })?.at, at(9, 10))
+        XCTAssertEqual(reversed.first(where: { $0.slotId == "s1" })?.at, at(9, 10))
+    }
+
+    /// 띠는 시간 순이다. 시각 미정(정박 전)은 맨 앞 — 하루가 거기서 시작하기를 기다리는 자리다.
+    func testCellsSortUnscheduledFirstThenByTime() {
+        let slots = [slot("s2", .feedingBottle, at: at(12)), slot("s1", .feedingSolid, at: nil)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [], on: at(13), calendar: cal)
+        XCTAssertEqual(cells.map(\.slotId), ["s1", "s2"])
+    }
+}
