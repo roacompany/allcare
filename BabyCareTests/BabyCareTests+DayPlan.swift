@@ -693,3 +693,49 @@ final class KoreanParticleWithNameTests: XCTestCase {
         XCTAssertEqual(KoreanParticle.withName("Leo"), "Leo와")
     }
 }
+
+// MARK: - Task 1 · 오늘을 열었나
+
+final class DayRunTests: XCTestCase {
+
+    /// 문서 id = 로컬 날짜. 하루에 한 문서만 생기고, 같은 날 다시 눌러도 덮어쓴다(멱등).
+    func testDocumentIdIsLocalCalendarDate() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let day = cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: 23, minute: 50))!
+        XCTAssertEqual(DayRun.documentId(for: day, calendar: cal), "2026-09-03")
+    }
+
+    /// 🩸 자정 직전/직후가 다른 날이어야 한다 — 같은 id 면 어제 하루를 덮어쓴다.
+    func testDocumentIdChangesAcrossMidnight() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let before = cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: 23, minute: 59))!
+        let after = cal.date(from: DateComponents(year: 2026, month: 9, day: 4, hour: 0, minute: 1))!
+        XCTAssertNotEqual(DayRun.documentId(for: before, calendar: cal),
+                          DayRun.documentId(for: after, calendar: cal))
+    }
+
+    func testOpenUntilClosed() {
+        var run = DayRun(id: "2026-09-03", planId: "p", startedAt: Date())
+        XCTAssertTrue(run.isOpen)
+        run.closedAt = Date()
+        XCTAssertFalse(run.isOpen)
+    }
+
+    func testRoundTripsThroughJSON() throws {
+        let run = DayRun(id: "2026-09-03", planId: "p", startedAt: Date(timeIntervalSince1970: 1_000_000))
+        let data = try JSONEncoder().encode(run)
+        let back = try JSONDecoder().decode(DayRun.self, from: data)
+        XCTAssertEqual(back, run)
+    }
+
+    /// 신규 필드는 전부 optional — 옛 문서(planId·closedAt 없음)가 들어와도 살아야 한다.
+    func testDecodesDocumentWithoutOptionalFields() throws {
+        let json = #"{"id":"2026-09-03","startedAt":0}"#.data(using: .utf8)!
+        let back = try JSONDecoder().decode(DayRun.self, from: json)
+        XCTAssertEqual(back.id, "2026-09-03")
+        XCTAssertNil(back.planId)
+        XCTAssertTrue(back.isOpen)
+    }
+}
