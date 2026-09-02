@@ -739,3 +739,56 @@ final class DayRunTests: XCTestCase {
         XCTAssertTrue(back.isOpen)
     }
 }
+
+// MARK: - Task 2 · 그날의 정박점
+
+final class DayAnchorsBuilderTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date, end: Date? = nil) -> Activity {
+        Activity(id: UUID().uuidString, babyId: "b", type: type,
+                 startTime: start, endTime: end, createdAt: start)
+    }
+
+    func testFirstRecordPerTypeIsTheEarliestOfThatType() {
+        let acts = [
+            activity(.feedingBottle, at(9)),
+            activity(.feedingBottle, at(6, 20)),
+            activity(.diaperWet, at(7))
+        ]
+        let a = DayAnchorsBuilder.anchors(from: acts, on: at(12), calendar: cal)
+        XCTAssertEqual(a.firstRecordByType["feeding_bottle"], at(6, 20))
+        XCTAssertEqual(a.firstRecordByType["diaper_wet"], at(7))
+    }
+
+    /// 🔴 이 단계에서 제일 비싼 함정 —
+    /// `todayActivities` 는 「오늘 끝난 것」도 갖고 있어서, **어젯밤 22시에 시작한 잠**이 섞여 있다.
+    /// 그걸 오늘의 첫 기록으로 삼으면 하루 전체가 어제 시각에 정박한다.
+    func testYesterdaysSleepThatEndedThisMorningIsNotTodaysAnchor() {
+        let overnight = activity(.sleep, at(22, 0, day: 2), end: at(7, 0, day: 3))
+        let todayNap = activity(.sleep, at(13))
+        let a = DayAnchorsBuilder.anchors(from: [overnight, todayNap], on: at(12), calendar: cal)
+        XCTAssertEqual(a.firstRecordByType["sleep"], at(13), "어젯밤 잠이 오늘의 정박점이 됐다")
+    }
+
+    func testUnknownTypeIsNeverAnAnchor() {
+        // .unknown 은 read-only 센티넬 — 정박점으로 쓰면 알 수 없는 종류가 하루를 정한다.
+        var a = activity(.feedingBottle, at(8))
+        a.type = .unknown
+        let out = DayAnchorsBuilder.anchors(from: [a], on: at(12), calendar: cal)
+        XCTAssertTrue(out.firstRecordByType.isEmpty)
+    }
+
+    func testEmptyDayHasNoAnchors() {
+        XCTAssertTrue(DayAnchorsBuilder.anchors(from: [], on: at(12), calendar: cal).firstRecordByType.isEmpty)
+    }
+}
