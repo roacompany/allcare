@@ -461,3 +461,66 @@ final class DayPlanViewModelTests: XCTestCase {
         XCTAssertEqual(vm.plans, [renamed])
     }
 }
+
+final class PlanEntryDraftTests: XCTestCase {
+
+    func testFixedTimesRequiresAtLeastOneTime() {
+        var d = PlanEntryDraft(title: "목욕", kind: .fixedTimes)
+        XCTAssertFalse(d.isValid)
+        d.minutesOfDay = [19 * 60 + 30]
+        XCTAssertTrue(d.isValid)
+    }
+
+    func testAfterFirstRequiresAnchorAndPositiveNumbers() {
+        var d = PlanEntryDraft(title: "분유", kind: .afterFirst)
+        XCTAssertFalse(d.isValid)
+        d.anchorType = "feeding_bottle"
+        d.everyMinutes = 180
+        d.count = 6
+        XCTAssertTrue(d.isValid)
+        d.count = 0
+        XCTAssertFalse(d.isValid)
+    }
+
+    func testAfterEntryRequiresPrecedingEntry() {
+        var d = PlanEntryDraft(title: "잠자리", kind: .afterEntry)
+        XCTAssertFalse(d.isValid)
+        d.afterEntryId = "bath"
+        d.offsetMinutes = 30
+        XCTAssertTrue(d.isValid)
+    }
+
+    func testEmptyTitleIsInvalidForEveryKind() {
+        var d = PlanEntryDraft(title: "  ", kind: .fixedTimes)
+        d.minutesOfDay = [720]
+        XCTAssertFalse(d.isValid)
+    }
+
+    func testBuildProducesMatchingSchedule() throws {
+        var d = PlanEntryDraft(title: "분유", kind: .afterFirst)
+        d.anchorType = "feeding_bottle"
+        d.everyMinutes = 180
+        d.count = 6
+        d.lane = .baby
+        let entry = try XCTUnwrap(d.build(order: 3))
+        XCTAssertEqual(entry.schedule.kind, .afterFirst)
+        XCTAssertEqual(entry.schedule.everyMinutes, 180)
+        XCTAssertEqual(entry.order, 3)
+        XCTAssertEqual(entry.title, "분유")
+    }
+
+    func testBuildReturnsNilWhenInvalid() {
+        let d = PlanEntryDraft(title: "", kind: .fixedTimes)
+        XCTAssertNil(d.build(order: 0))
+    }
+
+    // 정정 2 — .unknown(forward-compat 센티넬)은 부모가 고를 수 없는 종류다.
+    // 나타나도 유효하지 않고, build 는 nil 을 낸다 — 데이터를 지어내지 않는다.
+    func testUnknownKindIsInvalidAndBuildsNil() {
+        var d = PlanEntryDraft(title: "미지의 종류", kind: .unknown)
+        XCTAssertFalse(d.isValid)
+        XCTAssertNil(d.build(order: 0))
+        d.minutesOfDay = [600]   // 다른 필드를 채워도 여전히 무효 — kind 자체가 만들 수 없는 것이다
+        XCTAssertFalse(d.isValid)
+    }
+}
