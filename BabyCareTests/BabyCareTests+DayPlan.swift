@@ -397,4 +397,67 @@ final class DayPlanViewModelTests: XCTestCase {
         XCTAssertTrue(vm.plans.isEmpty)
         XCTAssertEqual(mock.deleteCount, 1)
     }
+
+    // F1(리뷰) — errorMessage 만으론 부족하다: rollback(plans = previous)이 실제로
+    // 목록을 저장 전 상태로 되돌렸는지까지 잰다. 이 줄이 지워지거나 낙관적 반영이
+    // do/catch 뒤로 옮겨져도 phantom(저장 안 된 새 항목)이 남을 수 있는데, 예전
+    // 테스트(errorMessage != nil)는 그 경우에도 계속 초록이었다.
+    func testSaveSurfacesErrorAndRollsBackPlans() async {
+        let mock = MockDayPlanFirestore()
+        let existing = [DayPlan(id: "p1", name: "기존 표")]
+        mock.seed(existing, userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+
+        mock.errorToThrow = NSError(domain: "test", code: 1)
+        await vm.save(DayPlan(id: "p2", name: "유령 표"), userId: "owner")
+
+        XCTAssertNotNil(vm.errorMessage)
+        XCTAssertEqual(vm.plans, existing)  // p2 가 남아있으면 안 된다 — 저장 전과 정확히 같아야 한다
+    }
+
+    // F2(리뷰) — delete 의 실패 경로는 이제까지 아무 것도 재지 않았다("되돌리는 길도 재야
+    // 한다"는 주석만 있고 정작 되돌아오지 않는 경우는 안 쟀다). 실패한 삭제는 화면에서
+    // 사라지면 안 된다 — errorMessage 와 plans 잔존을 함께 잰다.
+    func testDeleteSurfacesError() async {
+        let mock = MockDayPlanFirestore()
+        let existing = [DayPlan(id: "p1", name: "표")]
+        mock.seed(existing, userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+
+        mock.errorToThrow = NSError(domain: "test", code: 1)
+        await vm.delete(DayPlan(id: "p1", name: "표"), userId: "owner")
+
+        XCTAssertNotNil(vm.errorMessage)
+        XCTAssertEqual(vm.plans, existing)  // 실패한 삭제는 목록에서 사라지면 안 된다
+    }
+
+    // F3(리뷰) — save 는 append-or-replace 다. optimisticReplace 를 쓰지 않은 근거(Task 4
+    // 결정 3)가 바로 이 append 분기 — 이 테스트가 없으면 나중에 helper 로 바꿔도 아무 것도
+    // 실패하지 않는다.
+    func testSaveAppendsNewPlan() async {
+        let mock = MockDayPlanFirestore()
+        mock.seed([DayPlan(id: "p1", name: "기존 표")], userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+
+        await vm.save(DayPlan(id: "p2", name: "새 표"), userId: "owner")
+
+        XCTAssertEqual(vm.plans.map(\.id), ["p1", "p2"])
+    }
+
+    // F3(리뷰) — 기존 id 로 저장하면 자리에서 교체되고, 중복으로 늘어나지 않는다.
+    func testSaveReplacesExistingPlanInPlaceWithoutDuplicating() async {
+        let mock = MockDayPlanFirestore()
+        mock.seed([DayPlan(id: "p1", name: "원래 이름")], userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+
+        let renamed = DayPlan(id: "p1", name: "바뀐 이름")
+        await vm.save(renamed, userId: "owner")
+
+        XCTAssertEqual(vm.plans.count, 1)
+        XCTAssertEqual(vm.plans, [renamed])
+    }
 }
