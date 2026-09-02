@@ -983,9 +983,10 @@ final class PlanEntryRecordTypeTests: XCTestCase {
 
 final class DaySummaryTests: XCTestCase {
 
-    private func cell(_ type: Activity.ActivityType, _ kind: DayCell.Kind) -> DayCell {
+    private func cell(_ type: Activity.ActivityType, _ kind: DayCell.Kind,
+                      lane: DayPlan.Lane = .baby) -> DayCell {
         DayCell(id: UUID().uuidString, slotId: nil, title: type.displayName,
-                activityType: type.rawValue, lane: .baby, kind: kind, at: Date(), order: 0)
+                activityType: type.rawValue, lane: lane, kind: kind, at: Date(), order: 0)
     }
 
     /// 시안 밤 화면 — 「서준이 일곱 번 먹고 세 번 잤어요」.
@@ -1021,5 +1022,26 @@ final class DaySummaryTests: XCTestCase {
     func testNameParticleFollowsFinalConsonant() {
         XCTAssertEqual(DaySummary.babyLine(cells: [cell(.sleep, .done)], babyName: "서아"),
                        "서아가 한 번 잤어요")
+    }
+
+    /// 🔴 리뷰 Important — 유축(생산)만 있으면 먹지도 자지도 않은 것이다. 할 말이 없다.
+    func testPumpingAloneSaysNothing() {
+        XCTAssertNil(DaySummary.babyLine(cells: [cell(.feedingPumping, .done)], babyName: "서준"))
+    }
+
+    /// 🔴 리뷰 Important — 유축이 끼어 있어도 진짜 섭취 횟수를 부풀리면 안 된다.
+    /// `isFeeding`이 `.feedingPumping`을 참으로 잘못 세면(예: 「먹기」 접두사만 보고 묶으면)
+    /// 이 테스트가 "두 번 먹었어요"로 빨개진다.
+    func testPumpingDoesNotInflateFeedCount() {
+        let cells = [cell(.feedingBottle, .done), cell(.feedingPumping, .done)]
+        XCTAssertEqual(DaySummary.babyLine(cells: cells, babyName: "서준"), "서준이 한 번 먹었어요")
+    }
+
+    /// 🔴 리뷰 Important — 내 줄(부모)의 잠은 아이 줄이 아니다. 아이는 먹기만 했는데
+    /// 부모 잠까지 섞이면 「일곱 번 먹고 한 번 잤어요」로 없는 일이 생긴다.
+    /// lane 필터를 지우면 이 테스트가 빨개진다.
+    func testParentLaneSleepDoesNotCountAsBabys() {
+        let cells = [cell(.feedingBottle, .done), cell(.sleep, .done, lane: .parent)]
+        XCTAssertEqual(DaySummary.babyLine(cells: cells, babyName: "서준"), "서준이 한 번 먹었어요")
     }
 }
