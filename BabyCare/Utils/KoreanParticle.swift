@@ -19,6 +19,12 @@ enum KoreanParticle {
         hasFinalConsonant(word) ? "이" : "가"
     }
 
+    /// 아이 이름과 함께 — "서준이와" / "서아와".
+    /// 받침이 있는 이름은 '이' 를 붙여 부르는 것이 자연스럽다(부르는 말과 같은 규칙).
+    static func withName(_ name: String) -> String {
+        hasFinalConsonant(name) ? "\(name)이와" : "\(name)와"
+    }
+
     /// 마지막 한글 음절에 받침이 있나.
     /// "120ml" 처럼 단위로 끝나면 읽는 말(밀리리터)에 받침이 없으므로 false.
     static func hasFinalConsonant(_ word: String) -> Bool {
