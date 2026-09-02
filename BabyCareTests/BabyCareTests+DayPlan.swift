@@ -85,3 +85,153 @@ final class DayPlanTests: XCTestCase {
         XCTAssertEqual(entry.lane, .baby)  // 미지의 lane → .baby
     }
 }
+
+final class DayPlanExpanderTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    /// 2026-09-02 정오 — 월 중간·정오로 잡아 타임존 경계 이슈를 피한다
+    private var day: Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: 2, hour: 12))!
+    }
+
+    private func at(_ hour: Int, _ minute: Int) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: 2, hour: hour, minute: minute))!
+    }
+
+    private func plan(_ entries: [DayPlan.Entry]) -> DayPlan {
+        DayPlan(id: "p", name: "표", entries: entries)
+    }
+
+    // A — 고정 시각은 정박점 없이도 바로 자리를 잡는다
+    func testFixedTimesProducesOneSlotPerTime() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [19 * 60 + 30]), order: 0)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertEqual(slots.count, 1)
+        XCTAssertEqual(slots[0].plannedAt, at(19, 30))
+        XCTAssertEqual(slots[0].title, "목욕")
+    }
+
+    // B — 첫 기록이 없으면 자리는 있되 시각이 미정이다
+    func testAfterFirstWithoutAnchorIsUnscheduledButPresent() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                          order: 0)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertEqual(slots.count, 6)
+        XCTAssertTrue(slots.allSatisfy { $0.plannedAt == nil })
+    }
+
+    // B — 첫 기록이 들어오면 그 시각부터 펼쳐진다
+    func testAfterFirstAnchorsOnFirstRecord() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 4),
+                          order: 0)
+        ])
+        let anchors = DayAnchors(firstRecordByType: ["feeding_bottle": at(6, 20)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: anchors, calendar: cal)
+        XCTAssertEqual(slots.compactMap(\.plannedAt), [at(6, 20), at(9, 20), at(12, 20), at(15, 20)])
+    }
+
+    // B — 그날을 넘어가는 칸은 버린다(하루 시간표는 그날 것이다)
+    func testAfterFirstDropsSlotsPastEndOfDay() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                          order: 0)
+        ])
+        let anchors = DayAnchors(firstRecordByType: ["feeding_bottle": at(20, 0)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: anchors, calendar: cal)
+        XCTAssertEqual(slots.compactMap(\.plannedAt), [at(20, 0), at(23, 0)])
+    }
+
+    // D — 앞 일이 끝나야 다음이 자리를 잡는다
+    func testAfterEntryAnchorsOnPrecedingCompletion() {
+        let p = plan([
+            DayPlan.Entry(id: "bath", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [19 * 60 + 30]), order: 0),
+            DayPlan.Entry(id: "bed", title: "잠자리", lane: .baby,
+                          schedule: .afterEntry(entryId: "bath", offsetMinutes: 30), order: 1)
+        ])
+        let none = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertNil(none.first(where: { $0.entryId == "bed" })?.plannedAt)
+
+        let done = DayAnchors(completedByEntry: ["bath": at(19, 45)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: done, calendar: cal)
+        XCTAssertEqual(slots.first(where: { $0.entryId == "bed" })?.plannedAt, at(20, 15))
+    }
+
+    // 정렬 — 시각이 정해진 것은 시각순, 미정은 맨 앞(하루의 시작을 기다리는 자리)
+    func testSlotsSortUnscheduledFirstThenByTime() {
+        let p = plan([
+            DayPlan.Entry(id: "bath", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [19 * 60 + 30]), order: 1),
+            DayPlan.Entry(id: "milk", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 1),
+                          order: 0),
+            DayPlan.Entry(id: "lunch", title: "내 밥", lane: .parent,
+                          schedule: .fixedTimes(minutesOfDay: [12 * 60]), order: 2)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertEqual(slots.map(\.entryId), ["milk", "lunch", "bath"])
+    }
+
+    // 줄이 둘이다 — 내 줄이 섞여 나온다
+    func testSlotsCarryLane() {
+        let p = plan([
+            DayPlan.Entry(id: "lunch", title: "내 밥", lane: .parent,
+                          schedule: .fixedTimes(minutesOfDay: [12 * 60]), order: 0)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertEqual(slots[0].lane, .parent)
+    }
+
+    // 같은 항목의 칸들은 서로 다른 id 를 갖는다(붙이기 단계가 이걸 쓴다)
+    func testSlotIdsAreUniquePerOccurrence() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 3),
+                          order: 0)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertEqual(Set(slots.map(\.id)).count, 3)
+    }
+
+    // 비활성 시간표는 펼쳐지지 않는다
+    func testInactivePlanProducesNoSlots() {
+        var p = plan([
+            DayPlan.Entry(id: "e1", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [1170]), order: 0)
+        ])
+        p.isActive = false
+        XCTAssertTrue(DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal).isEmpty)
+    }
+
+    // 미지의 kind(.unknown) — Task 1 이 forward-compat 로 추가한 센티넬. 언제인지 알 수 없으니
+    // 시각을 지어내지 않고 칸을 아예 만들지 않는다. 형제 항목은 그 영향을 받지 않고 정상 펼쳐진다.
+    func testUnknownScheduleKindProducesNoSlotsButSiblingsStillExpand() {
+        let futureSchedule = PlanSchedule(
+            kind: .unknown, minutesOfDay: nil, anchorType: nil,
+            everyMinutes: nil, count: nil, afterEntryId: nil, offsetMinutes: nil
+        )
+        let p = plan([
+            DayPlan.Entry(id: "future", title: "미래 기능", lane: .baby, schedule: futureSchedule, order: 0),
+            DayPlan.Entry(id: "bath", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [19 * 60 + 30]), order: 1)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertTrue(slots.allSatisfy { $0.entryId != "future" })
+        XCTAssertEqual(slots.map(\.entryId), ["bath"])
+        XCTAssertEqual(slots[0].plannedAt, at(19, 30))
+    }
+}
