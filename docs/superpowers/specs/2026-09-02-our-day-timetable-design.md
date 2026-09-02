@@ -167,7 +167,7 @@ PO 발언의 첫 낱말이 「나와」였다. 아이만이 아니다.
 
 | 있는 것 | 쓰임 |
 |---|---|
-| `Routine`(items·order·하루 리셋) | 시간표 그릇 — **시각을 붙인다.** 여러 개 둘 수 있는 것도 그대로 |
+| ~~`Routine`~~ | ⛔ **재사용 안 한다** — 아래 §7.1 |
 | `LiveActivityManager` · `FeedingTimerAttributes` | 잠금화면 배선. 새 Attributes 하나 추가 |
 | `ActivityDraftBuilder` | Activity 생성 유일 지점 — 칸 채우기는 여기서 나온 기록을 듣는다 |
 | `SiriRecordKind` / App Intents | 시리 기록도 칸을 채운다(백그라운드 갱신은 허용) |
@@ -175,6 +175,18 @@ PO 발언의 첫 낱말이 「나와」였다. 아이만이 아니다.
 | `RunningTimerStore` · App Group | 위젯·시리·본체가 같은 곳을 본다 |
 
 ⛔ `FeedingPredictionService`는 **쓰지 않는다** — 예측이 아니라 부모가 짠 것이다(결정 4).
+
+### 7.1 루틴을 재사용하지 않기로 한 이유 (2026-09-02 정정 · PO 승인)
+
+이 문서 초안은 「`Routine` 을 시간표 그릇으로」라고 적었다. 구현 계획을 짜며 코드를 열어 보니 **틀렸다**:
+
+1. `Routine.currentStreak`(연속 100% 완료 일수)이 모델에 박혀 있고 `RoutineView.swift:87` 이
+   「🔥 N일 연속」과 「3/5」를 상시 표시한다 — **§5 가 금지한 바로 그것.** 재사용하면 출시된 화면 안에서 분기해야 한다.
+2. **재사용해도 싸지지 않는다** — `RoutineViewModel:15` 가 `FirestoreService.shared` 를 직접 들고 있어
+   narrow protocol 이 **없다**(완성 11종에 Routine 없음). 어느 쪽이든 새로 짜야 한다.
+3. 루틴은 **체크리스트**(시각 없음), 시간표는 **시각이 있는 하루**다. 개념이 다르다.
+
+→ **신규 컬렉션 `dayPlans` + Narrow Protocol 5단계.** 루틴은 한 줄도 건드리지 않는다.
 
 ---
 
