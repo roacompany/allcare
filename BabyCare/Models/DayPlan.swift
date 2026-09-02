@@ -10,10 +10,22 @@ struct DayPlan: Identifiable, Codable, Hashable {
     var isActive: Bool
     var createdAt: Date
 
-    /// 아이 줄 / 내 줄. rawValue = Firestore 영구 계약.
+    /// 아이 줄 / 내 줄. rawValue = Firestore 영구 계약. 미지의 rawValue는 .baby로 폴백 (문서 drop 방지).
     enum Lane: String, Codable, Hashable {
         case baby
         case parent
+
+        /// 미지의 rawValue를 .baby로 폴백 (throw 대신) → 문서 손실 방지.
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = Lane(rawValue: raw) ?? .baby
+        }
+
+        /// 인코딩은 synthesized (rawValue 쓰기 정상).
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
     }
 
     struct Entry: Identifiable, Codable, Hashable {
@@ -76,6 +88,28 @@ struct PlanSchedule: Codable, Hashable {
         case fixedTimes = "fixed_times"
         case afterFirst = "after_first"
         case afterEntry = "after_entry"
+        /// 신버전이 추가한 미지의 kind rawValue를 디코드한 read-only 센티넬 (forward-compat).
+        /// 구버전 가족기기가 모르는 종류를 만나도 문서 drop을 막기 위함. 절대 영속 금지.
+        case unknown = "unknown"
+
+        /// 미지의 rawValue를 .unknown으로 폴백 (throw 대신) → 문서 drop 방지.
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = Kind(rawValue: raw) ?? .unknown
+        }
+
+        /// .unknown 은 read-only 센티넬 — 인코딩(=영속) 시 fail-loud. 실제 rawValue 덮어쓰기(데이터 손실) 봉쇄.
+        /// 정상 kind는 기존 synthesized와 동일하게 rawValue 단일값 인코딩.
+        func encode(to encoder: Encoder) throws {
+            guard self != .unknown else {
+                throw EncodingError.invalidValue(self, EncodingError.Context(
+                    codingPath: encoder.codingPath,
+                    debugDescription: "PlanSchedule.Kind.unknown은 read-only 센티넬이라 영속될 수 없다."
+                ))
+            }
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
     }
 
     var kind: Kind
