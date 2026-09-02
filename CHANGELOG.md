@@ -2,10 +2,15 @@
 
 All notable changes to BabyCare are documented here.
 
-## [2.8.11] - 2026-08-26 (빌드 107)
+## [2.8.11] - 2026-08-27 (App Store 출시 — 빌드 107)
 
 > **자정 넘긴 기록의 하루 귀속.** PO 신고 — "어제 잔 시간이 오늘 잔 시간이랑 합쳐진다".
 > 어제 22시~오늘 7시 밤잠(9h)이 어제 9h · 오늘 10h 로 **양쪽에서 통째로** 세어지고 있었다(정답 2h · 8h).
+> PR #78 머지(`d8207e1`) → 배포준비 `edb824e` → 빌드 107 VALID → **2026-08-26T23:48Z 제출**
+> → **2026-08-27T16:49:55Z 승인·자동 출시**(`AFTER_APPROVAL` · versionId `bcd2340b-9467-46da-b18d-67b4453b19d5`
+> · submissionId `80a5b550-6a8c-4410-a9a4-0c81bcc987ae` · 손님 스토어 iTunes lookup 실측 2026-09-02 = 2.8.11).
+> 릴리스 노트 = `.dev/release-notes/v2.8.11.md`(523자). 직전 라이브 v2.8.10(빌드 106)을 교체했다.
+> ⚠️ **train closed → 다음 fix 는 v2.8.12**(`MARKETING_VERSION` 도 손으로 · `project.yml` **두 곳**) · ASC 최고 빌드 107 → 다음 TF ≥108.
 
 ### Fixed — 자정 넘김 (빌드 107, 2026-08-26)
 
