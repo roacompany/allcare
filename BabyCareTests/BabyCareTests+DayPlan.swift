@@ -303,3 +303,30 @@ final class DayPlanExpanderTests: XCTestCase {
         XCTAssertEqual(slots.compactMap(\.plannedAt), [at(6, 20)])
     }
 }
+
+final class DayPlanStoreTests: XCTestCase {
+
+    func testCollectionConstantIsStable() {
+        XCTAssertEqual(FirestoreCollections.dayPlans, "dayPlans")
+    }
+
+    func testMockRoundTrip() async throws {
+        let mock = MockDayPlanFirestore()
+        let plan = DayPlan(id: "p1", name: "표")
+        try await mock.saveDayPlan(plan, userId: "u1")
+        let back = try await mock.fetchDayPlans(userId: "u1")
+        XCTAssertEqual(back, [plan])
+        try await mock.deleteDayPlan("p1", userId: "u1")
+        let empty = try await mock.fetchDayPlans(userId: "u1")
+        XCTAssertTrue(empty.isEmpty)
+        XCTAssertEqual(mock.saveCount, 1)
+        XCTAssertEqual(mock.deleteCount, 1)
+    }
+
+    func testMockIsolatesUsers() async throws {
+        let mock = MockDayPlanFirestore()
+        try await mock.saveDayPlan(DayPlan(id: "p1", name: "내 것"), userId: "u1")
+        let other = try await mock.fetchDayPlans(userId: "u2")
+        XCTAssertTrue(other.isEmpty)
+    }
+}
