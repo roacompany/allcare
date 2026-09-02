@@ -234,4 +234,72 @@ final class DayPlanExpanderTests: XCTestCase {
         XCTAssertEqual(slots.map(\.entryId), ["bath"])
         XCTAssertEqual(slots[0].plannedAt, at(19, 30))
     }
+
+    // F1(리뷰) — 앞 항목은 끝났지만 계산된 시각이 자정을 넘으면, 미정이 아니라 아예 칸이 없다
+    // (오늘 것이 아니다). 같은 plan 의 다른 항목은 그대로 나온다 — 자정을 넘는 항목 하나가
+    // 하루 전체를 끌고 가지 않는다.
+    func testAfterEntryDropsWhenCompletionPushesPastMidnight() {
+        let p = plan([
+            DayPlan.Entry(id: "bath", title: "목욕", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [23 * 60 + 45]), order: 0),
+            DayPlan.Entry(id: "bed", title: "잠자리", lane: .baby,
+                          schedule: .afterEntry(entryId: "bath", offsetMinutes: 30), order: 1),
+            DayPlan.Entry(id: "lunch", title: "내 밥", lane: .parent,
+                          schedule: .fixedTimes(minutesOfDay: [12 * 60]), order: 2)
+        ])
+        let done = DayAnchors(completedByEntry: ["bath": at(23, 50)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: done, calendar: cal)
+        XCTAssertTrue(slots.allSatisfy { $0.entryId != "bed" })
+        XCTAssertEqual(slots.map(\.entryId), ["lunch", "bath"])
+    }
+
+    // F2(리뷰) — 하루 경계는 양쪽 다 잰다: 자정 이전으로 새는 음수 minutesOfDay 는 버린다.
+    func testFixedTimesDropsNegativeMinutesOfDay() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "밤중수유", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [-30]), order: 0)
+        ])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: DayAnchors(), calendar: cal)
+        XCTAssertTrue(slots.isEmpty)
+    }
+
+    // F2(리뷰) — 완료 시각은 오늘인데 음수 offsetMinutes 가 어제로 밀어내면 버린다.
+    // (하루 경계는 양쪽 다 — 시작 쪽도 잰다.)
+    func testAfterEntryDropsWhenOffsetPushesBeforeStartOfDay() {
+        let p = plan([
+            DayPlan.Entry(id: "wake", title: "기상", lane: .baby,
+                          schedule: .fixedTimes(minutesOfDay: [0]), order: 0),
+            DayPlan.Entry(id: "prep", title: "준비", lane: .baby,
+                          schedule: .afterEntry(entryId: "wake", offsetMinutes: -30), order: 1)
+        ])
+        let done = DayAnchors(completedByEntry: ["wake": at(0, 10)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: done, calendar: cal)
+        XCTAssertEqual(slots.map(\.entryId), ["wake"])
+    }
+
+    // F3(리뷰) — count 가 하루에 다 못 들어갈 만큼 커도(표현 가능한 최대값) 실제로 들어가는
+    // 칸만 나오고 멈춘다 — 무한(또는 초장시간) 반복으로 메인 스레드를 얼리지 않는다.
+    func testAfterFirstHugeCountYieldsOnlyOccurrencesThatFitInDay() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: Int.max),
+                          order: 0)
+        ])
+        let anchors = DayAnchors(firstRecordByType: ["feeding_bottle": at(20, 0)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: anchors, calendar: cal)
+        XCTAssertEqual(slots.compactMap(\.plannedAt), [at(20, 0), at(23, 0)])
+    }
+
+    // F3(리뷰) — 오버플로우를 일으킬 만큼 큰 everyMinutes 라도 트랩(크래시)하지 않는다.
+    // (every*i 곱셈 대신 Calendar 로 한 칸씩 전진하기 때문 — count 는 겨우 3.)
+    func testAfterFirstHugeEveryMinutesDoesNotCrash() {
+        let p = plan([
+            DayPlan.Entry(id: "e1", title: "분유", activityType: "feeding_bottle", lane: .baby,
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: Int.max - 5, count: 3),
+                          order: 0)
+        ])
+        let anchors = DayAnchors(firstRecordByType: ["feeding_bottle": at(6, 20)])
+        let slots = DayPlanExpander.slots(plan: p, day: day, anchors: anchors, calendar: cal)
+        XCTAssertEqual(slots.compactMap(\.plannedAt), [at(6, 20)])
+    }
 }

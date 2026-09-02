@@ -28,6 +28,10 @@ enum DayPlanExpander {
         let order: Int
     }
 
+    /// `afterFirst` 의 count 방어적 상한 — 간격이 최소 1분이라도 하루(1440분)엔 이 이상 못 들어간다.
+    /// 손상되거나 비정상적으로 큰 count 가 메인 스레드를 얼리는 것을 막는다(리뷰 F3).
+    private static let maxOccurrencesPerDay = 1440
+
     static func slots(
         plan: DayPlan,
         day: Date,
@@ -66,29 +70,48 @@ enum DayPlanExpander {
         case .fixedTimes:
             let minutes = entry.schedule.minutesOfDay ?? []
             return minutes.enumerated().compactMap { idx, m in
-                guard let at = calendar.date(byAdding: .minute, value: m, to: start), at < end else { return nil }
+                // 하루 경계는 양쪽 다 잰다 — 음수(자정 이전으로 새는) minutesOfDay 도 버린다(리뷰 F2).
+                guard let at = calendar.date(byAdding: .minute, value: m, to: start),
+                      start <= at, at < end else { return nil }
                 return slot(entry, index: idx, at: at)
             }
 
         case .afterFirst:
-            let count = max(0, entry.schedule.count ?? 0)
+            // count 는 방어적 상한(리뷰 F3), every 는 최소 1분(0 이하면 제자리서 무한 반복할 수 있다).
+            let count = min(max(0, entry.schedule.count ?? 0), maxOccurrencesPerDay)
             let every = max(1, entry.schedule.everyMinutes ?? 0)
             guard let type = entry.schedule.anchorType,
                   let anchor = anchors.firstRecordByType[type] else {
                 // 정박 전 — 자리는 있고 시각만 미정이다.
                 return (0..<count).map { slot(entry, index: $0, at: nil) }
             }
-            return (0..<count).compactMap { i in
-                guard let at = calendar.date(byAdding: .minute, value: every * i, to: anchor), at < end else { return nil }
-                return slot(entry, index: i, at: at)
+            // every*i 곱셈(everyMinutes 가 크면 Int 오버플로우로 trap) 대신
+            // Calendar 로 한 칸씩 전진한다(리뷰 F3). every>=1 이라 매 칸은 앞으로만 가므로,
+            // end 를 넘는 순간 이후 칸도 전부 넘는다 — 거기서 멈춘다(하루 경계는 양쪽 다, 리뷰 F2).
+            var out: [Slot] = []
+            var at = anchor
+            for i in 0..<count {
+                guard at < end else { break }
+                if at >= start {
+                    out.append(slot(entry, index: i, at: at))
+                }
+                guard let next = calendar.date(byAdding: .minute, value: every, to: at) else { break }
+                at = next
             }
+            return out
 
         case .afterEntry:
             guard let afterId = entry.schedule.afterEntryId,
-                  let done = anchors.completedByEntry[afterId],
-                  let at = calendar.date(byAdding: .minute, value: entry.schedule.offsetMinutes ?? 0, to: done),
-                  at < end else {
+                  let done = anchors.completedByEntry[afterId] else {
+                // 앞 항목이 아직 안 끝났다 — 자리는 있고 시각만 미정이다.
                 return [slot(entry, index: 0, at: nil)]
+            }
+            // 앞 항목은 끝났다 — 계산된 시각이 오늘(반열린 구간, 양쪽 다) 안일 때만 칸이 된다.
+            // 밖이면 "미정"이 아니라 "오늘 것이 아님" — 자리 자체가 없다, afterFirst 가 end 넘는
+            // 칸을 버리는 것과 같은 취급이다(리뷰 F1).
+            guard let at = calendar.date(byAdding: .minute, value: entry.schedule.offsetMinutes ?? 0, to: done),
+                  start <= at, at < end else {
+                return []
             }
             return [slot(entry, index: 0, at: at)]
 
