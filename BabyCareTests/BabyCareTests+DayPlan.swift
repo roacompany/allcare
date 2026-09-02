@@ -357,3 +357,44 @@ final class DayPlanStoreTests: XCTestCase {
         XCTAssertEqual(result.map(\.id), ["a", "b"])
     }
 }
+
+@MainActor
+final class DayPlanViewModelTests: XCTestCase {
+
+    func testLoadPopulatesPlans() async {
+        let mock = MockDayPlanFirestore()
+        mock.seed([DayPlan(id: "p1", name: "표")], userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+        XCTAssertEqual(vm.plans.map(\.id), ["p1"])
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    func testSaveWritesToOwnerPath() async {
+        let mock = MockDayPlanFirestore()
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.save(DayPlan(id: "p1", name: "표"), userId: "owner")
+        XCTAssertEqual(mock.saveCount, 1)
+        XCTAssertEqual(mock.capturedUserIds, ["owner"])
+    }
+
+    // 실패를 삼키지 않는다 — 조용한 실패가 이 프로젝트의 반복 결함이다
+    func testSaveSurfacesError() async {
+        let mock = MockDayPlanFirestore()
+        mock.errorToThrow = NSError(domain: "test", code: 1)
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.save(DayPlan(id: "p1", name: "표"), userId: "owner")
+        XCTAssertNotNil(vm.errorMessage)
+    }
+
+    // 되돌리는 길도 재야 한다
+    func testDeleteRemovesFromList() async {
+        let mock = MockDayPlanFirestore()
+        mock.seed([DayPlan(id: "p1", name: "표")], userId: "owner")
+        let vm = DayPlanViewModel(provider: mock)
+        await vm.load(userId: "owner")
+        await vm.delete(DayPlan(id: "p1", name: "표"), userId: "owner")
+        XCTAssertTrue(vm.plans.isEmpty)
+        XCTAssertEqual(mock.deleteCount, 1)
+    }
+}
