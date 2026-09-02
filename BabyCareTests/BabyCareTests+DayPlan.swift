@@ -524,3 +524,172 @@ final class PlanEntryDraftTests: XCTestCase {
         XCTAssertFalse(d.isValid)
     }
 }
+
+// MARK: - Task 6 · 목록 화면의 묶는 규칙
+
+final class PlanEntryGroupingTests: XCTestCase {
+
+    /// kind 마다 유효한 schedule 을 하나씩 — `default` 를 쓰지 않는다.
+    /// 네 번째 방식이 생기면 **여기가 컴파일 에러**로 먼저 걸린다.
+    private func schedule(for kind: PlanSchedule.Kind) -> PlanSchedule {
+        switch kind {
+        case .fixedTimes: .fixedTimes(minutesOfDay: [720])
+        case .afterFirst: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6)
+        case .afterEntry: .afterEntry(entryId: "x", offsetMinutes: 30)
+        case .unknown: PlanSchedule(kind: .unknown)
+        }
+    }
+
+    private func entry(_ id: String, _ kind: PlanSchedule.Kind, order: Int) -> DayPlan.Entry {
+        DayPlan.Entry(id: id, title: id, schedule: schedule(for: kind), order: order)
+    }
+
+    func testGroupsByKindInFixedSectionOrder() {
+        let plan = DayPlan(id: "p", name: "표", entries: [
+            entry("bath", .fixedTimes, order: 2),
+            entry("bed", .afterEntry, order: 3),
+            entry("milk", .afterFirst, order: 1)
+        ])
+        let sections = PlanEntryGrouping.sections(for: plan)
+        XCTAssertEqual(sections.map(\.kind), [.afterFirst, .fixedTimes, .afterEntry])
+        XCTAssertEqual(sections[0].entries.map(\.id), ["milk"])
+    }
+
+    func testEmptyKindsAreOmitted() {
+        let plan = DayPlan(id: "p", name: "표", entries: [entry("bath", .fixedTimes, order: 0)])
+        let sections = PlanEntryGrouping.sections(for: plan)
+        XCTAssertEqual(sections.map(\.kind), [.fixedTimes])
+    }
+
+    func testEntriesWithinSectionSortByOrder() {
+        let plan = DayPlan(id: "p", name: "표", entries: [
+            entry("b", .fixedTimes, order: 5),
+            entry("a", .fixedTimes, order: 1)
+        ])
+        XCTAssertEqual(PlanEntryGrouping.sections(for: plan)[0].entries.map(\.id), ["a", "b"])
+    }
+
+    /// 🩸 이름을 열거하면 새 것이 조용히 빠진다(같은 결함 3회) —
+    /// 묶는 순서는 손으로 적은 목록이라, 네 번째 방식이 생기면 **말없이 목록에서 사라진다**.
+    /// 부모는 그 항목을 보지도 지우지도 못한다. 여기서 빨갛게 걸리게 한다.
+    func testEveryPersistableKindGetsASection() {
+        let persistable = PlanSchedule.Kind.allCases.filter { $0 != .unknown }
+        let plan = DayPlan(id: "p", name: "표", entries: persistable.enumerated().map { i, kind in
+            entry("e\(i)", kind, order: i)
+        })
+        let sections = PlanEntryGrouping.sections(for: plan)
+        XCTAssertEqual(Set(sections.map(\.kind)), Set(persistable), "새 방식이 묶는 순서 목록에서 빠졌다")
+        XCTAssertEqual(sections.flatMap(\.entries).count, persistable.count, "항목이 조용히 사라졌다")
+    }
+}
+
+// MARK: - Task 6 · 줄 요약 문구
+
+final class PlanEntrySummaryTests: XCTestCase {
+
+    private func plan(_ entries: [DayPlan.Entry]) -> DayPlan {
+        DayPlan(id: "p", name: "우리 하루", entries: entries)
+    }
+
+    func testFixedTimesListsEveryTime() {
+        let e = DayPlan.Entry(id: "bath", title: "목욕", schedule: .fixedTimes(minutesOfDay: [1170, 420]), order: 0)
+        XCTAssertEqual(PlanEntrySummary.text(for: e, in: plan([e])), "매일 07:00 · 19:30")
+    }
+
+    func testAfterFirstNamesTheAnchorRecord() {
+        let e = DayPlan.Entry(
+            id: "milk", title: "분유",
+            schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6), order: 0
+        )
+        let text = PlanEntrySummary.text(for: e, in: plan([e]))
+        XCTAssertTrue(text.contains("3시간마다"), text)
+        XCTAssertTrue(text.contains("하루 6번"), text)
+    }
+
+    func testAfterEntryNamesThePrecedingEntry() {
+        let bath = DayPlan.Entry(id: "bath", title: "목욕", schedule: .fixedTimes(minutesOfDay: [1170]), order: 0)
+        let bed = DayPlan.Entry(id: "bed", title: "잠자리", schedule: .afterEntry(entryId: "bath", offsetMinutes: 30), order: 1)
+        XCTAssertEqual(PlanEntrySummary.text(for: bed, in: plan([bath, bed])), "목욕 30분 뒤")
+    }
+
+    /// 🔙 되돌리는 길 — 가리키던 항목을 지우면 이 칸은 **영영 「미정」**으로 남는다(Expander 실동작).
+    /// 요약이 빈칸이면 부모는 왜 안 오는지 알 길이 없다. 말로 알려 준다.
+    func testAfterEntryTellsTheTruthWhenTheTargetIsGone() {
+        let bed = DayPlan.Entry(id: "bed", title: "잠자리", schedule: .afterEntry(entryId: "지워짐", offsetMinutes: 30), order: 0)
+        let text = PlanEntrySummary.text(for: bed, in: plan([bed]))
+        XCTAssertFalse(text.isEmpty)
+        XCTAssertFalse(text.contains("지워짐"), "사라진 항목의 id 를 부모에게 보여주지 않는다: \(text)")
+        XCTAssertTrue(text.contains("없어"), text)
+    }
+
+    func testIntervalLabelReadsNaturally() {
+        XCTAssertEqual(PlanEntrySummary.intervalLabel(180), "3시간마다")
+        XCTAssertEqual(PlanEntrySummary.intervalLabel(45), "45분마다")
+        XCTAssertEqual(PlanEntrySummary.intervalLabel(90), "1시간 30분마다")
+    }
+}
+
+// MARK: - Task 6 · 넣고 지우는 규칙
+
+final class PlanEntryMutationTests: XCTestCase {
+
+    private func entry(_ id: String, order: Int) -> DayPlan.Entry {
+        DayPlan.Entry(id: id, title: id, schedule: .fixedTimes(minutesOfDay: [600]), order: order)
+    }
+
+    func testFirstEntryCreatesTheDefaultPlan() {
+        let made = PlanEntryMutation.appending(entry("a", order: 0), to: nil)
+        XCTAssertEqual(made.name, "우리 하루")
+        XCTAssertEqual(made.entries.map(\.id), ["a"])
+        XCTAssertTrue(made.isActive)
+    }
+
+    func testNewEntryGoesToTheEnd() {
+        let existing = DayPlan(id: "p", name: "우리 하루", entries: [entry("a", order: 0), entry("b", order: 7)])
+        XCTAssertEqual(PlanEntryMutation.nextOrder(in: existing), 8)
+        let after = PlanEntryMutation.appending(entry("c", order: 8), to: existing)
+        XCTAssertEqual(after.entries.map(\.id), ["a", "b", "c"])
+        XCTAssertEqual(after.id, "p", "같은 시간표에 붙는다 — 새로 만들지 않는다")
+    }
+
+    func testNextOrderOnEmptyPlanIsZero() {
+        XCTAssertEqual(PlanEntryMutation.nextOrder(in: nil), 0)
+        XCTAssertEqual(PlanEntryMutation.nextOrder(in: DayPlan(id: "p", name: "우리 하루")), 0)
+    }
+
+    func testRemovingLastEntryKeepsThePlan() {
+        let p = DayPlan(id: "p", name: "우리 하루", entries: [entry("a", order: 0)])
+        let after = PlanEntryMutation.removing(["a"], from: p)
+        XCTAssertTrue(after.entries.isEmpty)
+        XCTAssertEqual(after.id, "p", "마지막 하나를 지워도 시간표는 남는다 — 빈 화면에서 다시 넣는다")
+    }
+
+    /// 🔙 지운 항목을 가리키던 칸은 **사라지지 않는다** — 목록에 남아야 부모가 보고 지울 수 있다.
+    func testDependentEntrySurvivesSoTheParentCanSeeAndFixIt() {
+        let bath = DayPlan.Entry(id: "bath", title: "목욕", schedule: .fixedTimes(minutesOfDay: [1170]), order: 0)
+        let bed = DayPlan.Entry(id: "bed", title: "잠자리", schedule: .afterEntry(entryId: "bath", offsetMinutes: 30), order: 1)
+        let after = PlanEntryMutation.removing(["bath"], from: DayPlan(id: "p", name: "우리 하루", entries: [bath, bed]))
+        XCTAssertEqual(after.entries.map(\.id), ["bed"])
+        XCTAssertFalse(PlanEntrySummary.text(for: after.entries[0], in: after).isEmpty)
+    }
+}
+
+// MARK: - Task 6 · 아이 이름 뒤 조사
+
+final class KoreanParticleWithNameTests: XCTestCase {
+
+    /// 🩸 시리에서 값비쌌던 자리 — 받침을 안 보면 「서아이와」가 화면에 뜬다.
+    func testNameWithFinalConsonantTakesIWa() {
+        XCTAssertEqual(KoreanParticle.withName("서준"), "서준이와")
+        XCTAssertEqual(KoreanParticle.withName("민준"), "민준이와")
+    }
+
+    func testNameWithoutFinalConsonantTakesWa() {
+        XCTAssertEqual(KoreanParticle.withName("서아"), "서아와")
+        XCTAssertEqual(KoreanParticle.withName("지우"), "지우와")
+    }
+
+    func testNonKoreanNameFallsBackWithoutConsonant() {
+        XCTAssertEqual(KoreanParticle.withName("Leo"), "Leo와")
+    }
+}

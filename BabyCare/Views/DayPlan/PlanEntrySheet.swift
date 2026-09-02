@@ -130,6 +130,8 @@ struct PlanEntrySheet: View {
                         .foregroundStyle(DS2.Color.textPrimary)
                     Spacer()
                 }
+                // 🩸 같은 결함이 여기에도 있었다 — 카드 오른쪽을 눌러도 방식이 안 골라졌다.
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -234,10 +236,9 @@ struct PlanEntrySheet: View {
         Binding(get: { draft.count ?? 6 }, set: { draft.count = $0 })
     }
 
+    /// 목록 요약과 **같은 문구**를 쓴다 — 두 자리에 적으면 갈라진다.
     private func intervalLabel(_ minutes: Int) -> String {
-        if minutes % 60 == 0 { return "\(minutes / 60)시간마다" }
-        if minutes < 60 { return "\(minutes)분마다" }
-        return "\(minutes / 60)시간 \(minutes % 60)분마다"
+        PlanEntrySummary.intervalLabel(minutes)
     }
 
     /// 「첫 기록부터 주기」 미리보기 — 문구를 손으로 적지 말고 순수 함수에서 뽑는다.

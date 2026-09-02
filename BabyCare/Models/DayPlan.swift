@@ -84,7 +84,7 @@ struct DayPlan: Identifiable, Codable, Hashable {
 /// 「언제」를 말하는 세 방식. 평평한 구조 + `kind` 판별자 —
 /// 연관값 enum 의 중첩 JSON 은 Firestore 계약으로 쓰기 나쁘다.
 struct PlanSchedule: Codable, Hashable {
-    enum Kind: String, Codable, Hashable {
+    enum Kind: String, Codable, Hashable, CaseIterable {
         case fixedTimes = "fixed_times"
         case afterFirst = "after_first"
         case afterEntry = "after_entry"

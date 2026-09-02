@@ -109,6 +109,12 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
+                        DayPlanListView()
+                    } label: {
+                        Label("우리 하루", systemImage: "calendar.day.timeline.left")
+                    }
+
+                    NavigationLink {
                         BadgeGalleryView()
                     } label: {
                         Label("내 배지", systemImage: "rosette")
