@@ -329,4 +329,31 @@ final class DayPlanStoreTests: XCTestCase {
         let other = try await mock.fetchDayPlans(userId: "u2")
         XCTAssertTrue(other.isEmpty)
     }
+
+    // 리뷰 F1 — Mock 이 insertion order 를 돌려주면, 실제 서비스(createdAt 오름차순 쿼리)와
+    // 달라서 later task 의 리스트 정렬 테스트가 Mock 에는 통과하고 프로덕션에서는 틀릴 수 있다.
+    // 나중(두 번째) 저장한 쪽이 더 이른 createdAt 을 갖게 해서, insertion order 로는 틀리고
+    // createdAt 오름차순으로만 맞는 배치를 만든다.
+    func testFetchDayPlansOrdersByCreatedAtNotInsertionOrder() async throws {
+        let mock = MockDayPlanFirestore()
+        let savedFirstButNewer = DayPlan(id: "a", name: "나중 생성", createdAt: Date(timeIntervalSince1970: 200))
+        let savedSecondButOlder = DayPlan(id: "b", name: "먼저 생성", createdAt: Date(timeIntervalSince1970: 100))
+        try await mock.saveDayPlan(savedFirstButNewer, userId: "u1")
+        try await mock.saveDayPlan(savedSecondButOlder, userId: "u1")
+        let result = try await mock.fetchDayPlans(userId: "u1")
+        XCTAssertEqual(result.map(\.id), ["b", "a"])
+    }
+
+    // 리뷰 F1 — createdAt 이 동률이면 Firestore 는 마지막 explicit orderBy 와 같은 방향(오름차순)으로
+    // 문서 id 를 암묵적 tie-break 로 쓴다. insertion order 로 저장해도 id 오름차순으로 나와야 한다.
+    func testFetchDayPlansTieBreaksByIdWhenCreatedAtMatches() async throws {
+        let mock = MockDayPlanFirestore()
+        let tie = Date(timeIntervalSince1970: 500)
+        let savedFirst = DayPlan(id: "b", name: "B", createdAt: tie)
+        let savedSecond = DayPlan(id: "a", name: "A", createdAt: tie)
+        try await mock.saveDayPlan(savedFirst, userId: "u1")
+        try await mock.saveDayPlan(savedSecond, userId: "u1")
+        let result = try await mock.fetchDayPlans(userId: "u1")
+        XCTAssertEqual(result.map(\.id), ["a", "b"])
+    }
 }

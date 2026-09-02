@@ -20,7 +20,13 @@ final class MockDayPlanFirestore: DayPlanFirestoreProviding, @unchecked Sendable
         fetchCount += 1
         capturedUserIds.append(userId)
         if let e = errorToThrow { throw e }
-        return store[userId] ?? []
+        // 실제 서비스의 `.order(by: "createdAt", descending: false)` 를 그대로 반영 —
+        // Firestore 는 정렬 필드가 동률이면 마지막 explicit orderBy 와 같은 방향으로
+        // 문서 id 를 암묵적 tie-break 로 쓴다 (오름차순 → id 오름차순).
+        return (store[userId] ?? []).sorted {
+            if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+            return $0.id < $1.id
+        }
     }
 
     func saveDayPlan(_ plan: DayPlan, userId: String) async throws {
