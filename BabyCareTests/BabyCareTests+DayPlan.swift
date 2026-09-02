@@ -891,3 +891,90 @@ final class DaySlotFillerTests: XCTestCase {
         XCTAssertEqual(cells.map(\.slotId), ["s1", "s2"])
     }
 }
+
+// MARK: - Task 3.5 · 항목이 「어떤 기록으로 채워지나」를 말한다
+
+final class PlanEntryRecordTypeTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date) -> Activity {
+        Activity(id: "a-\(start.timeIntervalSince1970)", babyId: "b", type: type,
+                 startTime: start, createdAt: start)
+    }
+
+    /// 「첫 분유부터 3시간마다」로 짰으면 그 칸을 채우는 기록은 분유다 — 부모에게 두 번 묻지 않는다.
+    func testAfterFirstEntryFallsBackToItsAnchorType() {
+        let e = DayPlan.Entry(id: "milk", title: "분유",
+                              schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                              order: 0)
+        XCTAssertEqual(e.recordType, "feeding_bottle")
+    }
+
+    /// 명시한 종류가 있으면 그게 이긴다.
+    func testExplicitActivityTypeWins() {
+        let e = DayPlan.Entry(id: "x", title: "목욕", activityType: "bath",
+                              schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                              order: 0)
+        XCTAssertEqual(e.recordType, "bath")
+    }
+
+    /// 기록이 없는 일(내 밥·샤워)은 **비어 있는 게 맞다** — 없는 종류를 지어내지 않는다.
+    func testEntryWithNoTypeAndNoAnchorHasNoRecordType() {
+        let e = DayPlan.Entry(id: "meal", title: "내 밥",
+                              schedule: .fixedTimes(minutesOfDay: [720]), order: 0)
+        XCTAssertNil(e.recordType)
+    }
+
+    /// 🔴 이 태스크의 이유 — 시트가 `activityType` 을 안 채우므로, 정박 종류로만 짠 항목도
+    ///    실제로 **칸이 채워져야** 한다. 이 테스트가 빨간 상태로 ②단계가 배포되면 기능이 죽는다.
+    func testAnchorOnlyEntryActuallyGetsFilledEndToEnd() {
+        let plan = DayPlan(id: "p", name: "우리 하루", entries: [
+            DayPlan.Entry(id: "milk", title: "분유",
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 2),
+                          order: 0)
+        ])
+        let acts = [activity(.feedingBottle, at(6, 30))]
+        let anchors = DayAnchorsBuilder.anchors(from: acts, on: at(9), calendar: cal)
+        let slots = DayPlanExpander.slots(plan: plan, day: at(9), anchors: anchors, calendar: cal)
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(9), calendar: cal)
+
+        XCTAssertEqual(cells.filter { $0.kind == .done }.count, 1, "기록이 칸을 못 채웠다")
+        XCTAssertTrue(cells.allSatisfy { $0.kind != .extra }, "예정에 있던 기록이 끼어든 칸이 됐다")
+    }
+
+    /// ⓓ 미정 칸은 **최후 순위** — 시각이 잘 맞는 예정 칸이 미정 칸에 굶으면 안 된다(Task 3 리뷰 Important).
+    func testScheduledSlotBeatsUnscheduledSlotOfTheSameType() {
+        let scheduled = DayPlanExpander.Slot(id: "s-fixed", entryId: "e1", title: "분유",
+                                             activityType: "feeding_bottle", lane: .baby,
+                                             plannedAt: at(12), order: 0)
+        let unscheduled = DayPlanExpander.Slot(id: "s-waiting", entryId: "e2", title: "분유",
+                                               activityType: "feeding_bottle", lane: .baby,
+                                               plannedAt: nil, order: 1)
+        let cells = DaySlotFiller.fill(slots: [scheduled, unscheduled],
+                                       activities: [activity(.feedingBottle, at(12, 5))],
+                                       on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s-fixed" })?.kind, .done,
+                       "시각이 맞는 예정 칸이 미정 칸에 밀렸다")
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s-waiting" })?.kind, .planned)
+    }
+
+    /// 경쟁이 없으면 미정 칸도 그대로 채워진다 — 최후 순위지 금지가 아니다.
+    func testUnscheduledSlotStillFillsWhenNothingElseWantsIt() {
+        let unscheduled = DayPlanExpander.Slot(id: "s", entryId: "e", title: "분유",
+                                               activityType: "feeding_bottle", lane: .baby,
+                                               plannedAt: nil, order: 0)
+        let cells = DaySlotFiller.fill(slots: [unscheduled],
+                                       activities: [activity(.feedingBottle, at(6, 30))],
+                                       on: at(9), calendar: cal)
+        XCTAssertEqual(cells[0].kind, .done)
+    }
+}

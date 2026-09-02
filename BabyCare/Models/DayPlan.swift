@@ -37,6 +37,12 @@ struct DayPlan: Identifiable, Codable, Hashable {
         var schedule: PlanSchedule
         var order: Int
 
+        /// 이 항목을 채우는 **기록의 종류**.
+        /// 🔑 명시값이 없으면 「첫 기록부터 주기」의 정박 종류가 답이다 —
+        ///    「첫 분유부터 3시간마다」로 짠 사람에게 「무슨 기록으로 채울까요?」를 또 묻지 않는다.
+        /// nil = 기록이 없는 일(내 밥·샤워). 없는 종류를 지어내지 않는다.
+        var recordType: String? { activityType ?? schedule.anchorType }
+
         init(
             id: String = UUID().uuidString,
             title: String,

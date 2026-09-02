@@ -48,8 +48,10 @@ enum DaySlotFiller {
         for (si, s) in slots.enumerated() {
             guard let type = s.activityType else { continue }   // 기록 종류 없는 항목은 안 채워진다
             for (ai, a) in todays.enumerated() where a.type.rawValue == type {
-                // 정박 전(plannedAt=nil) 칸은 거리를 0 으로 봐서 같은 종류 기록을 받아들인다.
-                let d = s.plannedAt.map { abs($0.timeIntervalSince(a.startTime)) } ?? 0
+                // 정박 전(plannedAt=nil) 칸은 **최후 순위**다 —
+                // 어떤 예정 칸도 원하지 않는 기록만 가져간다. 0 으로 두면 시각이 잘 맞는
+                // 예정 칸이 미정 칸에 굶는다(Task 3 리뷰 Important).
+                let d = s.plannedAt.map { abs($0.timeIntervalSince(a.startTime)) } ?? .greatestFiniteMagnitude
                 pairs.append(Pair(slotIndex: si, actIndex: ai, distance: d))
             }
         }
