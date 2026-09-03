@@ -65,6 +65,22 @@ final class DayPlanFlowTests: XCTestCase {
         app.terminate()
     }
 
+    /// 「오늘 하루」 띠 카드가 홈에 있고, 시작 전 상태로 그려지는지.
+    /// ⚠️ `UI_TESTING` 은 인증을 흉내만 내서 Firestore 가 막힌다 — **닿는지 · 그려지는지**만 잰다.
+    ///    넣고 채우고 닫는 왕복은 로그인된 기기 QA로만 확인된다.
+    @MainActor
+    func testDashboardShowsTodayBandCard() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["UI_TESTING", "UI_TESTING_TAB=0"]
+        app.launch()
+        dismissDialogs(app)
+        Thread.sleep(forTimeInterval: 2.5)
+        XCTAssertTrue(app.staticTexts["오늘 하루 시작하기"].waitForExistence(timeout: 6),
+                      "홈에 「오늘 하루」 카드가 없다")
+        capture(app, "13_today_band_card")
+        app.terminate()
+    }
+
     // MARK: - Helpers
 
     /// 설정에서 「우리 하루」를 찾아 눌러 목록 화면까지 연다.

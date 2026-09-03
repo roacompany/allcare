@@ -58,6 +58,7 @@ struct DashboardView: View {
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
+        TodayBandCard()
         PumpedMilkStockCard(state: activityVM.pumpInventory) { showPumpStock = true }
         predictionSection
         pregnancyHomeCardIfNeeded

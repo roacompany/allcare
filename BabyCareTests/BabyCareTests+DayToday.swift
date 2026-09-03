@@ -216,3 +216,61 @@ final class TodayViewModelTests: XCTestCase {
         XCTAssertEqual(runs.saveCount, 2, "다른 날이면 새 문서를 써야 한다 — 일찍 return 하면 저장이 1번에 머문다")
     }
 }
+
+// MARK: - Task 7 · 띠 카드 문구
+//
+// 컨트롤러 판단(2026-09-03): 브리프는 이 클래스를 BabyCareTests+DayPlan.swift(1,047줄)에
+// 붙이라고 했지만, 그 파일은 .swiftlint.yml file_length error(1200)에 이미 근접해 있어
+// 이 몫을 더하면 넘긴다. 대신 이 파일(BabyCareTests+DayToday.swift, Task 7이 소비하는
+// TodayViewModel/DayCell과 같은 도메인)에 붙인다.
+
+final class TodayBandCopyTests: XCTestCase {
+
+    private func cell(_ kind: DayCell.Kind) -> DayCell {
+        DayCell(id: UUID().uuidString, slotId: kind == .extra ? nil : "s", title: "분유",
+                activityType: "feeding_bottle", lane: .baby, kind: kind, at: Date(), order: 0)
+    }
+
+    private var openRun: DayRun { DayRun(id: "2026-09-03", startedAt: Date()) }
+    private var closedRun: DayRun {
+        var r = openRun; r.closedAt = Date(); return r
+    }
+
+    func testBeforeStartInvitesToStart() {
+        XCTAssertEqual(TodayBandCopy.headline(run: nil, cells: []), "오늘 하루 시작하기")
+    }
+
+    func testMorningWaitsForTheFirstRecord() {
+        XCTAssertEqual(TodayBandCopy.headline(run: openRun, cells: [cell(.planned)]),
+                       "첫 기록을 기다리는 중")
+    }
+
+    func testDaytimeCountsWhatPassed() {
+        let cells = [cell(.done), cell(.done), cell(.planned)]
+        XCTAssertEqual(TodayBandCopy.headline(run: openRun, cells: cells), "두 칸 지났어요")
+    }
+
+    /// 시안 「② 낮」 — 끼어든 칸이 있으면 **오늘의 칸 수**를 말한다.
+    func testExtraCellsAnnounceTheNewTotal() {
+        let cells = [cell(.done), cell(.extra), cell(.planned)]
+        XCTAssertEqual(TodayBandCopy.headline(run: openRun, cells: cells), "오늘은 세 칸이 됐어요")
+    }
+
+    func testClosedDayIsKind() {
+        XCTAssertEqual(TodayBandCopy.headline(run: closedRun, cells: [cell(.done)]), "오늘도 잘 지났어요")
+    }
+
+    /// 🔴 설계 §2 결정 6 · §5 — 재촉·지연·분수는 어떤 상태에서도 나오지 않는다.
+    func testNeverNagsInAnyState() {
+        let states: [(DayRun?, [DayCell])] = [
+            (nil, []), (openRun, [cell(.planned)]),
+            (openRun, [cell(.done), cell(.planned)]), (closedRun, [cell(.done), cell(.planned)])
+        ]
+        for (run, cells) in states {
+            let text = TodayBandCopy.headline(run: run, cells: cells)
+            for banned in ["지연", "늦", "밀렸", "못 한", "/", "연속"] {
+                XCTAssertFalse(text.contains(banned), "「\(banned)」가 문구에 있다: \(text)")
+            }
+        }
+    }
+}
