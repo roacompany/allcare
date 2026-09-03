@@ -68,6 +68,10 @@ final class DayPlanFlowTests: XCTestCase {
     /// 「오늘 하루」 띠 카드가 홈에 있고, 시작 전 상태로 그려지는지.
     /// ⚠️ `UI_TESTING` 은 인증을 흉내만 내서 Firestore 가 막힌다 — **닿는지 · 그려지는지**만 잰다.
     ///    넣고 채우고 닫는 왕복은 로그인된 기기 QA로만 확인된다.
+    /// 🔴 fix round 1 Finding 1 이전엔 헤드라인도 "오늘 하루 시작하기"라 `staticTexts` 매치가
+    ///    실은 **헤드라인**을 잡고 있었다(버튼 라벨은 `Button` 안에 있어 별도 staticText로
+    ///    안 잡힌다). 헤드라인이 "우리 하루"로 바뀌면서 그 매치가 사라져 이 테스트가 깨졌다 —
+    ///    시작 버튼(`Button`)을 직접 겨냥하도록 고쳤다. 버튼 라벨 문구 자체는 안 바뀌었다.
     @MainActor
     func testDashboardShowsTodayBandCard() throws {
         let app = XCUIApplication()
@@ -75,7 +79,7 @@ final class DayPlanFlowTests: XCTestCase {
         app.launch()
         dismissDialogs(app)
         Thread.sleep(forTimeInterval: 2.5)
-        XCTAssertTrue(app.staticTexts["오늘 하루 시작하기"].waitForExistence(timeout: 6),
+        XCTAssertTrue(app.buttons["오늘 하루 시작하기"].waitForExistence(timeout: 6),
                       "홈에 「오늘 하루」 카드가 없다")
         capture(app, "13_today_band_card")
         app.terminate()

@@ -237,7 +237,9 @@ final class TodayBandCopyTests: XCTestCase {
     }
 
     func testBeforeStartInvitesToStart() {
-        XCTAssertEqual(TodayBandCopy.headline(run: nil, cells: []), "오늘 하루 시작하기")
+        // fix round 1 Finding 1 — 헤드라인이 시작 버튼과 같은 문장이면 시작 전 카드가
+        // 같은 말을 두 번 한다(화면엔 버튼도 그려진다). 헤드라인은 이름만 말한다.
+        XCTAssertEqual(TodayBandCopy.headline(run: nil, cells: []), "우리 하루")
     }
 
     func testMorningWaitsForTheFirstRecord() {
@@ -260,16 +262,44 @@ final class TodayBandCopyTests: XCTestCase {
         XCTAssertEqual(TodayBandCopy.headline(run: closedRun, cells: [cell(.done)]), "오늘도 잘 지났어요")
     }
 
-    /// 🔴 설계 §2 결정 6 · §5 — 재촉·지연·분수는 어떤 상태에서도 나오지 않는다.
+    // MARK: - fix round 1 Finding 2 · 둘째 줄(subheadline) — 설명이 필요한 두 상태에만 있다
+
+    func testBeforeStartSubheadlineExplainsWhatOpeningDoes() {
+        XCTAssertEqual(TodayBandCopy.subheadline(run: nil, cells: []),
+                       "오늘을 열면 짜 둔 시간표가 하루 동안 흐릅니다")
+    }
+
+    func testMorningSubheadlineExplainsWhatComesNext() {
+        XCTAssertEqual(TodayBandCopy.subheadline(run: openRun, cells: [cell(.planned)]),
+                       "첫 기록이 오면 오늘 시간이 정해져요")
+    }
+
+    func testDaytimeSubheadlineIsNil() {
+        let cells = [cell(.done), cell(.planned)]
+        XCTAssertNil(TodayBandCopy.subheadline(run: openRun, cells: cells))
+    }
+
+    func testClosedSubheadlineIsNil() {
+        XCTAssertNil(TodayBandCopy.subheadline(run: closedRun, cells: [cell(.done)]))
+    }
+
+    /// 🔴 설계 §2 결정 6 · §5 — 재촉·지연·분수는 **어떤 상태에서도**, **헤드라인·둘째 줄 어디에도**
+    /// 나오지 않는다. fix round 1 Finding 3 — 이름이 "어떤 상태에서도"라면 끼어든 칸(낮 ②)도
+    /// 걸어야 한다. 빠뜨리면 이름이 거짓말하는 테스트가 된다.
     func testNeverNagsInAnyState() {
         let states: [(DayRun?, [DayCell])] = [
             (nil, []), (openRun, [cell(.planned)]),
-            (openRun, [cell(.done), cell(.planned)]), (closedRun, [cell(.done), cell(.planned)])
+            (openRun, [cell(.done), cell(.planned)]),
+            (openRun, [cell(.done), cell(.extra), cell(.planned)]),
+            (closedRun, [cell(.done), cell(.planned)])
         ]
         for (run, cells) in states {
-            let text = TodayBandCopy.headline(run: run, cells: cells)
-            for banned in ["지연", "늦", "밀렸", "못 한", "/", "연속"] {
-                XCTAssertFalse(text.contains(banned), "「\(banned)」가 문구에 있다: \(text)")
+            let texts = [TodayBandCopy.headline(run: run, cells: cells),
+                         TodayBandCopy.subheadline(run: run, cells: cells)].compactMap { $0 }
+            for text in texts {
+                for banned in ["지연", "늦", "밀렸", "못 한", "/", "연속"] {
+                    XCTAssertFalse(text.contains(banned), "「\(banned)」가 문구에 있다: \(text)")
+                }
             }
         }
     }

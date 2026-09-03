@@ -7,13 +7,25 @@ enum TodayBandCopy {
     private static let korean = ["한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"]
 
     static func headline(run: DayRun?, cells: [DayCell]) -> String {
-        guard let run else { return "오늘 하루 시작하기" }
+        guard let run else { return "우리 하루" }
         if !run.isOpen { return "오늘도 잘 지났어요" }
         if cells.contains(where: { $0.kind == .extra }) {
             return "오늘은 \(count(cells.count)) 칸이 됐어요"
         }
         let done = cells.filter { $0.kind == .done }.count
         return done == 0 ? "첫 기록을 기다리는 중" : "\(count(done)) 칸 지났어요"
+    }
+
+    /// 헤드라인 바로 아래 둘째 줄 — **설명이 필요한 두 상태에만** 있다(시안 「① 아침」의 두 줄 ·
+    /// fix round 1 Finding 2). 헤드라인이 「우리 하루」/「N 칸 지났어요」처럼 이름·상태만 말하게
+    /// 되면서, "왜 기다리나 · 열면 무슨 일이 있나"는 이 줄이 옮겨 받았다. 낮(이미 진행 중이라
+    /// 설명이 필요 없다)·밤(헤드라인 + `summaryLine`으로 충분하다)은 `nil` — 화면에 아예 안 그려진다.
+    static func subheadline(run: DayRun?, cells: [DayCell]) -> String? {
+        guard let run else { return "오늘을 열면 짜 둔 시간표가 하루 동안 흐릅니다" }
+        guard run.isOpen else { return nil }
+        if cells.contains(where: { $0.kind == .extra }) { return nil }
+        let done = cells.filter { $0.kind == .done }.count
+        return done == 0 ? "첫 기록이 오면 오늘 시간이 정해져요" : nil
     }
 
     static func count(_ n: Int) -> String {
@@ -42,6 +54,12 @@ struct TodayBandCard: View {
             Text(TodayBandCopy.headline(run: vm.run, cells: vm.cells))
                 .font(DS2.Font.headline)
                 .foregroundStyle(DS2.Color.textPrimary)
+
+            if let sub = TodayBandCopy.subheadline(run: vm.run, cells: vm.cells) {
+                Text(sub)
+                    .font(DS2.Font.subheadline)
+                    .foregroundStyle(DS2.Color.textSecondary)
+            }
 
             if vm.run == nil {
                 startButton
