@@ -30,17 +30,27 @@ final class TodayViewModel: LoadingStateful {
     // MARK: - Load
 
     /// `activities` 는 **하루 목록 그대로** 넘겨도 된다 — 순수 함수들이 `startedOn` 으로 거른다.
+    ///
+    /// 🔑 **원자성**: 두 fetch 는 `async let` 으로 여전히 동시에 나간다 — 로컬 상수로
+    ///    먼저 받아 두고, **둘 다 성공했을 때만** `run`/`plan` 을 한 번에 반영하고
+    ///    `recompute()`를 부른다. 하나라도 throw 하면 프로퍼티는 한 글자도 안 바뀐다.
+    ///    따로따로 `self.run =` / `self.plan =` 에 바로 대입하면, 앞이 성공하고 뒤가
+    ///    실패했을 때 `run` 만 새 값이 되고 `plan`·`cells` 는 이전 값에 머물러 화면이
+    ///    반쪽짜리 상태(리뷰 Important)가 된다 — 시간표를 못 읽었는데 하루 문서만
+    ///    바뀐 것처럼 보이는 식.
     func load(userId: String, day: Date, activities: [Activity]) async {
         await withLoading {
             do {
                 let docId = DayRun.documentId(for: day, calendar: calendar)
                 async let fetchedRun = dayRunProvider.fetchDayRun(userId: userId, documentId: docId)
                 async let fetchedPlans = planProvider.fetchDayPlans(userId: userId)
-                run = try await fetchedRun
                 // 🔑 `fetchedPlans` 는 `async let` 바인딩 — `try await` 가 바인딩 자체에 걸려야
                 //    한다(값을 먼저 받은 뒤 `.first`). `try await fetchedPlans.first` 로 쓰면
                 //    이 툴체인(Swift 6.3.3)이 `.first` 에 먼저 await 를 적용하려 해 컴파일이 깨진다.
-                plan = (try await fetchedPlans).first
+                let newRun = try await fetchedRun
+                let newPlan = (try await fetchedPlans).first
+                run = newRun
+                plan = newPlan
                 recompute(day: day, activities: activities)
                 errorMessage = nil
             } catch {
