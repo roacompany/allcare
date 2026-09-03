@@ -81,6 +81,7 @@ final class DayPlanFlowTests: XCTestCase {
         Thread.sleep(forTimeInterval: 2.5)
         XCTAssertTrue(app.buttons["오늘 하루 시작하기"].waitForExistence(timeout: 6),
                       "홈에 「오늘 하루」 카드가 없다")
+        XCTAssertTrue(app.staticTexts["우리 하루"].waitForExistence(timeout: 6), "카드 제목이 없다")
         capture(app, "13_today_band_card")
         app.terminate()
     }
