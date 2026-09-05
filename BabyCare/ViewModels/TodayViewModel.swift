@@ -13,6 +13,33 @@ final class TodayViewModel: LoadingStateful {
     var isLoading = false
     var errorMessage: String?
 
+    /// 한 번이라도 **성공적으로** 읽었나 — 「시간표가 없다」와 「아직 모른다」를 가른다.
+    private(set) var didLoad = false
+    /// 마지막 읽기가 실패했나.
+    /// ⛔ `errorMessage` 로 대신하지 않는다 — 시작·닫기 실패도 거기 담기는데, 그건 카드가
+    ///    이미 떠 있는 상태라 카드를 통째로 실패 화면으로 바꾸면 안 된다.
+    private(set) var loadFailed = false
+
+    /// 카드가 무엇을 그릴지 — **여기 한 곳에서만** 정한다.
+    /// 🧩 카드가 스스로 판단하면 「숨긴다」와 「못 읽었다」가 화면마다 갈라진다.
+    enum Presentation: Equatable {
+        /// 아직 모른다 — 아무것도 안 그린다(시간표 있는 사람 화면이 깜빡이지 않게).
+        case loading
+        /// 못 읽었다 — **숨기지 않는다.** 모르는 것과 없는 것은 다르다.
+        case failed
+        /// 시간표가 없다(확인됨) — 카드 자체를 그리지 않는다(PO 결정 2026-09-05).
+        /// 시간표가 없으면 칸이 채워질 수 없어, 열어도 하루 종일 아무 일도 일어나지 않는다.
+        case hidden
+        /// 그린다.
+        case ready
+    }
+
+    var presentation: Presentation {
+        if loadFailed { return .failed }
+        guard didLoad else { return .loading }
+        return plan == nil ? .hidden : .ready
+    }
+
     private let dayRunProvider: DayRunFirestoreProviding
     private let planProvider: DayPlanFirestoreProviding
     private let calendar: Calendar
@@ -53,7 +80,10 @@ final class TodayViewModel: LoadingStateful {
                 plan = newPlan
                 recompute(day: day, activities: activities)
                 errorMessage = nil
+                didLoad = true
+                loadFailed = false
             } catch {
+                loadFailed = true
                 errorMessage = "오늘 하루를 불러오지 못했어요."
                 logSilent("오늘 하루 로드 실패", error: error, logger: AppLogger.firestore)
             }
@@ -76,6 +106,12 @@ final class TodayViewModel: LoadingStateful {
 
     /// 같은 날 다시 눌러도 **시작 시각은 그대로**다(문서 id 가 날짜라 덮어쓰기가 멱등).
     func startToday(userId: String, day: Date) async {
+        // 🔴 못 읽었으면 **쓰지 않는다.** `saveDayRun` 은 `setData` 통째 덮어쓰기라,
+        //    이미 닫은 오늘이 열린 하루로 되살아난다(리뷰 C4). 모르는 채 여느니 안 연다.
+        guard !loadFailed else {
+            errorMessage = "오늘 하루를 불러오지 못해 시작할 수 없어요."
+            return
+        }
         if let existing = run, existing.id == DayRun.documentId(for: day, calendar: calendar) { return }
         let new = DayRun(id: DayRun.documentId(for: day, calendar: calendar),
                          planId: plan?.id, startedAt: Date())

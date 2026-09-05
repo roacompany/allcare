@@ -41,7 +41,9 @@ struct TodayBandCard: View {
     @Environment(BabyViewModel.self) private var babyVM
     @Environment(ActivityViewModel.self) private var activityVM
 
-    @State private var vm = TodayViewModel()
+    /// 대시보드가 만들어 넘긴다 — 카드가 스스로 들면 「숨김」일 때 `.task` 가 붙을 자리가
+    /// 없어(빈 뷰) 영영 안 불러온다. 판정은 `vm.presentation` **한 곳**뿐이다.
+    let vm: TodayViewModel
 
     /// 🔴 `currentUserId` 를 **먼저** — `dataUserId` 는 로그아웃 뒤에도 소유자 uid 를 돌려준다(#49).
     private var ownerUserId: String? {
@@ -51,40 +53,84 @@ struct TodayBandCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS2.Spacing.md) {
-            Text(TodayBandCopy.headline(run: vm.run, cells: vm.cells))
-                .font(DS2.Font.headline)
-                .foregroundStyle(DS2.Color.textPrimary)
-
-            if let sub = TodayBandCopy.subheadline(run: vm.run, cells: vm.cells) {
-                Text(sub)
-                    .font(DS2.Font.subheadline)
-                    .foregroundStyle(DS2.Color.textSecondary)
-            }
-
-            if vm.run == nil {
-                startButton
-            } else {
-                DayBandStrip(cells: vm.cells)
-                if vm.run?.isOpen == false, let name = babyVM.selectedBaby?.name,
-                   let line = vm.summaryLine(babyName: name) {
-                    Text(line)
-                        .font(DS2.Font.callout)
-                        .foregroundStyle(DS2.Color.textSecondary)
-                }
-                if vm.run?.isOpen == true { closeButton }
+            switch vm.presentation {
+            case .failed:
+                failedContent
+            case .ready:
+                readyContent
+            case .loading, .hidden:
+                // 이 두 상태에선 대시보드가 카드를 아예 안 그린다 — 여기 도달하지 않는다.
+                // (`default:` 를 쓰지 않는다 — 새 상태가 생기면 여기가 컴파일 에러로 걸린다.)
+                EmptyView()
             }
         }
+        // 🩸 폭을 **내용에 맡기지 않는다** — 시작·닫기 버튼의 `maxWidth: .infinity` 가 카드를
+        //    넓혀 주고 있어서, 그 버튼이 없는 실패 상태만 다른 카드보다 좁게 나왔다(육안 발견).
+        //    네 상태 모두 같은 폭이어야 한다.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(DS2.Spacing.lg)
         .background(DS2.Color.surfaceSecondary, in: RoundedRectangle(cornerRadius: DS2.Radius.md))
         .ds2Shadow(.sm)
-        .task {
-            guard let userId = ownerUserId else { return }
-            await vm.load(userId: userId, day: Date(), activities: activityVM.todayActivities)
+        // 경고창은 **손님이 방금 누른 일**(시작·닫기)에만 — 불러오기 실패는 화면 안에서
+        // 말한다(①단계 목록과 같은 규칙).
+        .alert("알림", isPresented: actionErrorBinding) {
+            Button("확인", role: .cancel) { vm.errorMessage = nil }
+        } message: {
+            Text(vm.errorMessage ?? "")
         }
-        // 기록이 들어오면 칸이 채워진다 — 저장소를 다시 두드리지 않는다.
-        .onChange(of: activityVM.todayActivities) { _, new in
-            vm.refreshCells(day: Date(), activities: new)
+    }
+
+    @ViewBuilder
+    private var readyContent: some View {
+        Text(TodayBandCopy.headline(run: vm.run, cells: vm.cells))
+            .font(DS2.Font.headline)
+            .foregroundStyle(DS2.Color.textPrimary)
+
+        if let sub = TodayBandCopy.subheadline(run: vm.run, cells: vm.cells) {
+            Text(sub)
+                .font(DS2.Font.subheadline)
+                .foregroundStyle(DS2.Color.textSecondary)
         }
+
+        if vm.run == nil {
+            startButton
+        } else {
+            DayBandStrip(cells: vm.cells)
+            if vm.run?.isOpen == false, let name = babyVM.selectedBaby?.name,
+               let line = vm.summaryLine(babyName: name) {
+                Text(line)
+                    .font(DS2.Font.callout)
+                    .foregroundStyle(DS2.Color.textSecondary)
+            }
+            if vm.run?.isOpen == true { closeButton }
+        }
+    }
+
+    /// 🔴 **못 불러온 것을 「없어요」라고 말하지 않는다.** 실패를 안 그리면 규칙 배포를 잊어도,
+    /// 통신이 끊겨도 화면에 아무 신호가 없다(리뷰 C3 · ①단계 목록은 이걸 그리는데 여기만 빠져 있었다).
+    @ViewBuilder
+    private var failedContent: some View {
+        Text("오늘 하루를 불러오지 못했어요")
+            .font(DS2.Font.headline)
+            .foregroundStyle(DS2.Color.textPrimary)
+        // 🔙 되돌아갈 길 — 실패한 채로 가둬 두지 않는다.
+        Button("다시 시도") {
+            Task {
+                guard let userId = ownerUserId else { return }
+                await vm.load(userId: userId, day: Date(), activities: activityVM.todayActivities)
+            }
+        }
+        .font(DS2.Font.callout)
+        .foregroundStyle(DS2.Color.accent)
+        .contentShape(Rectangle())
+    }
+
+    /// 불러오기 실패는 화면 안에서 말했으니 경고창까지 띄우지 않는다 — 같은 말을 두 번 하게 된다.
+    private var actionErrorBinding: Binding<Bool> {
+        Binding(
+            get: { vm.presentation == .ready && vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )
     }
     private var startButton: some View {
         Button {

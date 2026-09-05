@@ -46,6 +46,12 @@ enum DaySlotFiller {
         struct Pair { let slotIndex: Int; let actIndex: Int; let distance: TimeInterval }
         var pairs: [Pair] = []
         for (si, s) in slots.enumerated() {
+            // 🔴 **내 줄은 아기 기록으로 채우지 않는다.** 기록은 전부 아이의 것이라,
+            //    거르지 않으면 부모가 짜 둔 「나도 한숨 자기」를 **아기가 잔 기록**이 채운다
+            //    (설계 §5 — 내 줄은 "자기가 단 만큼만", ②-B 의 수동 완료가 채울 자리).
+            //    지금은 시트에 줄 고르기가 없어 전부 `.baby` 지만, 켜지는 날 조용히 어긋난다
+            //    — 아무도 안 쓰는 필드가 나중에 갈라지는 결함이 이 트랙에서 **세 번째**다.
+            guard s.lane == .baby else { continue }
             guard let type = s.activityType else { continue }   // 기록 종류 없는 항목은 안 채워진다
             for (ai, a) in todays.enumerated() where a.type.rawValue == type {
                 // 정박 전(plannedAt=nil) 칸은 **최후 순위**다 —

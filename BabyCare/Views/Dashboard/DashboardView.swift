@@ -39,6 +39,11 @@ struct DashboardView: View {
     }
     @State private var selectedHighlight: InsightCandidate?
 
+    // MARK: - 우리 하루 (②단계)
+    // 🔴 VM 을 카드가 아니라 **여기서** 든다 — 카드가 스스로 숨으면 `.task` 가 붙을 자리가
+    //    없어(빈 뷰) 영영 안 불러오고, 그러면 「시간표가 없다」와 구분이 안 된다.
+    @State private var todayVM = TodayViewModel()
+
     let feedingColor = AppColors.feedingColor
     let sleepColor = AppColors.sleepColor
     let diaperColor = AppColors.diaperColor
@@ -58,7 +63,7 @@ struct DashboardView: View {
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
-        TodayBandCard()
+        todayBandCardIfNeeded
         PumpedMilkStockCard(state: activityVM.pumpInventory) { showPumpStock = true }
         predictionSection
         pregnancyHomeCardIfNeeded
@@ -195,6 +200,16 @@ struct DashboardView: View {
         }
         .task {
             await loadData()
+        }
+        // 우리 하루 — 로그인이 늦게 풀려도 `id:` 가 다시 태운다(Task 7 deferred minor).
+        .task(id: authVM.currentUserId ?? "") {
+            guard let current = authVM.currentUserId else { return }
+            let owner = babyVM.dataUserId(currentUserId: current) ?? current
+            await todayVM.load(userId: owner, day: Date(), activities: activityVM.todayActivities)
+        }
+        // 기록이 들어오면 칸이 채워진다 — 저장소를 다시 두드리지 않는다.
+        .onChange(of: activityVM.todayActivities) { _, new in
+            todayVM.refreshCells(day: Date(), activities: new)
         }
         // CR-R02: isHighlightV2Active는 computed property로 전환됨 (.task 제거).
         // FeatureFlagService.shared가 @Observable이므로 RC 상태 변경 시 자동 invalidate.
@@ -385,6 +400,20 @@ struct DashboardView: View {
     // MARK: - Pregnancy Home Card (Additive)
 
     /// `.both` 컨텍스트일 때만 임신 요약 카드를 삽입. baby UI는 유지.
+    /// 🔴 PO 결정 2026-09-05 — **시간표를 안 짠 사람에겐 카드가 아예 안 뜬다.**
+    /// 시간표가 없으면 칸이 채워질 수 없어, 열어도 하루 종일 아무 일도 일어나지 않는다
+    /// (「오늘을 열면 짜 둔 시간표가 하루 동안 흐릅니다」가 지킬 수 없는 약속이 된다).
+    /// ⛔ 여기서 조건을 다시 쓰지 않는다 — 판정은 `TodayViewModel.presentation` 한 곳이다.
+    @ViewBuilder
+    private var todayBandCardIfNeeded: some View {
+        switch todayVM.presentation {
+        case .ready, .failed:
+            TodayBandCard(vm: todayVM)
+        case .loading, .hidden:
+            EmptyView()
+        }
+    }
+
     @ViewBuilder
     private var pregnancyHomeCardIfNeeded: some View {
         switch AppContext.resolve(babies: babyVM.babies, pregnancy: pregnancyVM.activePregnancy) {

@@ -304,3 +304,212 @@ final class TodayBandCopyTests: XCTestCase {
         }
     }
 }
+
+// MARK: - PO 결정 2026-09-05 · 카드가 무엇을 그릴지는 **한 자리**에서 정한다
+//
+// ① 시간표가 없으면 카드를 아예 안 그린다(PO 결정) · ③ 실패는 화면이 말한다 ·
+// ④ 못 읽었으면 오늘 문서를 덮어쓰지 않는다.
+// 🧩 판정을 카드 안에 두면 「숨긴다」와 「못 읽었다」가 화면마다 갈라진다 — `presentation` 하나만 본다.
+
+@MainActor
+final class TodayCardPresentationTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: h, minute: m))!
+    }
+
+    private func makeVM(runs: MockDayRunFirestore = .init(),
+                        plans: MockDayPlanFirestore = .init()) -> TodayViewModel {
+        TodayViewModel(dayRunProvider: runs, planProvider: plans, calendar: cal)
+    }
+
+    private var plan: DayPlan {
+        DayPlan(id: "p", name: "우리 하루", entries: [
+            DayPlan.Entry(id: "milk", title: "분유", activityType: "feeding_bottle",
+                          schedule: .fixedTimes(minutesOfDay: [12 * 60]), order: 0)
+        ])
+    }
+
+    /// 🔴 PO 결정 — 시간표를 안 짠 사람에게 카드는 **아예 안 뜬다**.
+    /// 뜨면 「오늘을 열면 짜 둔 시간표가 하루 동안 흐릅니다」가 지킬 수 없는 약속이 된다
+    /// (시간표가 없으면 칸이 영원히 안 채워진다).
+    func testCardIsHiddenWhenThereIsNoPlan() async {
+        let vm = makeVM()
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(vm.presentation, .hidden)
+    }
+
+    /// 🔴 **못 읽은 것을 「없다」고 말하지 않는다.** 실패를 숨김으로 처리하면
+    /// 규칙 배포를 잊어도·통신이 끊겨도 화면에 아무 신호가 없다(리뷰 C3).
+    func testLoadFailureIsNotMistakenForHavingNoPlan() async {
+        let plans = MockDayPlanFirestore()
+        plans.errorToThrow = NSError(domain: "t", code: 1)
+        let vm = makeVM(plans: plans)
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(vm.presentation, .failed)
+    }
+
+    /// 읽기 전엔 있다고도 없다고도 하지 않는다 — 시간표 있는 사람 화면이 깜빡이면 안 된다.
+    func testNothingIsDecidedBeforeTheFirstLoad() {
+        XCTAssertEqual(makeVM().presentation, .loading)
+    }
+
+    func testCardIsDrawnWhenAPlanExists() async {
+        let plans = MockDayPlanFirestore()
+        plans.seed([plan], userId: "u1")
+        let vm = makeVM(plans: plans)
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(vm.presentation, .ready)
+    }
+
+    /// 🔙 되돌리는 길 — 「다시 시도」가 통하면 실패에서 빠져나온다(붙인 날부터 안 재지는 자리).
+    func testRetryAfterAFailureRecovers() async {
+        let plans = MockDayPlanFirestore()
+        plans.errorToThrow = NSError(domain: "t", code: 1)
+        let vm = makeVM(plans: plans)
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(vm.presentation, .failed)
+
+        plans.errorToThrow = nil
+        plans.seed([plan], userId: "u1")
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(vm.presentation, .ready)
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    /// 🔴 ④ — 못 읽은 상태에서 시작하면 `setData` 가 오늘 문서를 **통째로 덮어쓴다**.
+    /// 이미 닫은 하루가 되살아난다. **모르면 쓰지 않는다.**
+    func testStartDoesNotOverwriteTodayWhenTheLoadFailed() async {
+        let runs = MockDayRunFirestore()
+        var closed = DayRun(id: "2026-09-03", startedAt: at(7))
+        closed.closedAt = at(20)
+        runs.seed(closed, userId: "u1")
+        runs.fetchError = NSError(domain: "t", code: 1)
+        let vm = makeVM(runs: runs)
+        await vm.load(userId: "u1", day: at(13), activities: [])
+        XCTAssertEqual(runs.saveCount, 0)
+
+        await vm.startToday(userId: "u1", day: at(13))
+
+        XCTAssertEqual(runs.saveCount, 0, "못 읽었는데 오늘 문서를 덮어썼다 — 닫은 하루가 되살아난다")
+        XCTAssertNil(vm.run, "열리지 않았는데 열린 것처럼 보인다")
+    }
+}
+
+// MARK: - ⑦ 내 줄(lane) — 아기 기록이 부모 칸을 채우지 않는다
+//
+// 🔴 같은 모양의 결함이 이 트랙에서 **세 번째**다(3.5 activityType · 4 babyLine · 지금 lane).
+// 지금은 시트에 줄 고르기가 없어 전부 `.baby` 라 잠들어 있지만, 설계 §5 의 「내 줄」이
+// ②-B 에서 켜지는 순간 부모 칸이 아기 기록을 먹고 아기 칸이 빈다.
+
+final class DaySlotFillerLaneTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date) -> Activity {
+        Activity(id: "a-\(type.rawValue)-\(start.timeIntervalSince1970)", babyId: "b", type: type,
+                 startTime: start, createdAt: start)
+    }
+
+    private func slot(_ id: String, _ type: Activity.ActivityType?, at plannedAt: Date?,
+                      lane: DayPlan.Lane) -> DayPlanExpander.Slot {
+        DayPlanExpander.Slot(id: id, entryId: id, title: id, activityType: type?.rawValue,
+                             lane: lane, plannedAt: plannedAt, order: 0)
+    }
+
+    /// 부모가 「나도 한숨 자기」를 짜 뒀는데 **아기가 잔 기록**이 그 칸을 채우면 하루가 거짓이 된다.
+    func testParentLaneSlotIsNotFilledByTheBabysRecord() {
+        let slots = [slot("mine", .sleep, at: at(13), lane: .parent)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.sleep, at(13, 5))],
+                                       on: at(14), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "mine" })?.kind, .planned,
+                       "아기 수면 기록이 부모 칸을 채웠다")
+    }
+
+    /// 그 기록이 사라지진 않는다 — 아이 줄의 끼어든 칸으로 남는다.
+    func testTheRecordStillShowsUpAsAnExtraOnTheBabysLane() {
+        let slots = [slot("mine", .sleep, at: at(13), lane: .parent)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.sleep, at(13, 5))],
+                                       on: at(14), calendar: cal)
+        let extra = cells.first(where: { $0.kind == .extra })
+        XCTAssertNotNil(extra, "부모 칸에 안 붙였으면 끼어든 칸으로라도 남아야 한다")
+        XCTAssertEqual(extra?.lane, .baby)
+    }
+
+    /// 🔒 「전부 막는」 구현도 초록이 되지 않게 — 아이 줄은 그대로 채워진다.
+    func testBabyLaneStillFillsNormally() {
+        let slots = [slot("baby", .sleep, at: at(13), lane: .baby)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.sleep, at(13, 5))],
+                                       on: at(14), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "baby" })?.kind, .done)
+    }
+}
+
+// MARK: - ⑥ 시트가 「고르지 않음」이라 말하는데 실제로는 채워진다
+//
+// 🔴 `Entry.recordType` = `activityType ?? schedule.anchorType`(Task 3.5). 「첫 분유부터」로 짜면
+// 비워 둬도 분유 기록이 그 칸을 채우는데, 화면은 「고르지 않음」이라 말한다 — **기본 경로에서 거짓말**.
+
+final class PlanEntryRecordTypeTruthTests: XCTestCase {
+
+    private func afterFirstBottle() -> PlanEntryDraft {
+        var d = PlanEntryDraft(title: "분유", kind: .afterFirst)
+        d.anchorType = "feeding_bottle"
+        d.everyMinutes = 180
+        d.count = 6
+        return d
+    }
+
+    func testAfterFirstWithoutAnExplicitTypeIsFilledByTheAnchor() {
+        let d = afterFirstBottle()
+        XCTAssertEqual(d.effectiveRecordType, "feeding_bottle")
+        XCTAssertEqual(d.recordTypeLabel, "분유", "채워질 종류가 있는데 화면이 다른 말을 한다")
+    }
+
+    /// 진짜로 채울 것이 없는 일(내 밥·샤워)은 그대로 「고르지 않음」이다.
+    func testFixedTimesWithoutATypeReallyHasNone() {
+        var d = PlanEntryDraft(title: "내 밥", kind: .fixedTimes)
+        d.minutesOfDay = [12 * 60]
+        XCTAssertNil(d.effectiveRecordType)
+        XCTAssertEqual(d.recordTypeLabel, "고르지 않음")
+    }
+
+    /// 명시로 고른 것이 정박 종류를 이긴다.
+    func testAnExplicitChoiceWins() {
+        var d = afterFirstBottle()
+        d.activityType = "sleep"
+        XCTAssertEqual(d.effectiveRecordType, "sleep")
+        XCTAssertEqual(d.recordTypeLabel, "수면")
+    }
+
+    /// 선택지 이름도 사실대로 — 정박 종류가 이미 답을 갖고 있으면 「고르지 않음」이 아니다.
+    /// (누르면 「분유」가 뜨는 「고르지 않음」 버튼은 같은 거짓말의 작은 판이다.)
+    func testTheUnsetOptionSaysWhatItActuallyMeans() {
+        XCTAssertEqual(afterFirstBottle().unsetRecordTypeLabel, "첫 기록 종류 그대로")
+        var plain = PlanEntryDraft(title: "내 밥", kind: .fixedTimes)
+        plain.minutesOfDay = [12 * 60]
+        XCTAssertEqual(plain.unsetRecordTypeLabel, "고르지 않음")
+    }
+
+    /// 🔑 화면이 말하는 것 = **저장되는 것**. 두 자리가 갈라지면 거짓말이 다시 시작된다.
+    func testTheLabelAgreesWithTheEntryThatGetsSaved() {
+        let d = afterFirstBottle()
+        let entry = d.build(order: 0)
+        XCTAssertNotNil(entry)
+        XCTAssertEqual(entry?.recordType, d.effectiveRecordType)
+    }
+}
