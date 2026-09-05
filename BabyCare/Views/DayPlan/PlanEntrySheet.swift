@@ -19,6 +19,26 @@ struct PlanEntryDraft: Identifiable, Hashable {
     var afterEntryId: String?
     var offsetMinutes: Int?
 
+    /// 이 항목을 **실제로 채우는** 기록 종류 — 저장되는 `DayPlan.Entry.recordType` 과 같은 답이다.
+    /// 🔴 화면이 「고르지 않음」이라 말해 놓고 정박 종류로 채워지는 거짓말을 막는 자리(리뷰 C7).
+    ///    두 자리가 갈라지지 않도록 화면은 이 값만 보고 말한다.
+    var effectiveRecordType: String? {
+        activityType ?? (kind == .afterFirst ? anchorType : nil)
+    }
+
+    /// 화면이 보여줄 이름 — **채울 것이 정말 없을 때만** 「고르지 않음」이다.
+    var recordTypeLabel: String {
+        guard let raw = effectiveRecordType,
+              let type = Activity.ActivityType.known(rawValue: raw) else { return "고르지 않음" }
+        return type.displayName
+    }
+
+    /// 「따로 안 고름」 선택지의 이름 — 정박 종류가 이미 답을 갖고 있으면 그렇게 말한다.
+    /// 누르면 「분유」가 뜨는 「고르지 않음」 버튼은 같은 거짓말의 작은 판이다.
+    var unsetRecordTypeLabel: String {
+        (kind == .afterFirst && anchorType != nil) ? "첫 기록 종류 그대로" : "고르지 않음"
+    }
+
     var isValid: Bool {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         switch kind {
@@ -109,7 +129,38 @@ struct PlanEntrySheet: View {
             Text("아기에 맞는 방식으로 고르세요")
                 .font(DS2.Font.subheadline)
                 .foregroundStyle(DS2.Color.textSecondary)
+            recordTypeRow
         }
+    }
+
+    /// 「무엇으로 채워지나요?」 — 이 칸을 채울 기록의 종류.
+    /// 🔑 **비워 둘 수 있다** — 내 밥·샤워처럼 기록이 없는 일이 있다(설계 §3.1).
+    private var recordTypeRow: some View {
+        HStack(spacing: DS2.Spacing.sm) {
+            Text("무엇으로 채워지나요?")
+                .font(DS2.Font.caption)
+                .foregroundStyle(DS2.Color.textSecondary)
+            Menu {
+                Button(draft.unsetRecordTypeLabel) { draft.activityType = nil }
+                ForEach(Self.anchorTypeChoices) { type in
+                    Button(type.displayName) { draft.activityType = type.rawValue }
+                }
+            } label: {
+                HStack(spacing: DS2.Spacing.xs) {
+                    Text(draft.recordTypeLabel)
+                    Image(systemName: "chevron.down").font(DS2.Font.caption2)
+                }
+                .font(DS2.Font.caption)
+                .foregroundStyle(DS2.Color.accent)
+                .padding(.horizontal, DS2.Spacing.sm)
+                .padding(.vertical, DS2.Spacing.xs)
+                .background(DS2.Color.tintBlue, in: RoundedRectangle(cornerRadius: DS2.Radius.sm))
+                // 🩸 `.buttonStyle(.plain)` 계열은 글자 자리만 눌린다 — 배경 전체를 살린다.
+                .contentShape(Rectangle())
+            }
+            Spacer()
+        }
+        .padding(.top, DS2.Spacing.xs)
     }
 
     // MARK: - Cards

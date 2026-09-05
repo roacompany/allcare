@@ -128,7 +128,7 @@ enum DayPlanExpander {
             id: "\(entry.id)#\(index)",
             entryId: entry.id,
             title: entry.title,
-            activityType: entry.activityType,
+            activityType: entry.recordType,
             lane: entry.lane,
             plannedAt: at,
             order: entry.order

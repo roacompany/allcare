@@ -693,3 +693,355 @@ final class KoreanParticleWithNameTests: XCTestCase {
         XCTAssertEqual(KoreanParticle.withName("Leo"), "Leo와")
     }
 }
+
+// MARK: - Task 1 · 오늘을 열었나
+
+final class DayRunTests: XCTestCase {
+
+    /// 문서 id = 로컬 날짜. 하루에 한 문서만 생기고, 같은 날 다시 눌러도 덮어쓴다(멱등).
+    func testDocumentIdIsLocalCalendarDate() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let day = cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: 23, minute: 50))!
+        XCTAssertEqual(DayRun.documentId(for: day, calendar: cal), "2026-09-03")
+    }
+
+    /// 🩸 자정 직전/직후가 다른 날이어야 한다 — 같은 id 면 어제 하루를 덮어쓴다.
+    func testDocumentIdChangesAcrossMidnight() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let before = cal.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: 23, minute: 59))!
+        let after = cal.date(from: DateComponents(year: 2026, month: 9, day: 4, hour: 0, minute: 1))!
+        XCTAssertNotEqual(DayRun.documentId(for: before, calendar: cal),
+                          DayRun.documentId(for: after, calendar: cal))
+    }
+
+    func testOpenUntilClosed() {
+        var run = DayRun(id: "2026-09-03", planId: "p", startedAt: Date())
+        XCTAssertTrue(run.isOpen)
+        run.closedAt = Date()
+        XCTAssertFalse(run.isOpen)
+    }
+
+    func testRoundTripsThroughJSON() throws {
+        let run = DayRun(id: "2026-09-03", planId: "p", startedAt: Date(timeIntervalSince1970: 1_000_000))
+        let data = try JSONEncoder().encode(run)
+        let back = try JSONDecoder().decode(DayRun.self, from: data)
+        XCTAssertEqual(back, run)
+    }
+
+    /// 신규 필드는 전부 optional — 옛 문서(planId·closedAt 없음)가 들어와도 살아야 한다.
+    func testDecodesDocumentWithoutOptionalFields() throws {
+        let json = #"{"id":"2026-09-03","startedAt":0}"#.data(using: .utf8)!
+        let back = try JSONDecoder().decode(DayRun.self, from: json)
+        XCTAssertEqual(back.id, "2026-09-03")
+        XCTAssertNil(back.planId)
+        XCTAssertTrue(back.isOpen)
+    }
+}
+
+// MARK: - Task 2 · 그날의 정박점
+
+final class DayAnchorsBuilderTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date, end: Date? = nil) -> Activity {
+        Activity(id: UUID().uuidString, babyId: "b", type: type,
+                 startTime: start, endTime: end, createdAt: start)
+    }
+
+    func testFirstRecordPerTypeIsTheEarliestOfThatType() {
+        let acts = [
+            activity(.feedingBottle, at(9)),
+            activity(.feedingBottle, at(6, 20)),
+            activity(.diaperWet, at(7))
+        ]
+        let a = DayAnchorsBuilder.anchors(from: acts, on: at(12), calendar: cal)
+        XCTAssertEqual(a.firstRecordByType["feeding_bottle"], at(6, 20))
+        XCTAssertEqual(a.firstRecordByType["diaper_wet"], at(7))
+    }
+
+    /// 🔴 이 단계에서 제일 비싼 함정 —
+    /// `todayActivities` 는 「오늘 끝난 것」도 갖고 있어서, **어젯밤 22시에 시작한 잠**이 섞여 있다.
+    /// 그걸 오늘의 첫 기록으로 삼으면 하루 전체가 어제 시각에 정박한다.
+    func testYesterdaysSleepThatEndedThisMorningIsNotTodaysAnchor() {
+        let overnight = activity(.sleep, at(22, 0, day: 2), end: at(7, 0, day: 3))
+        let todayNap = activity(.sleep, at(13))
+        let a = DayAnchorsBuilder.anchors(from: [overnight, todayNap], on: at(12), calendar: cal)
+        XCTAssertEqual(a.firstRecordByType["sleep"], at(13), "어젯밤 잠이 오늘의 정박점이 됐다")
+    }
+
+    func testUnknownTypeIsNeverAnAnchor() {
+        // .unknown 은 read-only 센티넬 — 정박점으로 쓰면 알 수 없는 종류가 하루를 정한다.
+        var a = activity(.feedingBottle, at(8))
+        a.type = .unknown
+        let out = DayAnchorsBuilder.anchors(from: [a], on: at(12), calendar: cal)
+        XCTAssertTrue(out.firstRecordByType.isEmpty)
+    }
+
+    func testEmptyDayHasNoAnchors() {
+        XCTAssertTrue(DayAnchorsBuilder.anchors(from: [], on: at(12), calendar: cal).firstRecordByType.isEmpty)
+    }
+}
+
+// MARK: - Task 3 · 기록이 칸을 채운다
+
+final class DaySlotFillerTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date, end: Date? = nil) -> Activity {
+        Activity(id: "a-\(type.rawValue)-\(start.timeIntervalSince1970)", babyId: "b", type: type,
+                 startTime: start, endTime: end, createdAt: start)
+    }
+
+    private func slot(_ id: String, _ type: Activity.ActivityType?, at plannedAt: Date?, order: Int = 0) -> DayPlanExpander.Slot {
+        DayPlanExpander.Slot(id: id, entryId: id, title: id, activityType: type?.rawValue,
+                             lane: .baby, plannedAt: plannedAt, order: order)
+    }
+
+    func testRecordFillsTheNearestSlotOfTheSameType() {
+        let slots = [slot("s1", .feedingBottle, at: at(9)), slot("s2", .feedingBottle, at: at(12))]
+        let acts = [activity(.feedingBottle, at(12, 10))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s2" })?.kind, .done)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+    }
+
+    /// 채워진 칸은 **실제 시각**으로 보인다 — 밑그림을 실제가 덮어쓴다(결정 5).
+    func testFilledCellShowsTheActualTimeNotThePlannedTime() {
+        let slots = [slot("s1", .bath, at: at(19, 30))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.bath, at(8))], on: at(20), calendar: cal)
+        XCTAssertEqual(cells[0].at, at(8))
+    }
+
+    /// 시안 「② 낮」 — 8칸 계획에 9번째 기록이 오면 **칸이 하나 늘어난다**.
+    func testUnmatchedRecordBecomesAnExtraCell() {
+        let slots = [slot("s1", .feedingBottle, at: at(9))]
+        let acts = [activity(.feedingBottle, at(9, 5)), activity(.feedingBottle, at(15))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(16), calendar: cal)
+        XCTAssertEqual(cells.count, 2)
+        XCTAssertEqual(cells.filter { $0.kind == .extra }.count, 1)
+        XCTAssertEqual(cells.first(where: { $0.kind == .extra })?.at, at(15))
+    }
+
+    /// 종류가 다르면 절대 안 붙는다 — 목욕 기록이 수유 칸을 채우면 하루가 거짓이 된다.
+    func testDifferentTypeNeverFillsASlot() {
+        let slots = [slot("s1", .feedingBottle, at: at(9))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.bath, at(9))], on: at(10), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+        XCTAssertEqual(cells.filter { $0.kind == .extra }.count, 1)
+    }
+
+    /// 기록 종류가 없는 항목(내 밥·샤워)은 기록으로 채워지지 않는다 — 빈 채로 남는다.
+    func testSlotWithoutActivityTypeStaysPlanned() {
+        let slots = [slot("s1", nil, at: at(12))]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.feedingBottle, at(12))], on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+    }
+
+    /// 정박 전(plannedAt=nil) 칸도 짝을 받는다 — 「첫 수유를 기다리는 중」이 채워지는 순간.
+    func testUnscheduledSlotCanBeFilled() {
+        let slots = [slot("s1", .feedingBottle, at: nil)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [activity(.feedingBottle, at(6, 30))], on: at(9), calendar: cal)
+        XCTAssertEqual(cells[0].kind, .done)
+        XCTAssertEqual(cells[0].at, at(6, 30))
+    }
+
+    /// 🔴 어젯밤 잠이 오늘 칸을 채우면 안 된다(`todayActivities` 는 그것도 갖고 있다).
+    func testActivityThatStartedYesterdayDoesNotFillTodaysSlot() {
+        let slots = [slot("s1", .sleep, at: at(13))]
+        let overnight = activity(.sleep, at(22, 0, day: 2), end: at(7, 0, day: 3))
+        let cells = DaySlotFiller.fill(slots: slots, activities: [overnight], on: at(14), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s1" })?.kind, .planned)
+        XCTAssertTrue(cells.allSatisfy { $0.kind != .extra }, "어젯밤 잠이 오늘 칸으로 끼어들었다")
+    }
+
+    /// 가까운 쌍부터 붙는다 — 순서에 따라 답이 달라지면 안 된다.
+    func testClosestPairWinsRegardlessOfInputOrder() {
+        let slots = [slot("s1", .feedingBottle, at: at(9)), slot("s2", .feedingBottle, at: at(15))]
+        let acts = [activity(.feedingBottle, at(14, 50)), activity(.feedingBottle, at(9, 10))]
+        let forward = DaySlotFiller.fill(slots: slots, activities: acts, on: at(16), calendar: cal)
+        let reversed = DaySlotFiller.fill(slots: slots.reversed(), activities: acts.reversed(), on: at(16), calendar: cal)
+        XCTAssertEqual(forward.first(where: { $0.slotId == "s1" })?.at, at(9, 10))
+        XCTAssertEqual(reversed.first(where: { $0.slotId == "s1" })?.at, at(9, 10))
+    }
+
+    /// 띠는 시간 순이다. 시각 미정(정박 전)은 맨 앞 — 하루가 거기서 시작하기를 기다리는 자리다.
+    func testCellsSortUnscheduledFirstThenByTime() {
+        let slots = [slot("s2", .feedingBottle, at: at(12)), slot("s1", .feedingSolid, at: nil)]
+        let cells = DaySlotFiller.fill(slots: slots, activities: [], on: at(13), calendar: cal)
+        XCTAssertEqual(cells.map(\.slotId), ["s1", "s2"])
+    }
+}
+
+// MARK: - Task 3.5 · 항목이 「어떤 기록으로 채워지나」를 말한다
+
+final class PlanEntryRecordTypeTests: XCTestCase {
+
+    private var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return c
+    }()
+
+    private func at(_ h: Int, _ m: Int = 0, day: Int = 3) -> Date {
+        cal.date(from: DateComponents(year: 2026, month: 9, day: day, hour: h, minute: m))!
+    }
+
+    private func activity(_ type: Activity.ActivityType, _ start: Date) -> Activity {
+        Activity(id: "a-\(start.timeIntervalSince1970)", babyId: "b", type: type,
+                 startTime: start, createdAt: start)
+    }
+
+    /// 「첫 분유부터 3시간마다」로 짰으면 그 칸을 채우는 기록은 분유다 — 부모에게 두 번 묻지 않는다.
+    func testAfterFirstEntryFallsBackToItsAnchorType() {
+        let e = DayPlan.Entry(id: "milk", title: "분유",
+                              schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                              order: 0)
+        XCTAssertEqual(e.recordType, "feeding_bottle")
+    }
+
+    /// 명시한 종류가 있으면 그게 이긴다.
+    func testExplicitActivityTypeWins() {
+        let e = DayPlan.Entry(id: "x", title: "목욕", activityType: "bath",
+                              schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 6),
+                              order: 0)
+        XCTAssertEqual(e.recordType, "bath")
+    }
+
+    /// 기록이 없는 일(내 밥·샤워)은 **비어 있는 게 맞다** — 없는 종류를 지어내지 않는다.
+    func testEntryWithNoTypeAndNoAnchorHasNoRecordType() {
+        let e = DayPlan.Entry(id: "meal", title: "내 밥",
+                              schedule: .fixedTimes(minutesOfDay: [720]), order: 0)
+        XCTAssertNil(e.recordType)
+    }
+
+    /// 🔴 이 태스크의 이유 — 시트가 `activityType` 을 안 채우므로, 정박 종류로만 짠 항목도
+    ///    실제로 **칸이 채워져야** 한다. 이 테스트가 빨간 상태로 ②단계가 배포되면 기능이 죽는다.
+    func testAnchorOnlyEntryActuallyGetsFilledEndToEnd() {
+        let plan = DayPlan(id: "p", name: "우리 하루", entries: [
+            DayPlan.Entry(id: "milk", title: "분유",
+                          schedule: .afterFirst(anchorType: "feeding_bottle", everyMinutes: 180, count: 2),
+                          order: 0)
+        ])
+        let acts = [activity(.feedingBottle, at(6, 30))]
+        let anchors = DayAnchorsBuilder.anchors(from: acts, on: at(9), calendar: cal)
+        let slots = DayPlanExpander.slots(plan: plan, day: at(9), anchors: anchors, calendar: cal)
+        let cells = DaySlotFiller.fill(slots: slots, activities: acts, on: at(9), calendar: cal)
+
+        XCTAssertEqual(cells.filter { $0.kind == .done }.count, 1, "기록이 칸을 못 채웠다")
+        XCTAssertTrue(cells.allSatisfy { $0.kind != .extra }, "예정에 있던 기록이 끼어든 칸이 됐다")
+    }
+
+    /// ⓓ 미정 칸은 **최후 순위** — 시각이 잘 맞는 예정 칸이 미정 칸에 굶으면 안 된다(Task 3 리뷰 Important).
+    func testScheduledSlotBeatsUnscheduledSlotOfTheSameType() {
+        let scheduled = DayPlanExpander.Slot(id: "s-fixed", entryId: "e1", title: "분유",
+                                             activityType: "feeding_bottle", lane: .baby,
+                                             plannedAt: at(12), order: 0)
+        let unscheduled = DayPlanExpander.Slot(id: "s-waiting", entryId: "e2", title: "분유",
+                                               activityType: "feeding_bottle", lane: .baby,
+                                               plannedAt: nil, order: 1)
+        let cells = DaySlotFiller.fill(slots: [scheduled, unscheduled],
+                                       activities: [activity(.feedingBottle, at(12, 5))],
+                                       on: at(13), calendar: cal)
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s-fixed" })?.kind, .done,
+                       "시각이 맞는 예정 칸이 미정 칸에 밀렸다")
+        XCTAssertEqual(cells.first(where: { $0.slotId == "s-waiting" })?.kind, .planned)
+    }
+
+    /// 경쟁이 없으면 미정 칸도 그대로 채워진다 — 최후 순위지 금지가 아니다.
+    func testUnscheduledSlotStillFillsWhenNothingElseWantsIt() {
+        let unscheduled = DayPlanExpander.Slot(id: "s", entryId: "e", title: "분유",
+                                               activityType: "feeding_bottle", lane: .baby,
+                                               plannedAt: nil, order: 0)
+        let cells = DaySlotFiller.fill(slots: [unscheduled],
+                                       activities: [activity(.feedingBottle, at(6, 30))],
+                                       on: at(9), calendar: cal)
+        XCTAssertEqual(cells[0].kind, .done)
+    }
+}
+
+// MARK: - Task 4 · 밤 요약
+
+final class DaySummaryTests: XCTestCase {
+
+    private func cell(_ type: Activity.ActivityType, _ kind: DayCell.Kind,
+                      lane: DayPlan.Lane = .baby) -> DayCell {
+        DayCell(id: UUID().uuidString, slotId: nil, title: type.displayName,
+                activityType: type.rawValue, lane: lane, kind: kind, at: Date(), order: 0)
+    }
+
+    /// 시안 밤 화면 — 「서준이 일곱 번 먹고 세 번 잤어요」.
+    func testCountsWhatHappened() {
+        let cells = Array(repeating: cell(.feedingBottle, .done), count: 6)
+            + [cell(.feedingBreast, .done)]
+            + Array(repeating: cell(.sleep, .done), count: 3)
+        let line = DaySummary.babyLine(cells: cells, babyName: "서준")
+        XCTAssertEqual(line, "서준이 일곱 번 먹고 세 번 잤어요")
+    }
+
+    /// 🔴 설계 §5 — **못 한 것은 세지 않는다.** 빈 칸이 문장에 나타나면 안 된다.
+    func testNeverCountsWhatDidNotHappen() {
+        let cells = [cell(.feedingBottle, .done)] + Array(repeating: cell(.feedingBottle, .planned), count: 5)
+        let line = DaySummary.babyLine(cells: cells, babyName: "서준")
+        XCTAssertEqual(line, "서준이 한 번 먹었어요")
+        XCTAssertFalse(line?.contains("5") ?? false)
+        XCTAssertFalse(line?.contains("못") ?? false)
+    }
+
+    /// 끼어든 칸도 **한 것**이다 — 계획 밖이라고 빼면 실제보다 적게 말하게 된다.
+    func testExtraCellsCountToo() {
+        XCTAssertEqual(DaySummary.babyLine(cells: [cell(.feedingBottle, .extra)], babyName: "서준"),
+                       "서준이 한 번 먹었어요")
+    }
+
+    /// 아무것도 안 한 날엔 **아무 말도 하지 않는다** — 「0번 먹었어요」는 비난이다.
+    func testSaysNothingWhenNothingHappened() {
+        XCTAssertNil(DaySummary.babyLine(cells: [cell(.sleep, .planned)], babyName: "서준"))
+    }
+
+    /// 🩸 받침 — 「서아가」가 아니라 이름 뒤 주격은 이/가 규칙을 탄다.
+    func testNameParticleFollowsFinalConsonant() {
+        XCTAssertEqual(DaySummary.babyLine(cells: [cell(.sleep, .done)], babyName: "서아"),
+                       "서아가 한 번 잤어요")
+    }
+
+    /// 🔴 리뷰 Important — 유축(생산)만 있으면 먹지도 자지도 않은 것이다. 할 말이 없다.
+    func testPumpingAloneSaysNothing() {
+        XCTAssertNil(DaySummary.babyLine(cells: [cell(.feedingPumping, .done)], babyName: "서준"))
+    }
+
+    /// 🔴 리뷰 Important — 유축이 끼어 있어도 진짜 섭취 횟수를 부풀리면 안 된다.
+    /// `isFeeding`이 `.feedingPumping`을 참으로 잘못 세면(예: 「먹기」 접두사만 보고 묶으면)
+    /// 이 테스트가 "두 번 먹었어요"로 빨개진다.
+    func testPumpingDoesNotInflateFeedCount() {
+        let cells = [cell(.feedingBottle, .done), cell(.feedingPumping, .done)]
+        XCTAssertEqual(DaySummary.babyLine(cells: cells, babyName: "서준"), "서준이 한 번 먹었어요")
+    }
+
+    /// 🔴 리뷰 Important — 내 줄(부모)의 잠은 아이 줄이 아니다. 아이는 먹기만 했는데
+    /// 부모 잠까지 섞이면 「일곱 번 먹고 한 번 잤어요」로 없는 일이 생긴다.
+    /// lane 필터를 지우면 이 테스트가 빨개진다.
+    func testParentLaneSleepDoesNotCountAsBabys() {
+        let cells = [cell(.feedingBottle, .done), cell(.sleep, .done, lane: .parent)]
+        XCTAssertEqual(DaySummary.babyLine(cells: cells, babyName: "서준"), "서준이 한 번 먹었어요")
+    }
+}

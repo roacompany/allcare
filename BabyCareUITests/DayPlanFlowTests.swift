@@ -65,6 +65,33 @@ final class DayPlanFlowTests: XCTestCase {
         app.terminate()
     }
 
+    /// 홈의 「오늘 하루」 띠 카드가 **불러오기 실패를 말하는지**.
+    /// ⚠️ `UI_TESTING` 은 인증을 흉내만 내서 Firestore 가 막힌다 — 이 경로는 **항상 실패**다.
+    ///    그래서 여기서 잴 수 있는 것은 「실패했을 때 카드가 입을 여는가」이고, 그게 정확히
+    ///    리뷰 C3(카드가 오류를 한 번도 안 그린다)이 뚫려 있던 자리다.
+    /// 🔴 예전엔 이 테스트가 시작 버튼을 찾았다 — 실패 상태인데도 「시작」이 보였기 때문이다.
+    ///    이제 못 읽으면 시작 버튼을 **주지 않는다**(눌리면 오늘 문서를 덮어쓴다 · 리뷰 C4).
+    /// ⚠️ 시간표를 짠 사람의 정상 카드(시작 → 채워짐 → 닫기)는 **로그인된 기기 QA**로만 확인된다.
+    @MainActor
+    func testDashboardCardSpeaksWhenItCannotLoad() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["UI_TESTING", "UI_TESTING_TAB=0"]
+        app.launch()
+        dismissDialogs(app)
+        Thread.sleep(forTimeInterval: 2.5)
+        XCTAssertTrue(
+            app.staticTexts["오늘 하루를 불러오지 못했어요"].waitForExistence(timeout: 8),
+            "불러오기가 실패했는데 카드가 아무 말도 안 한다"
+        )
+        XCTAssertTrue(app.buttons["다시 시도"].exists, "되돌아갈 길(다시 시도)이 없다")
+        XCTAssertFalse(
+            app.buttons["오늘 하루 시작하기"].exists,
+            "못 읽었는데 시작 버튼이 있다 — 누르면 오늘 문서를 덮어쓴다"
+        )
+        capture(app, "13_today_band_card_load_failed")
+        app.terminate()
+    }
+
     // MARK: - Helpers
 
     /// 설정에서 「우리 하루」를 찾아 눌러 목록 화면까지 연다.
