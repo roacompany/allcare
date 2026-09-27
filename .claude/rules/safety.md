@@ -26,3 +26,4 @@ globs: "**/*.swift"
 - **Fetch 실패 fallback은 반드시 `false`** (A-18 invariant). `try? fetchAndActivate()` 패턴으로 do/catch 없이 defaults=false 강제.
 - **FeatureFlags.swift에 `import FirebaseRemoteConfig` 금지**. 단일 gateway(`FeatureFlagService`)로만 RC 접근.
 - **Cohort bucketing은 DJB2 StableHash 사용**. `Swift.hashValue`나 `Int.random`은 non-deterministic — 금지.
+- **compile-time flag 로 끈 UI 의 XCUITest 는 flag 가 꺼져 있으면 `XCTSkipUnless` 로 건너뛴다 — FAIL 로 방치 금지**. 방치하면 `make ui-test` 가 영구 빨강이 되고, CI 는 `make verify` 만 돌아 `ui-test` 를 안 태우므로 아무도 못 본다(임신 UI — 2026-06-11 flag off 뒤 3개월 방치). 테스트를 지우지 말 것 — flag 를 다시 켜는 날 자동으로 다시 돈다. 플래그 값은 테스트에 복사하지 말고 `FeatureFlags.swift` 를 테스트 타깃에 같이 컴파일한다(`project.yml`). 선례: `PregnancyFlowTests.skipUnlessPregnancyUIEnabled()`.
