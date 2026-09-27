@@ -9,6 +9,30 @@ final class PregnancyFlowTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// 🔴 임신 UI 는 `pregnancyModeEnabled` **컴파일 플래그로 꺼져 있을 수 있다**(2026-06-11 라이브 P0 차단).
+    /// 꺼진 상태에서 「임신 버튼이 보인다」를 **실패**로 부르면 게이트가 영구 빨강이 되고,
+    /// 아무 상관없는 판이 `make deploy` 앞에서 막힌다(실제로 3개월간 그랬다 — CI 는 `make verify` 만
+    /// 돌아 `ui-test` 를 안 태워 아무도 못 봤다).
+    /// ⛔ 테스트를 **지우지 않는다** — 건너뛰게만 한다. 플래그를 다시 켜는 날 **자동으로 다시 돈다**.
+    private func skipUnlessPregnancyUIEnabled() throws {
+        try XCTSkipUnless(
+            FeatureFlags.pregnancyModeEnabled,
+            "FeatureFlags.pregnancyModeEnabled = false — 임신 UI 가 컴파일 단계에서 꺼져 있어 이 단언은 잴 수 없다"
+        )
+    }
+
+    /// 🩸 차가운 시뮬레이터의 **첫 앱 실행에서는 첫 탭이 먹히지 않을 때가 있다**(2026-09-27 — 녹화상
+    /// 탭 뒤 4초간 화면 변화 0, 같은 테스트를 데운 뒤 3회 재실행은 전부 통과). 위 건너뛰기로 이 파일에서
+    /// 처음 앱을 띄우는 자리가 바뀌면서 드러났다. → 탭을 **결과로** 확인하고, 안 열렸으면 한 번 더 누른다.
+    @MainActor
+    private func tap(_ button: XCUIElement, until target: XCUIElement, timeout: TimeInterval = 3) -> Bool {
+        button.tap()
+        if target.waitForExistence(timeout: timeout) { return true }
+        guard button.exists, button.isHittable else { return false }
+        button.tap()
+        return target.waitForExistence(timeout: timeout)
+    }
+
     // MARK: - Onboarding (empty state)
 
     /// 첫 사용자: 아기 없음 → onboardingView → "아기 등록하기" 버튼 노출
@@ -28,6 +52,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// onboarding → "아기 등록하기" 탭 → AddBabyView 열림 → "아직 태어나지 않았나요?" 진입점 가시
     @MainActor
     func test_onboarding_addBaby_showsPregnancyEntry() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY"]
         app.launch()
@@ -49,6 +74,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// 기존 아기 있음 → 설정 탭 → "아기 추가" → AddBabyView → 임신 진입점 확인
     @MainActor
     func test_settings_addBaby_showsPregnancyEntry() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_TAB=4"] // 설정 탭
         app.launch()
@@ -73,6 +99,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// 임신 진입점 탭 → PregnancyRegistrationView 열림 (navigationTitle "임신 등록")
     @MainActor
     func test_pregnancyEntry_opensRegistrationView() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY"]
         app.launch()
@@ -113,6 +140,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// PregnancyRegistrationView "취소" 탭 → sheet 닫힘, AddBabyView 유지
     @MainActor
     func test_pregnancyRegistration_cancel_returnsToAddBabyView() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY"]
         app.launch()
@@ -144,8 +172,7 @@ final class PregnancyFlowTests: XCTestCase {
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY"]
         app.launch()
 
-        app.buttons["아기 등록하기"].tap()
-        XCTAssertTrue(app.navigationBars["아기 등록"].waitForExistence(timeout: 3))
+        XCTAssertTrue(tap(app.buttons["아기 등록하기"], until: app.navigationBars["아기 등록"]))
 
         app.navigationBars["아기 등록"].buttons["취소"].tap()
 
@@ -161,6 +188,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// PregnancyRegistrationView 핵심 form 요소 노출 확인
     @MainActor
     func test_pregnancyRegistration_formElements_present() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY"]
         app.launch()
@@ -220,6 +248,7 @@ final class PregnancyFlowTests: XCTestCase {
     /// 잘리지 않고 노출되는지 검증. ViewThatFits로 horizontal→vertical 자동 분기.
     @MainActor
     func test_a11y_extraLarge_pregnancyEntry_stillTappable() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = [
             "UI_TESTING",
@@ -250,6 +279,7 @@ final class PregnancyFlowTests: XCTestCase {
     // UI_TESTING_PREGNANCY_ENABLED launch arg로 활성화.
     @MainActor
     func test_onboarding_twoButton_showsRegisterBabyAndPregnancy() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY", "UI_TESTING_PREGNANCY_ENABLED"]
         app.launch()
@@ -270,6 +300,7 @@ final class PregnancyFlowTests: XCTestCase {
     // 2. 온보딩 → "임신 중이에요" 탭 → PregnancyRegistrationView 진입 (P1-2 회귀 방지)
     @MainActor
     func test_onboarding_tapPregnancyButton_opensRegistrationFlow() throws {
+        try skipUnlessPregnancyUIEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_NO_BABY", "UI_TESTING_PREGNANCY_ENABLED"]
         app.launch()
