@@ -108,10 +108,12 @@ struct SettingsView: View {
                         Label("루틴", systemImage: "list.clipboard")
                     }
 
-                    NavigationLink {
-                        DayPlanListView()
-                    } label: {
-                        Label("우리 하루", systemImage: "calendar.day.timeline.left")
+                    if FeatureFlags.dayPlanEnabled {
+                        NavigationLink {
+                            DayPlanListView()
+                        } label: {
+                            Label("우리 하루", systemImage: "calendar.day.timeline.left")
+                        }
                     }
 
                     NavigationLink {

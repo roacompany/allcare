@@ -156,6 +156,10 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
     sources:
       - path: BabyCareUITests
+      # 컴파일 플래그를 테스트가 직접 읽는다. ⛔값을 테스트 쪽에 복사하지 않는다 —
+      # 두 벌이 되면 플래그를 켠 날 테스트만 옛 값에 머문다(정본 파일을 같이 컴파일).
+      # FeatureFlags.swift 는 Foundation 만 쓴다(의존성 없음).
+      - path: BabyCare/Utils/FeatureFlags.swift
     dependencies:
       - target: BabyCare
 

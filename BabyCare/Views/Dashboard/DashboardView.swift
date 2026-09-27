@@ -63,7 +63,10 @@ struct DashboardView: View {
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
-        todayBandCardIfNeeded
+        // 우리 하루 재설계 중 — 스위치가 꺼져 있으면 카드도, 불러오기(아래 .task)도 없다.
+        if FeatureFlags.dayPlanEnabled {
+            todayBandCardIfNeeded
+        }
         PumpedMilkStockCard(state: activityVM.pumpInventory) { showPumpStock = true }
         predictionSection
         pregnancyHomeCardIfNeeded
@@ -203,12 +206,13 @@ struct DashboardView: View {
         }
         // 우리 하루 — 로그인이 늦게 풀려도 `id:` 가 다시 태운다(Task 7 deferred minor).
         .task(id: authVM.currentUserId ?? "") {
-            guard let current = authVM.currentUserId else { return }
+            guard FeatureFlags.dayPlanEnabled, let current = authVM.currentUserId else { return }
             let owner = babyVM.dataUserId(currentUserId: current) ?? current
             await todayVM.load(userId: owner, day: Date(), activities: activityVM.todayActivities)
         }
         // 기록이 들어오면 칸이 채워진다 — 저장소를 다시 두드리지 않는다.
         .onChange(of: activityVM.todayActivities) { _, new in
+            guard FeatureFlags.dayPlanEnabled else { return }
             todayVM.refreshCells(day: Date(), activities: new)
         }
         // CR-R02: isHighlightV2Active는 computed property로 전환됨 (.task 제거).
