@@ -77,6 +77,20 @@ globs: "**/project.yml,**/Package.*"
 - 단일 `BabyCareTests/BabyCareTests.swift`에 모든 단위 테스트 집중 — grep 누락 시 컴파일 fail.
 - 명령: `grep -rn "<메서드명>" BabyCare/ BabyCareTests/`
 
+## XCUITest 콜드 런치 첫 탭이 먹히지 않는다 (2026-09-27)
+
+- 시뮬레이터가 꺼진 상태에서 시작한 `xcodebuild test` 의 **첫 앱 실행**에서, 첫 `.tap()` 이 화면에 반영되지 않을 때가 있다 — 녹화상 탭 뒤 4초간 화면 변화 0. 같은 테스트를 데운 뒤 3회 재실행하면 전부 통과한다(가끔 일어난다).
+- **어느 테스트가 첫 실행을 맡는지는 실행 순서가 정하고, 그 순서는 건너뛰기(`XCTSkip`)를 넣거나 빼면 바뀐다** — PregnancyFlowTests 에 건너뛰기를 넣자 원래 통과하던 `test_addBabyView_cancel_returnsToOnboarding` 이 첫 실행을 떠안고 실패했다. 원인은 테스트 내용이 아니라 순서일 수 있다.
+- 코드 회귀와 증상만으로는 못 가른다 → **xcresult 의 화면 녹화를 먼저 볼 것**: `xcrun xcresulttool export attachments --path <xcresult> --output-path <dir> --test-id "<Class>/<test>()"` → `scripts/xcresult_frames.swift` 로 탭 전후 장면을 뽑는다.
+- 해결: 런치 직후 첫 상호작용은 **탭을 결과로 확인하고 안 열렸으면 한 번 더** 누른다 — `PregnancyFlowTests.tap(_:until:timeout:)`.
+- 게이트 수정을 검증할 땐 **시뮬레이터를 끈 상태에서 한 번**(`xcrun simctl shutdown all`) — 데운 상태의 초록은 첫 실행 결함을 못 본다.
+
+## SwiftLint 는 `BabyCare/` 만 본다 (2026-09-27)
+
+- `.swiftlint.yml` 의 `included: [BabyCare]` — `BabyCareTests/`·`BabyCareUITests/` 는 `make lint`·`make verify` 가 **스캔하지 않는다**. SourceKit 장애 때 쓰는 `scripts/harness_lint.sh` 도 `BabyCare` 만 찾는다.
+- 테스트 파일의 「경고 0」은 **안 잰 것**이다 — 테스트 코드는 빌드·실행으로 확인하고 사람이 읽는다.
+- 범위를 넓히려면 `included` 에 두 경로를 넣기 전에 기존 위반 규모부터 재고 기준선을 정리할 것.
+
 ## 참조
 
 - pregnancy-mode-v2 `.dev/specs/pregnancy-mode-v2/context/learnings.md` P0-2b / P4-2.
