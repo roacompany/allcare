@@ -29,7 +29,7 @@ struct BabyCareHomeWidget: Widget {
         StaticConfiguration(kind: kind, provider: BabyCareProvider()) { entry in
             HomeWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("올케어")
+        .configurationDisplayName("베이비케어")
         .description("아기의 수유, 수면, 기저귀 현황을 한눈에")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
@@ -62,7 +62,7 @@ struct BabyCareLockScreenWidget: Widget {
         StaticConfiguration(kind: kind, provider: BabyCareProvider()) { entry in
             LockScreenEntryView(entry: entry)
         }
-        .configurationDisplayName("올케어 잠금화면")
+        .configurationDisplayName("베이비케어 잠금화면")
         .description("잠금화면에서 수유 타이머와 요약 확인")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline])
     }

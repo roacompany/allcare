@@ -984,6 +984,17 @@ final class BabyCareTests: XCTestCase {
         XCTAssertNotNil(renderer.uiImage, "카테고리 분포 도넛이 그려져야 한다")
     }
 
+    /// 가족 초대 문구를 받은 사람은 거기 적힌 이름으로 앱스토어를 검색한다 → 그 이름은 홈 화면의 앱 이름이어야 한다.
+    /// 2.8.11 까지 옛 이름으로 나가 검색에 우리 앱이 안 걸렸다(초대 12 → 사용 3).
+    func testFamilyInviteShareText_namesTheAppAsOnHomeScreen() {
+        let invite = FamilyInvite(code: "AB12CD", ownerUserId: "o", babyId: "b", babyName: "콩이")
+        let homeScreenName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+        XCTAssertNotNil(homeScreenName, "테스트 호스트 앱에 홈 화면 이름이 있어야 이 테스트가 잰다")
+        let text = invite.shareText()
+        XCTAssertTrue(text.hasPrefix("\(homeScreenName ?? "-") "), "초대 문구가 앱 이름으로 시작해야 한다: \(text)")
+        XCTAssertTrue(text.contains("AB12CD"), "초대 코드가 들어 있어야 한다: \(text)")
+    }
+
     // MARK: - Period Comparison Delta Tests
 
     func testPreviousDailyAverage_withData() {

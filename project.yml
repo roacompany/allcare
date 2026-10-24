@@ -123,7 +123,7 @@ targets:
         PROVISIONING_PROFILE_SPECIFIER: "BabyCare Widget AppStore"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
-        INFOPLIST_KEY_CFBundleDisplayName: "올케어 위젯"
+        INFOPLIST_KEY_CFBundleDisplayName: "베이비케어 위젯"
         GENERATE_INFOPLIST_FILE: true
         MARKETING_VERSION: "2.8.12"
         CURRENT_PROJECT_VERSION: "108"
