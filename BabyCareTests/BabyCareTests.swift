@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import SwiftUI
 @testable import BabyCare
 
 final class BabyCareTests: XCTestCase {
@@ -959,6 +960,28 @@ final class BabyCareTests: XCTestCase {
         let endDate = cal.startOfDay(for: Date())
         let summary = PatternAnalysisService.analyzeSummary(activities: [], startDate: startDate, endDate: endDate)
         XCTAssertEqual(summary.missingDays, 6, "데이터 없음 시 missingDays는 dateComponents 스팬과 같아야 합니다")
+    }
+
+    /// 패턴 분석 「카테고리 분포」 도넛은 손님이 남길 수 있는 모든 기록 종류로 그려져야 한다.
+    /// 2.8.11: 색 표가 수유·수면·기저귀·건강 넷뿐이라 기간 안에 유축 기록이 있으면 차트가 앱을 껐다(SIGTRAP).
+    /// 표를 다시 손으로 적어 새 종류가 빠지면, 여기서 실제로 그리다가 죽는다.
+    @MainActor
+    func testPatternSummaryDonut_rendersEveryRecordableCategory() {
+        let cal = Calendar.current
+        let endDate = cal.startOfDay(for: Date())
+        let startDate = cal.date(byAdding: .day, value: -6, to: endDate)!
+        let activities = Activity.ActivityType.allCases
+            .filter { $0 != .unknown }
+            .map { Activity(babyId: "b1", type: $0, startTime: startDate.addingTimeInterval(3600)) }
+        let summary = PatternAnalysisService.analyzeSummary(activities: activities, startDate: startDate, endDate: endDate)
+        XCTAssertEqual(
+            Set(summary.categoryDistribution.keys),
+            Set(Activity.ActivityCategory.allCases.filter { $0 != .unknown }),
+            "모든 기록 종류가 분포에 들어와야 도넛 색 표를 전부 잰다"
+        )
+
+        let renderer = ImageRenderer(content: PatternReportView().summarySection(summary).frame(width: 390))
+        XCTAssertNotNil(renderer.uiImage, "카테고리 분포 도넛이 그려져야 한다")
     }
 
     // MARK: - Period Comparison Delta Tests
