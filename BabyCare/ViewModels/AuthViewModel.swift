@@ -172,21 +172,19 @@ final class AuthViewModel {
         await migration.migrateFamilySharingIfNeeded(userId: userId)
     }
 
-    func resetPassword() async {
-        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else {
-            errorMessage = "이메일을 입력해주세요."
-            return
-        }
+    /// 비밀번호 재설정 메일을 보낸다. 성공이면 nil, 실패면 띄울 문구.
+    /// 로그인 칸(email · errorMessage)은 건드리지 않는다 — 재설정 창의 결과가 뒤 로그인 화면 오류 줄에 새지 않게.
+    func sendPasswordReset(to address: String) async -> String? {
+        await PasswordReset.send(
+            to: address,
+            sender: { try await self.authService.resetPassword(email: $0) },
+            describe: { self.mapAuthError($0) }
+        )
+    }
 
-        isLoading = true
-        errorMessage = nil
-        do {
-            try await authService.resetPassword(email: email)
-            errorMessage = nil
-        } catch {
-            errorMessage = mapAuthError(error)
-        }
-        isLoading = false
+    /// 서버에 「나」임을 보일 로그인 표(Firebase ID 토큰). 관리자 푸시가 웹 관리자 서버에 붙인다.
+    func idToken() async throws -> String {
+        try await authService.idToken()
     }
 
     // MARK: - Apple Sign In

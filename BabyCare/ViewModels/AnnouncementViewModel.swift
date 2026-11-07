@@ -71,13 +71,9 @@ final class AnnouncementViewModel {
         isLoading = false
     }
 
-    func createAnnouncement(title: String, content: String, priority: Announcement.Priority) async {
-        let announcement = Announcement(
-            title: title,
-            content: content,
-            createdAt: Date(),
-            isActive: true,
-            priority: priority
+    func createAnnouncement(title: String, content: String, priority: Announcement.Priority, isActive: Bool) async {
+        let announcement = Self.newAnnouncement(
+            title: title, content: content, priority: priority, isActive: isActive, now: Date()
         )
         do {
             try await firestoreService.saveAnnouncement(announcement)
@@ -85,6 +81,17 @@ final class AnnouncementViewModel {
         } catch {
             errorMessage = "공지사항 등록에 실패했습니다"
         }
+    }
+
+    /// 새 공지 한 건. 「활성화」 칸 값을 그대로 담는다(2026-11-07 전엔 늘 켜진 채로 저장됐다).
+    nonisolated static func newAnnouncement(
+        title: String,
+        content: String,
+        priority: Announcement.Priority,
+        isActive: Bool,
+        now: Date
+    ) -> Announcement {
+        Announcement(title: title, content: content, createdAt: now, isActive: isActive, priority: priority)
     }
 
     func updateAnnouncement(_ announcement: Announcement) async {

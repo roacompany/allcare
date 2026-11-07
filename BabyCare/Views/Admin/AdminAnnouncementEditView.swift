@@ -70,7 +70,7 @@ struct AdminAnnouncementEditView: View {
             existing.isActive = isActive
             await announcementVM.updateAnnouncement(existing)
         } else {
-            await announcementVM.createAnnouncement(title: title, content: content, priority: priority)
+            await announcementVM.createAnnouncement(title: title, content: content, priority: priority, isActive: isActive)
         }
         isSaving = false
         dismiss()

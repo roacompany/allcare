@@ -138,16 +138,6 @@ struct GrowthView: View {
             .sheet(item: $editingRecord, onDismiss: resetForm) { record in
                 editRecordSheet(record)
             }
-            .confirmationDialog("기록을 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                Button("삭제", role: .destructive) {
-                    if let record = recordToDelete {
-                        Task { await deleteRecord(record) }
-                    }
-                }
-                Button("취소", role: .cancel) {
-                    recordToDelete = nil
-                }
-            }
             .onAppear {
                 AnalyticsService.shared.trackScreen(AnalyticsScreens.growth)
             }
@@ -289,6 +279,7 @@ struct GrowthView: View {
         do {
             try await growthVM.deleteRecord(record, userId: userId, babyId: babyId)
             recordToDelete = nil
+            editingRecord = nil   // 지운 기록의 수정 창을 닫는다
         } catch {
             saveError = "삭제에 실패했습니다: \(error.localizedDescription)"
         }
