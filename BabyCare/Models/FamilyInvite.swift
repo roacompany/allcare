@@ -34,6 +34,16 @@ struct FamilyInvite: Identifiable, Codable, Hashable {
         let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return String((0..<6).map { _ in chars.randomElement()! })
     }
+
+    /// 공유 시트로 보내는 초대 문구. 받는 사람은 여기 적힌 이름으로 앱스토어를 검색하므로
+    /// 앱 이름은 문구에 따로 적지 않고 홈 화면 이름(CFBundleDisplayName)에서 가져온다.
+    func shareText() -> String {
+        "\(Self.homeScreenAppName) 가족 초대 코드: \(code)"
+    }
+
+    private static var homeScreenAppName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "베이비케어"
+    }
 }
 
 struct SharedBabyAccess: Identifiable, Codable, Hashable {

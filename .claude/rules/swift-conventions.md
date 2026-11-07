@@ -65,3 +65,9 @@ globs: "**/*.swift"
   }
   ```
 - 두 protocol 직교 — 동시 채택 가능. 단일 item 교체만 지원 (in-place mutation / append-or-replace 패턴은 별도 helper 후속 예정).
+
+## Swift Charts 색 표 — 표에 없는 값이 오면 앱이 꺼진다 (2026-10-25)
+
+- **`chartForegroundStyleScale` 의 표(domain)를 손으로 적지 말 것.** 데이터에 표에 없는 값이 오면 Charts 가 `ConcreteScale+Discrete.swift:96` 에서 nil 을 강제로 풀다 앱을 끈다. 2.8.11 패턴 분석: 표가 수유·수면·기저귀·건강 넷이라 유축 기록이 있으면 종료.
+- domain 은 **그 차트 데이터에 실제로 들어온 값**에서 만들고, 값 → 색은 default 없는 switch 한 곳에 둔다(선례: `PatternReport+Summary.swift` `donutColor`).
+- **재현은 단위 테스트로 된다** — `ImageRenderer(content: 차트뷰).uiImage` 로 실제로 그리면 같은 자리에서 테스트 호스트가 죽는다. 에뮬레이터·시뮬레이터 화면 없이 RED 를 만든다(선례: `testPatternSummaryDonut_rendersEveryRecordableCategory`).

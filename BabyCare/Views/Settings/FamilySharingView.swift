@@ -55,7 +55,7 @@ struct FamilySharingView: View {
                             } label: {
                                 Image(systemName: "doc.on.doc")
                             }
-                            ShareLink(item: "올케어 가족 초대 코드: \(invite.code)") {
+                            ShareLink(item: invite.shareText()) {
                                 Image(systemName: "square.and.arrow.up")
                             }
                         }

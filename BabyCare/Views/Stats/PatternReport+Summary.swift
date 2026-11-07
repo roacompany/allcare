@@ -57,6 +57,9 @@ extension PatternReportView {
 
                 let chartData = s.categoryDistribution.map { (category: $0.key, count: $0.value) }
                     .sorted { $0.count > $1.count }
+                // 색 표는 손으로 적지 않는다 — 분포에 실제로 들어온 종류에서 만든다.
+                // 표에 없는 값이 오면 Charts 가 앱을 끈다(2.8.11: 표가 넷뿐이라 유축 기록이 있으면 종료).
+                let shown = Activity.ActivityCategory.allCases.filter { s.categoryDistribution[$0] != nil }
 
                 Chart(chartData, id: \.category) { item in
                     SectorMark(
@@ -67,12 +70,10 @@ extension PatternReportView {
                     .foregroundStyle(by: .value("카테고리", item.category.displayName))
                     .cornerRadius(4)
                 }
-                .chartForegroundStyleScale([
-                    "수유": feedingColor,
-                    "수면": sleepColor,
-                    "기저귀": diaperColor,
-                    "건강": healthColor,
-                ])
+                .chartForegroundStyleScale(
+                    domain: shown.map(\.displayName),
+                    range: shown.map { donutColor($0) }
+                )
                 .frame(height: 180)
             }
         }
@@ -80,5 +81,17 @@ extension PatternReportView {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
+    }
+
+    /// 카테고리 분포 도넛의 색 — 새 종류가 생기면 여기서 컴파일이 멈춘다(default 금지).
+    func donutColor(_ category: Activity.ActivityCategory) -> Color {
+        switch category {
+        case .feeding: feedingColor
+        case .sleep: sleepColor
+        case .diaper: diaperColor
+        case .health: healthColor
+        case .pumping: AppColors.pumpingColor
+        case .unknown: AppColors.neutralGray
+        }
     }
 }
