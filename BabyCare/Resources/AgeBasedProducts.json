@@ -142,7 +142,7 @@
   {
     "id": "nbp-015",
     "name": "이유식 그릇 세트",
-    "category": "babyFood",
+    "category": "baby_food",
     "ageRangeStart": 4,
     "ageRangeEnd": 24,
     "reason": "이유식 시작 시기에 흔히 준비해요",
@@ -152,7 +152,7 @@
   {
     "id": "nbp-016",
     "name": "실리콘 이유식 턱받이",
-    "category": "babyFood",
+    "category": "baby_food",
     "ageRangeStart": 4,
     "ageRangeEnd": 24,
     "reason": "이유식 시기에 흔히 사용해요",
@@ -162,7 +162,7 @@
   {
     "id": "nbp-017",
     "name": "이유식 냉동 용기",
-    "category": "babyFood",
+    "category": "baby_food",
     "ageRangeStart": 5,
     "ageRangeEnd": 18,
     "reason": "이유식을 직접 만들어 보관할 때 이 시기 흔히 사용해요",
@@ -282,7 +282,7 @@
   {
     "id": "nbp-029",
     "name": "유아 음식 가위",
-    "category": "babyFood",
+    "category": "baby_food",
     "ageRangeStart": 8,
     "ageRangeEnd": 24,
     "reason": "유아식 준비 시 이 시기 흔히 사용해요",

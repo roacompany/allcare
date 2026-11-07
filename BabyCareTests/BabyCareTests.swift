@@ -4189,6 +4189,135 @@ final class BabyCareTests: XCTestCase {
         ) else { return XCTFail("이름 없어도 저장되어야 한다") }
         XCTAssertEqual(plan.dialog, "2시간 잤어요")
     }
+
+    // MARK: - 전체 플로우 시안을 그리다 찾은 결함 (2026-11-07)
+
+    /// 앱에 든 월령 추천 목록이 한 줄도 빠짐없이 읽혀야 한다.
+    /// 🩸 이유식 4줄의 종류가 「babyFood」로 적혀 앱 값 「baby_food」와 달랐다 → 목록 전체가 빈 채로 읽혀
+    /// 용품 화면에 추천이 한 번도 안 떴다. 기존 시험은 가짜 목록만 써서 못 잡았다.
+    func testBundledAgeBasedCatalog_everyEntryLoads() throws {
+        let url = try XCTUnwrap(
+            Bundle.main.url(forResource: "AgeBasedProducts", withExtension: "json"),
+            "앱 번들에 AgeBasedProducts.json 이 있어야 한다"
+        )
+        let rows = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [Any])
+        XCTAssertFalse(rows.isEmpty)
+        XCTAssertEqual(
+            ProductRecommendationService.loadCatalog().count, rows.count,
+            "번들 목록 \(rows.count)줄이 전부 읽혀야 한다"
+        )
+        XCTAssertTrue(
+            ProductRecommendationService.recommendations(for: 6).contains { $0.category == .babyFood },
+            "6개월 추천에 이유식 용품이 있어야 한다"
+        )
+    }
+
+    /// 새 공지는 「활성화」 칸 값 그대로 만들어진다 — 꺼 두고 만들면 꺼진 채로.
+    func testNewAnnouncement_keepsActiveToggle() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let off = AnnouncementViewModel.newAnnouncement(
+            title: "점검", content: "내용", priority: .normal, isActive: false, now: now
+        )
+        XCTAssertFalse(off.isActive, "활성화를 끄고 만든 공지는 꺼진 채로 저장돼야 한다")
+        XCTAssertEqual(off.createdAt, now)
+        let on = AnnouncementViewModel.newAnnouncement(
+            title: "점검", content: "내용", priority: .urgent, isActive: true, now: now
+        )
+        XCTAssertTrue(on.isActive)
+        XCTAssertEqual(on.priority, .urgent)
+    }
+
+    /// 재설정 메일이 실패하면 「보냈다」가 아니라 실패 문구를 돌려준다.
+    @MainActor
+    func testPasswordReset_failureReturnsMessageNotSent() async {
+        struct Refused: Error {}
+        let message = await PasswordReset.send(
+            to: "abc",
+            sender: { _ in throw Refused() },
+            describe: { _ in "올바른 이메일 형식이 아닙니다." }
+        )
+        XCTAssertEqual(message, "올바른 이메일 형식이 아닙니다.")
+    }
+
+    /// 성공하면 nil — 앞뒤 빈칸은 떼고 보낸다.
+    @MainActor
+    func testPasswordReset_successSendsTrimmedAddress() async {
+        var sentTo: [String] = []
+        let message = await PasswordReset.send(
+            to: "  mom@example.com ",
+            sender: { sentTo.append($0) },
+            describe: { _ in "실패" }
+        )
+        XCTAssertNil(message)
+        XCTAssertEqual(sentTo, ["mom@example.com"])
+    }
+
+    /// 빈 주소는 보내지 않는다.
+    @MainActor
+    func testPasswordReset_blankAddressNeverSends() async {
+        var sent = false
+        let message = await PasswordReset.send(to: "   ", sender: { _ in sent = true }, describe: { _ in "실패" })
+        XCTAssertEqual(message, "이메일을 입력해주세요.")
+        XCTAssertFalse(sent)
+    }
+
+    /// 앱이 보낸 요청 하나를 담아 둔다(발송 시험용).
+    private final class SentRequestBox: @unchecked Sendable {
+        var request: URLRequest?
+    }
+
+    private static func pushResponse(_ request: URLRequest, status: Int, json: String) -> (Data, URLResponse) {
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        return (Data(json.utf8), response)
+    }
+
+    /// 관리자 푸시는 웹 관리자 서버에 로그인 표를 붙여 보낸다 — 앱엔 발송 키가 없다.
+    @MainActor
+    func testAdminPush_sendsThroughAdminServerWithLoginToken() async throws {
+        let box = SentRequestBox()
+        let vm = AdminPushViewModel(transport: { request in
+            box.request = request
+            return Self.pushResponse(request, status: 200, json: #"{"success":true,"messageId":"m1"}"#)
+        })
+        await vm.send(title: "점검 안내", body: "오늘 밤", topic: "all_users", idToken: { "tok-123" })
+
+        let request = try XCTUnwrap(box.request)
+        XCTAssertEqual(request.url, URL(string: "https://babycare-admin.vercel.app/api/push"))
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer tok-123")
+        let sent = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? [String: String]
+        )
+        XCTAssertEqual(sent, ["title": "점검 안내", "body": "오늘 밤", "topic": "all_users"])
+        XCTAssertEqual(vm.resultMessage, "푸시 발송 성공")
+        XCTAssertFalse(vm.isSending)
+    }
+
+    /// 서버가 거절하면 서버가 준 까닭을 그대로 보여 준다.
+    @MainActor
+    func testAdminPush_showsServerRefusalReason() async {
+        let vm = AdminPushViewModel(transport: { request in
+            Self.pushResponse(request, status: 403, json: #"{"error":"관리자 권한이 없습니다."}"#)
+        })
+        await vm.send(title: "t", body: "b", topic: "all_users", idToken: { "tok" })
+        XCTAssertEqual(vm.resultMessage, "발송 실패: 관리자 권한이 없습니다.")
+    }
+
+    /// 로그인 표를 못 받으면 서버에 묻지도 않는다.
+    @MainActor
+    func testAdminPush_noTokenNeverCallsServer() async {
+        struct NoToken: LocalizedError {
+            var errorDescription: String? { "로그인이 필요합니다." }
+        }
+        let box = SentRequestBox()
+        let vm = AdminPushViewModel(transport: { request in
+            box.request = request
+            return Self.pushResponse(request, status: 200, json: "{}")
+        })
+        await vm.send(title: "t", body: "b", topic: "all_users", idToken: { throw NoToken() })
+        XCTAssertNil(box.request, "로그인 표 없이 서버에 보내면 안 된다")
+        XCTAssertEqual(vm.resultMessage, "발송 실패: 로그인이 필요합니다.")
+    }
 }
 
 // MARK: - HospitalChecklistService Tests (#10)

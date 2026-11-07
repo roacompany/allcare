@@ -37,16 +37,9 @@ extension GrowthView {
         .padding(.horizontal)
         .padding(.vertical, 6)
         .contentShape(Rectangle())
+        // 지우기는 수정 창 맨 아래 「기록 삭제」에서 — 이 줄은 List 가 아닌 칸이라 옆으로 밀기가 안 먹는다(2026-11-07)
         .onTapGesture {
             startEditing(record)
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                recordToDelete = record
-                showDeleteConfirm = true
-            } label: {
-                Label("삭제", systemImage: "trash")
-            }
         }
     }
 
@@ -170,6 +163,20 @@ extension GrowthView {
                             .frame(width: 80)
                     }
                 }
+
+                // 삭제 — 병원 기록 수정 창과 같은 모양
+                Section {
+                    Button(role: .destructive) {
+                        recordToDelete = record
+                        showDeleteConfirm = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("기록 삭제")
+                            Spacer()
+                        }
+                    }
+                }
             }
             .navigationTitle("성장 기록 수정")
             .navigationBarTitleDisplayMode(.inline)
@@ -182,6 +189,17 @@ extension GrowthView {
                         Task { await updateRecord(record) }
                     }
                     .disabled(weight.isEmpty && height.isEmpty && headCircumference.isEmpty)
+                }
+            }
+            // 확인 창은 수정 창 위에 떠야 한다(뒤 화면에 두면 시트에 가려 안 뜬다)
+            .confirmationDialog("기록을 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("삭제", role: .destructive) {
+                    if let record = recordToDelete {
+                        Task { await deleteRecord(record) }
+                    }
+                }
+                Button("취소", role: .cancel) {
+                    recordToDelete = nil
                 }
             }
         }

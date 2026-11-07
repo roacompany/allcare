@@ -6,12 +6,6 @@ extension AddProductView {
 
     var catalogModeView: some View {
         VStack(spacing: 0) {
-            EmptyView()
-                .task {
-                    if productVM.catalog.isEmpty && !productVM.isCatalogLoading {
-                        await productVM.loadCatalog()
-                    }
-                }
             // Search bar
             HStack {
                 Image(systemName: "magnifyingglass")
@@ -86,6 +80,12 @@ extension AddProductView {
                 .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+        }
+        // 열자마자 카탈로그를 읽는다. EmptyView 에 붙이면 그려지지 않아 돌지 않는다(2026-11-07 결함).
+        .task {
+            if productVM.catalog.isEmpty && !productVM.isCatalogLoading {
+                await productVM.loadCatalog()
+            }
         }
     }
 

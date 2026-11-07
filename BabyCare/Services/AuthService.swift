@@ -40,6 +40,12 @@ final class AuthService: Sendable {
         try await Auth.auth().sendPasswordReset(withEmail: email)
     }
 
+    /// 로그인한 사람의 Firebase ID 토큰. 웹 관리자 서버가 이걸로 관리자인지 확인한다.
+    func idToken() async throws -> String {
+        guard let user = currentUser else { throw AuthError.notSignedIn }
+        return try await user.getIDToken()
+    }
+
     func updateDisplayName(_ name: String) async throws {
         guard let user = currentUser else { return }
         let changeRequest = user.createProfileChangeRequest()
@@ -75,11 +81,14 @@ final class AuthService: Sendable {
 
     enum AuthError: LocalizedError {
         case nonceGenerationFailed(OSStatus)
+        case notSignedIn
 
         var errorDescription: String? {
             switch self {
             case .nonceGenerationFailed(let status):
                 return "Nonce 생성에 실패했습니다. (OSStatus: \(status))"
+            case .notSignedIn:
+                return "로그인이 필요합니다."
             }
         }
     }

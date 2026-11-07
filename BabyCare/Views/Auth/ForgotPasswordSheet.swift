@@ -8,6 +8,9 @@ struct ForgotPasswordSheet: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var resetEmail = ""
     @State private var isSent = false
+    @State private var isSending = false
+    /// 보내기가 실패한 까닭. 있으면 칸 아래에 띄우고 「보냈다」로 안 넘어간다.
+    @State private var failure: String?
 
     private var accentPurple: Color {
         colorScheme == .dark
@@ -55,33 +58,47 @@ struct ForgotPasswordSheet: View {
                         .background(.green.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     } else {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label("이메일", systemImage: "envelope.fill")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label("이메일", systemImage: "envelope.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
 
-                            TextField("이메일 주소를 입력하세요", text: $resetEmail)
-                                .keyboardType(.emailAddress)
-                                .textContentType(.emailAddress)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
-                                .padding(14)
-                                .background(Color(.tertiarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color(.separator), lineWidth: 1.5)
+                                TextField("이메일 주소를 입력하세요", text: $resetEmail)
+                                    .keyboardType(.emailAddress)
+                                    .textContentType(.emailAddress)
+                                    .autocapitalization(.none)
+                                    .autocorrectionDisabled()
+                                    .padding(14)
+                                    .background(Color(.tertiarySystemBackground))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color(.separator), lineWidth: 1.5)
+                                    )
+                                    .onChange(of: resetEmail) { failure = nil }
+                            }
+
+                            // 로그인 화면 오류 줄과 같은 모양
+                            if let failure {
+                                HStack(spacing: DS2.Spacing.sm) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundStyle(DS2.Color.danger)
+                                    Text(failure)
+                                        .font(DS2.Font.caption)
+                                        .foregroundStyle(DS2.Color.danger)
+                                    Spacer()
+                                }
+                                .padding(DS2.Spacing.md)
+                                .background(
+                                    DS2.Color.danger.opacity(0.12),
+                                    in: RoundedRectangle(cornerRadius: DS2.Radius.sm, style: .continuous)
                                 )
+                            }
                         }
 
                         Button {
-                            let previousEmail = authVM.email
-                            authVM.email = resetEmail
-                            Task {
-                                await authVM.resetPassword()
-                                authVM.email = previousEmail
-                                isSent = true
-                            }
+                            Task { await sendReset() }
                         } label: {
                             Text("재설정 링크 보내기")
                                 .font(.headline)
@@ -97,7 +114,7 @@ struct ForgotPasswordSheet: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
-                        .disabled(resetEmail.isEmpty)
+                        .disabled(resetEmail.isEmpty || isSending)
                         .opacity(resetEmail.isEmpty ? 0.6 : 1.0)
                     }
 
@@ -113,6 +130,14 @@ struct ForgotPasswordSheet: View {
                 }
             }
         }
+    }
+
+    /// 성공일 때만 「발송했습니다」로 넘어간다. 실패하면 까닭을 이 창에 띄운다.
+    private func sendReset() async {
+        isSending = true
+        failure = await authVM.sendPasswordReset(to: resetEmail)
+        isSending = false
+        isSent = failure == nil
     }
 }
 

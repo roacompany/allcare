@@ -44,26 +44,9 @@ extension PurchaseHistoryView {
                 }
                 .padding(.vertical, 4)
                 .contentShape(Rectangle())
+                // 지우기는 수정 창 맨 아래 「기록 삭제」에서 — 이 줄은 List 가 아닌 칸이라 옆으로 밀기가 안 먹는다(2026-11-07)
                 .onTapGesture {
                     purchaseVM.editingRecord = record
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        Task {
-                            guard let userId = authVM.currentUserId else { return }
-                            await purchaseVM.deleteRecord(record, userId: userId)
-                        }
-                    } label: {
-                        Label("삭제", systemImage: "trash")
-                    }
-                }
-                .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                    Button {
-                        purchaseVM.editingRecord = record
-                    } label: {
-                        Label("수정", systemImage: "pencil")
-                    }
-                    .tint(.blue)
                 }
             }
         }
@@ -112,6 +95,7 @@ struct EditPurchaseRecordView: View {
     @State private var store: String
     @State private var purchaseDate: Date
     @State private var note: String
+    @State private var showDeleteAlert = false
 
     init(record: PurchaseRecord) {
         self.record = record
@@ -166,6 +150,19 @@ struct EditPurchaseRecordView: View {
                 Section("메모") {
                     TextField("메모 (선택)", text: $note)
                 }
+
+                // 삭제 — 병원 기록 수정 창과 같은 모양
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteAlert = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("기록 삭제")
+                            Spacer()
+                        }
+                    }
+                }
             }
             .navigationTitle("구매 기록 수정")
             .navigationBarTitleDisplayMode(.inline)
@@ -181,6 +178,20 @@ struct EditPurchaseRecordView: View {
                     .disabled(Int(price) == nil || Int(price)! <= 0)
                 }
             }
+            .alert("기록 삭제", isPresented: $showDeleteAlert) {
+                Button("취소", role: .cancel) {}
+                Button("삭제", role: .destructive) { delete() }
+            } message: {
+                Text("이 구매 기록을 삭제하시겠습니까?")
+            }
+        }
+    }
+
+    private func delete() {
+        guard let userId = authVM.currentUserId else { return }
+        Task {
+            await purchaseVM.deleteRecord(record, userId: userId)
+            dismiss()
         }
     }
 

@@ -16,10 +16,14 @@ enum ProductRecommendationService {
         // 앱 번들에서 먼저 찾고, 없으면 현재 번들 전체 검색
         let searchBundles: [Bundle] = [bundle, .main] + Bundle.allBundles
         for b in searchBundles {
-            if let url = b.url(forResource: "AgeBasedProducts", withExtension: "json"),
-               let data = try? Data(contentsOf: url),
-               let catalog = try? JSONDecoder().decode([ProductRecommendation].self, from: data) {
-                return catalog
+            guard let url = b.url(forResource: "AgeBasedProducts", withExtension: "json") else { continue }
+            do {
+                return try JSONDecoder().decode([ProductRecommendation].self, from: Data(contentsOf: url))
+            } catch {
+                // 한 줄이라도 앱 값과 다르면 목록 전체가 빈다(2026-11-07: 「babyFood」 ≠ 「baby_food」).
+                // 조용히 빈 목록을 내지 말고 남긴다.
+                logSilent("월령 추천 목록(AgeBasedProducts.json)을 읽지 못함", error: error, logger: AppLogger.catalog)
+                return []
             }
         }
         return []
