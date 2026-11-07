@@ -17,8 +17,19 @@ final class DayPlanFlowTests: XCTestCase {
         continueAfterFailure = true
     }
 
+    /// 🔴 「우리 하루」는 재설계 중이라 `dayPlanEnabled` **컴파일 플래그로 꺼져 있다**(2026-09-27).
+    /// 꺼진 채로 「진입점이 보인다 · 카드가 말한다」를 재면 게이트가 영구 빨강이 된다(임신 UI 가 3개월 그랬다).
+    /// ⛔ 지우지 않는다 — 건너뛰게만 한다. 재설계를 켜는 날 **자동으로 다시 돈다**.
+    private func skipUnlessDayPlanEnabled() throws {
+        try XCTSkipUnless(
+            FeatureFlags.dayPlanEnabled,
+            "FeatureFlags.dayPlanEnabled = false — 우리 하루가 컴파일 단계에서 꺼져 있어 진입점·카드를 잴 수 없다"
+        )
+    }
+
     @MainActor
     func testSettingsReachesDayPlanAndOpensTheSheet() throws {
+        try skipUnlessDayPlanEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_TAB=4"]
         app.launch()
@@ -74,6 +85,7 @@ final class DayPlanFlowTests: XCTestCase {
     /// ⚠️ 시간표를 짠 사람의 정상 카드(시작 → 채워짐 → 닫기)는 **로그인된 기기 QA**로만 확인된다.
     @MainActor
     func testDashboardCardSpeaksWhenItCannotLoad() throws {
+        try skipUnlessDayPlanEnabled()
         let app = XCUIApplication()
         app.launchArguments = ["UI_TESTING", "UI_TESTING_TAB=0"]
         app.launch()

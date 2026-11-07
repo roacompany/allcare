@@ -481,5 +481,11 @@ final class FeatureFlagServiceBehaviorTests: XCTestCase {
     func testHighlightsEnabled_compiletimeTrue() {
         XCTAssertTrue(FeatureFlags.highlightsEnabled, "FeatureFlags.highlightsEnabled는 true (v2.8.3 기본값)")
     }
+
+    /// 「우리 하루」 kill switch 는 재설계가 출시되기 전까지 꺼져 있어야 한다 — 실수로 켜면 PO 가
+    /// 「목적에 맞지 않는다」고 판정한 옛 화면(빌드 108)이 손님에게 나간다. 재설계를 출시할 때 이 테스트를 같이 바꾼다.
+    func testDayPlanEnabled_compiletimeFalse() {
+        XCTAssertFalse(FeatureFlags.dayPlanEnabled, "FeatureFlags.dayPlanEnabled 는 false — 옛 우리 하루는 재설계 중")
+    }
 }
 

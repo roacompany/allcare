@@ -35,4 +35,11 @@ enum FeatureFlags {
     /// 시스템 평가 시트를 생애 1회 호출(AppReviewPromptService). RemoteConfig 미연결
     /// (FirebaseRemoteConfig import 금지, A-18). false 시 자동 팝업 + 설정 "리뷰 남기기" 행 모두 비활성.
     static let appReviewPromptEnabled: Bool = true
+
+    /// 「우리 하루」 compile-time kill switch.
+    /// ⚠️ false 유지 — 지금 코드(①시간표 짜기 ②오늘 열기·칸 채우기, v2.8.12 빌드 108)는 PO 가 TestFlight 로
+    /// 써 보고 「목적에 맞지 않아서 테스트를 할 수가 없어요」(2026-09-27)라고 판정해 재설계 중이다.
+    /// false 면 설정의 「우리 하루」 줄과 홈의 하루 띠 카드가 안 보이고, 홈에서 dayPlans·dayRuns 도 읽지 않는다.
+    /// 저장된 데이터와 코드는 그대로 둔다(재설계에서 재사용 여부를 정한다). 재설계를 출시할 때 켠다.
+    static let dayPlanEnabled: Bool = false
 }
