@@ -10,6 +10,7 @@ globs: "**/project.yml,**/Package.*"
 - repo 안 `build/DerivedData`·`build/smoke-dd` 등은 **수개월 낡은 화석**일 수 있다(실사례: 4월 산출물을 8월에 설치해 UI_TESTING 백지 — 코드 회귀로 오인, A/B·이분탐색까지 소모).
 - 시뮬레이터 검증용 .app은 **방금 그 게이트가 쓴 DerivedData 경로에서 명시적으로** 가져오거나, 검증 전용 `-derivedDataPath`로 직접 빌드해 그 산출물을 설치할 것.
 - 산출물 신선도 의심 시: 한글 문자열은 `strings`(ASCII 전용)로 못 찾는다 — **python 바이트 검색**으로 새 코드 문자열 포함 여부를 확인.
+- 🩸 **15바이트 이하 글자(한글 약 5자 이하)는 바이트 검색에 0건으로 나온다** — Swift 가 작은 글자를 파일에 글자로 두지 않고 기계어 값으로 넣는다. 0건을 「없음」으로 읽지 말고 **16바이트 넘는 글자나 화면 id**(예: `itinerary.fillTime`)로 찾을 것. 2026-11-06 빌드 114 에서 「오늘 밤」·「시각 넣기」가 있는데 0건으로 나왔다.
 
 ## GoogleService-Info.plist 누락으로 인한 즉시 crash (worktree)
 

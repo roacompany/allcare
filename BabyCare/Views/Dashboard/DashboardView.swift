@@ -44,6 +44,9 @@ struct DashboardView: View {
     //    없어(빈 뷰) 영영 안 불러오고, 그러면 「시간표가 없다」와 구분이 안 된다.
     @State private var todayVM = TodayViewModel()
 
+    // MARK: - 여행 준비 — 다가오는(진행 중인) 여행이 있을 때만 카드 한 장. VM 은 여기서 든다(위 우리 하루와 같은 까닭).
+    @State private var tripListVM = TripListViewModel()
+
     let feedingColor = AppColors.feedingColor
     let sleepColor = AppColors.sleepColor
     let diaperColor = AppColors.diaperColor
@@ -63,6 +66,7 @@ struct DashboardView: View {
         firstRecordGuideIfNeeded
         highlightTickerOrV1Card
         quickActionsSection
+        tripHomeCardIfNeeded
         // 우리 하루 재설계 중 — 스위치가 꺼져 있으면 카드도, 불러오기(아래 .task)도 없다.
         if FeatureFlags.dayPlanEnabled {
             todayBandCardIfNeeded
@@ -186,6 +190,10 @@ struct DashboardView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
+                // 여행 화면에서 돌아올 때(스택 안 pop)도 카드가 다시 읽히게 — 스택 바깥의 .task 는 pop 에 안 돈다.
+                .onAppear {
+                    Task { await loadTrips() }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(Color(.systemGroupedBackground))
@@ -209,6 +217,10 @@ struct DashboardView: View {
             guard FeatureFlags.dayPlanEnabled, let current = authVM.currentUserId else { return }
             let owner = babyVM.dataUserId(currentUserId: current) ?? current
             await todayVM.load(userId: owner, day: Date(), activities: activityVM.todayActivities)
+        }
+        // 여행 준비 — 로그인·아기가 바뀌면 다시 읽는다. 스위치가 꺼져 있으면 읽지도 않는다.
+        .task(id: tripLoadKey) {
+            await loadTrips()
         }
         // 기록이 들어오면 칸이 채워진다 — 저장소를 다시 두드리지 않는다.
         .onChange(of: activityVM.todayActivities) { _, new in
@@ -399,6 +411,27 @@ struct DashboardView: View {
                 EmptyView()
             }
         }
+    }
+
+    // MARK: - 여행 준비 카드
+
+    /// 아직 안 끝난 여행 중 가장 이른 것 하나 — 없으면 카드가 없다(빈 상태에서 PO 가 설정에서 만든다).
+    @ViewBuilder
+    private var tripHomeCardIfNeeded: some View {
+        if FeatureFlags.travelEnabled, let trip = tripListVM.nextTrip(today: Date(), calendar: .current) {
+            TripHomeCard(trip: trip)
+        }
+    }
+
+    /// 여행을 다시 읽는 열쇠(로그인 · 아기) — 수식어 안에 `??` 를 두면 CI(Xcode 26.3)가 body 를 제때 못 푼다(2026-11-08).
+    private var tripLoadKey: String { "\(authVM.currentUserId ?? "")|\(babyVM.selectedBaby?.id ?? "")" }
+
+    /// ⚠️ currentUserId 가 없으면 VM 이 읽지 않는다(로그아웃 뒤에도 dataUserId 가 소유자 uid 를 돌려주는 함정).
+    private func loadTrips() async {
+        guard FeatureFlags.travelEnabled else { return }
+        let current = authVM.currentUserId
+        let owner = current.flatMap { babyVM.dataUserId(currentUserId: $0) }
+        await tripListVM.load(currentUserId: current, ownerUserId: owner, babyId: babyVM.selectedBaby?.id)
     }
 
     // MARK: - Pregnancy Home Card (Additive)

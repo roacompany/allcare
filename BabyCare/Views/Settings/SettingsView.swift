@@ -14,6 +14,8 @@ struct SettingsView: View {
     @State private var showDeleteAccountAlert = false
     @State private var showDeletePregnancyAlert = false
     @AppStorage(AnalyticsService.optOutKey) private var analyticsOptOut = false
+    /// 「더 보기」에서 열었으면 왼쪽 위 「더 보기」로 목록에 돌아간다(설계 2026-11-05 §1).
+    var onBackToMore: (() -> Void)? = nil
 
     var body: some View {
         NavigationStack {
@@ -311,6 +313,16 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("설정")
+            .toolbar {
+                if let onBackToMore {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onBackToMore) {
+                            Label("더 보기", systemImage: "chevron.left")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
+                }
+            }
             .navigationDestination(isPresented: $showAnnouncementsFromPush) {
                 AnnouncementListView()
             }

@@ -487,5 +487,11 @@ final class FeatureFlagServiceBehaviorTests: XCTestCase {
     func testDayPlanEnabled_compiletimeFalse() {
         XCTAssertFalse(FeatureFlags.dayPlanEnabled, "FeatureFlags.dayPlanEnabled 는 false — 옛 우리 하루는 재설계 중")
     }
+
+    /// 「여행 준비」는 손님 판(App Store)에도 열려 있다(2026-11-08 PO 「여행기능 오픈」 · v2.8.13).
+    /// 끄면 설정 줄·홈 카드·여행 읽기가 다 사라진다 — 끌 때는 이 테스트를 같이 바꾼다.
+    func testTravelEnabled_compiletimeTrue() {
+        XCTAssertTrue(FeatureFlags.travelEnabled, "FeatureFlags.travelEnabled 는 true — 여행 준비는 손님 판에도 열려 있다")
+    }
 }
 

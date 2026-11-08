@@ -25,6 +25,7 @@ enum AppLogger {
     static let sound        = Logger(subsystem: subsystem, category: "Sound")
     static let storage      = Logger(subsystem: subsystem, category: "Storage")
     static let todo         = Logger(subsystem: subsystem, category: "Todo")
+    static let travel       = Logger(subsystem: subsystem, category: "Travel")
 }
 
 /// non-fatal silent error 진단용 helper.
