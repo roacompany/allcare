@@ -3,45 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>베이비케어 - 임신부터 육아까지, AI 육아기록</title>
-
-  <!-- 글꼴: 한글=Pretendard / 영문·숫자=Outfit.
-       Outfit 을 먼저 적는 이유 = 브라우저는 글자마다 앞에서부터 찾는다.
-       Outfit 에 한글 글리프가 없으므로 한글은 자동으로 Pretendard 로 떨어진다.
-       (순서를 뒤집으면 영문까지 Pretendard 가 먹어 Outfit 이 한 글자도 안 쓰인다)
-       Outfit 은 우리가 직접 갖고 있다 → fonts/outfit-latin.woff2 (아래 @font-face) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preload" as="font" type="font/woff2" href="fonts/outfit-latin.woff2" crossorigin>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
-  <meta name="description" content="임신 D-day·태동부터 유축·수유 기록, 수면 분석, 성장 곡선, 병원 AI 리포트까지. 유축한 모유의 재고와 먹인 양을 따로 기록해 통계가 정확한 임신·육아 기록 앱.">
-  <meta name="keywords" content="임신 기록, 임신 앱, 태동 카운터, 산전 체크리스트, 임신 위젯, 출산 예정일, D-day, 육아 기록, 아기 성장, 수유 기록, 수유 예측, 수면 분석, 수면 퇴행, 예방접종, 베이비케어, 육아 앱, 아기 건강기록, 성장곡선, 이유식, 알레르기, AI 육아 조언, 위젯">
+  <title>베이비케어 - 수유부터 여행 준비까지, AI 육아기록</title>
+  <meta name="description" content="모유·분유·유축·수면·기저귀를 버튼 한 번에 기록하고, 패턴 분석과 WHO 성장 백분위, 예방접종 알림, 병원 리포트로 살펴보세요. 가족 공유와 시리 기록, 아기와 떠나는 여행 준비까지.">
+  <meta name="keywords" content="육아 기록, 육아 앱, 수유 기록, 수면 기록, 기저귀 기록, 유축 기록, 아기 성장, 성장 곡선, 예방접종 알림, 병원 리포트, 가족 공유, 시리 기록, 아기 여행, 여행 준비, 베이비케어">
   <meta name="robots" content="index, follow">
   <meta name="author" content="ROA Company">
   <meta http-equiv="content-language" content="ko-KR">
-  <meta property="og:title" content="베이비케어 - 임신부터 육아까지, AI 육아기록">
-  <meta property="og:description" content="임신 D-day·태동·산전 체크리스트부터 수유 예측·수면 분석·병원 AI 리포트까지. 임신부터 육아까지 끊김 없이.">
+
+  <meta property="og:title" content="베이비케어 - 수유부터 여행 준비까지, 아기의 하루를 한 앱에서">
+  <meta property="og:description" content="버튼 한 번에 기록하고, 쌓인 기록으로 패턴과 성장을 살펴요. 가족과 함께 쓰고, 아기와 떠나는 여행 준비까지.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://roacompany.github.io/allcare/">
   <meta property="og:image" content="https://roacompany.github.io/allcare/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="베이비케어 앱 아이콘과 이름">
   <meta property="og:locale" content="ko_KR">
   <meta property="og:site_name" content="베이비케어">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="베이비케어 - 임신부터 육아까지, AI 육아기록">
-  <meta name="twitter:description" content="임신 D-day·태동·산전 체크리스트부터 수유 예측·수면 분석·병원 AI 리포트까지. 임신부터 육아까지 끊김 없이.">
+  <meta name="twitter:title" content="베이비케어 - 수유부터 여행 준비까지, 아기의 하루를 한 앱에서">
+  <meta name="twitter:description" content="버튼 한 번에 기록하고, 쌓인 기록으로 패턴과 성장을 살펴요. 가족과 함께 쓰고, 아기와 떠나는 여행 준비까지.">
   <meta name="twitter:image" content="https://roacompany.github.io/allcare/og-image.png">
-  <meta name="twitter:image:alt" content="베이비케어 앱 미리보기 화면">
-  <meta property="og:image:alt" content="베이비케어 앱 미리보기 화면">
+  <meta name="twitter:image:alt" content="베이비케어 앱 아이콘과 이름">
+
   <link rel="canonical" href="https://roacompany.github.io/allcare/">
   <link rel="apple-touch-icon" href="appicon_180.png">
   <link rel="icon" type="image/png" href="favicon.png">
-  <meta name="theme-color" content="#FF9FB5">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="color-scheme" content="light">
   <meta name="apple-itunes-app" content="app-id=6759935352, app-argument=https://roacompany.github.io/allcare/">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="베이비케어">
-  <link rel="preload" as="image" href="screenshots/iphone_01_dashboard.webp" type="image/webp" fetchpriority="high">
-  <meta name="color-scheme" content="light dark">
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
+  <link rel="preload" as="image" href="screenshots/web/home.webp" type="image/webp" fetchpriority="high">
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -49,29 +46,21 @@
     "name": "베이비케어 - AI 육아기록",
     "operatingSystem": "iOS",
     "applicationCategory": "HealthApplication",
-    "softwareVersion": "2.8.10",
     "countriesSupported": "KR",
     "inLanguage": "ko",
-    "featureList": "시리로 기록(모든 기록 종류·설정 불필요·앱 안 열고), 시리 수면 시작/종료 음성 기록, 임신 D-day·주차 정보, 태동 카운터, 산전 체크리스트, 체중 추적, 산전 방문 기록, 출산 후 육아 모드 자동 전환, 임신 위젯(홈·잠금화면), 파트너 공유, HealthKit 연동, 수유 기록·예측, 수면 분석·퇴행 감지, 기저귀 기록, 성장 곡선(WHO), 예방접종 D-day, 발달이정표, 이유식·알레르기, AI 조언, 병원 AI 리포트, 다크 모드, PDF 내보내기, 가족 공유, 홈/잠금화면 위젯, 울음 분석(베타), 유축 기록(유축량·방향, 섭취와 분리 집계), 유축 모유 보관 재고·유통기한 관리, 유축에서 모유(병)으로 이어 기록, 병수유 분유·모유 구분",
+    "description": "모유·분유·유축·수면·기저귀를 버튼 한 번에 기록하고, 패턴 분석과 성장 기록, 예방접종 알림, 병원 리포트로 살펴보는 육아 기록 앱. 가족 공유, 시리로 기록, 아기와 떠나는 여행 준비까지.",
+    "featureList": "모유·분유·유축·수면·기저귀·이유식·체온·투약·목욕 기록, 시리로 기록, 수유·수면 타이머(잠금 화면), 홈·잠금 화면 위젯, 패턴 분석, 다음 수유 예상, 성장 기록(WHO 기준 백분위), 예방접종 일정·알림, 병원 리포트 PDF, AI 육아 조언, 가족 공유, 용품 관리, 아기 소리, 육아 일기, 아기와 여행 준비(예약 사진으로 넣기, 아기 리듬 일정표, 마감 할 일, 항공편·이동 시간, 공항 수유실)",
     "screenshot": [
-      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_01_dashboard.png"},
-      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_02_recording.png"},
-      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/iphone_03_health.png"}
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/web/home.webp"},
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/web/trip_home.webp"},
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/web/trip_plan.webp"},
+      {"@type": "ImageObject", "url": "https://roacompany.github.io/allcare/screenshots/web/health.webp"}
     ],
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "KRW"
-    },
-    "description": "임신 D-day·태동·산전 체크리스트부터 AI 수유·수면·성장 분석, 병원 AI 리포트까지. 임신부터 육아까지 끊김 없이.",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "KRW"},
     "url": "https://roacompany.github.io/allcare/",
     "downloadUrl": "https://apps.apple.com/kr/app/id6759935352",
     "installUrl": "https://apps.apple.com/kr/app/id6759935352",
-    "author": {
-      "@type": "Organization",
-      "name": "ROA Company",
-      "url": "https://roacompany.github.io"
-    }
+    "author": {"@type": "Organization", "name": "ROA Company", "url": "https://roacompany.github.io"}
   }
   </script>
   <script type="application/ld+json">
@@ -94,1146 +83,313 @@
     }]
   }
   </script>
+
   <style>
-    /* Outfit — SIL Open Font License 1.1 (fonts/OFL.txt). 라틴 서브셋 가변 woff2 32KB.
-       🩸 범위를 자르는 것이 이 선언의 핵심이다.
-          Outfit 은 U+0000-00FF 를 통째로 주장하는데, 거기엔 한국어 구분점 「·」(U+00B7) 이 들어 있다.
-          그러면 「소변·대변·목욕」의 점이 라틴용 좁은 점(1.94px)으로 그려져 눈에 안 보인다
-          — 실제로 이 페이지 52곳이 「소변대변목욕」처럼 붙어 보였다(실측으로 걸렸다).
-          그래서 Outfit 에게는 영문자·숫자·+ 만 맡기고, 문장부호는 Pretendard 가 맡는다. */
-    @font-face {
-      font-family: 'Outfit';
-      src: url('fonts/outfit-latin.woff2') format('woff2');
-      font-weight: 100 900;
-      font-style: normal;
-      font-display: swap;
-      unicode-range: U+0041-005A, U+0061-007A, U+0030-0039, U+002B;
-    }
-
+    /* 여행 탭과 같은 값 — BabyCare/Views/Travel/Space/TravelStyle.swift (2026-11-08 PO 「UI를 이번 여행탭 UI처럼」) */
     :root {
-      --system-bg: #FFFFFF;
-      --secondary-bg: #F2F2F7;
-      --tertiary-bg: #FFFFFF;
-      --grouped-bg: #F2F2F7;
-      --label: #000000;
-      --label-secondary: #3C3C43;
-      --label-tertiary: #3C3C4399;
-      --label-quaternary: #3C3C434D;
-      --separator: #3C3C4336;
-      --fill: #78788033;
-      --tint: #FF9FB5;
-      --tint-text: #B8405D;
-      --tint-btn: #D96B85;
-      --tint-light: #FF9FB520;
-      --blue: #007AFF;
-      --green: #34C759;
-      --orange: #FF9500;
-      --purple: #AF52DE;
-      --pink: #FF9FB5;
-      --indigo: #5856D6;
-      --card-radius: 16px;
-      --section-radius: 20px;
-      --system-font: 'Outfit', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-
-      /* ── 글자 ──────────────────────────────────────────────
-         자간은 한 곳에서만 정한다. 규칙마다 적으면 12종으로 흩어진다(전에 그랬다). */
-      --tracking: -0.04em;
-
-      /* 크기 7단 — 이 목록에 없는 크기는 쓰지 않는다 */
-      --fs-display:  34px;  /* 앱 이름. 이 페이지에 한 곳 */
-      --fs-title:    24px;  /* 큰 제목 */
-      --fs-section:  20px;  /* 섹션 제목 */
-      --fs-subtitle: 17px;  /* 섹션 부제 · 버튼 */
-      --fs-body:     15px;  /* 본문 · 행 제목 */
-      --fs-caption:  13px;  /* 행 설명 · 보조 */
-      --fs-micro:    11px;  /* 배지 · 푸터 */
-
-      /* 굵기 3단 — 700 은 앱 이름 한 곳에만 */
-      --w-bold:   600;  /* 제목 */
-      --w-medium: 500;  /* 행 제목 · 버튼 · 라벨 */
-      --w-body:   400;  /* 나머지 전부 */
+      --ink: #191F2B;
+      --body: #4E5968;
+      --sub: #6B7684;
+      --line: #EEF0F3;
+      --band: #F2F4F6;
+      --box: #F7F8FA;
+      --border: #E6E8EC;
+      --accent: #346AFF;
+      --accent-hover: #1F4FD6;
+      --accent-soft: #EAF0FF;
     }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --system-bg: #000000;
-        --secondary-bg: #1C1C1E;
-        --tertiary-bg: #2C2C2E;
-        --grouped-bg: #000000;
-        --label: #FFFFFF;
-        --label-secondary: #EBEBF5;
-        --label-tertiary: #EBEBF599;
-        --label-quaternary: #EBEBF54D;
-        --separator: #54545899;
-        --fill: #78788052;
-        --tint-text: #FFB0C4;
-        --tint-btn: #FF9FB5;
-        --tint-light: #FF9FB530;
-      }
-    }
-
-    /* 자간은 여기 한 줄이 전부다.
-       ⚠️ body 에만 주면 안 된다 — em 자간은 "선언한 그 요소의 크기"로 px 이 되어 상속되므로
-          body(16px) 기준 -0.64px 이 34px 제목까지 따라간다(-1.9%). 실측으로 걸렸다.
-       * 로 주면 요소마다 제 크기로 다시 풀려 어디서나 정확히 -4% 다.
-       ★ 별 간격처럼 일부러 벌린 자리는 클래스가 이겨서 그대로 남는다. */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    /* ::before/::after 는 * 가 안 잡는다 — 빼면 그 자리만 조용히 다른 자간이 된다(실측 -2.8%) */
-    *, *::before, *::after { letter-spacing: var(--tracking); }
-
-    html { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-
+    * { box-sizing: border-box; }
     body {
-      font-family: var(--system-font);
-      background: var(--grouped-bg);
-      color: var(--label);
+      margin: 0;
+      background: #FFFFFF;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      overflow-x: hidden;
-      /* 한국어는 어절 단위로 끊는다 — 없으면 "소변 기 / 록" 처럼 낱말 중간에서 깨진다.
-         break-word 는 끊을 데가 없는 아주 긴 낱말(URL 등)의 넘침 방지용. */
       word-break: keep-all;
-      overflow-wrap: break-word;
+      overflow-wrap: anywhere; /* 「모유·분유·…·목욕을」처럼 띄어쓰기 없는 긴 낱말이 휴대폰 칸을 넘지 않게 — 넘칠 때만 낱말 안에서 줄을 바꾼다 */
     }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hover); }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+    img { display: block; height: auto; }
 
-    /* ===== 글자 — 역할 6개가 전부다 =====
-       ⛔ 새 크기·굵기를 규칙마다 적지 말 것. 위 :root 토큰에서 고른다.
-          (전에는 크기 14종 · 자간 12종이 흩어져 있었고, 이름만 있고 아무 데도 안 쓰는
-           클래스가 5개였다. 늘리기는 쉽고 되돌리기는 어렵다.)
-       🩸 자간은 역할마다 적어야 한다. em 자간을 body 에만 주면 그 자리(16px)에서 px 로 굳어
-          상속되므로, 34px 제목에도 16px 기준값(-0.64px = -1.9%)이 간다. 실측으로 걸렸다. */
+    .skip { position: absolute; left: -9999px; top: 8px; padding: 10px 14px; border-radius: 10px; background: var(--ink); color: #FFFFFF; z-index: 10; }
+    .skip:focus { left: 16px; color: #FFFFFF; }
 
-    /* 앱 이름. 이 페이지에서 700 을 쓰는 유일한 자리 */
-    .large-title { font-size: var(--fs-display);  font-weight: 700;             line-height: 1.15; }
-    /* 큰 제목 */
-    .title1      { font-size: var(--fs-title);    font-weight: var(--w-bold);   line-height: 1.25; }
-    /* 섹션 제목 */
-    .title2      { font-size: var(--fs-section);  font-weight: var(--w-bold);   line-height: 1.3; }
-    /* 제목 아래 한 줄 설명 */
-    .subheadline { font-size: var(--fs-subtitle); font-weight: var(--w-body);   line-height: 1.5; }
-    /* 목록 행 제목 — 굵게가 아니라 중간 굵기로 구분한다 */
-    .headline    { font-size: var(--fs-body);     font-weight: var(--w-medium); line-height: 1.4; }
-    /* 행 설명 · 보조 문구 */
-    .footnote    { font-size: var(--fs-caption);  font-weight: var(--w-body);   line-height: 1.5; }
-    /* 배지 · 푸터 같은 최소 글자 */
-    .micro       { font-size: var(--fs-micro);    font-weight: var(--w-medium); line-height: 1.4; }
+    .top { max-width: 1040px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; color: var(--ink); }
+    .brand:hover { color: var(--ink); }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .brand span { font-size: 17px; font-weight: 700; }
+    .pill { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--accent); color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none; }
+    .pill:hover, .btn:hover { background: var(--accent-hover); color: #FFFFFF; }
 
-    /* ===== NAV (iOS Navigation Bar) ===== */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      height: 52px;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px;
-      background: rgba(249,249,249,0.72);
-      backdrop-filter: saturate(180%) blur(24px);
-      -webkit-backdrop-filter: saturate(180%) blur(24px);
-      border-bottom: 0.5px solid transparent;
-      transition: background 0.25s ease, border-color 0.25s ease;
-    }
-    nav.scrolled {
-      background: rgba(249,249,249,0.94);
-      border-bottom-color: var(--separator);
-    }
-    nav .nav-brand {
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    nav .nav-brand img {
-      width: 24px; height: 24px; border-radius: 6px;
-    }
-    @media (prefers-color-scheme: dark) {
-      nav { background: rgba(29,29,31,0.72); }
-      nav.scrolled { background: rgba(29,29,31,0.94); }
-    }
-    .nav-title {
-      font-size: var(--fs-subtitle); font-weight: var(--w-bold);
-      color: var(--label);
-    }
-    .nav-btn {
-      color: var(--tint-text); font-size: var(--fs-body); font-weight: var(--w-medium);
-      text-decoration: none;
-      padding: 8px 0;
-    }
+    .hero { max-width: 1040px; margin: 0 auto; padding: 36px 20px 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 48px; }
+    .hero-text { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+    .chip { align-self: flex-start; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 600; }
+    h1 { margin: 0; font-size: clamp(28px, 5.6vw, 44px); line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; }
+    .lead { margin: 0; font-size: clamp(16px, 2.4vw, 18px); line-height: 1.6; color: var(--body); }
+    .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 22px; border-radius: 14px; background: var(--accent); color: #FFFFFF; font-size: 17px; font-weight: 700; text-decoration: none; }
+    .meta { font-size: 14px; color: var(--sub); }
+    .hero-shot { flex: 0 1 300px; display: flex; justify-content: center; }
+    .hero-shot img { width: 100%; max-width: 300px; border-radius: 40px; border: 1px solid var(--border); }
 
-    /* ===== CONTENT CONTAINER ===== */
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
+    .band { height: 8px; background: var(--band); }
 
-    /* ===== HERO ===== */
-    .hero {
-      padding: 88px 0 56px;
-      text-align: center;
-      background:
-        radial-gradient(circle at 20% 0%, rgba(255,159,181,0.18), transparent 50%),
-        radial-gradient(circle at 80% 10%, rgba(175,82,222,0.10), transparent 55%),
-        var(--system-bg);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::after {
-      content: '';
-      position: absolute; left: 0; right: 0; bottom: 0;
-      height: 1px; background: var(--separator);
-    }
-    @media (prefers-color-scheme: dark) {
-      .hero {
-        background:
-          radial-gradient(circle at 20% 0%, rgba(255,159,181,0.12), transparent 55%),
-          radial-gradient(circle at 80% 10%, rgba(175,82,222,0.10), transparent 60%),
-          var(--system-bg);
-      }
-    }
-    .hero-icon {
-      width: 88px; height: 88px;
-      border-radius: 20px;
-      margin: 0 auto 20px;
-      overflow: hidden;
-      box-shadow:
-        0 10px 30px rgba(255,159,181,0.35),
-        0 2px 6px rgba(0,0,0,0.08);
-      animation: floaty 4s ease-in-out infinite;
-    }
-    @keyframes floaty {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .hero-icon { animation: none; }
-      .fade-in { opacity: 1 !important; transform: none !important; transition: none !important; }
-    }
-    .hero-icon img {
-      width: 100%; height: 100%; object-fit: cover;
-    }
-    .hero .large-title {
-      margin-bottom: 8px;
-    }
-    .hero-subtitle {
-      color: var(--label-secondary);
-      margin-bottom: 24px;
-    }
-    .hero-pills {
-      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
-      margin-bottom: 28px;
-    }
-    .pill {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: var(--fill);
-      border-radius: 100px;
-      padding: 6px 14px;
-      font-size: var(--fs-caption); font-weight: var(--w-medium);
-      color: var(--label-secondary);
-    }
-    .pill.accent { background: var(--tint-light); color: var(--tint-text); }
+    .section { max-width: 1040px; margin: 0 auto; padding: clamp(40px, 5.4vw, 56px) 20px; display: flex; flex-direction: column; gap: 28px; }
+    .section.tight { gap: 24px; }
+    .section-head { display: flex; flex-direction: column; gap: 12px; }
+    h2 { margin: 0; font-size: clamp(24px, 4.4vw, 30px); line-height: 1.3; font-weight: 800; letter-spacing: -0.02em; }
+    .section-head p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--body); }
 
-    /* iOS-style Download Button */
-    .download-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--tint-btn);
-      color: #FFFFFF;
-      border: none; border-radius: 100px;
-      padding: 15px 34px;
-      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
-      text-decoration: none;
-      cursor: pointer;
-      box-shadow: 0 8px 24px rgba(217,107,133,0.35);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    }
-    .download-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(217,107,133,0.42); }
-    .download-btn:active { transform: translateY(0); opacity: 0.85; box-shadow: 0 4px 12px rgba(217,107,133,0.3); }
-    .download-btn svg { width: 20px; height: 20px; fill: #FFFFFF; }
+    .split { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 40px; }
+    .rows { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; }
+    .rows.wide { flex-basis: 460px; }
+    .row { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .rows .row:last-child { border-bottom: 0; }
+    .icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: var(--box); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+    .row-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .row h3 { margin: 0; font-size: 17px; font-weight: 700; }
+    .row p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--sub); }
+    .grid { display: flex; flex-wrap: wrap; gap: 0 40px; }
+    .grid .row { flex: 1 1 440px; min-width: 0; }
 
-    /* Secondary ghost link */
-    .ghost-link {
-      display: inline-block;
-      margin-top: 14px;
-      color: var(--label-tertiary);
-      font-size: var(--fs-caption); font-weight: var(--w-body);
-      text-decoration: none;
-    }
-    .ghost-link:hover { color: var(--tint-text); }
+    .shots { flex: 0 1 460px; min-width: 0; display: flex; gap: 16px; justify-content: center; }
+    .shots img { width: calc(50% - 8px); max-width: 220px; border-radius: 30px; border: 1px solid var(--border); }
+    .side-shot { flex: 0 1 300px; min-width: 0; display: flex; justify-content: center; }
+    .side-shot img { width: 100%; max-width: 280px; border-radius: 38px; border: 1px solid var(--border); }
 
-    /* Rating row */
-    .rating-row {
-      display: inline-flex; align-items: center; gap: 8px;
-      margin-bottom: 20px;
-      color: var(--label-secondary);
-      font-size: var(--fs-caption); font-weight: var(--w-body);
-      /* 값이 오기 전엔 자리만 잡고 안 보인다 — 뒤늦게 나타나며 아래를 밀지 않게.
-         display:none 이 아니라 visibility 인 이유가 이것이다. */
-      min-height: 20px;
-      visibility: hidden;
-    }
-    .rating-row.is-loaded { visibility: visible; }
-    .rating-stars { color: #FF9500; letter-spacing: 1px; font-size: var(--fs-body); }
-    .rating-row .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--label-quaternary); }
+    .cards { display: flex; flex-wrap: wrap; gap: 12px; }
+    .card { flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 16px; background: var(--box); }
+    .card .ic { color: var(--accent); }
+    .card h3 { margin: 0; font-size: 17px; font-weight: 700; }
+    .card p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--sub); }
+    .more { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; font-weight: 600; color: var(--accent); text-decoration: none; }
 
-    /* Stats row under hero */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin: 36px 16px 0;
-      max-width: 480px;
-      margin-left: auto; margin-right: auto;
-    }
-    .stat {
-      background: var(--tertiary-bg);
-      border-radius: 14px;
-      padding: 14px 8px;
-      text-align: center;
-      border: 0.5px solid var(--separator);
-    }
-    .stat-value { font-size: var(--fs-section); font-weight: var(--w-bold); color: var(--label); }
-    .stat-label { font-size: var(--fs-micro); font-weight: var(--w-medium); color: var(--label-tertiary); margin-top: 2px; }
+    .final { max-width: 1040px; margin: 0 auto; padding: clamp(40px, 5.4vw, 56px) 20px; }
+    .final-box { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px 20px; border-radius: 24px; background: var(--box); text-align: center; }
+    .final-box img { width: 64px; height: 64px; border-radius: 16px; }
+    .final-box h2 { font-size: clamp(24px, 4.2vw, 28px); }
+    .final-box p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--body); }
 
-    /* ===== DEVICE FRAME (Real screenshot) ===== */
-    .device-frame {
-      width: 240px;
-      margin: 40px auto 0;
-      position: relative;
-    }
-    .device-frame::before {
-      content: '';
-      position: absolute;
-      left: 50%; top: 60%;
-      transform: translate(-50%, -50%);
-      width: 320px; height: 320px;
-      background: radial-gradient(circle, rgba(255,159,181,0.35), transparent 65%);
-      filter: blur(20px);
-      z-index: -1;
-      pointer-events: none;
-    }
-    .device {
-      background: #1C1C1E;
-      border-radius: 36px;
-      padding: 10px;
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.1) inset,
-        0 30px 80px rgba(0,0,0,0.25),
-        0 10px 30px rgba(255,159,181,0.2),
-        0 0 0 0.5px rgba(0,0,0,0.2);
-    }
-    .device-screen {
-      border-radius: 28px;
-      overflow: hidden;
-    }
-    .device-screen img {
-      width: 100%; height: auto; display: block;
-    }
-
-    /* ===== SCREENSHOT SHOWCASE ===== */
-    .screenshot-scroll {
-      display: flex; gap: 16px;
-      overflow-x: auto; scroll-snap-type: x mandatory;
-      padding: 4px 16px 16px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      scroll-padding: 16px;
-    }
-    .screenshot-hint {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: var(--fs-micro); color: var(--label-quaternary);
-      margin: 0 16px 8px;
-    }
-    .screenshot-hint::before {
-      content: '›'; font-size: 16px; font-weight: var(--w-bold);
-      animation: hintpulse 1.6s ease-in-out infinite;
-    }
-    @keyframes hintpulse {
-      0%, 100% { transform: translateX(0); opacity: 0.5; }
-      50% { transform: translateX(4px); opacity: 1; }
-    }
-    .screenshot-scroll::-webkit-scrollbar { display: none; }
-    .screenshot-item {
-      flex: 0 0 200px;
-      scroll-snap-align: start;
-      transition: transform 0.3s ease;
-    }
-    .screenshot-item:hover { transform: translateY(-4px); }
-    .screenshot-device {
-      background: #1C1C1E;
-      border-radius: 28px;
-      padding: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-    }
-    .screenshot-device img {
-      width: 100%; height: auto; display: block;
-      border-radius: 22px;
-    }
-    .screenshot-label {
-      text-align: center;
-      margin-top: 10px;
-      font-size: var(--fs-caption); font-weight: var(--w-medium);
-      color: var(--label-tertiary);
-    }
-
-    /* ===== GROUPED SECTIONS (iOS Settings style) ===== */
-    .grouped-section {
-      padding: 32px 0;
-    }
-    .group-header {
-      padding: 0 16px 8px;
-    }
-    .group-header .title2 { margin-bottom: 4px; }
-    .group-header p { color: var(--label-tertiary); }
-    .group-inset {
-      background: var(--tertiary-bg);
-      border-radius: var(--card-radius);
-      overflow: hidden;
-      margin: 0 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px var(--separator);
-    }
-    .group-row {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 16px;
-      border-bottom: 0.5px solid var(--separator);
-      transition: background 0.15s ease;
-    }
-    .group-row:hover { background: var(--fill); }
-    .group-row:last-child { border-bottom: none; }
-    .row-icon {
-      width: 36px; height: 36px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-    }
-    .row-icon.pink { background: linear-gradient(135deg, #FFB0C4, #FF9FB5); color: white; box-shadow: 0 2px 6px rgba(255,159,181,0.35); }
-    .row-icon.blue { background: linear-gradient(135deg, #4DA2FF, #007AFF); color: white; box-shadow: 0 2px 6px rgba(0,122,255,0.3); }
-    .row-icon.green { background: linear-gradient(135deg, #5ED97A, #34C759); color: white; box-shadow: 0 2px 6px rgba(52,199,89,0.3); }
-    .row-icon.orange { background: linear-gradient(135deg, #FFB340, #FF9500); color: white; box-shadow: 0 2px 6px rgba(255,149,0,0.3); }
-    .row-icon.purple { background: linear-gradient(135deg, #C77DF0, #AF52DE); color: white; box-shadow: 0 2px 6px rgba(175,82,222,0.3); }
-    .row-icon.indigo { background: linear-gradient(135deg, #7A78E0, #5856D6); color: white; box-shadow: 0 2px 6px rgba(88,86,214,0.3); }
-    .row-content { flex: 1; min-width: 0; }
-    .row-content .headline { margin-bottom: 2px; }
-    .row-content .footnote { color: var(--label-tertiary); }
-    .row-chevron { color: var(--label-quaternary); font-size: 14px; }
-
-    /* ===== WIDGET-STYLE CARDS ===== */
-    .widget-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin: 0 16px;
-    }
-    .widget-card {
-      background: var(--tertiary-bg);
-      border-radius: var(--card-radius);
-      padding: 18px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px var(--separator);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .widget-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 0 0 0.5px var(--separator);
-    }
-    .widget-card.span-2 { grid-column: span 2; }
-    .widget-card .widget-icon { font-size: 24px; margin-bottom: 8px; }
-    .widget-card .headline { margin-bottom: 4px; }
-    .widget-card .footnote { color: var(--label-tertiary); line-height: 1.5; }
-    .widget-card .widget-accent {
-      position: absolute; top: -20px; right: -20px;
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      opacity: 0.08;
-    }
-    .widget-accent.pink-bg { background: var(--pink); }
-    .widget-accent.blue-bg { background: var(--blue); }
-    .widget-accent.green-bg { background: var(--green); }
-    .widget-accent.orange-bg { background: var(--orange); }
-    .widget-accent.purple-bg { background: var(--purple); }
-
-    /* ===== PREMIUM CARD (Material style) ===== */
-    .premium-container {
-      margin: 0 16px;
-      border-radius: var(--section-radius);
-      background: linear-gradient(145deg, #1C1C1E, #2C2C2E);
-      padding: 28px 24px;
-      position: relative;
-      overflow: hidden;
-    }
-    .premium-container::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, rgba(255,159,181,0.08), rgba(175,82,222,0.08));
-      pointer-events: none;
-    }
-    .premium-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 100px;
-      padding: 4px 12px;
-      font-size: var(--fs-micro); font-weight: var(--w-medium);
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 16px;
-    }
-    .premium-container .title2 { color: #FFFFFF; margin-bottom: 6px; }
-    .premium-container .subheadline { color: rgba(255,255,255,0.5); margin-bottom: 20px; }
-    .premium-list { list-style: none; margin-bottom: 24px; }
-    .premium-list li {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 0;
-      font-size: var(--fs-body); color: rgba(255,255,255,0.85);
-    }
-    .premium-list li::before {
-      content: ''; width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--tint);
-      flex-shrink: 0;
-    }
-    .premium-price-row {
-      display: flex; align-items: baseline; gap: 4px;
-      margin-bottom: 16px;
-    }
-    .premium-price-row .amount {
-      font-size: var(--fs-title); font-weight: var(--w-bold); color: #FFFFFF;
-    }
-    .premium-price-row .period {
-      font-size: var(--fs-body); color: rgba(255,255,255,0.4);
-    }
-    .premium-price-row .trial-badge {
-      margin-left: auto;
-      font-size: var(--fs-micro); font-weight: var(--w-medium);
-      color: var(--tint);
-      background: rgba(255,159,181,0.15);
-      padding: 4px 10px; border-radius: 100px;
-    }
-    .premium-cta {
-      display: block; width: 100%; text-align: center;
-      background: var(--tint-btn);
-      color: #FFFFFF; text-decoration: none;
-      padding: 14px; border-radius: 14px;
-      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
-      border: none; cursor: pointer;
-    }
-
-    /* ===== REVIEW CARDS ===== */
-    .review-scroll {
-      display: flex; gap: 12px;
-      overflow-x: auto; scroll-snap-type: x mandatory;
-      padding: 0 16px 8px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .review-scroll::-webkit-scrollbar { display: none; }
-    .review-card {
-      flex: 0 0 280px;
-      scroll-snap-align: start;
-      background: var(--tertiary-bg);
-      border-radius: var(--card-radius);
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px var(--separator);
-    }
-    .review-stars { color: #FF9500; font-size: var(--fs-caption); letter-spacing: 1px; margin-bottom: 10px; }
-    .review-card blockquote {
-      font-size: var(--fs-body); font-weight: var(--w-body); line-height: 1.47;
-      color: var(--label);
-      margin-bottom: 12px;
-      font-style: normal;
-    }
-    .review-author { font-size: var(--fs-caption); color: var(--label-tertiary); }
-
-    /* ===== TRUST (Inline grouped) ===== */
-    .trust-row {
-      display: flex; align-items: flex-start; gap: 14px;
-      padding: 14px 16px;
-      border-bottom: 0.5px solid var(--separator);
-    }
-    .trust-row:last-child { border-bottom: none; }
-    .trust-icon {
-      width: 36px; height: 36px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-      background: var(--fill);
-    }
-
-    /* ===== FINAL CTA ===== */
-    .final-section {
-      text-align: center;
-      padding: 48px 16px 32px;
-    }
-    .final-section .title1 { margin-bottom: 8px; }
-    .final-section .subheadline {
-      color: var(--label-tertiary);
-      margin-bottom: 24px;
-    }
-
-    /* ===== FOOTER ===== */
-    footer {
-      text-align: center;
-      padding: 24px 16px 40px;
-    }
-    footer p { font-size: var(--fs-caption); color: var(--label-secondary); margin-bottom: 4px; }
-    footer a { color: var(--label-secondary); text-decoration: none; font-size: var(--fs-caption); }
-    footer a:hover { text-decoration: underline; }
-    .footer-links { margin: 8px 0; display: flex; justify-content: center; gap: 16px; }
-
-    /* ===== STICKY BOTTOM (iOS style) ===== */
-    .sticky-bottom {
-      display: none;
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 99;
-      background: rgba(249,249,249,0.94);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-      border-top: 0.5px solid var(--separator);
-      padding: 10px 16px;
-      padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    }
-    @media (prefers-color-scheme: dark) {
-      .sticky-bottom { background: rgba(29,29,31,0.94); }
-    }
-    .sticky-bottom a {
-      display: block; text-align: center;
-      background: var(--tint-btn); color: #FFFFFF;
-      padding: 14px; border-radius: 14px;
-      font-size: var(--fs-subtitle); font-weight: var(--w-medium);
-      text-decoration: none;
-    }
-
-    /* ===== FADE ANIMATION ===== */
-    .fade-in {
-      opacity: 0; transform: translateY(16px);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 390px) {
-      .widget-grid { grid-template-columns: 1fr; }
-      .widget-card.span-2 { grid-column: span 1; }
-    }
-    @media (max-width: 768px) {
-      .sticky-bottom { display: block; }
-      footer { padding-bottom: 100px; }
-    }
-    @media (min-width: 769px) {
-      .container { max-width: 680px; }
-      .group-inset, .widget-grid, .premium-container { margin: 0; }
-      .group-header { padding-left: 0; }
-      .review-scroll { padding: 0 0 8px; }
-      .grouped-section .container { padding: 0; }
-    }
-    .skip-link {
-      position: absolute; left: -9999px; top: auto;
-      width: 1px; height: 1px; overflow: hidden;
-      z-index: 999;
-    }
-    .skip-link:focus {
-      position: fixed; top: 8px; left: 8px;
-      width: auto; height: auto;
-      background: var(--tint); color: #fff;
-      padding: 8px 16px; border-radius: 8px;
-      font-size: var(--fs-caption); font-weight: var(--w-medium);
-      z-index: 999;
-    }
-
-    /* Accessibility: visible focus states */
-    a:focus-visible, button:focus-visible {
-      outline: 2px solid var(--tint-btn);
-      outline-offset: 3px;
-      border-radius: 6px;
-    }
-    .download-btn:focus-visible, .premium-cta:focus-visible,
-    .sticky-bottom a:focus-visible {
-      outline-offset: 4px;
-    }
-
-    /* Sticky bottom micro-refinement */
-    .sticky-bottom a {
-      box-shadow: 0 4px 14px rgba(217,107,133,0.3);
-    }
+    .foot { max-width: 1040px; margin: 0 auto; padding: 24px 20px 40px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--sub); }
+    .foot nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .foot a { display: inline-flex; align-items: center; min-height: 44px; color: var(--sub); text-decoration: none; }
+    .foot a:hover { color: var(--ink); }
   </style>
 </head>
 <body>
+  <a class="skip" href="#main">본문으로 바로가기</a>
 
-  <a href="#main" class="skip-link">본문으로 바로가기</a>
-
-  <!-- NAV -->
-  <nav id="nav" aria-label="메인 내비게이션">
-    <span class="nav-brand">
-      <picture><source srcset="appicon_180.webp" type="image/webp"><img src="appicon_180.png" alt="" aria-hidden="true" width="24" height="24"></picture>
-      <span class="nav-title">베이비케어</span>
-    </span>
-    <a href="https://apps.apple.com/kr/app/id6759935352" class="nav-btn" rel="noopener">받기</a>
-  </nav>
+  <header class="top">
+    <a class="brand" href="#top" aria-label="베이비케어 맨 위로">
+      <img src="appicon_180.png" alt="" width="32" height="32">
+      <span>베이비케어</span>
+    </a>
+    <a class="pill" href="https://apps.apple.com/kr/app/id6759935352">앱 받기</a>
+  </header>
 
   <main id="main">
+    <section id="top" class="hero" aria-label="앱 소개">
+      <div class="hero-text">
+        <span class="chip">새로 생겼어요 · 아기와 떠나는 여행 준비</span>
+        <h1>수유부터 여행 준비까지<br>아기의 하루를 한 앱에서</h1>
+        <p class="lead">모유·분유·수면·기저귀를 버튼 한 번에 기록하고, 쌓인 기록으로 패턴과 성장을 살펴요. 가족과 함께 쓰고, 여행 일정도 아기 리듬에 맞춰 짜 드려요.</p>
+        <div class="cta-row">
+          <a class="btn" href="https://apps.apple.com/kr/app/id6759935352">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>
+            App Store에서 무료로 받기
+          </a>
+          <span class="meta">iPhone · iOS 17 이상</span>
+        </div>
+      </div>
+      <div class="hero-shot">
+        <img src="screenshots/web/home.webp" alt="베이비케어 홈 화면 — 빠른 기록 버튼과 다음 수유 예상" width="660" height="1435" fetchpriority="high">
+      </div>
+    </section>
 
-  <!-- HERO -->
-  <section class="hero" aria-label="앱 소개">
-    <div class="container">
-      <div class="hero-icon"><picture><source srcset="appicon_180.webp" type="image/webp"><img src="appicon_180.png" alt="베이비케어 앱 아이콘" width="80" height="80"></picture></div>
-      <h1 class="large-title">베이비케어</h1>
-      <p class="subheadline hero-subtitle">임신부터 육아까지, 끊김 없는 AI 기록</p>
-      <div class="hero-pills">
-        <span class="pill">iOS 17+</span>
-        <span class="pill">무료 다운로드</span>
-        <span class="pill accent">🗣️ 시리 기록 NEW</span>
-        <!-- 지금 앱스토어에 올라가 있는 버전. 못 가져오면 아래 적힌 값이 그대로 보인다.
-             ⛔ 아래 「vN 새 기능」 섹션 제목은 여기 따라 바뀌면 안 된다 —
-                그건 "지금 버전"이 아니라 "그 기능이 나온 판"을 가리키는 글이다. -->
-        <span class="pill accent" id="versionPill">✨ v2.8.10</span>
+    <div class="band" role="presentation"></div>
+
+    <section class="section" aria-labelledby="travel-title">
+      <div class="section-head">
+        <span class="chip">새 기능 · 2.8.13</span>
+        <h2 id="travel-title">아기와 떠나는 여행,<br>미리 챙겨 드려요</h2>
+        <p>일본 여행부터 시작해요. 예약을 넣으면 일정표와 할 일이 저절로 만들어져요.</p>
       </div>
-      <!-- 평점은 앱스토어에서 그때그때 가져온다. 손으로 적지 않는다.
-           못 가져오면 이 줄은 아예 안 보인다 — 낡은 숫자를 보여 주느니 안 보여 준다. -->
-      <div class="rating-row" id="ratingRow">
-        <span class="rating-stars" id="ratingStars" aria-hidden="true"></span>
-        <span><strong id="ratingValue" style="color:var(--label);"></strong> · 평가 <span id="ratingCount"></span>개</span>
-        <span class="dot" aria-hidden="true"></span>
-        <span>한국 육아 카테고리</span>
+      <div class="split">
+        <div class="rows">
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
+            <div class="row-text"><h3>예약을 사진으로 넣기</h3><p>항공권·숙소 확인 화면을 사진으로 넣으면 읽어서 채워요. 사진은 휴대폰 밖으로 나가지 않아요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg></span>
+            <div class="row-text"><h3>아기 리듬에 맞춘 일정표</h3><p>최근 7일 기록으로 낮잠·수유·밤잠 시간을 계산하고, 비행·운전과 겹치면 알려 줘요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L8 4.5M3.5 12l1.5 1.5L8 10.5M3.5 18l1.5 1.5L8 16.5"/></svg></span>
+            <div class="row-text"><h3>마감이 있는 할 일</h3><p>배시넷·유아식 신청처럼 기한이 있는 일을 만들고 마감 전에 알려 줘요. 엄마·아빠 담당도 나눠요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 15.5l19-8"/><path d="M6 14l-2.5-4.5L6 8.5l4 3"/><path d="M11 12l1-7 2.5-1 1.5 6"/><path d="M4 20.5h16"/></svg></span>
+            <div class="row-text"><h3>항공편 · 이동 시간</h3><p>인천공항을 오가는 편의 지연·결항과, 예약한 곳 사이의 차 이동 시간을 보여 줘요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
+            <div class="row-text"><h3>공항 수유실</h3><p>수유실·기저귀 교환대 위치를 안내해요. 인천·간사이 공항부터 시작해요.</p></div>
+          </div>
+        </div>
+        <div class="shots">
+          <img src="screenshots/web/trip_home.webp" alt="여행 홈 — 다음 일정과 출발 전 할 일" width="660" height="1435" loading="lazy">
+          <img src="screenshots/web/trip_plan.webp" alt="여행 일정 — 아기 리듬 위에 놓인 비행" width="660" height="1435" loading="lazy">
+        </div>
       </div>
-      <div>
-        <a href="https://apps.apple.com/kr/app/id6759935352" class="download-btn" aria-label="App Store에서 베이비케어 다운로드">
-          <svg viewBox="0 0 24 24" aria-hidden="true" role="img"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          App Store에서 받기
+    </section>
+
+    <div class="band" role="presentation"></div>
+
+    <section class="section tight" aria-labelledby="record-title">
+      <div class="section-head">
+        <h2 id="record-title">기록은 버튼 한 번, 말 한마디로</h2>
+        <p>자주 하는 기록은 홈 화면에서 바로, 손이 바쁠 땐 시리로 남겨요.</p>
+      </div>
+      <div class="grid">
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v3l-2 3v10a2 2 0 002 2h4a2 2 0 002-2V9l-2-3V3"/><path d="M8 13h8"/></svg></span>
+          <div class="row-text"><h3>한 번에 기록</h3><p>모유·분유·유축·수면·기저귀·이유식·체온·투약·목욕을 버튼 한 번으로 남겨요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0"/><path d="M12 17.5V21"/></svg></span>
+          <div class="row-text"><h3>시리로 기록</h3><p>「시리야, 베이비케어에 소변 기록」처럼 앱을 열지 않고 말로 남겨요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 13V9"/><path d="M9.5 2.5h5"/></svg></span>
+          <div class="row-text"><h3>타이머</h3><p>수유·수면 시간을 재고, 잠금 화면에서도 흘러가는 시간을 봐요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="17" height="7" rx="2"/></svg></span>
+          <div class="row-text"><h3>위젯</h3><p>다음 수유 예상과 오늘 요약을 홈 화면·잠금 화면에서 봐요.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="band" role="presentation"></div>
+
+    <section class="section" aria-labelledby="look-title">
+      <div class="section-head">
+        <h2 id="look-title">쌓인 기록으로 살펴요</h2>
+        <p>패턴과 성장, 예방접종까지 한곳에서 확인하고 병원에 갈 때 정리해 가요.</p>
+      </div>
+      <div class="split">
+        <div class="rows wide">
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 20v-8M11 20V5M16 20v-11"/></svg></span>
+            <div class="row-text"><h3>패턴 분석</h3><p>수유 간격과 수면 흐름을 날·주·달로 보여 줘요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+            <div class="row-text"><h3>다음 수유 예상</h3><p>최근 기록으로 다음 수유 시간을 미리 알려 줘요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>
+            <div class="row-text"><h3>성장 기록</h3><p>키·몸무게·머리둘레를 WHO 기준 백분위와 함께 봐요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4"/><path d="M19 5l-9.5 9.5"/><path d="M14.5 5.5l4 4-8.5 8.5-4-4z"/><path d="M6 18l-3 3"/><path d="M9 11l1.5 1.5M11.5 8.5L13 10"/></svg></span>
+            <div class="row-text"><h3>예방접종</h3><p>접종 일정과 알림, 접종 뒤 반응 기록까지 한곳에서.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg></span>
+            <div class="row-text"><h3>병원 리포트</h3><p>진료 때 보여 줄 기록을 정리해 PDF로 공유해요.</p></div>
+          </div>
+          <div class="row">
+            <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span>
+            <div class="row-text"><h3>AI 육아 조언</h3><p>아기 개월 수와 기록을 바탕으로 조언을 받아요. 참고용이며 진료를 대신하지 않아요.</p></div>
+          </div>
+        </div>
+        <div class="side-shot">
+          <img src="screenshots/web/health.webp" alt="건강 화면 — 예방접종, 병원 기록, 성장기록, 발달이정표" width="660" height="1435" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <div class="band" role="presentation"></div>
+
+    <section class="section tight" aria-labelledby="family-title">
+      <div class="section-head">
+        <h2 id="family-title">가족과 같이 써요</h2>
+        <p>한 사람이 기록하면 다른 가족 휴대폰에도 바로 보여요.</p>
+      </div>
+      <div class="grid">
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M17 14c2.3 0 4 1.5 4.5 4"/></svg></span>
+          <div class="row-text"><h3>가족 공유</h3><p>초대 코드로 연결하면 누가 언제 기록했는지 바로 보여요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg></span>
+          <div class="row-text"><h3>용품 관리</h3><p>월령에 맞는 추천 용품과 구매 기록을 함께 챙겨요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></span>
+          <div class="row-text"><h3>아기 소리</h3><p>백색소음·자장가·자연 소리로 재워요.</p></div>
+        </div>
+        <div class="row">
+          <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6c-2-1.5-5-2-8-1.5V19c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V4.5C17 4 14 4.5 12 6z"/><path d="M12 6v14.5"/></svg></span>
+          <div class="row-text"><h3>육아 일기</h3><p>사진과 함께 오늘을 남겨요.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="band" role="presentation"></div>
+
+    <section class="section tight" aria-labelledby="privacy-title">
+      <div class="section-head">
+        <h2 id="privacy-title">기록은 안전하게</h2>
+        <p>아기의 기록은 가족만 볼 수 있어요.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg></span>
+          <h3>암호화된 연결</h3>
+          <p>모든 기록은 암호화된 연결로 오가요.</p>
+        </div>
+        <div class="card">
+          <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v6c0 4.5-3.2 7.8-7.5 9-4.3-1.2-7.5-4.5-7.5-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <h3>동의 없이 넘기지 않아요</h3>
+          <p>개인정보를 동의 없이 다른 곳에 제공하지 않아요.</p>
+        </div>
+        <div class="card">
+          <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg></span>
+          <h3>언제든 지울 수 있어요</h3>
+          <p>계정을 지우면 기록도 바로 지워져요.</p>
+        </div>
+      </div>
+      <a class="more" href="privacy.html">개인정보 처리방침 보기 ›</a>
+    </section>
+
+    <div class="band" role="presentation"></div>
+
+    <section class="final" aria-labelledby="final-title">
+      <div class="final-box">
+        <img src="appicon_180.png" alt="" width="64" height="64" loading="lazy">
+        <h2 id="final-title">지금 무료로 시작하세요</h2>
+        <p>아기의 하루를 가볍게 남겨 보세요.</p>
+        <a class="btn" href="https://apps.apple.com/kr/app/id6759935352">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>
+          App Store에서 무료로 받기
         </a>
       </div>
-      <div><a href="#features" class="ghost-link">주요 기능 살펴보기 ↓</a></div>
-
-      <!-- Device with real screenshot -->
-      <div class="device-frame">
-        <div class="device">
-          <div class="device-screen">
-            <picture>
-              <source srcset="screenshots/iphone_01_dashboard.webp" type="image/webp">
-              <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="eager" fetchpriority="high" width="220" height="476">
-            </picture>
-          </div>
-        </div>
-      </div>
-
-      <!-- Key Stats -->
-      <div class="stats-row fade-in" role="list" aria-label="앱 핵심 지표">
-        <div class="stat" role="listitem">
-          <div class="stat-value">6종</div>
-          <div class="stat-label">위젯</div>
-        </div>
-        <div class="stat" role="listitem">
-          <div class="stat-value">35+</div>
-          <div class="stat-label">발달이정표</div>
-        </div>
-        <div class="stat" role="listitem">
-          <div class="stat-value">WHO</div>
-          <div class="stat-label">성장 곡선</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PREGNANCY MODE -->
-  <div class="grouped-section" id="pregnancy">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">🤰 임신 모드</h2>
-        <p class="footnote">임신부터 출산, 그리고 육아까지 — 같은 앱에서 끊김 없이</p>
-      </div>
-      <div class="premium-container fade-in">
-        <div class="premium-badge">&#x2728; 임신 모드</div>
-        <h3 class="title2">10개월의 모든 순간을 함께</h3>
-        <p class="subheadline">출산 예정일 D-day, 주차별 정보, 태동 기록까지<br>출산하면 자동으로 육아 모드로 전환돼요</p>
-        <ul class="premium-list">
-          <li>임신 D-day · 주차 카드 (LMP/EDD 상호 계산)</li>
-          <li>태동 카운터 세션 (10킥 시간 측정)</li>
-          <li>산전 체크리스트 (1/2/3분기 + 출산 준비)</li>
-          <li>산전 방문 일정 · 몸무게 차트</li>
-          <li>임신 D-day 위젯 (홈 · 잠금화면)</li>
-          <li>배우자 파트너 공유 (read-only)</li>
-          <li>Apple HealthKit 연동 (opt-in)</li>
-          <li>출산 후 육아 모드 원터치 전환</li>
-        </ul>
-        <a href="https://apps.apple.com/kr/app/id6759935352" class="premium-cta">임신 모드로 시작하기</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- CORE FEATURES (Grouped List) -->
-  <div class="grouped-section" id="features">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">빠른 기록</h2>
-        <p class="footnote">말로 한마디, 원탭으로 빠르게, 타이머로 정확하게</p>
-      </div>
-      <div class="group-inset fade-in">
-        <div class="group-row">
-          <div class="row-icon purple">🗣️</div>
-          <div class="row-content">
-            <div class="headline">시리로 기록</div>
-            <div class="footnote">"시리야, 베이비케어에 소변 기록" — 앱을 열지 않고 말로</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon pink">🍼</div>
-          <div class="row-content">
-            <div class="headline">수유</div>
-            <div class="footnote">모유, 분유, 이유식, 간식. 타이머와 좌우 구분</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon blue">🌙</div>
-          <div class="row-content">
-            <div class="headline">수면 분석</div>
-            <div class="footnote">수면 퇴행 감지, 최적 취침 시간, 품질 점수</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon green">👶</div>
-          <div class="row-content">
-            <div class="headline">기저귀</div>
-            <div class="footnote">소변, 대변, 혼합 구분. 색상과 질감 기록</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon orange">🌡️</div>
-          <div class="row-content">
-            <div class="headline">목욕 · 체온 · 투약</div>
-            <div class="footnote">건강 관련 기록을 빠르게</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- HEALTH FEATURES (Widget Grid) -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">건강 관리</h2>
-        <p class="footnote">예방접종부터 성장 곡선까지</p>
-      </div>
-      <div class="widget-grid fade-in">
-        <div class="widget-card span-2">
-          <div class="widget-accent pink-bg"></div>
-          <div class="widget-icon">🤰</div>
-          <div class="headline">임신 모드 <span class="pill accent" style="font-size:var(--fs-micro);padding:2px 8px;margin-left:4px;">NEW</span></div>
-          <div class="footnote">D-day · 주차, 태동 카운터, 산전 체크리스트, 출산 후 자동 전환</div>
-        </div>
-        <div class="widget-card">
-          <div class="widget-accent pink-bg"></div>
-          <div class="widget-icon">💉</div>
-          <div class="headline">예방접종</div>
-          <div class="footnote">D-14/D-7/D-1 단계별 알림과 부작용 기록</div>
-        </div>
-        <div class="widget-card">
-          <div class="widget-accent green-bg"></div>
-          <div class="widget-icon">✅</div>
-          <div class="headline">발달이정표</div>
-          <div class="footnote">35개 항목 체크리스트</div>
-        </div>
-        <div class="widget-card">
-          <div class="widget-accent blue-bg"></div>
-          <div class="widget-icon">📈</div>
-          <div class="headline">성장 곡선</div>
-          <div class="footnote">WHO 기준 백분위 비교</div>
-        </div>
-        <div class="widget-card">
-          <div class="widget-accent orange-bg"></div>
-          <div class="widget-icon">🏥</div>
-          <div class="headline">병원 AI 리포트</div>
-          <div class="footnote">방문 체크리스트 + PDF 공유</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- APP SCREENSHOTS -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">앱 미리보기</h2>
-        <p class="footnote">실제 앱 화면을 확인하세요</p>
-      </div>
-    </div>
-    <div class="screenshot-hint fade-in" aria-hidden="true">옆으로 스와이프</div>
-    <div class="screenshot-scroll fade-in" role="region" aria-label="앱 스크린샷 갤러리">
-      <div class="screenshot-item">
-        <div class="screenshot-device">
-          <picture>
-            <source srcset="screenshots/iphone_01_dashboard.webp" type="image/webp">
-            <img src="screenshots/iphone_01_dashboard.png" alt="베이비케어 대시보드 화면" loading="lazy" width="200" height="433">
-          </picture>
-        </div>
-        <div class="screenshot-label">대시보드</div>
-      </div>
-      <div class="screenshot-item">
-        <div class="screenshot-device">
-          <picture>
-            <source srcset="screenshots/iphone_02_recording.webp" type="image/webp">
-            <img src="screenshots/iphone_02_recording.png" alt="베이비케어 기록하기 화면" loading="lazy" width="200" height="433">
-          </picture>
-        </div>
-        <div class="screenshot-label">기록하기</div>
-      </div>
-      <div class="screenshot-item">
-        <div class="screenshot-device">
-          <picture>
-            <source srcset="screenshots/iphone_03_health.webp" type="image/webp">
-            <img src="screenshots/iphone_03_health.png" alt="베이비케어 건강 관리 화면" loading="lazy" width="200" height="433">
-          </picture>
-        </div>
-        <div class="screenshot-label">건강 관리</div>
-      </div>
-      <div class="screenshot-item">
-        <div class="screenshot-device">
-          <picture>
-            <source srcset="screenshots/iphone_6.7_03_calendar.webp" type="image/webp">
-            <img src="screenshots/iphone_6.7_03_calendar.png" alt="베이비케어 캘린더 화면" loading="lazy" width="200" height="433">
-          </picture>
-        </div>
-        <div class="screenshot-label">캘린더</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MORE FEATURES (Grouped List) -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">스마트 육아</h2>
-        <p class="footnote">기록을 넘어, 일상을 관리하세요</p>
-      </div>
-      <div class="group-inset fade-in">
-        <div class="group-row">
-          <div class="row-icon purple">💬</div>
-          <div class="row-content">
-            <div class="headline">AI 육아 조언</div>
-            <div class="footnote">아이 나이와 기록 기반 맞춤형 조언</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon indigo">📱</div>
-          <div class="row-content">
-            <div class="headline">위젯 6종</div>
-            <div class="footnote">다음 수유/낮잠 예상, 오늘 요약, 성장 백분위, 잠금화면 3종</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon green">👨‍👩‍👧</div>
-          <div class="row-content">
-            <div class="headline">가족 공유</div>
-            <div class="footnote">초대 코드로 실시간 동기화</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon blue">📊</div>
-          <div class="row-content">
-            <div class="headline">통계 · 패턴 리포트</div>
-            <div class="footnote">일별, 주별, 월별 차트로 패턴 파악</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon orange">📖</div>
-          <div class="row-content">
-            <div class="headline">육아 일기</div>
-            <div class="footnote">사진과 함께 기록하는 소중한 추억</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon green">🥣</div>
-          <div class="row-content">
-            <div class="headline">이유식 · 알레르기</div>
-            <div class="footnote">식품별 시도 히스토리와 안전/주의/금지 분류</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="group-row">
-          <div class="row-icon pink">🔔</div>
-          <div class="row-content">
-            <div class="headline">맞춤 알림</div>
-            <div class="footnote">활동별 간격, 접종일, 루틴 리마인더</div>
-          </div>
-          <span class="row-chevron">›</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEW IN v2.8.10 -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">v2.8.10 새 기능</h2>
-        <p class="footnote">두 손이 다 차 있어도, 말로 기록</p>
-      </div>
-      <div class="premium-container fade-in">
-        <div class="premium-badge">&#x2728; NEW</div>
-        <h3 class="title2">"시리야, 베이비케어에 소변 기록"</h3>
-        <p class="subheadline">한 손엔 아기, 한 손엔 젖병.<br>그럴 때를 위해 만들었어요</p>
-        <ul class="premium-list">
-          <li>소변·대변·목욕·이유식·간식은 말 한마디로 바로 저장</li>
-          <li>"잠들었어" / "깼어" — 잔 시간까지 계산해서 알려줘요</li>
-          <li>유축·체온은 시리가 "몇 ml인가요?" 하고 물어봐요</li>
-          <li>앱을 열지 않아요 — 화면을 안 봐도 기록돼요</li>
-          <li>따로 설정할 게 없어요. 앱에 로그인만 돼 있으면 바로 됩니다</li>
-          <li>'단축어' 앱에서 "서준이 쉬했어"처럼 내 말로 바꿔도 돼요</li>
-          <li>말로 남긴 기록도 통계·병원 리포트·유축 재고에 그대로 반영</li>
-        </ul>
-        <a href="https://apps.apple.com/kr/app/id6759935352" class="premium-cta">무료 다운로드</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- REVIEWS -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">후기</h2>
-      </div>
-      <div class="review-scroll fade-in">
-        <div class="review-card">
-          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"수유 간격이랑 수면 패턴을 기록하니까 규칙이 보여서 안심이 돼요. 첫 아이라 불안했는데 많이 도움돼요."</blockquote>
-          <div class="review-author">서연맘 &middot; 생후 4개월</div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"남편이랑 가족 공유로 같이 쓰고 있어요. 누가 언제 수유했는지 바로 보이니까 정말 편해요."</blockquote>
-          <div class="review-author">지우네 가족 &middot; 생후 8개월</div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"예방접종 알림이 정말 유용해요. 병원 가기 전에 뭘 맞아야 하는지 바로 확인할 수 있어서 좋아요."</blockquote>
-          <div class="review-author">하은맘 &middot; 생후 14개월</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TRUST -->
-  <div class="grouped-section">
-    <div class="container">
-      <div class="group-header fade-in">
-        <h2 class="title2">개인정보 보호</h2>
-        <p class="footnote">소중한 데이터를 안전하게 보호합니다</p>
-      </div>
-      <div class="group-inset fade-in">
-        <div class="trust-row">
-          <div class="trust-icon">🔒</div>
-          <div class="row-content">
-            <div class="headline">암호화 전송</div>
-            <div class="footnote">모든 데이터는 SSL/TLS로 암호화됩니다</div>
-          </div>
-        </div>
-        <div class="trust-row">
-          <div class="trust-icon">🛡️</div>
-          <div class="row-content">
-            <div class="headline">제3자 미제공</div>
-            <div class="footnote">개인정보를 외부에 제공하지 않습니다</div>
-          </div>
-        </div>
-        <div class="trust-row">
-          <div class="trust-icon">🗑️</div>
-          <div class="row-content">
-            <div class="headline">완전한 삭제</div>
-            <div class="footnote">계정 삭제 시 모든 데이터가 즉시 삭제됩니다</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FINAL CTA -->
-  <div class="final-section">
-    <h2 class="title1 fade-in">지금 시작하세요</h2>
-    <p class="subheadline fade-in">우리 아이의 소중한 순간을 놓치지 마세요</p>
-    <a href="https://apps.apple.com/kr/app/id6759935352" class="download-btn fade-in">
-      <svg viewBox="0 0 24 24" aria-hidden="true" role="img"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      App Store에서 다운로드
-    </a>
-  </div>
-
+    </section>
   </main>
 
-  <!-- FOOTER -->
-  <footer>
-    <p>&copy; 2026 ROA Company</p>
-    <div class="footer-links">
+  <footer class="foot">
+    <span>© 2026 ROA Company</span>
+    <nav aria-label="바닥 메뉴">
       <a href="terms.html">이용약관</a>
-      <a href="privacy.html">개인정보처리방침</a>
-    </div>
-    <p style="margin-top: 8px;">wjj911015@icloud.com</p>
+      <a href="privacy.html">개인정보 처리방침</a>
+      <a href="mailto:wjj911015@icloud.com">문의하기</a>
+    </nav>
   </footer>
-
-  <!-- STICKY BOTTOM -->
-  <div class="sticky-bottom" id="stickyBottom">
-    <a href="https://apps.apple.com/kr/app/id6759935352">무료 다운로드</a>
-  </div>
-
-  <script>
-    // Sticky visibility
-    const sticky = document.getElementById('stickyBottom');
-    const heroEl = document.querySelector('.hero');
-    const stickyObs = new IntersectionObserver(([e]) => {
-      sticky.style.transform = e.isIntersecting ? 'translateY(100%)' : 'translateY(0)';
-      sticky.style.transition = 'transform 0.3s ease';
-    }, { threshold: 0 });
-    stickyObs.observe(heroEl);
-
-    // Nav elevation on scroll
-    const navEl = document.getElementById('nav');
-    const onScroll = () => {
-      if (window.scrollY > 8) navEl.classList.add('scrolled');
-      else navEl.classList.remove('scrolled');
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-
-    // Fade-in
-    const fadeEls = document.querySelectorAll('.fade-in');
-    const fadeObs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-    }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
-    fadeEls.forEach(el => fadeObs.observe(el));
-  </script>
-
-  <!-- 평점 — 앱스토어가 진실이다.
-       ⚠️ 위 스크립트와 일부러 따로 둔다: 한 블록에서 에러가 나면 그 블록의 나머지가 통째로 안 돈다.
-       규칙 하나 — 값을 못 얻으면 아무것도 보여 주지 않는다. 낡은 숫자는 거짓말이 된다. -->
-  <script>
-    (function () {
-      var row = document.getElementById('ratingRow');
-      if (!row) return;
-
-      fetch('https://itunes.apple.com/lookup?id=6759935352&country=kr')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) {
-          var app = d && d.results && d.results[0];
-          if (!app) return;
-
-          // 버전 — 여기도 손으로 적으면 배포마다 낡는다
-          var pill = document.getElementById('versionPill');
-          if (pill && app.version) pill.textContent = '✨ v' + app.version;
-
-          var value = Number(app.averageUserRating);
-          var count = Number(app.userRatingCount);
-          // 평가가 0건이면 평점 자체가 없다 — 별 다섯 개를 그리면 거짓이 된다
-          if (!isFinite(value) || !isFinite(count) || count < 1) return;
-
-          var shown = value.toFixed(1);
-          var full = Math.round(value);
-          document.getElementById('ratingStars').textContent =
-            '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
-          document.getElementById('ratingValue').textContent = shown;
-          document.getElementById('ratingCount').textContent = count.toLocaleString('ko-KR');
-          row.setAttribute('aria-label', '평점 ' + shown + '점 만점 5점, 평가 ' + count + '개');
-          row.classList.add('is-loaded');
-        })
-        .catch(function () { /* 못 가져오면 그냥 안 보여 준다 */ });
-    })();
-  </script>
 </body>
 </html>
