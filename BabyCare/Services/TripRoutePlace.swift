@@ -55,14 +55,22 @@ enum TripRoutePlace {
 
     /// 그 여행에서 내리는 외국 공항.
     static func foreignAirport(in trip: Trip) -> String? {
-        let flights = trip.bookings.filter { $0.kind == .flight }
-            .sorted { ($0.depart?.time ?? $0.arrive?.time ?? .distantFuture) < ($1.depart?.time ?? $1.arrive?.time ?? .distantFuture) }
+        // 🩸 2026-11-08 CI(낮은 Xcode)가 「?? 네 번 겹친 비교식」의 타입을 제한 시간 안에 못 정해 빌드가 깨졌다 — 기준 시각을 함수로 뺀다.
+        let flights = trip.bookings.filter { $0.kind == .flight }.sorted { flightSortTime($0) < flightSortTime($1) }
         for f in flights {
-            for code in [f.toAirport, f.fromAirport].compactMap({ $0?.uppercased() }) where !homeAirports.contains(code) {
+            let codes: [String] = [f.toAirport, f.fromAirport].compactMap { (code: String?) -> String? in code?.uppercased() }
+            for code in codes where !homeAirports.contains(code) {
                 return code
             }
         }
         return nil
+    }
+
+    /// 편을 시각 순으로 — 출발 시각, 없으면 도착 시각, 둘 다 없으면 맨 뒤.
+    private static func flightSortTime(_ booking: TripBooking) -> Date {
+        if let time = booking.depart?.time { return time }
+        if let time = booking.arrive?.time { return time }
+        return .distantFuture
     }
 
     private static func sameName(_ name: String?, _ text: String) -> Bool {
