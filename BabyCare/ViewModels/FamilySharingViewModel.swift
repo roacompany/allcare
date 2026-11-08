@@ -66,11 +66,12 @@ final class FamilySharingViewModel {
             ownerUserId: invite.ownerUserId,
             babyId: invite.babyId,
             babyName: invite.babyName,
-            relationship: relationship.rawValue
+            relationship: relationship.rawValue,
+            inviteCode: invite.code
         )
         try await firestoreService.saveSharedAccess(access, userId: userId)
         do {
-            try await firestoreService.markInviteUsed(invite.id)
+            try await firestoreService.markInviteUsed(invite.code)
         } catch {
             logSilent("초대 사용 표시 실패", error: error, logger: AppLogger.firestore)
         }

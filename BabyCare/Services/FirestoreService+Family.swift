@@ -5,22 +5,26 @@ extension FirestoreService {
         // MARK: - Family Invite
 
     func saveInvite(_ invite: FamilyInvite) async throws {
-        let ref = db.collection(FirestoreCollections.invites).document(invite.id)
-        try ref.setData(from: invite)
+        // 문서 ID = 초대코드. 규칙이 코드로 단건 조회·교차검증한다(열거 차단).
+        let ref = db.collection(FirestoreCollections.invites).document(invite.code)
+        // await = 서버 확인까지 대기. code 충돌(남의 문서→update 규칙 거부)·규칙 거부를 삼키지 않는다.
+        try await ref.setData(from: invite)
     }
 
     func findInviteByCode(_ code: String) async throws -> FamilyInvite? {
+        // 코드 = 문서 ID 이므로 단건 조회(쿼리 아님 — invites 열거는 규칙상 차단).
         let snapshot = try await db.collection(FirestoreCollections.invites)
-            .whereField("code", isEqualTo: code)
-            .whereField("isUsed", isEqualTo: false)
-            .limit(to: 1)
-            .getDocuments()
-        return decodeDocuments(snapshot.documents, as: FamilyInvite.self).first
+            .document(code)
+            .getDocument()
+        guard let invite = try? snapshot.data(as: FamilyInvite.self), !invite.isUsed else {
+            return nil
+        }
+        return invite
     }
 
-    func markInviteUsed(_ inviteId: String) async throws {
+    func markInviteUsed(_ code: String) async throws {
         try await db.collection(FirestoreCollections.invites)
-            .document(inviteId)
+            .document(code)
             .updateData(["isUsed": true])
     }
 
@@ -31,7 +35,9 @@ extension FirestoreService {
             .document(userId)
             .collection(FirestoreCollections.sharedAccess)
             .document(access.id)
-        try ref.setData(from: access)
+        // await = 서버 확인까지 대기. 초대코드 교차검증 규칙이 거부하면(만료·사용됨·코드 불일치)
+        // joinFamily 가 성공으로 오인하지 않고 에러를 받는다.
+        try await ref.setData(from: access)
     }
 
     func fetchSharedAccess(userId: String) async throws -> [SharedBabyAccess] {
@@ -98,17 +104,21 @@ extension FirestoreService {
                     }
                     continue
                 }
-                // Write new document first; only delete old if write succeeds
+                // Write new document first; only delete old if write succeeds.
+                // 🔴 await 필수: 강화된 sharedAccess create 규칙은 inviteCode 없는 레거시 문서의
+                // composite 생성을 거부한다. 비대기 setData 는 거부를 삼켜 catch 가 안 돌고,
+                // 아래 delete 는 허용돼 레거시 원본이 지워진다 = 공유 소멸(데이터 손실).
+                // await 로 거부를 잡아 continue → 레거시 원본을 보존한다.
                 info.access.id = info.expectedId
                 do {
-                    try newRef.setData(from: info.access)
+                    try await newRef.setData(from: info.access)
                     do {
                         try await info.doc.reference.delete()
                     } catch {
                         logSilent("legacy doc 마이그레이션 후 삭제 실패: \(info.expectedId)", error: error, logger: AppLogger.firestore)
                     }
                 } catch {
-                    // Write failed — keep legacy doc and skip adding to results
+                    // Write rejected/failed — keep legacy doc, skip (재마이그레이션은 서버측에서).
                     continue
                 }
             }

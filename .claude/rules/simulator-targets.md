@@ -16,6 +16,13 @@ globs: "**/Makefile,.github/workflows/*.yml"
 - **증상**: `Test crashed with signal kill before establishing connection` / `mkstemp: No such file or directory`
 - **우회**: iOS 26.4 UDID 명시 또는 세션 중 `xcrun simctl shutdown all` 후 단일 부팅.
 
+## "bless service hub" / test runner hung (2026-11)
+
+- 증상: 단위테스트가 `The test runner hung before establishing connection` / `DTServiceHubClient failed to bless service hub` 로 반복 실패 — **빌드(컴파일)는 성공**하고 테스트 실행만 안 된다.
+- 한 요인: Xcode 26.6 = SDK **26.5** 인데 Makefile `DEST` 가 iOS **26.4** 라 불일치(단, 26.5 시뮬 UDID 로 바꿔도 bless 가 계속되는 경우가 있다 — 맥 시뮬 서브시스템 꼬임).
+- 복구 시도 순서: `xcrun simctl shutdown all` → `killall -9 com.apple.CoreSimulator.CoreSimulatorService` → 명시 UDID 부팅(`xcrun simctl boot <UDID>` + `bootstatus -b`). 이것들로도 안 되면 **맥 재부팅** 수준(`simctl erase` 는 데이터 삭제라 자동 모드가 차단).
+- 우회: `xcodebuild build-for-testing` 은 돌아 **컴파일 검증은 가능**(실행만 불가).
+
 ## CI destination
 
 - **`OS=latest` 주의**: runner image drift 시 `OS=latest`가 미설치 OS를 가리키면 xcodebuild 에러. 예: macos-15 + Xcode 16.3에 iPhone 16 Pro + OS:latest → iOS 18.4 미설치 에러.
