@@ -219,7 +219,7 @@ struct DashboardView: View {
             await todayVM.load(userId: owner, day: Date(), activities: activityVM.todayActivities)
         }
         // 여행 준비 — 로그인·아기가 바뀌면 다시 읽는다. 스위치가 꺼져 있으면 읽지도 않는다.
-        .task(id: "\(authVM.currentUserId ?? "")|\(babyVM.selectedBaby?.id ?? "")") {
+        .task(id: tripLoadKey) {
             await loadTrips()
         }
         // 기록이 들어오면 칸이 채워진다 — 저장소를 다시 두드리지 않는다.
@@ -422,6 +422,9 @@ struct DashboardView: View {
             TripHomeCard(trip: trip)
         }
     }
+
+    /// 여행을 다시 읽는 열쇠(로그인 · 아기) — 수식어 안에 `??` 를 두면 CI(Xcode 26.3)가 body 를 제때 못 푼다(2026-11-08).
+    private var tripLoadKey: String { "\(authVM.currentUserId ?? "")|\(babyVM.selectedBaby?.id ?? "")" }
 
     /// ⚠️ currentUserId 가 없으면 VM 이 읽지 않는다(로그아웃 뒤에도 dataUserId 가 소유자 uid 를 돌려주는 함정).
     private func loadTrips() async {

@@ -65,7 +65,12 @@ struct ItineraryWalker {
             guard let end = hotel.checkOut?.dayKey(calendar) else { return start == key }
             return start <= key && key < end
         }
-        .max { ($0.checkIn?.dayKey(calendar) ?? "") < ($1.checkIn?.dayKey(calendar) ?? "") }?
+        .max { (a: TripBooking, b: TripBooking) -> Bool in
+            // CI(Xcode 26.3) 대비 — 비교식의 ?? 를 타입 적은 중간값으로(2026-11-08).
+            let left: String = a.checkIn?.dayKey(calendar) ?? ""
+            let right: String = b.checkIn?.dayKey(calendar) ?? ""
+            return left < right
+        }?
         .name
     }
 

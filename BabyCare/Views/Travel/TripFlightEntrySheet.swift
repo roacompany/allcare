@@ -41,8 +41,12 @@ struct TripFlightEntrySheet: View {
         isNewBooking = isNew
         let firstDay = vm.days.first ?? cal.startOfDay(for: vm.today)
         let inbound = booking.toAirport?.uppercased() == TripFlightEntry.incheon
-        let anchor = isNew ? firstDay : ((inbound ? booking.arrive : booking.depart) ?? booking.depart ?? booking.arrive)?.startOfDay(cal) ?? firstDay
-        let other = isNew ? nil : (inbound ? booking.depart : booking.arrive)?.time
+        // CI(Xcode 26.3) 대비 — 삼항·?? 가 겹친 한 줄을 타입 적은 중간값으로 나눈다(값 같음 · 2026-11-08).
+        let preferred: TripWhen? = inbound ? booking.arrive : booking.depart
+        let known: TripWhen? = preferred ?? booking.depart ?? booking.arrive
+        let anchor: Date = isNew ? firstDay : (known?.startOfDay(cal) ?? firstDay)
+        let otherSide: TripWhen? = inbound ? booking.depart : booking.arrive
+        let other: Date? = isNew ? nil : otherSide?.time
         // 시각 고르기 창이 처음 보여 주는 값 — 창에서 「확인」을 눌러야 들어간다.
         let pickerStart = cal.date(bySettingHour: 12, minute: 0, second: 0, of: anchor) ?? anchor
         _base = State(initialValue: booking)
@@ -60,6 +64,8 @@ struct TripFlightEntrySheet: View {
 
     private var cal: Calendar { vm.calendar }
     private var normalized: String? { FlightNumber.normalize(number) }
+    /// 편명·날짜가 바뀌면 다시 찾는 열쇠 — 수식어 안에 `??` 를 두면 CI(Xcode 26.3)가 body 를 제때 못 푼다(2026-11-08).
+    private var lookupKey: String { "\(normalized ?? "")|\(day.timeIntervalSinceReferenceDate)" }
 
     private var foundRow: FlightScheduleRow? {
         if case .result(.found(let row)) = lookup { return row }
@@ -130,7 +136,7 @@ struct TripFlightEntrySheet: View {
                 manualSections
             }
         }
-        .task(id: "\(normalized ?? "")|\(day.timeIntervalSinceReferenceDate)") {
+        .task(id: lookupKey) {
             guard let flight = normalized else {
                 lookup = .idle
                 return

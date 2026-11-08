@@ -29,7 +29,32 @@ struct TravelSpaceView: View {
 
     private let calendar = Calendar.current
 
+    // 🩸 2026-11-08 CI(Xcode 26.3)가 body 를 「reasonable time」 안에 못 풀었다 — 수식어 안의 `??` 열쇠가 겹쳐서.
+    // 열쇠는 타입을 적은 속성으로 빼고, body 는 화면 · 불러오기 · 창 세 덩어리로 나눈다(동작 같음).
+    private var babyKey: String { babyVM.selectedBaby?.id ?? "" }
+    private var tripKey: String { selectedTripId ?? "" }
+    private var routeKey: [TripRouteKey] { detail?.itinerary.routeQuestions ?? [] }
+    private var openTripKey: String { detail?.trip.id ?? "" }
+    private var tripDeleted: Bool { detail?.isDeleted ?? false }
+
     var body: some View {
+        watching(layout)
+            .sheet(isPresented: $showCreate) {
+                TripCreateSheet { city, startDay, endDay in
+                    Task { await create(city: city, startDay: startDay, endDay: endDay) }
+                }
+            }
+            .confirmationDialog("이 여행을 삭제할까요?", isPresented: deleteBinding, titleVisibility: .visible, presenting: pendingDelete) { trip in
+                Button("여행 삭제", role: .destructive) {
+                    Task { await delete(trip) }
+                }
+            } message: { _ in
+                Text("예약과 체크한 할 일도 함께 삭제돼요. 되돌릴 수 없어요.")
+            }
+    }
+
+    /// 네 칸 + 직접 그린 아래 바.
+    private var layout: some View {
         GeometryReader { proxy in
             tabs(bottomInset: TravelBottomBar.contentInset(safeBottom: proxy.safeAreaInsets.bottom))
                 .overlay(alignment: .bottom) {
@@ -40,16 +65,21 @@ struct TravelSpaceView: View {
         }
         .background(TravelStyle.page.ignoresSafeArea())
         .tint(TravelStyle.ink)
-        .task(id: babyVM.selectedBaby?.id ?? "") {
+    }
+
+    /// 불러오기 · 항공편 실시간 · 앱이 다시 열림 · 여행 바뀜 · 다른 보호자가 지움.
+    private func watching(_ content: some View) -> some View {
+        content
+        .task(id: babyKey) {
             await reload()
         }
-        .task(id: selectedTripId ?? "") {
+        .task(id: tripKey) {
             await openDetail()
         }
-        .task(id: detail?.itinerary.routeQuestions ?? []) {
+        .task(id: routeKey) {
             await detail?.loadRoutes()
         }
-        .task(id: detail?.trip.id ?? "") {
+        .task(id: openTripKey) {
             // 항공편 실시간 — 열 때 한 번, 오늘 편이 있으면 5분마다(공항 목록은 당일치뿐).
             guard let model = detail else { return }
             while !Task.isCancelled {
@@ -72,23 +102,11 @@ struct TravelSpaceView: View {
             planDay = nil
             homePath = []
         }
-        .onChange(of: detail?.isDeleted ?? false) { _, deleted in
+        .onChange(of: tripDeleted) { _, deleted in
             // 다른 보호자가 지웠으면 목록을 다시 읽고 다음 여행으로.
             guard deleted else { return }
             selectedTripId = nil
             Task { await reload() }
-        }
-        .sheet(isPresented: $showCreate) {
-            TripCreateSheet { city, startDay, endDay in
-                Task { await create(city: city, startDay: startDay, endDay: endDay) }
-            }
-        }
-        .confirmationDialog("이 여행을 삭제할까요?", isPresented: deleteBinding, titleVisibility: .visible, presenting: pendingDelete) { trip in
-            Button("여행 삭제", role: .destructive) {
-                Task { await delete(trip) }
-            }
-        } message: { _ in
-            Text("예약과 체크한 할 일도 함께 삭제돼요. 되돌릴 수 없어요.")
         }
     }
 

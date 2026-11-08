@@ -31,6 +31,9 @@ struct HealthView: View {
         }
     }
 
+    /// 고른 아기가 바뀌면 다시 읽는 열쇠 — 수식어 안에 `??` 를 두면 CI(Xcode 26.3)가 body 를 제때 못 푼다(2026-11-08).
+    private var selectedBabyKey: String { babyVM.selectedBaby?.id ?? "" }
+
     private var babyHealthView: some View {
         NavigationStack {
             ScrollView {
@@ -237,7 +240,7 @@ struct HealthView: View {
             .onAppear {
                 AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
             }
-            .task(id: babyVM.selectedBaby?.id ?? "") {
+            .task(id: selectedBabyKey) {
                 guard let currentUserId = authVM.currentUserId,
                       let babyId = babyVM.selectedBaby?.id else { return }
                 let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId

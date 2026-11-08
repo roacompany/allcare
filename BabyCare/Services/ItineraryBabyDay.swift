@@ -22,9 +22,16 @@ struct ItineraryBabyDay {
 
     /// 시각 순 · 같은 시각이면 낮잠 → 이유식 → 수유 → 밤잠.
     func lines() -> [PlacedLine] {
-        (naps() + solids() + feeds() + bedtime()).enumerated()
-            .sorted { $0.element.at == $1.element.at ? $0.offset < $1.offset : ($0.element.at ?? day) < ($1.element.at ?? day) }
-            .map(\.element)
+        // 🩸 2026-11-08 CI(Xcode 26.3)가 「삼항 + ?? 둘」 정렬 닫힘의 타입을 제때 못 정할 위험 — 중간값에 타입을 적는다(순서 같음).
+        let all: [PlacedLine] = naps() + solids() + feeds() + bedtime()
+        let fallback: Date = day
+        let order: [Int] = all.indices.sorted { (i: Int, j: Int) -> Bool in
+            if all[i].at == all[j].at { return i < j }
+            let a: Date = all[i].at ?? fallback
+            let b: Date = all[j].at ?? fallback
+            return a < b
+        }
+        return order.map { all[$0] }
     }
 
     /// 빨라야 도착이 밤잠 앞뒤 한 시간 안이면 맞닿는다.
