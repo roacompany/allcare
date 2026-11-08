@@ -42,4 +42,10 @@ enum FeatureFlags {
     /// false 면 설정의 「우리 하루」 줄과 홈의 하루 띠 카드가 안 보이고, 홈에서 dayPlans·dayRuns 도 읽지 않는다.
     /// 저장된 데이터와 코드는 그대로 둔다(재설계에서 재사용 여부를 정한다). 재설계를 출시할 때 켠다.
     static let dayPlanEnabled: Bool = false
+
+    /// 「여행 준비」(아기와 해외여행 — 여행 · 예약 · 할 일과 마감 · 규칙 카드 · 공항 수유실 · 하루 일정) compile-time kill switch.
+    /// true = 손님 판(App Store)에도 연다 — 2026-11-08 PO 「다 추가해서 여행기능 오픈」(v2.8.13).
+    /// 지도·공항 키는 앱에 없다 — 여행 중계 서버(TravelServer · Cloudflare Worker babycare-travel)에만 있고, 앱은 로그인 토큰만 보낸다.
+    /// false 면 설정 「여행 준비」 줄 · 홈 여행 카드 · 여행 읽기(trips)가 전부 사라진다(데이터는 그대로).
+    static let travelEnabled: Bool = true
 }

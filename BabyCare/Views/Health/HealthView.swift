@@ -11,6 +11,8 @@ struct HealthView: View {
     @State private var upcomingVaccinationDismissed = false
     @State private var unrecordedVaccinationDismissed = false
     @State private var showBabySelector = false
+    /// 「더 보기」에서 열었으면 왼쪽 위 「더 보기」로 목록에 돌아간다(설계 2026-11-05 §1).
+    var onBackToMore: (() -> Void)? = nil
 
     var body: some View {
         // 우선순위: AppContext 기반 4-state 분기.
@@ -222,13 +224,27 @@ struct HealthView: View {
                 .padding(.vertical)
             }
             .navigationTitle("건강")
+            .toolbar {
+                if let onBackToMore {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: onBackToMore) {
+                            Label("더 보기", systemImage: "chevron.left")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    }
+                }
+            }
             .onAppear {
                 AnalyticsService.shared.trackEvent(AnalyticsEvents.healthDataView)
             }
-            .task {
+            .task(id: babyVM.selectedBaby?.id ?? "") {
                 guard let currentUserId = authVM.currentUserId,
                       let babyId = babyVM.selectedBaby?.id else { return }
                 let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
+                // 「더 보기」에서 다시 열면 그 사이 바뀐 아기를 아래 onChange 가 못 본다 → 열 때 그 아기로 다시 읽는다(검토 11/5).
+                if onBackToMore != nil {
+                    await healthVM.loadAll(userId: dataUserId, babyId: babyId)
+                }
                 await healthVM.loadRecentSolidFoods(userId: dataUserId, babyId: babyId)
             }
             .toolbar {

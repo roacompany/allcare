@@ -19,6 +19,9 @@ struct ContentView: View {
     @State private var reorderProduct: BabyProduct?
     @State private var showRecording = false
     @State private var initialRecordingCategory: Activity.ActivityCategory?
+    /// 「더 보기」에서 연 화면(여행 칸이 켜졌을 때 건강·설정이 여기로 들어간다).
+    @State private var moreSelection: MoreItem?
+    @State private var travelRouter = TravelSpaceRouter.shared
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
     @Environment(\.scenePhase) private var scenePhase
@@ -166,12 +169,12 @@ struct ContentView: View {
         }
         .onChange(of: deepLinkDestination) { _, destination in
             guard let destination else { return }
-            handleDeepLink(destination)
+            closeTravelSpace { handleDeepLink(destination) }
             deepLinkDestination = nil
         }
         .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
             guard let destination else { return }
-            handleNotificationDestination(destination)
+            closeTravelSpace { handleNotificationDestination(destination) }
             NotificationRouter.shared.pendingDestination = nil
         }
         .sheet(item: $reorderProduct) { product in
@@ -261,6 +264,19 @@ struct ContentView: View {
 
     // MARK: - Notification Routing
 
+    /// 여행 공간이 떠 있으면 먼저 닫고 나서 보낸다 — 위젯·알림이 뒤에서만 바뀌거나 시트가 묻히지 않게(검토 11/5).
+    private func closeTravelSpace(then action: @escaping @MainActor () -> Void) {
+        guard travelRouter.isPresented else {
+            action()
+            return
+        }
+        travelRouter.close()
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 600_000_000) // 여행 공간이 사라진 뒤에 시트를 띄운다
+            action()
+        }
+    }
+
     private func handleNotificationDestination(_ destination: NotificationRouter.Destination) {
         guard authVM.isAuthenticated else { return }
 
@@ -269,7 +285,7 @@ struct ContentView: View {
             selectedTab = 0
 
         case .announcements:
-            selectedTab = 4 // 설정 탭 → SettingsView가 플래그를 소비해 공지 목록까지 push
+            openSettingsTab() // 설정 → SettingsView가 플래그를 소비해 공지 목록까지 push
             announcementVM.pendingOpenFromPush = true
 
         case .reorderProduct(let productId, let coupangURLString):
@@ -369,7 +385,17 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Main Tab View (홈 | 기록 | + | 건강 | 설정)
+    // MARK: - Main Tab View (홈 | 캘린더 | + | 건강 | 설정) · 여행 칸이 켜지면 (홈 | 캘린더 | + | 여행 | 더 보기)
+
+    /// 설정 화면으로 — 여행 칸이 켜져 있으면 「더 보기 > 설정」.
+    private func openSettingsTab() {
+        if FeatureFlags.travelEnabled {
+            moreSelection = .settings
+            selectedTab = 6
+        } else {
+            selectedTab = 4
+        }
+    }
 
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
@@ -399,25 +425,53 @@ struct ContentView: View {
                 }
                 .tag(2)
 
-            HealthView()
-                .onAppear {
-                    AnalyticsService.shared.trackScreen(AnalyticsScreens.health)
-                }
-                .tabItem {
-                    Label("건강", systemImage: "heart.text.clipboard.fill")
-                }
-                .tag(3)
+            if FeatureFlags.travelEnabled {
+                // 여행 = 넷째 칸 — 누르면 여행 공간을 전체 화면으로 열고 이전 칸을 되돌린다(기록하기와 같은 방식 · 설계 2026-11-05 §1)
+                Color.clear
+                    .tabItem {
+                        Label("여행", systemImage: "suitcase.fill")
+                    }
+                    .tag(5)
 
-            SettingsView()
-                .onAppear {
-                    AnalyticsService.shared.trackScreen(AnalyticsScreens.settings)
-                }
-                .tabItem {
-                    Label("설정", systemImage: "gearshape.fill")
-                }
-                .tag(4)
+                MoreTabView(selection: $moreSelection)
+                    .tabItem {
+                        Label("더 보기", systemImage: "ellipsis")
+                    }
+                    .tag(6)
+            } else {
+                HealthView()
+                    .onAppear {
+                        AnalyticsService.shared.trackScreen(AnalyticsScreens.health)
+                    }
+                    .tabItem {
+                        Label("건강", systemImage: "heart.text.clipboard.fill")
+                    }
+                    .tag(3)
+
+                SettingsView()
+                    .onAppear {
+                        AnalyticsService.shared.trackScreen(AnalyticsScreens.settings)
+                    }
+                    .tabItem {
+                        Label("설정", systemImage: "gearshape.fill")
+                    }
+                    .tag(4)
+            }
+        }
+        .onAppear {
+            // UI 테스트가 옛 칸 번호(3 건강 · 4 설정)로 열면 「더 보기」 안으로 옮긴다.
+            if FeatureFlags.travelEnabled, selectedTab == 3 || selectedTab == 4 {
+                moreSelection = selectedTab == 3 ? .health : .settings
+                selectedTab = 6
+            }
         }
         .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == 5 {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                selectedTab = oldValue
+                travelRouter.open()
+                return
+            }
             if newValue == 2 {
                 // + 탭 선택 → RecordingView 시트 열고 이전 탭 복원 (라이브 v2.8.6 폼)
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -432,6 +486,11 @@ struct ContentView: View {
         }) {
             RecordingView(isPresented: $showRecording, initialCategory: initialRecordingCategory)
         }
+        // 여행 공간 — 전체 화면이지만 아래에서 올라오지 않고 제자리에서 바뀐다(열고 닫기 모두 애니메이션 없음 · 설계 §7).
+        // 겹치기(ZStack)는 아래 베이비케어 바가 화면 읽기에 남아 「여행」이 둘로 읽혔다(UI 테스트로 확인) → 전체 화면 유지.
+        .fullScreenCover(isPresented: Bindable(travelRouter).isPresented) {
+            TravelSpaceView(initialTripId: travelRouter.initialTripId) { travelRouter.close() }
+        }
         .overlay(alignment: .bottom) {
             VStack(spacing: 6) {
                 FloatingTimerBanner { category in
@@ -445,8 +504,8 @@ struct ContentView: View {
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
                 BadgeSnackbarView(presenter: AppState.shared.badgePresenter) {
-                    // 설정 탭으로 이동 → 사용자가 "내 배지" row 탭하여 갤러리 진입
-                    selectedTab = 4
+                    // 설정으로 이동 → 사용자가 "내 배지" row 탭하여 갤러리 진입
+                    openSettingsTab()
                     NotificationCenter.default.post(name: .showBadgeGallery, object: nil)
                 }
                 if let toast = InfoToastCenter.shared.message {

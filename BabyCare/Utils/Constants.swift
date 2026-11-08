@@ -145,6 +145,10 @@ enum FirestoreCollections {
     /// AI 주간 하이라이트 캐시. 경로: users/{uid}/babies/{bid}/highlightCache/{weekKey}
     /// HighlightAISummaryService 생성 결과 영속. TTL 7일.
     static let highlightCache = "highlightCache"
+    // MARK: - Travel
+    /// 여행 준비. 경로: users/{uid}/babies/{bid}/trips/{tripId} — 여행 하나 = 문서 하나(예약·할 일 상태·이동은 배열).
+    /// 아기 아래 한 단계라 지금 firestore.rules 가 소유자·공유 보호자 둘 다 허용한다. ⛔하위 컬렉션 금지(규칙에 안 걸린다).
+    static let trips = "trips"
 }
 
 enum CoupangConfig {
