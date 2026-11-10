@@ -19,11 +19,11 @@ RS="$(curl -s "${hdr[@]}" "https://firebaserules.googleapis.com/v1/projects/$PRO
 LIVE="$(curl -s "${hdr[@]}" "https://firebaserules.googleapis.com/v1/$RS" \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["source"]["files"][0]["content"])')"
 
-if diff <(printf '%s' "$LIVE" | sed 's/[[:space:]]*$//') <(sed 's/[[:space:]]*$//' "$REPO_RULES") >/dev/null 2>&1; then
+if diff <(printf '%s\n' "$LIVE" | sed 's/[[:space:]]*$//') <(sed 's/[[:space:]]*$//' "$REPO_RULES") >/dev/null 2>&1; then
   echo "✅ 배포본 = 레포 firestore.rules (drift 없음)"
   exit 0
 else
   echo "⚠️  배포본과 레포 firestore.rules 가 다릅니다 (< 배포본 / > 레포):"
-  diff <(printf '%s' "$LIVE") "$REPO_RULES" || true
+  diff <(printf '%s\n' "$LIVE") "$REPO_RULES" || true
   exit 1
 fi
