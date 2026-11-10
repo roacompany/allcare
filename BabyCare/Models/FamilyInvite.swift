@@ -55,6 +55,9 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
     var joinedAt: Date
     /// 공유 멤버의 아기 관계 라벨 (CaregiverRelationship.rawValue). nil = 미설정(하위호환 optional).
     var relationship: String?
+    /// 이 공유를 만든 초대코드. 신규 수락 시 항상 채움 — Firestore 규칙이 생성 시 교차검증한다.
+    /// nil = 규칙 강화 이전에 만들어진 기존 공유(하위호환 optional).
+    var inviteCode: String?
 
     init(
         id: String? = nil,
@@ -63,7 +66,8 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
         babyName: String,
         role: String = "editor",
         joinedAt: Date = Date(),
-        relationship: String? = nil
+        relationship: String? = nil,
+        inviteCode: String? = nil
     ) {
         self.id = id ?? "\(ownerUserId)_\(babyId)"
         self.ownerUserId = ownerUserId
@@ -72,5 +76,6 @@ struct SharedBabyAccess: Identifiable, Codable, Hashable {
         self.role = role
         self.joinedAt = joinedAt
         self.relationship = relationship
+        self.inviteCode = inviteCode
     }
 }

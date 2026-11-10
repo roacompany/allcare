@@ -46,15 +46,9 @@ extension FirestoreService {
             }
         }
 
-        let invites = try await db.collection(FirestoreCollections.invites)
-            .whereField("ownerUserId", isEqualTo: userId)
-            .getDocuments()
-        for doc in invites.documents {
-            batch.deleteDocument(doc.reference)
-            count += 1
-            if count >= 400 { try await batch.commit(); batch = db.batch(); count = 0 }
-        }
-
+        // 내가 만든 초대(invites)는 정리하지 않는다: 규칙이 열거(list)를 차단하므로
+        // ownerUserId 쿼리가 불가능하다. 소유자 데이터가 삭제되면 떠도는 초대는 무해하며
+        // (수락해도 빈 아기), 7일 뒤 만료된다.
         batch.deleteDocument(userDoc)
         try await batch.commit()
     }

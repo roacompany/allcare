@@ -59,9 +59,18 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
-      // sharedAccess — 본인만
+      // sharedAccess — 본인 경로. 읽기/수정/삭제는 본인, 생성은 유효한 초대코드 교차검증.
+      // (생성만 조이는 이유: 기존 공유 문서는 inviteCode 필드가 없어도 read/update/delete 로 유지)
       match /sharedAccess/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId
+          && docId == request.resource.data.ownerUserId + "_" + request.resource.data.babyId
+          && request.resource.data.inviteCode is string
+          && exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode))
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.ownerUserId == request.resource.data.ownerUserId
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.babyId == request.resource.data.babyId
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.isUsed == false
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.expiresAt > request.time;
       }
 
       // FCM 토큰 — 본인만
@@ -126,12 +135,16 @@ service cloud.firestore {
     }
 
     // --- 초대 ---
-    match /invites/{inviteId} {
-      // 인증 사용자 읽기 (초대 코드 조회)
-      allow read: if request.auth != null;
-      // 소유자만 생성 (ownerUserId == 본인)
+    // 문서 ID = 초대코드. 코드를 아는 사람만 단건 조회(get) — 목록 열거(list)는 차단.
+    // (수락 시 sharedAccess 생성 규칙이 이 문서를 code 로 교차검증한다)
+    match /invites/{code} {
+      // 코드를 아는 단건 조회만 허용, 컬렉션 열거 차단
+      allow get: if request.auth != null;
+      allow list: if false;
+      // 소유자만 생성 (ownerUserId == 본인, 문서ID == code)
       allow create: if request.auth != null
-        && request.resource.data.ownerUserId == request.auth.uid;
+        && request.resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.code == code;
       // 소유자만 수정 또는 인증 사용자가 isUsed만 true로 변경
       allow update: if request.auth != null
         && (

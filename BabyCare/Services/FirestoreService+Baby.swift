@@ -78,13 +78,8 @@ extension FirestoreService {
             merge: true
         )
 
-        // 해당 아기의 초대 코드도 정리
-        let invites = try await db.collection(FirestoreCollections.invites)
-            .whereField("ownerUserId", isEqualTo: userId)
-            .whereField("babyId", isEqualTo: babyId)
-            .getDocuments()
-        for doc in invites.documents {
-            try await doc.reference.delete()
-        }
+        // 이 아기의 초대(invites)는 정리하지 않는다: 규칙이 열거(list)를 차단하므로
+        // ownerUserId+babyId 쿼리가 불가능하다. 아기가 삭제되면 떠도는 초대는 무해하며
+        // (수락해도 빈 아기), 7일 뒤 만료된다.
     }
 }

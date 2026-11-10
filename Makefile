@@ -125,13 +125,22 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy deploy-rules
+.PHONY: deploy deploy-rules rules-test rules-drift
 
 ## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
 ## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
 deploy-rules:
 	@echo "▸ Firestore rules deploy..."
 	@firebase deploy --only firestore:rules
+
+## Firestore 규칙 테스트 (에뮬레이터 RED→GREEN · firebase-tools 15 는 Java 21 필요)
+## 규칙(firestore.rules) 변경 시 이걸로 RED→GREEN 확인 후 deploy-rules (.claude/rules/firestore-rules.md)
+rules-test:
+	@cd firestore-tests && { [ -d node_modules ] || npm ci; }; PATH="$$(brew --prefix openjdk@21)/bin:$$PATH" npm test
+
+## 배포본 규칙 ↔ 레포 firestore.rules 대조 (읽기 전용 · gcloud 로그인 필요)
+rules-drift:
+	@bash scripts/rules_drift.sh
 
 ## 원커맨드 배포: PLAN검증 → verify → smoke → QA evidence → rules → bump → upload
 ## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다

@@ -50,6 +50,20 @@ extension CaregiverAttributionTests {
         XCTAssertEqual(decoded.relationship, "father")
     }
 
+    func test_sharedAccess_inviteCode_roundTrip() throws {
+        // 신규 수락이 담는 초대코드 — Firestore 규칙이 생성 시 교차검증하는 필드.
+        let s = SharedBabyAccess(ownerUserId: "o", babyId: "b", babyName: "아기", inviteCode: "ABC234")
+        let decoded = try JSONDecoder().decode(SharedBabyAccess.self, from: JSONEncoder().encode(s))
+        XCTAssertEqual(decoded.inviteCode, "ABC234")
+    }
+
+    func test_sharedAccess_inviteCode_absentInLegacyDoc_decodesNil() throws {
+        // 규칙 강화 이전 기존 공유 문서(inviteCode 필드 없음)도 디코드되어야 한다 (하위호환).
+        let json = #"{"id":"o_b","ownerUserId":"o","babyId":"b","babyName":"아기","role":"editor","joinedAt":0}"#.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(SharedBabyAccess.self, from: json)
+        XCTAssertNil(decoded.inviteCode)
+    }
+
     func test_baby_ownerRelationship_roundTrip() throws {
         var b = Baby(id: "b", name: "아기", birthDate: Date(timeIntervalSince1970: 0), gender: .male, createdAt: Date(timeIntervalSince1970: 0), updatedAt: Date(timeIntervalSince1970: 0))
         b.ownerRelationship = CaregiverRelationship.mother.rawValue
