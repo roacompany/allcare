@@ -18,8 +18,14 @@ extension FirestoreService: AccountDataErasing {
         for child in FirestoreCollections.userChildren {
             try await deleteAllDocuments(in: userRef.collection(child))
         }
-        // 내가 만든 초대(최상위 invites) — 「내 초대」 목록 규칙이 배포되기 전엔 막히므로 실패해도 계속 간다
-        await deleteMyInvitesBestEffort(ownerUserId: userId)
+        // 내가 만든 초대(최상위 invites) — 「내 초대 목록」 규칙 배포 전(권한 거부)만 넘긴다. 망·서버 오류는 실패로 돌린다:
+        // 곧 로그인이 지워지면 아기 이름이 든 초대를 아무도 못 지운다(다시 누르면 마저 지운다 · 2026-11-14 검토)
+        do {
+            try await deleteMyInvites(ownerUserId: userId)
+        } catch {
+            guard Self.mayIgnoreInviteCleanupFailure(error) else { throw error }
+            logSilent("내 초대 목록이 막힘(규칙 배포 전) — 계정 삭제는 계속", error: error, logger: AppLogger.firestore)
+        }
         try await userRef.delete()
     }
 

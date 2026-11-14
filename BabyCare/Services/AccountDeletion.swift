@@ -66,7 +66,9 @@ struct AccountDeletion: Sendable {
         do {
             try await photos.deleteUserStorage(userId: userId)
         } catch {
-            // 사진 쪽 문제로 계정 삭제가 영영 막히면 안 된다 — 기록은 이미 지웠으므로 계속 간다
+            // 사진 쪽 문제로 계정 삭제가 영영 막히면 안 된다(앱스토어 계정 삭제 의무) — 기록은 이미 지웠으므로 계속 간다.
+            // 2026-11-14 확인: 운영 프로젝트에 사진 저장소가 켜진 흔적이 없다(사진 규칙 배포 0 · 저장소 API 미사용) → 여기서 늘 실패했다.
+            // 이걸 「실패」로 바꾸면 계정 삭제가 늘 실패한다(교차 검토의 「사진 실패면 멈춤」 제안을 받지 않은 까닭).
             logSilent("계정 삭제: 사진 정리 실패(계속 진행)", error: error, logger: AppLogger.storage)
         }
         await pushToken()

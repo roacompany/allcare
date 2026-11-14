@@ -55,8 +55,8 @@ extension FirestoreService {
 
     /// 계정 지우기 끝의 「내 초대」 정리 실패를 넘겨도 되나 — 「내 초대 목록」 규칙이 배포되기 전(권한 거부)일 때만.
     /// 그 밖(망 끊김·서버 오류)을 넘기면 곧이어 로그인이 지워져, 아기 이름이 든 초대를 아무도 지울 수 없게 된다 → 실패로 돌려 다시 누르게 한다.
-    /// RED 판: 고치기 전 동작 그대로 — 무엇이든 넘긴다.
     static func mayIgnoreInviteCleanupFailure(_ error: Error) -> Bool {
-        true
+        let ns = error as NSError
+        return ns.domain == FirestoreErrorDomain && ns.code == FirestoreErrorCode.permissionDenied.rawValue
     }
 }
