@@ -6,13 +6,14 @@ import Foundation
 struct RecordSaveFlow<Saved> {
     private(set) var isSaving = false
     private(set) var productCandidates: [BabyProduct] = []
+    /// 고르기 창을 띄우나 — 목록과 따로 둔다(닫히며 내려가는 동안에도 목록은 그려져야 한다).
+    private(set) var isPickingProduct = false
     private var pending: Saved?
-
-    var isPickingProduct: Bool { !productCandidates.isEmpty }
 
     mutating func begin() {
         isSaving = true
         productCandidates = []
+        isPickingProduct = false
         pending = nil
     }
 
@@ -20,6 +21,7 @@ struct RecordSaveFlow<Saved> {
     mutating func failed() {
         isSaving = false
         productCandidates = []
+        isPickingProduct = false
         pending = nil
     }
 
@@ -27,6 +29,7 @@ struct RecordSaveFlow<Saved> {
     mutating func saved(_ value: Saved, candidates: [BabyProduct]?) -> Saved? {
         if let candidates, !candidates.isEmpty {
             productCandidates = candidates
+            isPickingProduct = true
             pending = value
             return nil
         }
@@ -35,15 +38,16 @@ struct RecordSaveFlow<Saved> {
         return value
     }
 
-    /// 시트 바인딩이 닫기 시작할 때(끝은 `pickerClosed`).
-    /// RED 판(2026-11-14 검토): 고치기 전 동작 그대로 — 목록을 비운다(닫히며 내려가는 동안 빈 목록이 비친다).
+    /// 시트 바인딩이 닫기 시작할 때 — 띄움만 끈다. 목록은 다 닫힌 뒤(`pickerClosed`) 비운다
+    /// (먼저 비우면 닫히며 내려가는 동안 빈 목록이 비친다 · 2026-11-14 검토).
     mutating func dismissPicker() {
-        productCandidates = []
+        isPickingProduct = false
     }
 
     /// 고르기 창이 닫혔다 — 골랐든 「건너뛰기」든 아래로 내렸든. 저장 중이었으면 끝(저장한 값을 돌려준다),
     /// 이미 끝났거나 저장 중이 아니면 nil(끝은 한 번만).
     mutating func pickerClosed() -> Saved? {
+        isPickingProduct = false
         productCandidates = []
         guard isSaving, let value = pending else { return nil }
         isSaving = false
