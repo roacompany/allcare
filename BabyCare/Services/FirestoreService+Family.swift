@@ -18,9 +18,11 @@ extension FirestoreService {
         // 초대 코드 모양이 아니면 조회하지 않고 「없음」으로 끝낸다(서버에도 안 닿는다).
         guard FamilyInvite.isWellFormedCode(code) else { return nil }
         // 코드 = 문서 ID 이므로 단건 조회(쿼리 아님 — invites 열거는 규칙상 차단).
+        // 서버에서 읽는다 — 참여는 서버 규칙이 확인해야 끝나는 일이라, 기기 캐시의 낡은 초대(이미 씀·만료)로 진행하지 않는다
+        // (오프라인이면 던진다 → 「참여에 실패했습니다.」 · 2026-11-14 재검토).
         let snapshot = try await db.collection(FirestoreCollections.invites)
             .document(code)
-            .getDocument()
+            .getDocument(source: .server)
         guard let invite = try? snapshot.data(as: FamilyInvite.self), !invite.isUsed else {
             return nil
         }
@@ -146,7 +148,9 @@ extension FirestoreService {
             .document(userId)
             .collection(FirestoreCollections.sharedAccess)
             .document(docId)
-        let snapshot = try await docRef.getDocument()
+        // 서버에서 읽는다 — 기기 캐시에 없다고 「없음」으로 보면, 서버에 있던 공유를 새로 쓰다(createConfirmed)
+        // 시간 초과 때 거두면서 있던 공유까지 지운다(2026-11-14 재검토).
+        let snapshot = try await docRef.getDocument(source: .server)
         return snapshot.exists
     }
 
