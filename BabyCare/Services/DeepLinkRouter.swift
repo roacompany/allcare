@@ -10,11 +10,11 @@ struct DeepLinkGate {
         pending = destination
     }
 
-    /// 준비됐으면 들고 있던 목적지를 한 번 내준다.
-    /// RED 판: 고치기 전 동작 그대로 — 준비 전에 온 목적지는 버린다.
+    /// 준비됐으면 들고 있던 목적지를 한 번 내준다(준비 전이면 계속 들고 있는다).
     mutating func take(isReady: Bool) -> DeepLinkRouter.Destination? {
-        defer { pending = nil }
-        return isReady ? pending : nil
+        guard isReady, let destination = pending else { return nil }
+        pending = nil
+        return destination
     }
 }
 

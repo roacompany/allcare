@@ -23,6 +23,8 @@ struct ContentView: View {
     /// 「더 보기」에서 연 화면(여행 칸이 켜졌을 때 건강·설정이 여기로 들어간다).
     @State private var moreSelection: MoreItem?
     @State private var travelRouter = TravelSpaceRouter.shared
+    /// 위젯·주소로 받은 목적지 — 앱이 준비될 때까지 들고 있는다(`openPendingDeepLink`).
+    @State private var deepLinkGate = DeepLinkGate()
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
     @Environment(\.scenePhase) private var scenePhase
@@ -168,11 +170,16 @@ struct ContentView: View {
         .onChange(of: AppState.shared.badgePresenter.current == nil) { _, _ in
             presentAutoReviewIfClean()
         }
-        .onChange(of: deepLinkDestination) { _, destination in
+        .onChange(of: deepLinkDestination, initial: true) { _, destination in
+            // 받은 주소는 앱이 준비될 때까지 들고 있는다 — 앱이 꺼진 채 위젯을 누르면 주소가 아기 목록보다 먼저 와,
+            // 전엔 「아기 없음」으로 버려져 늘 홈만 열렸다(2026-11-14 검토). initial = 화면이 뜨기 전에 온 주소도 받는다.
             guard let destination else { return }
-            closeTravelSpace { handleDeepLink(destination) }
+            deepLinkGate.receive(destination)
             deepLinkDestination = nil
+            openPendingDeepLink()
         }
+        .onChange(of: babyVM.hasInitialLoad) { _, _ in openPendingDeepLink() }
+        .onChange(of: authVM.isAuthenticated) { _, _ in openPendingDeepLink() }
         .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
             guard let destination else { return }
             closeTravelSpace { handleNotificationDestination(destination) }
@@ -303,6 +310,12 @@ struct ContentView: View {
     }
 
     // MARK: - Deep Link Handling
+
+    /// 들고 있던 위젯 주소를 앱이 준비됐을 때(로그인 + 아기 목록 첫 불러오기) 한 번 연다.
+    private func openPendingDeepLink() {
+        guard let destination = deepLinkGate.take(isReady: authVM.isAuthenticated && babyVM.hasInitialLoad) else { return }
+        closeTravelSpace { handleDeepLink(destination) }
+    }
 
     private func handleDeepLink(_ destination: DeepLinkRouter.Destination) {
         guard authVM.isAuthenticated, !babyVM.babies.isEmpty else { return }
