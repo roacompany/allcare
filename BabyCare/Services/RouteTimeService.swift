@@ -114,7 +114,8 @@ final class AppleMapsRouteTimeService: RouteTimeProviding {
     /// 장소·길을 못 찾음만 「길이 없다」 — 망 끊김·서버 오류·횟수 제한·모르는 오류는 「못 받음」(2026-11-14 전엔 전부 「길이 없다」).
     static func routeError(for error: Error) -> RouteTimeError {
         let ns = error as NSError
-        if ns.domain == MKErrorDomain, let code = MKError.Code(rawValue: UInt(ns.code)) {
+        // UInt(ns.code) 는 음수에서 앱을 멈춘다 — exactly 로 바꿔 음수는 「모르는 오류」로 흘린다
+        if ns.domain == MKErrorDomain, let raw = UInt(exactly: ns.code), let code = MKError.Code(rawValue: raw) {
             switch code {
             case .placemarkNotFound, .directionsNotFound:
                 return .notFound

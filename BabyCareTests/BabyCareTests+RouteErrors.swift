@@ -26,4 +26,13 @@ final class RouteErrorTests: XCTestCase {
             XCTFail("망 끊김을 「길이 없다」로 접었다")
         }
     }
+
+    /// 지도 쪽 번호가 음수로 와도 앱이 멈추지 않는다 — 모르는 오류로 보고 다시 묻는다.
+    /// (30a8816 판은 번호를 부호 없는 수로 바꾸다 여기서 멈춘다 — 시험 실행 전체가 꺼지므로 RED 판을 따로 두지 않았다.)
+    func test_negativeMapKitCode_doesNotCrash_andIsRetryable() {
+        let odd = NSError(domain: MKErrorDomain, code: -1)
+        if case .failed = AppleMapsRouteTimeService.routeError(for: odd) {} else {
+            XCTFail("음수 번호를 「길이 없다」로 접었다")
+        }
+    }
 }
