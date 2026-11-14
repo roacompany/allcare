@@ -49,7 +49,7 @@ struct DashboardPregnancyHomeCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(AppColors.primaryAccent.opacity(0.15))
                 .frame(width: 48, height: 48)
-            Image(systemName: "figure.maternity")
+            Image(systemName: "heart.circle.fill") // 「figure.maternity」 는 SF Symbols 에 없다(2026-11-14) · 임신 화면들과 같은 아이콘
                 .font(.title2)
                 .foregroundStyle(AppColors.primaryAccent)
         }

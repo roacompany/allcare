@@ -14,7 +14,7 @@ struct DiaryThrowbackCard: View {
         VStack(alignment: .leading, spacing: 10) {
             // Header
             HStack {
-                Label(title, systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+                Label(title, systemImage: "clock.arrow.circlepath") // 같은 그림의 옛 이름(iOS 14~) — 새 이름은 iOS 18 부터라 17 에서 빈칸
                     .font(.subheadline.bold())
                     .foregroundStyle(AppColors.warmOrangeColor)
                 Spacer()

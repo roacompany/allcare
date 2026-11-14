@@ -463,7 +463,7 @@ struct ContentView: View {
                         AnalyticsService.shared.trackScreen(AnalyticsScreens.health)
                     }
                     .tabItem {
-                        Label("건강", systemImage: "heart.text.clipboard.fill")
+                        Label("건강", systemImage: SFSymbolFallback.prefer("heart.text.clipboard.fill", else: "heart.text.square.fill"))
                     }
                     .tag(3)
 

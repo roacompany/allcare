@@ -66,7 +66,7 @@ enum BabyFoodStage: Int, CaseIterable, Identifiable {
         case .early:    "drop.fill"
         case .earlyMid: "leaf.fill"
         case .mid:      "fork.knife"
-        case .late:     "bowl.fill"
+        case .late:     "fork.knife.circle.fill"  // 「bowl.fill」 은 SF Symbols 에 없어 빈칸이었다(2026-11-14)
         case .toddler:  "star.fill"
         }
     }

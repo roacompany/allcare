@@ -125,7 +125,7 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy deploy-rules rules-test rules-drift emulator-test data-layout-check
+.PHONY: deploy deploy-rules rules-test rules-drift emulator-test data-layout-check symbols-check
 
 ## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
 ## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
@@ -141,6 +141,10 @@ rules-test:
 ## 배포본 규칙 ↔ 레포 firestore.rules 대조 (읽기 전용 · gcloud 로그인 필요)
 rules-drift:
 	@bash scripts/rules_drift.sh
+
+## SF Symbols 이름 검사 — 코드의 아이콘 이름이 실제로 있고 지원 판(iOS 17)에서도 있나(없으면 오류 없이 빈칸)
+symbols-check:
+	@python3 scripts/symbols_check.py
 
 ## 지우기 범위 검사 — 앱이 쓰는 컬렉션 이름이 전부 FirestoreCollections 범위 목록에 선언됐나(빠지면 지워도 서버에 남는다)
 data-layout-check:

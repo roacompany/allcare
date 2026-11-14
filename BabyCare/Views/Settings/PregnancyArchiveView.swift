@@ -11,7 +11,7 @@ struct PregnancyArchiveView: View {
             if pregnancyVM.archivedPregnancies.isEmpty {
                 ContentUnavailableView(
                     "이전 임신 이력 없음",
-                    systemImage: "heart.text.clipboard",
+                    systemImage: SFSymbolFallback.prefer("heart.text.clipboard", else: "heart.text.square"),
                     description: Text("아직 기록된 이력이 없습니다.")
                 )
             } else {

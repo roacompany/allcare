@@ -164,7 +164,7 @@ struct HealthView: View {
                                 CryAnalysisView()
                             } label: {
                                 HealthSectionCard(
-                                    icon: "waveform.badge.microphone",
+                                    icon: "waveform.and.mic", // 같은 그림의 옛 이름(iOS 15~) — 새 이름은 iOS 18 부터
                                     iconColor: AppColors.indigoColor,
                                     title: "울음 분석",
                                     subtitle: "아기 울음소리 패턴 분석 (베타)",
