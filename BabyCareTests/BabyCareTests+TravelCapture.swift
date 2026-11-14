@@ -386,7 +386,7 @@ extension CaptureViewModelTests {
         XCTAssertTrue(items[0].isDuplicate)
         var edited = items[0].booking
         edited.arrive = .at(at(2027, 5, 10, 17, 30))
-        items[0] = CaptureBookingBuilder.edited(items[0], booking: edited, calendar: cal) // 「수정」
+        items[0] = CaptureBookingBuilder.edited(items[0], booking: edited, trip: model.trip, calendar: cal) // 「수정」
         items[0].selected = true
 
         _ = await model.addCaptured(items)
@@ -395,5 +395,43 @@ extension CaptureViewModelTests {
         XCTAssertEqual(ke725.count, 1, "같은 편이 두 번 들어갔다")
         XCTAssertEqual(ke725.first?.id, "f1")
         XCTAssertEqual(ke725.first?.arrive?.time, at(2027, 5, 10, 17, 30))
+    }
+}
+
+extension CaptureViewModelTests {
+    /// 「이미 있음」 줄을 **다른 편**으로 고쳐 넣으면 새 편이 더해지고 있던 편은 그대로다.
+    /// 🩸 2026-11-14 검토: 고친 뒤에도 처음 맞춘 예약을 기억해, 넣을 때 있던 KE725 를 새 편으로 덮어썼다.
+    func test_editingDuplicateIntoAnotherFlight_addsItAndKeepsTheExistingOne() async {
+        let provider = MockTripFirestore()
+        let model = vm(text: FakeCaptureText(), extractor: FakeExtractor(), provider: provider,
+                       trip: TravelFixtures.osakaTrip(bookings: [TravelFixtures.outbound()]))
+        let x = CaptureExtraction(flights: [CaptureExtraction.Flight(flightNumber: "KE725", date: "2027.05.10", departTime: "15:10",
+                                                                     arriveTime: "17:00", fromAirport: "ICN", toAirport: "KIX")])
+        var items = CaptureBookingBuilder.build(x, trip: model.trip, calendar: cal)
+        XCTAssertTrue(items[0].isDuplicate)
+        var other = items[0].booking
+        other.flightNumber = "KE723"
+        items[0] = CaptureBookingBuilder.edited(items[0], booking: other, trip: model.trip, calendar: cal) // 「수정」
+        XCTAssertFalse(items[0].isDuplicate, "다른 편으로 고쳤는데 「이미 있음」이 남았다")
+        items[0].selected = true
+
+        _ = await model.addCaptured(items)
+
+        XCTAssertEqual(model.trip.bookings.first { $0.id == "f1" }?.flightNumber, "KE725", "있던 편을 새 편으로 덮어썼다")
+        XCTAssertEqual(model.trip.bookings.filter { $0.flightNumber == "KE723" }.count, 1, "고친 편이 안 들어갔다")
+    }
+
+    /// 새 줄을 고쳐 있던 예약과 같아지면 「이미 있음」 — 넣으면 그 예약을 고친다(같은 편이 두 번 들어가지 않는다).
+    func test_editingNewLineIntoAnExistingFlight_marksItDuplicate() {
+        let trip = TravelFixtures.osakaTrip(bookings: [TravelFixtures.outbound()])
+        let x = CaptureExtraction(flights: [CaptureExtraction.Flight(flightNumber: "KE723", date: "2027.05.10", departTime: "15:10",
+                                                                     arriveTime: "17:00", fromAirport: "ICN", toAirport: "KIX")])
+        var items = CaptureBookingBuilder.build(x, trip: trip, calendar: cal)
+        XCTAssertFalse(items[0].isDuplicate)
+        var same = items[0].booking
+        same.flightNumber = "KE725"
+        items[0] = CaptureBookingBuilder.edited(items[0], booking: same, trip: trip, calendar: cal)
+        XCTAssertTrue(items[0].isDuplicate)
+        XCTAssertEqual(items[0].existingBookingId, "f1")
     }
 }

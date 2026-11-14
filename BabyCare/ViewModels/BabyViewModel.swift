@@ -79,6 +79,14 @@ final class BabyViewModel {
         baby.ownerUserId ?? currentUserId
     }
 
+    /// 이 사람이 이 아기를 지워도 되나 — 처음 등록한 사람(주인)만.
+    /// 규칙은 공유받은 가족에게도 아기와 그 밑 쓰기를 열어 둔다(기록을 같이 쓰려고) → 막는 자리는 앱이다.
+    /// 🩸 2026-11-14 검토: 공유받은 가족이 「아기 삭제」를 누르면 주인의 기록이 통째로 지워지고, 주인 숫자 칸에서만 막혀 「실패」로 보였다.
+    /// RED 판: 고치기 전 동작 그대로 — 누구나.
+    nonisolated static func mayDelete(_ baby: Baby, currentUserId: String?) -> Bool {
+        true
+    }
+
     // MARK: - Validation
 
     var isFormValid: Bool {

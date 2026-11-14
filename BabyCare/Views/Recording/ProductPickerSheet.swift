@@ -13,7 +13,7 @@ extension View {
         sheet(
             isPresented: Binding(
                 get: { flow.wrappedValue.isPickingProduct },
-                set: { if !$0 { flow.wrappedValue.dropCandidates() } }
+                set: { if !$0 { flow.wrappedValue.dismissPicker() } }
             ),
             onDismiss: {
                 if let value = flow.wrappedValue.pickerClosed() { onFinished(value) }

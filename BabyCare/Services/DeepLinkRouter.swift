@@ -1,5 +1,23 @@
 import Foundation
 
+/// 위젯·주소로 받은 목적지를 앱이 준비될 때까지(로그인 + 아기 목록 첫 불러오기) 들고 있다가 한 번 연다.
+/// 🩸 2026-11-14 검토: 앱이 꺼진 채 위젯을 누르면 주소가 아기 목록보다 먼저 와 「아기 없음」으로 버려졌다 — 꺼진 앱에선 위젯이 늘 홈만 열었다.
+struct DeepLinkGate {
+    private(set) var pending: DeepLinkRouter.Destination?
+
+    /// 새로 온 목적지 — 들고 있던 것보다 새 것이 이긴다.
+    mutating func receive(_ destination: DeepLinkRouter.Destination) {
+        pending = destination
+    }
+
+    /// 준비됐으면 들고 있던 목적지를 한 번 내준다.
+    /// RED 판: 고치기 전 동작 그대로 — 준비 전에 온 목적지는 버린다.
+    mutating func take(isReady: Bool) -> DeepLinkRouter.Destination? {
+        defer { pending = nil }
+        return isReady ? pending : nil
+    }
+}
+
 /// 위젯 → 앱 딥링크 라우팅.
 /// URL 스킴: `babycare://`
 enum DeepLinkRouter {

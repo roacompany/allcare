@@ -455,7 +455,8 @@ enum CaptureBookingBuilder {
     }
 
     /// 사람이 「수정」에서 고친 뒤 — 확인 필요를 다시 잰다.
-    static func edited(_ item: CapturedBooking, booking: TripBooking, calendar: Calendar) -> CapturedBooking {
+    /// RED 판(2026-11-14 검토): trip 을 아직 안 본다 — 고치기 전 동작 그대로(처음 맞춘 예약을 그대로 기억).
+    static func edited(_ item: CapturedBooking, booking: TripBooking, trip: Trip, calendar: Calendar) -> CapturedBooking {
         var out = item
         out.booking = booking
         out.day = (booking.depart ?? booking.arrive)?.startOfDay(calendar) ?? item.day

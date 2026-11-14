@@ -39,11 +39,15 @@ final class RecordSaveFlowTests: XCTestCase {
         var flow = RecordSaveFlow<String>()
         flow.begin()
         _ = flow.saved("방금 저장한 기록", candidates: diapers)
-        flow.dropCandidates() // 시트 바인딩이 닫으며 비움
+        flow.dismissPicker() // 시트 바인딩이 닫기 시작함
+        XCTAssertFalse(flow.isPickingProduct, "닫기 시작하면 띄움은 끈다")
+        // 닫히며 내려가는 동안에도 창이 그려진다 — 목록을 먼저 비우면 빈 목록이 비친다(2026-11-14 검토)
+        XCTAssertEqual(flow.productCandidates.map(\.name), ["기저귀 A", "기저귀 B"], "닫히는 동안 목록이 비었다")
 
         XCTAssertEqual(flow.pickerClosed(), "방금 저장한 기록")
         XCTAssertFalse(flow.isSaving, "단추가 계속 돌면 안 된다")
         XCTAssertFalse(flow.isPickingProduct)
+        XCTAssertTrue(flow.productCandidates.isEmpty, "닫힌 뒤엔 비운다")
     }
 
     /// 끝은 한 번만 — 창이 닫힌 알림이 두 번 와도 두 번 끝내지 않는다(안내가 두 번 뜨지 않게).

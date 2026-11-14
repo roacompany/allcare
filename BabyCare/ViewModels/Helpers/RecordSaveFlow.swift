@@ -35,8 +35,9 @@ struct RecordSaveFlow<Saved> {
         return value
     }
 
-    /// 시트 바인딩이 닫을 때 — 고를 목록만 비운다(끝은 `pickerClosed`).
-    mutating func dropCandidates() {
+    /// 시트 바인딩이 닫기 시작할 때(끝은 `pickerClosed`).
+    /// RED 판(2026-11-14 검토): 고치기 전 동작 그대로 — 목록을 비운다(닫히며 내려가는 동안 빈 목록이 비친다).
+    mutating func dismissPicker() {
         productCandidates = []
     }
 

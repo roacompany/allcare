@@ -46,3 +46,29 @@ final class WidgetLinkTests: XCTestCase {
         XCTAssertNil(DeepLinkRouter.destination(from: URL(string: "babycare://nowhere")!))
     }
 }
+
+/// 앱이 꺼진 채 위젯을 누르면 주소가 아기 목록보다 먼저 온다 — 준비될 때까지 들고 있다가 한 번 연다.
+/// 🩸 2026-11-14 검토: 「아기 없음」으로 버려, 꺼진 앱에선 위젯이 늘 홈만 열었다.
+final class DeepLinkGateTests: XCTestCase {
+
+    func test_linkArrivingBeforeAppIsReady_isKeptAndOpenedOnceWhenReady() {
+        var gate = DeepLinkGate()
+        gate.receive(.recordCategory(.sleep))
+        XCTAssertNil(gate.take(isReady: false), "준비 전엔 열지 않는다")
+        XCTAssertEqual(gate.take(isReady: true), .recordCategory(.sleep), "준비되면 들고 있던 곳을 연다")
+        XCTAssertNil(gate.take(isReady: true), "한 번만 연다")
+    }
+
+    func test_newerLinkReplacesOlderPendingOne() {
+        var gate = DeepLinkGate()
+        gate.receive(.home)
+        gate.receive(.growth)
+        XCTAssertEqual(gate.take(isReady: true), .growth)
+    }
+
+    func test_readyApp_opensImmediately() {
+        var gate = DeepLinkGate()
+        gate.receive(.home)
+        XCTAssertEqual(gate.take(isReady: true), .home)
+    }
+}
