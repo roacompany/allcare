@@ -61,8 +61,8 @@ extension FirestoreService {
             merge: true
         )
 
-        // 이 아기의 초대(invites)는 정리하지 않는다: 규칙이 열거(list)를 차단하므로
-        // ownerUserId+babyId 쿼리가 불가능하다. 아기가 삭제되면 떠도는 초대는 무해하며
-        // (수락해도 빈 아기), 7일 뒤 만료된다.
+        // 이 아기의 내 초대도 지운다(아기 이름이 든 개인정보 · 남겨 두면 받은 사람이 빈 아기 공유에 들어간다).
+        // 「내 초대」 목록 규칙(2026-11-14 보완)이 배포되기 전엔 막히므로 실패해도 아기 삭제는 끝난 것으로 본다.
+        await deleteMyInvitesBestEffort(ownerUserId: userId, babyId: babyId)
     }
 }
