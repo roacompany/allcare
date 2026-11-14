@@ -191,6 +191,10 @@ private struct JoinFamilySheet: View {
                 TextField("6자리 코드", text: $code)
                     .font(.system(.title2, design: .monospaced))
                     .textCase(.uppercase)
+                    // 코드는 영문 대문자·숫자뿐 — 한글 자판이 뜨면 친 글자가 칸에 안 남는다.
+                    .keyboardType(.asciiCapable)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
                     .multilineTextAlignment(.center)
                     .padding()
                     .background(Color(.tertiarySystemBackground))

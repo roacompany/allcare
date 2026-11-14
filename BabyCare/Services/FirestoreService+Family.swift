@@ -12,6 +12,9 @@ extension FirestoreService {
     }
 
     func findInviteByCode(_ code: String) async throws -> FamilyInvite? {
+        // 사람이 친 글자가 그대로 문서 경로가 된다 — 「/」가 섞인 홀수 경로는 SDK 가 NSException 으로 앱을 끈다.
+        // 초대 코드 모양이 아니면 조회하지 않고 「없음」으로 끝낸다(서버에도 안 닿는다).
+        guard FamilyInvite.isWellFormedCode(code) else { return nil }
         // 코드 = 문서 ID 이므로 단건 조회(쿼리 아님 — invites 열거는 규칙상 차단).
         let snapshot = try await db.collection(FirestoreCollections.invites)
             .document(code)
