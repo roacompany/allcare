@@ -7,8 +7,9 @@ extension FirestoreService {
     func saveInvite(_ invite: FamilyInvite) async throws {
         // 문서 ID = 초대코드. 규칙이 코드로 단건 조회·교차검증한다(열거 차단).
         let ref = db.collection(FirestoreCollections.invites).document(invite.code)
-        // await = 서버 확인까지 대기. code 충돌(남의 문서→update 규칙 거부)·규칙 거부를 삼키지 않는다.
-        try await ref.setData(from: invite)
+        // 서버 확인까지 기다린다 — 코드가 남의 초대와 겹치면(남의 문서 → update 규칙 거부) 그 거부를 받아
+        // 「초대 코드 생성에 실패했습니다.」로 끝낸다. 삼키면 남의 아기 초대 코드를 내 것처럼 보여 준다.
+        try await setDataConfirmed(invite, at: ref)
     }
 
     func findInviteByCode(_ code: String) async throws -> FamilyInvite? {
@@ -26,9 +27,9 @@ extension FirestoreService {
     }
 
     func markInviteUsed(_ code: String) async throws {
-        try await db.collection(FirestoreCollections.invites)
-            .document(code)
-            .updateData(["isUsed": true])
+        // 오프라인이면 updateData 는 서버 답을 끝없이 기다린다 — 시간 제한이 있는 확인 쓰기로.
+        let ref = db.collection(FirestoreCollections.invites).document(code)
+        try await updateDataConfirmed(["isUsed": true], at: ref)
     }
 
     // MARK: - Shared Access
@@ -38,9 +39,9 @@ extension FirestoreService {
             .document(userId)
             .collection(FirestoreCollections.sharedAccess)
             .document(access.id)
-        // await = 서버 확인까지 대기. 초대코드 교차검증 규칙이 거부하면(만료·사용됨·코드 불일치)
-        // joinFamily 가 성공으로 오인하지 않고 에러를 받는다.
-        try await ref.setData(from: access)
+        // 서버 확인까지 기다린다 — 초대코드 교차검증 규칙이 거부하면(만료·사용됨·코드 불일치)
+        // joinFamily 가 성공으로 오인하지 않고 에러를 받는다(「참여에 실패했습니다.」).
+        try await setDataConfirmed(access, at: ref)
     }
 
     func fetchSharedAccess(userId: String) async throws -> [SharedBabyAccess] {
@@ -108,13 +109,13 @@ extension FirestoreService {
                     continue
                 }
                 // Write new document first; only delete old if write succeeds.
-                // 🔴 await 필수: 강화된 sharedAccess create 규칙은 inviteCode 없는 레거시 문서의
-                // composite 생성을 거부한다. 비대기 setData 는 거부를 삼켜 catch 가 안 돌고,
-                // 아래 delete 는 허용돼 레거시 원본이 지워진다 = 공유 소멸(데이터 손실).
-                // await 로 거부를 잡아 continue → 레거시 원본을 보존한다.
+                // 🔴 서버 확인 필수: 강화된 sharedAccess create 규칙은 inviteCode 없는 레거시 문서의
+                // composite 생성을 거부한다. `try await setData(from:)` 는 Codable 판이 동기라 거부를 삼켜
+                // catch 가 안 돌고, 아래 delete 는 허용돼 레거시 원본이 지워진다 = 공유 소멸(데이터 손실).
+                // 서버 확인 쓰기로 거부를 잡아 continue → 레거시 원본을 보존한다.
                 info.access.id = info.expectedId
                 do {
-                    try await newRef.setData(from: info.access)
+                    try await setDataConfirmed(info.access, at: newRef)
                     do {
                         try await info.doc.reference.delete()
                     } catch {
