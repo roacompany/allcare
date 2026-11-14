@@ -133,9 +133,8 @@ struct BabyDetailView: View {
             Button("삭제", role: .destructive) {
                 Task {
                     guard let currentUserId = authVM.currentUserId else { return }
-                    // 삭제 대상 아기의 owner 경로 직접 사용 (RC1: 비선택 공유 아기 오삭제 방지)
-                    let userId = BabyViewModel.ownerUserId(for: baby, currentUserId: currentUserId) ?? currentUserId
-                    await babyVM.deleteBaby(baby, userId: userId)
+                    // 주인만 지운다 — 공유받은 아기면 뷰모델이 아무것도 지우지 않는다(2026-11-14 검토)
+                    await babyVM.deleteBaby(baby, currentUserId: currentUserId)
                     dismiss()
                 }
             }
