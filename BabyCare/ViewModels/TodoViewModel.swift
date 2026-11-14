@@ -33,14 +33,11 @@ final class TodoViewModel {
         showCompleted ? completedTodosCache : []
     }
 
-    /// 「지연됨」 칸 — 기한이 지난 안 끝난 할 일.
-    var overdueTodos: [TodoItem] {
-        Self.partition(pendingTodos, now: Date()).overdue
-    }
-
-    /// 「할 일」 칸 — 기한 전이거나 기한 없는 안 끝난 할 일(지연된 것은 「지연됨」 칸에만).
-    var upcomingTodos: [TodoItem] {
-        Self.partition(pendingTodos, now: Date()).upcoming
+    /// 「지연됨」(기한이 지난 안 끝난 할 일) · 「할 일」(기한 전이거나 기한 없는 것) 칸 — 화면은 그릴 때 한 번 받아
+    /// 그 목록으로 그리고 지운다. 🩸 2026-11-14 검토: 지울 때 칸을 다시 나누면, 그린 뒤 기한이 지난 할 일 때문에
+    /// 번호가 밀려 다른 할 일이 지워진다.
+    func sections(now: Date) -> (overdue: [TodoItem], upcoming: [TodoItem]) {
+        Self.partition(pendingTodos, now: now)
     }
 
     /// 안 끝난 할 일을 「지연됨」과 「할 일」로 나눈다 — 한 할 일은 한 칸에만(전엔 지연된 것이 두 칸에 다 나왔다).

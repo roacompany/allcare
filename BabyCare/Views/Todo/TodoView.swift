@@ -5,10 +5,12 @@ struct TodoView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
+            // 칸 나누기는 그릴 때 한 번 — 밀어서 지우기도 이 목록으로(지울 때 다시 나누면 번호가 밀린다 · 2026-11-14 검토)
+            let sections = todoVM.sections(now: Date())
             List {
-                if !todoVM.overdueTodos.isEmpty {
+                if !sections.overdue.isEmpty {
                     Section("지연됨") {
-                        ForEach(todoVM.overdueTodos) { todo in
+                        ForEach(sections.overdue) { todo in
                             TodoRowView(todo: todo)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
@@ -17,13 +19,13 @@ struct TodoView: View {
                         }
                         // 지연된 할 일은 이 칸에만 나온다 — 밀어서 지우기도 여기서(전엔 「할 일」 칸에 겹쳐 나온 쪽으로만 지웠다)
                         .onDelete { indexSet in
-                            delete(indexSet, from: todoVM.overdueTodos)
+                            delete(indexSet, from: sections.overdue)
                         }
                     }
                 }
 
-                Section("할 일 (\(todoVM.upcomingTodos.count))") {
-                    ForEach(todoVM.upcomingTodos) { todo in
+                Section("할 일 (\(sections.upcoming.count))") {
+                    ForEach(sections.upcoming) { todo in
                         TodoRowView(todo: todo)
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -31,7 +33,7 @@ struct TodoView: View {
                             }
                     }
                     .onDelete { indexSet in
-                        delete(indexSet, from: todoVM.upcomingTodos)
+                        delete(indexSet, from: sections.upcoming)
                     }
                 }
 

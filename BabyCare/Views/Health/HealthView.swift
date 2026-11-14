@@ -527,6 +527,7 @@ private struct OpenGrowthFromWidget: ViewModifier {
     private func consume() {
         guard healthVM.pendingOpenGrowth else { return }
         healthVM.pendingOpenGrowth = false
-        showGrowth = true
+        // 건강 화면이 처음 그려지는 바로 그 순간의 push 는 SwiftUI 가 버릴 때가 있다 — 한 박자 뒤에 연다(2026-11-14 검토)
+        Task { @MainActor in showGrowth = true }
     }
 }
