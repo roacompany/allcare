@@ -15,7 +15,8 @@ Firestore 는 문서를 지워도 그 아래를 지우지 않으므로, 빠진 �
        pregnancies/{p}/X → pregnancyChildren ·
        db.collection(X) → topLevel(또는 unreachableLegacy) · 그 밖의 부모 아래 → 지우기 범위에 없는 자리.
      부모를 아는 길: 바로 앞 `.collection(P).document(…)` · 경로 도우미 `xRef(…)`(몸통의 마지막 collection) ·
-     같은 파일의 `let 이름 = ….collection(P).document(…)`.
+     그 자리 앞의 가장 가까운 `let 이름 = ….collection(P).document(…)`.
+     부모를 못 읽은 `.collection` 은 빨강 — 잴 수 없는 곳을 초록으로 두지 않는다(collectionGroup 만 이름으로 잰다 · 2026-11-14 재검토).
   3. `babyChildPath(…, collection: FirestoreCollections.X)` 의 X 는 babyChildren — 이름을 넘겨받아 부르는 함수
      (`func f(…, collection: String)` 안에서 `babyChildPath(…, collection: collection)`)는 f 를 부르는 쪽의 값을 잰다.
   4. `.collection("글자")` 처럼 이름을 글자로 쓰지 않는다(CLAUDE.md 「컬렉션명 하드코딩 금지」).
@@ -76,19 +77,20 @@ def ref_helpers(codes: dict) -> dict:
     return helpers
 
 
-def doc_variables(code: str) -> dict:
-    """같은 파일의 `let 이름 = ….collection(P).document(…)` → 이름: P (그 문서 아래가 P 의 자식)."""
-    variables = {}
+def doc_assignments(code: str) -> list:
+    """`let 이름 = ….collection(P).document(…)` 들 → [(자리, 이름, P)] — 쓰는 자리 앞의 가장 가까운 것으로 푼다
+    (같은 파일의 다른 함수가 같은 이름을 다른 부모로 쓸 수 있다)."""
+    found = []
     for match in re.finditer(r"\blet\s+(\w+)\s*=\s*([^\n]*(?:\n\s*\.[^\n]*)*)", code):
         expr = match.group(2).strip()
         if re.search(r"\.document" + ARGS + r"\s*\Z", expr):
             parent = last_collection(expr)
             if parent:
-                variables[match.group(1)] = parent
-    return variables
+                found.append((match.start(), match.group(1), parent))
+    return found
 
 
-def parent_of(code: str, start: int, helpers: dict, variables: dict):
+def parent_of(code: str, start: int, helpers: dict, assignments: list):
     """`.collection(X)` 바로 앞의 부모 — ('child', P) · ('top', None) · (None, None)=모름."""
     before = code[max(0, start - 600):start]
     direct = re.search(r"\.collection\(\s*FirestoreCollections\.(\w+)\s*\)\s*\.document" + ARGS + r"\s*\Z", before)
@@ -100,8 +102,10 @@ def parent_of(code: str, start: int, helpers: dict, variables: dict):
     if re.search(r"(?:\bdb|Firestore\.firestore\(\))\s*\Z", before):
         return "top", None
     variable = re.search(r"\b(\w+)\s*\Z", before)
-    if variable and variable.group(1) in variables:
-        return "child", variables[variable.group(1)]
+    if variable:
+        earlier = [parent for pos, name, parent in assignments if name == variable.group(1) and pos < start]
+        if earlier:
+            return "child", earlier[-1]
     return None, None
 
 
@@ -134,7 +138,7 @@ def main() -> int:
 
     for path, code in codes.items():
         rel = path.relative_to(ROOT)
-        variables = doc_variables(code)
+        assignments = doc_assignments(code)
         for match in COLLECTION.finditer(code):
             kind, name = match.group(1), match.group(2)
             where = f"{rel}:{line_of(code, match.start())}"
@@ -144,7 +148,7 @@ def main() -> int:
             if kind == "collectionGroup":
                 name_only += 1
                 continue
-            place, parent = parent_of(code, match.start(), helpers, variables)
+            place, parent = parent_of(code, match.start(), helpers, assignments)
             if place == "top":
                 scoped += 1
                 if name not in top_allowed:
@@ -158,7 +162,8 @@ def main() -> int:
                     want = {"users": "userChildren", "babies": "babyChildren", "pregnancies": "pregnancyChildren"}[parent]
                     violations.append(f"{where}: {parent} 아래에 쓰는 {name} 가 {want} 에 없다(그 삭제가 놓친다)")
             else:
-                name_only += 1
+                violations.append(f"{where}: {name} 의 부모를 못 읽었다 — 지우기 범위를 잴 수 없다 "
+                                  "(….collection(P).document(…) 사슬 · xRef 도우미 · let 이름 = ….document(…) 로 쓸 것)")
         for match in BABY_CHILD_PATH.finditer(code):
             where = f"{rel}:{line_of(code, match.start())}"
             arg = re.search(r"collection:\s*([\w.]+)", match.group(0))
@@ -206,8 +211,7 @@ def main() -> int:
         return 1
     counts = " · ".join(f"{name} {len(lists[name])}" for name in SCOPE_LISTS)
     print(f"✅ Firestore 지우기 범위 검사 통과 ({counts})")
-    print(f"   잰 곳: 부모까지 {scoped} · 이름만 {name_only}(부모를 못 읽은 곳 — collectionGroup·변수 경로) · "
-          f"넘겨받는 함수 {len(forwarders)}")
+    print(f"   잰 곳: 부모까지 {scoped} · 이름만 {name_only}(collectionGroup — 부모가 없다) · 넘겨받는 함수 {len(forwarders)}")
     return 0
 
 
