@@ -191,13 +191,19 @@ private struct JoinFamilySheet: View {
                 TextField("6자리 코드", text: $code)
                     .font(.system(.title2, design: .monospaced))
                     .textCase(.uppercase)
+                    // 코드는 영문 대문자·숫자뿐 — 한글 자판이 뜨면 친 글자가 칸에 안 남는다.
+                    .keyboardType(.asciiCapable)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
                     .multilineTextAlignment(.center)
                     .padding()
                     .background(Color(.tertiarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 40)
                     .onChange(of: code) { _, newValue in
-                        code = String(newValue.uppercased().prefix(6))
+                        // 공유 문구를 통째로 붙여 넣어도 코드만 남고, 「/」 같은 글자는 칸에 남지 않는다.
+                        let cleaned = FamilyInvite.codeInput(from: newValue)
+                        if cleaned != newValue { code = cleaned }
                     }
 
                 ViewThatFits(in: .horizontal) {

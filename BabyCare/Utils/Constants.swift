@@ -149,6 +149,44 @@ enum FirestoreCollections {
     /// 여행 준비. 경로: users/{uid}/babies/{bid}/trips/{tripId} — 여행 하나 = 문서 하나(예약·할 일 상태·이동은 배열).
     /// 아기 아래 한 단계라 지금 firestore.rules 가 소유자·공유 보호자 둘 다 허용한다. ⛔하위 컬렉션 금지(규칙에 안 걸린다).
     static let trips = "trips"
+
+    // MARK: - 지우기 범위 — 아기 삭제·계정 삭제가 이 목록만 본다(한 곳)
+    // 앱이 `.collection(FirestoreCollections.X)` 로 쓰는 X 는 아래 목록 중 하나에 있어야 한다 —
+    // `scripts/data_layout_check.py` 가 코드와 대조한다(빠진 이름의 기록은 지워도 서버에 남는다).
+
+    /// 최상위 컬렉션(사용자 아래가 아님). 계정 삭제는 사용자 아래만 지운다(내가 만든 초대는 따로).
+    static let topLevel: [String] = [users, invites, announcements, productCatalog, sounds]
+
+    /// 사용자 아래의 부모 — 그 아래 하위 컬렉션(babyChildren · pregnancyChildren)부터 지우고 부모를 지운다.
+    static let scopeParents: [String] = [babies, pregnancies]
+
+    /// 앱이 읽지도 지우지도 못하는 옛 자리(firestore.rules 에 규칙이 없다) — 남아 있다면 서버(관리자)에서 지운다.
+    static let unreachableLegacy: [String] = [familySharing]
+
+    /// 아기 문서(users/{uid}/babies/{babyId}) 아래 하위 컬렉션 전부.
+    /// ⚠️ 아기 밑에 새 컬렉션을 쓰면 여기에 더한다 — 안 더하면 아기·계정을 지워도 그 기록이 서버에 남는다
+    /// (2.8.13 여행 `trips` 가 빠져 있었다 · 2026-11-14). Firestore 는 문서를 지워도 그 아래를 지우지 않는다.
+    static let babyChildren: [String] = [
+        activities, growth, diary, vaccinations, milestones, hospitalVisits, purchases,
+        hospitalReports, allergies, cryRecords, weeklyMetrics, highlightCache, trips,
+    ]
+
+    /// 임신 문서(users/{uid}/pregnancies/{id}) 아래 하위 컬렉션 전부(v3 의 vitals·contractions·moods 포함).
+    static let pregnancyChildren: [String] = [
+        kickSessions, prenatalVisits, pregnancyChecklists, pregnancyWeights, pregnancySymptoms,
+        pregnancyVitals, contractionSessions, pregnancyMoods,
+    ]
+
+    /// 옛 판(2026-03 이전)의 프리미엄 상태 자리 — 지금 쓰는 코드는 없고 규칙만 남아 있다. 계정 삭제가 지운다.
+    static let premiumStatus = "premiumStatus"
+
+    /// 사용자 문서(users/{uid}) 바로 아래 하위 컬렉션 — 아기·임신은 따로(그 아래가 또 있다).
+    /// ⚠️ 규칙이 없는 옛 이름(activities·diaryEntries·purchaseRecords·familySharing 을 사용자 바로 아래에 쓰던 자리)은
+    /// 앱이 읽지도 지우지도 못한다 — 남아 있다면 서버(관리자)에서 지워야 한다.
+    static let userChildren: [String] = [
+        todos, routines, dayPlans, dayRuns, products, purchases, hospitalVisits, vaccinations, milestones, diary,
+        premiumStatus, sharedAccess, fcmTokens, badges, stats,
+    ]
 }
 
 enum CoupangConfig {

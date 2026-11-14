@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(ProductViewModel.self) private var productVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
     @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(HealthViewModel.self) private var healthVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -22,6 +23,8 @@ struct ContentView: View {
     /// 「더 보기」에서 연 화면(여행 칸이 켜졌을 때 건강·설정이 여기로 들어간다).
     @State private var moreSelection: MoreItem?
     @State private var travelRouter = TravelSpaceRouter.shared
+    /// 위젯·주소로 받은 목적지 — 앱이 준비될 때까지 들고 있는다(`openPendingDeepLink`).
+    @State private var deepLinkGate = DeepLinkGate()
 
     @Binding var deepLinkDestination: DeepLinkRouter.Destination?
     @Environment(\.scenePhase) private var scenePhase
@@ -167,10 +170,18 @@ struct ContentView: View {
         .onChange(of: AppState.shared.badgePresenter.current == nil) { _, _ in
             presentAutoReviewIfClean()
         }
-        .onChange(of: deepLinkDestination) { _, destination in
+        .onChange(of: deepLinkDestination, initial: true) { _, destination in
+            // 받은 주소는 앱이 준비될 때까지 들고 있는다 — 앱이 꺼진 채 위젯을 누르면 주소가 아기 목록보다 먼저 와,
+            // 전엔 「아기 없음」으로 버려져 늘 홈만 열렸다(2026-11-14 검토). initial = 화면이 뜨기 전에 온 주소도 받는다.
             guard let destination else { return }
-            closeTravelSpace { handleDeepLink(destination) }
+            deepLinkGate.receive(destination)
             deepLinkDestination = nil
+            openPendingDeepLink()
+        }
+        .onChange(of: babyVM.hasInitialLoad) { _, _ in openPendingDeepLink() }
+        .onChange(of: authVM.isAuthenticated) { _, signedIn in
+            // 로그아웃하면 들고 있던 위젯 주소를 버린다 — 다음에 로그인한 사람에게 열리지 않게
+            if signedIn { openPendingDeepLink() } else { deepLinkGate.clear() }
         }
         .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
             guard let destination else { return }
@@ -303,13 +314,27 @@ struct ContentView: View {
 
     // MARK: - Deep Link Handling
 
+    /// 들고 있던 위젯 주소를 앱이 준비됐을 때(로그인 + 아기 목록 첫 불러오기) 한 번 연다.
+    private func openPendingDeepLink() {
+        guard let destination = deepLinkGate.take(isReady: authVM.isAuthenticated && babyVM.hasInitialLoad) else { return }
+        closeTravelSpace { handleDeepLink(destination) }
+    }
+
     private func handleDeepLink(_ destination: DeepLinkRouter.Destination) {
         guard authVM.isAuthenticated, !babyVM.babies.isEmpty else { return }
 
         switch destination {
         case .record, .recordCategory:
-            initialRecordingCategory = nil
+            // 위젯의 수유·수면·기저귀 단추는 그 칸으로 연다(칸 없는 「기록」은 기본 칸)
+            initialRecordingCategory = destination.recordingCategory
             showRecording = true
+
+        case .home:
+            selectedTab = 0
+
+        case .growth:
+            openHealthTab()
+            healthVM.pendingOpenGrowth = true // 건강 화면이 플래그를 소비해 성장기록까지 push
 
         case .quickSave(let quickType):
             guard let currentUserId = authVM.currentUserId,
@@ -345,7 +370,7 @@ struct ContentView: View {
                             .fill(DS2.Color.accent.opacity(0.12))
                             .frame(width: 120, height: 120)
                         Image(systemName: "heart.circle.fill")
-                            .font(.system(size: 72))
+                            .font(.system(size: DS2.IconSize.hero))
                             .foregroundStyle(DS2.Color.accent)
                     }
                     VStack(spacing: DS2.Spacing.xs) {
@@ -386,6 +411,16 @@ struct ContentView: View {
     }
 
     // MARK: - Main Tab View (홈 | 캘린더 | + | 건강 | 설정) · 여행 칸이 켜지면 (홈 | 캘린더 | + | 여행 | 더 보기)
+
+    /// 건강 화면으로 — 여행 칸이 켜져 있으면 「더 보기 > 건강」.
+    private func openHealthTab() {
+        if FeatureFlags.travelEnabled {
+            moreSelection = .health
+            selectedTab = 6
+        } else {
+            selectedTab = 3
+        }
+    }
 
     /// 설정 화면으로 — 여행 칸이 켜져 있으면 「더 보기 > 설정」.
     private func openSettingsTab() {
@@ -444,7 +479,7 @@ struct ContentView: View {
                         AnalyticsService.shared.trackScreen(AnalyticsScreens.health)
                     }
                     .tabItem {
-                        Label("건강", systemImage: "heart.text.clipboard.fill")
+                        Label("건강", systemImage: SFSymbolFallback.prefer("heart.text.clipboard.fill", else: "heart.text.square.fill"))
                     }
                     .tag(3)
 

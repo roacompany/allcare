@@ -107,6 +107,8 @@ struct CapturedBooking: Identifiable, Equatable, Sendable {
     var selected: Bool
     /// 항공편 날 — 시각을 몰라도 날짜는 안다(시간표로 비는 칸을 채울 때 쓴다).
     var day: Date?
+    /// 「이미 있음」이면 그 여행의 어느 예약과 같은가 — 넣을 때 새로 더하지 않고 그 예약을 고친다(2026-11-14).
+    var existingBookingId: String? = nil
 }
 
 // MARK: - 날짜 · 시각 읽기 — 순수 함수
@@ -369,16 +371,69 @@ enum CaptureBookingBuilder {
         // 캡처 여러 장에 같은 예약이 있으면 먼저 나온 하나만.
         var seen = Set<String>()
         items = items.filter { seen.insert(key($0.booking, day: $0.day, calendar: calendar)).inserted }
-        // 여행에 이미 있는 예약은 「이미 있음」 — 기본으로 끈다.
-        let existing = Set(trip.bookings.map { key($0, day: nil, calendar: calendar) })
+        // 여행에 이미 있는 예약은 「이미 있음」 — 기본으로 끈다. 어느 예약과 같은지 기억한다(넣을 때 그 예약을 고친다).
+        let existing = existingBookingIds(in: trip, calendar: calendar)
         return items.map { item in
             var i = item
-            if existing.contains(key(i.booking, day: i.day, calendar: calendar)) {
+            if let matched = existing[key(i.booking, day: i.day, calendar: calendar)] {
                 i.isDuplicate = true
                 i.selected = false
+                i.existingBookingId = matched
             }
             return i
         }
+    }
+
+    /// 여행에 이미 있는 예약 — 같은 예약 열쇠 → 그 예약 id(열쇠가 겹치면 먼저 넣은 것). 「이미 있음」 판정은 이 한 곳.
+    private static func existingBookingIds(in trip: Trip, calendar: Calendar) -> [String: String] {
+        var existing: [String: String] = [:]
+        for booking in trip.bookings where existing[key(booking, day: nil, calendar: calendar)] == nil {
+            existing[key(booking, day: nil, calendar: calendar)] = booking.id
+        }
+        return existing
+    }
+
+    /// 「이미 있음」 예약을 넣을 때 — 있던 예약을 캡처(사람이 고친 값)로 고친다.
+    /// 이름표(id)·종류는 있던 것 · 캡처에 있는 칸은 캡처 · 캡처가 빈 칸은 있던 값(덜 아는 값으로 덮지 않는다).
+    /// 이름과 주소는 짝 — 캡처의 이름이 다르면 있던 주소를 붙이지 않는다(옛 곳으로 길을 찾는다 · pickingHotel 과 같은 규칙).
+    static func merged(_ captured: TripBooking, into existing: TripBooking, calendar: Calendar) -> TripBooking {
+        var m = existing
+        m.airline = captured.airline ?? existing.airline
+        m.flightNumber = captured.flightNumber ?? existing.flightNumber
+        m.fromAirport = captured.fromAirport ?? existing.fromAirport
+        m.toAirport = captured.toAirport ?? existing.toAirport
+        m.depart = richer(captured.depart, existing.depart, calendar)
+        m.arrive = richer(captured.arrive, existing.arrive, calendar)
+        (m.name, m.address) = paired(captured.name, captured.address, existing.name, existing.address)
+        m.checkIn = richer(captured.checkIn, existing.checkIn, calendar)
+        m.checkOut = richer(captured.checkOut, existing.checkOut, calendar)
+        m.checkInUntilMinute = captured.checkInUntilMinute ?? existing.checkInUntilMinute
+        m.company = captured.company ?? existing.company
+        (m.pickupPlace, m.pickupAddress) = paired(captured.pickupPlace, captured.pickupAddress,
+                                                  existing.pickupPlace, existing.pickupAddress)
+        (m.returnPlace, m.returnAddress) = paired(captured.returnPlace, captured.returnAddress,
+                                                  existing.returnPlace, existing.returnAddress)
+        m.pickup = richer(captured.pickup, existing.pickup, calendar)
+        m.carReturn = richer(captured.carReturn, existing.carReturn, calendar)
+        m.freeCancel = richer(captured.freeCancel, existing.freeCancel, calendar)
+        return m
+    }
+
+    /// 캡처가 날짜만 알고 있던 값이 같은 날의 시각을 알면 있던 값(시각)을 지킨다.
+    private static func richer(_ captured: TripWhen?, _ existing: TripWhen?, _ calendar: Calendar) -> TripWhen? {
+        guard let captured else { return existing }
+        guard let existing else { return captured }
+        if captured.time == nil, existing.time != nil, captured.dayKey(calendar) == existing.dayKey(calendar) {
+            return existing
+        }
+        return captured
+    }
+
+    private static func paired(_ name: String?, _ address: String?, _ oldName: String?, _ oldAddress: String?)
+        -> (String?, String?) {
+        guard let name else { return (oldName, address ?? oldAddress) }
+        if name != oldName { return (name, address) }
+        return (name, address ?? oldAddress)
     }
 
     /// 확인 필요 칸 — 예약만 보고(사람이 고친 뒤에도 같은 판정).
@@ -405,12 +460,16 @@ enum CaptureBookingBuilder {
         return n.sorted()
     }
 
-    /// 사람이 「수정」에서 고친 뒤 — 확인 필요를 다시 잰다.
-    static func edited(_ item: CapturedBooking, booking: TripBooking, calendar: Calendar) -> CapturedBooking {
+    /// 사람이 「수정」에서 고친 뒤 — 확인 필요를 다시 재고, 여행의 예약과 **다시 맞춘다**(고친 값이 어느 예약과 같은가).
+    /// 🩸 2026-11-14 검토: 다시 맞추지 않아, 「이미 있음」 줄을 다른 편으로 고쳐도 처음 맞춘 예약을 기억해 넣을 때 있던 편을 덮어썼다.
+    static func edited(_ item: CapturedBooking, booking: TripBooking, trip: Trip, calendar: Calendar) -> CapturedBooking {
         var out = item
         out.booking = booking
         out.day = (booking.depart ?? booking.arrive)?.startOfDay(calendar) ?? item.day
         out.needs = needs(for: booking, day: out.day)
+        let matched = existingBookingIds(in: trip, calendar: calendar)[key(booking, day: out.day, calendar: calendar)]
+        out.existingBookingId = matched
+        out.isDuplicate = matched != nil
         return out
     }
 

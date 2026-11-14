@@ -43,7 +43,11 @@ extension TripDetailViewModel {
     func addCaptured(_ items: [CapturedBooking]) async -> Int {
         var added = 0
         for item in items where item.selected {
-            let booking = TripBookingForm.normalized(item.booking)
+            var booking = TripBookingForm.normalized(item.booking)
+            // 「이미 있음」 줄 — 새로 더하지 않고 그 예약을 고친다(전엔 같은 편이 두 번 들어갔다 · 2026-11-14)
+            if let id = item.existingBookingId, let existing = trip.bookings.first(where: { $0.id == id }) {
+                booking = TripBookingForm.normalized(CaptureBookingBuilder.merged(booking, into: existing, calendar: calendar))
+            }
             guard TripBookingForm.problem(booking, calendar: calendar) == nil else { continue }
             await upsertBooking(booking)
             added += 1

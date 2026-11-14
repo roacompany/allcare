@@ -16,12 +16,15 @@ globs: "**/Makefile,.github/workflows/*.yml"
 - **증상**: `Test crashed with signal kill before establishing connection` / `mkstemp: No such file or directory`
 - **우회**: iOS 26.4 UDID 명시 또는 세션 중 `xcrun simctl shutdown all` 후 단일 부팅.
 
-## "bless service hub" / test runner hung (2026-11)
+## "bless service hub" / test runner hung — 🔴 원인 = 맥 OS 가 옛 Xcode 의 DTServiceHub 실행을 막는다 (2026-11-14 확인)
 
-- 증상: 단위테스트가 `The test runner hung before establishing connection` / `DTServiceHubClient failed to bless service hub` 로 반복 실패 — **빌드(컴파일)는 성공**하고 테스트 실행만 안 된다.
-- 한 요인: Xcode 26.6 = SDK **26.5** 인데 Makefile `DEST` 가 iOS **26.4** 라 불일치(단, 26.5 시뮬 UDID 로 바꿔도 bless 가 계속되는 경우가 있다 — 맥 시뮬 서브시스템 꼬임).
-- 복구 시도 순서: `xcrun simctl shutdown all` → `killall -9 com.apple.CoreSimulator.CoreSimulatorService` → 명시 UDID 부팅(`xcrun simctl boot <UDID>` + `bootstatus -b`). 이것들로도 안 되면 **맥 재부팅** 수준(`simctl erase` 는 데이터 삭제라 자동 모드가 차단).
-- 우회: `xcodebuild build-for-testing` 은 돌아 **컴파일 검증은 가능**(실행만 불가).
+- 증상: `xcodebuild test`(·`test-without-building`)가 `DTServiceHubClient failed to bless service hub` 를 세 번 찍고 「Testing started」 전에서 끝없이 멈춘다 — **빌드(`build-for-testing`)는 성공**한다.
+- 🔴 원인(커널 기록): macOS **27.2** 가 Xcode **26.6** 의 `DTServiceHub` 를 「code signature validation failed fatally … disallowed without correct com.apple.private.amfi.version-restriction entitlement version」으로 **실행 자체를 막는다** — 맥 OS 판과 Xcode 판이 안 맞는 것. 11/8 재부팅 무렵 OS 가 올라가며 시작됐다(그 전 빌드 117 까지는 시험이 돌았다).
+- ⛔ 안 듣는 것(11/14 전부 해 봄): 개발자 모드(`DevToolsSecurity -enable`) · 디버깅 권한 허락(`security authorize -u system.privilege.taskport`) · 시뮬 서비스 재시작(`simctl shutdown all` · `killall -9 com.apple.CoreSimulator.CoreSimulatorService`) · 26.4/26.5 시뮬 바꾸기 · 샌드박스 밖 실행 · 진단 수집·코드 범위 끄기. 판 문제라 재부팅으로 풀릴 일도 아니다(재부팅은 안 해 봄).
+  🩸 11/8~14 에 「개발자 모드 꺼짐」·「재부팅 수준」으로 잘못 진단해 PO 에게 설정을 바꾸게 했다 — 증상(bless)만 보고 원인을 정했다. **커널 기록부터 볼 것.**
+- 진단법: `/usr/bin/log show --start "<시각>" --end "<시각>" --style compact --predicate 'eventMessage CONTAINS "DTServiceHub"'` — ⚠️ zsh 에서 그냥 `log` 는 **셸 내장 명령**이라 아무것도 안 나온다(「0건」 = 도구 탓 · 전체 경로로 칠 것).
+- 고치는 길: 맥 OS 판에 맞는 Xcode(27 이상)를 깐다(앱스토어 판은 지금 Xcode 를 덮어써 빌드 SDK 도 바뀐다 — 개발자 사이트에서 따로 받아 시험에만 `DEVELOPER_DIR` 로 쓰는 길도 있다). 단위 시험만이면 CI(PR · macos-15 + Xcode 26)가 돌린다 — 통합(에뮬레이터)·UI 시험은 CI 가 안 돈다.
+- 우회: `xcodebuild build-for-testing` 으로 **컴파일 검증만** 가능.
 
 ## CI destination
 

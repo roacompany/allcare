@@ -8,7 +8,11 @@ final class FamilySharingViewModel {
     var message: String?
     var errorMessage: String?
 
-    private let firestoreService = FirestoreService.shared
+    private let firestoreService: FirestoreService
+
+    init(firestoreService: FirestoreService = .shared) {
+        self.firestoreService = firestoreService
+    }
 
     // MARK: - Fetch
 

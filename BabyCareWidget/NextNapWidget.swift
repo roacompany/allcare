@@ -86,7 +86,7 @@ struct NextNapWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record/sleep"))
+        .widgetURL(WidgetLink.recordSleep.url)
     }
 
     // MARK: Medium
@@ -163,7 +163,7 @@ struct NextNapWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record/sleep"))
+        .widgetURL(WidgetLink.recordSleep.url)
     }
 
     private func statRow(icon: String, label: String, value: String) -> some View {

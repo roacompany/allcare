@@ -180,7 +180,7 @@ struct TripCaptureSheet: View {
     /// 수정에서 고친 뒤 — 확인 필요를 다시 재고, 추가할 것으로 켠다.
     private func replace(_ item: CapturedBooking, with booking: TripBooking) {
         guard let i = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[i] = CaptureBookingBuilder.edited(items[i], booking: booking, calendar: cal)
+        items[i] = CaptureBookingBuilder.edited(items[i], booking: booking, trip: vm.trip, calendar: cal)
         items[i].selected = true
     }
 

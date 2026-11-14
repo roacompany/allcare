@@ -63,7 +63,7 @@ struct LoginView: View {
                         // Brand
                         VStack(spacing: DS2.Spacing.md) {
                             Image(systemName: "heart.fill")
-                                .font(.system(size: 64))
+                                .font(.system(size: DS2.IconSize.brand))
                                 .foregroundStyle(
                                     LinearGradient(
                                         colors: v2BrandGradient,

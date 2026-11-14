@@ -28,7 +28,7 @@ make screenshots     # 주요 화면 스크린샷 캡처
 
 ```bash
 make build         # xcodegen + xcodebuild
-make test          # 단위 테스트 345개
+make test          # 단위 테스트 전체(-quiet — 개수는 따로 재서 본다)
 make lint          # SwiftLint 검사
 make arch-test     # 아키텍처 경계 검사
 make verify        # 빌드 + 린트 + 아키텍처 + 테스트 + 디자인토큰
@@ -36,7 +36,10 @@ make plan-verify   # PLAN ↔ 코드 1:1 검증 (활성 spec)
 make smoke-test    # 시뮬레이터 런치 + 크래시 체크
 make qa-check      # QA evidence 파일 게이트
 make ui-test       # XCUITest (PregnancyFlowTests 18개)
-make deploy-rules  # Firestore rules + indexes 자동 배포
+make deploy-rules  # Firestore rules + indexes 자동 배포(⚠️ PO 승인 · 조이는 규칙은 맞춘 앱이 퍼진 뒤)
+make rules-test    # Firestore 규칙 에뮬레이터 시험(옛 판 요청 rules.app-*.test.mjs 포함 · Java 21)
+make emulator-test # 아이폰 SDK ↔ 에뮬레이터 통합 시험(실제 Swift 코드를 레포 규칙에)
+make data-layout-check # 앱이 쓰는 컬렉션이 전부 지우기 범위에 선언됐나
 make deploy        # 원커맨드 배포 (verify→bump→archive→export→upload)
 make bump          # 빌드 번호 +1
 make status        # 버전/커밋/테스트 상태
@@ -268,24 +271,12 @@ harness-score: 96% (Grade A) — 2026-04-17
 
 ## Current Status
 
-- **Version**: **v2.8.11 (빌드 107) — App Store 출시 완료·라이브(`READY_FOR_SALE`)**. 코드 `d8207e1`(PR #78) · 배포준비 `edb824e` · **자정 넘긴 기록의 하루 귀속** — 밤 10시~아침 7시 밤잠이 어제·오늘 **양쪽에서 통째로** 세어지던 것을 판정 하나(`ActivityDayAttribution`)로 모았다. 2026-08-27 승인·자동 출시(**손님 스토어 iTunes lookup 실측 2026-09-02 = 2.8.11**, 출시 `2026-08-27T16:49:55Z`). 직전 라이브 **v2.8.10(빌드 106·2026-08-23 출시)을 교체**했다. **ASC 최고 빌드 = 107 VALID → 다음 main TF ≥108**(2026-09-02 실측). 임신 v3 는 컴파일 flag-off 휴면(노출 0 — `FeatureFlags.pregnancyModeEnabled=false` 실측 2026-09-02). ⚠️ **2.8.11 train 도 닫혔다**(출시 완료) — 다음 fix 는 **v2.8.12** bump 필수 (build-gotchas.md `code 90186/90062`)
-- **App Store**:
-  - **v2.8.11 READY_FOR_SALE** (출시 **2026-08-27T16:49:55Z** — 자정 넘긴 기록의 하루 귀속(#78). 빌드 107 제출 2026-08-26T23:48Z → 승인 + `AFTER_APPROVAL` 자동 출시로 v2.8.10 을 교체. versionId `bcd2340b-9467-46da-b18d-67b4453b19d5`, submissionId `80a5b550-6a8c-4410-a9a4-0c81bcc987ae`, ASC API + iTunes lookup 실측 2026-09-02). **train closed** — 다음 fix 는 v2.8.12 bump 필수. ⚠️ **빌드 107 은 기기 QA 통과 기록이 없다**(105·106 과 달리) — 이미 라이브라 문제 발견 시 v2.8.12 핫픽스 판단은 PO
-  - **v2.8.10 READY_FOR_SALE** (출시 **2026-08-23 21:51Z** — 시리로 모든 기록(#77) + 기록 출처(#76). 빌드 106 제출 2026-08-23 → 승인 + `AFTER_APPROVAL` 자동 출시로 v2.8.9 를 교체. versionId `73e87394-ddca-4ab1-9506-fba04f0874c1`, submissionId `bad1d173-4243-49ff-831b-67f9a48809de`, ASC API + iTunes lookup 실측 2026-08-24). **train closed** — 다음 fix 는 v2.8.11 bump 필수. ⚠️ **기기 QA 는 PO 가 빌드 106 으로 통과 확인** — 시리는 시뮬레이터로 검증 불가
-  - **v2.8.9 READY_FOR_SALE** (출시 2026-08-22 — 시리로 수유 기록(#75). 빌드 105 승인 + `AFTER_APPROVAL` 자동출시로 v2.8.8 을 교체 → **2026-08-23 v2.8.10 으로 교체됨**. versionId `41a6f84b-5615-4eea-98b6-7b8615800e65`, ASC API + iTunes lookup 실측 2026-08-23). **train closed** — 다음 fix 는 v2.8.10 bump 필수. ⚠️ **기기 QA 는 PO 가 빌드 105 로 통과 확인**(앱 미실행 상태의 시리 기록 포함) — 시뮬레이터로는 검증 불가한 구간이었다
-  - **v2.8.8 READY_FOR_SALE** (출시 2026-08-21 — 기록 UX 원복·재작업(#74) + 유축 재고 + 이탈방지 P0 + 버그fix 누적. 빌드 104 승인 + AFTER_APPROVAL 자동출시 → **2026-08-22 v2.8.9 로 교체**. versionId `6cbea40b-39fe-4fab-8af2-bd21b8f572a4`, ASC API 확인 2026-08-21). 임신 v3 는 컴파일 flag-off 라 출시본에서도 임신 UI 노출 0 — rollout 은 RC 재배선 + 의료감수 후. **train closed** — 다음 fix 는 v2.8.9 bump 필수
-  - **v2.8.7 — 단독 릴리스 없음** (TestFlight 빌드 89 VALID. 앱 평가 팝업 + #24~#28 누적수정 — v2.8.8 에 포함돼 2026-08-21 동반 출시 완료)
-  - **v2.8.6 READY_FOR_SALE** (2026-06-10 출시 → **2026-08-21 v2.8.8 로 교체**. 유축 기록 + 병수유 내용물(분유/모유) + DS2 대시보드 정본화 + Sentry 첫 릴리즈. 빌드 88 승인+AFTER_APPROVAL 자동출시. ⚠️ v2.8.4/v2.8.5는 TestFlight 전용 미릴리즈 — v2.8.5 BCDS 폐기, v2.8.6로 건너뜀)
-  - v2.8.0 READY_FOR_SALE (임신 모드 v2, 자동 출시 완료)
-  - v2.8.1 READY_FOR_SALE (광고 제거 hotfix, 자동 출시 완료)
-  - v2.8.2 READY_FOR_SALE (Phase 1 ML 인사이트, 자동 출시 완료 2026-05-10)
-  - **v2.8.3 READY_FOR_SALE** (Weekly Highlights v2 + nested NavigationStack fix, AFTER_APPROVAL 자동 출시. versionId `4ed5eea1-2ef6-4cfb-a5dc-0ceb8fa3f7e6`, ASC API 확인 2026-05-22). **train closed** — 다음 fix는 v2.8.4 bump 필수 (build-gotchas.md `code 90186/90062`)
-- **TestFlight**: **v2.8.11 빌드 107**(buildId `47e7cf58-c25e-4334-b510-d97086cd4c4e`, VALID·2026-08-26 업로드·**v2.8.11 출시본** — 자정 넘긴 기록 하루 귀속) / **v2.8.10 빌드 106**(`dd83707e-ac12-4a1c-b30a-d77dcea83cc0`, VALID·2026-08-23 업로드·**v2.8.10 출시본** — 시리로 모든 기록) / **v2.8.9 빌드 105**(`d397eaed-b72c-4675-bca6-29b2a958be47`, VALID·2026-08-21 업로드·v2.8.9 출시본, 2026-08-23 교체됨 — 시리 수유 기록) / **v2.8.8 빌드 104**(`206d4aba-dbd0-46c5-b614-7560512647ff`, VALID·2026-08-20 업로드·v2.8.8 출시본, 2026-08-22 교체됨) / 빌드 100~103(기록하기 재설계·유축 재고) / 빌드 98~99(#53~#58) / **빌드 95~97**(쿠팡식 실험 워크트리, 2026-06-28) / **빌드 94/93**(`tf/pregnancy-v3-test` 브랜치 — 임신 v3 flag-on QA 전용·머지 금지), v2.8.7 빌드 89 (`87739d1f-...`, VALID), v2.8.6 빌드 88 (`08c69b5a-...`, 유축 + 병수유, **2026-06-10~08-21 라이브**), 빌드 87 (superseded) / v2.8.5 빌드 86 (BCDS, **만료**) / v2.8.4 빌드 84 (DS2 Apple Health spec)
-  - 이전: v2.8.3 빌드 69 (`c040f15f-...`, nested NavigationStack fix), 68/67, 66 (v2.8.2 ML), 65 (v2.8.1), 64 (v2.8.0)
+- ⛔ **판본·빌드번호·심사 상태·손님 판은 여기 적지 않는다** — 배포 한 번에 낡는다(2026-11-14 까지 이 칸이 「v2.8.11 라이브」로 세 판 낡아 있었다).
+  재는 법 = `/babycare-resume` 0단계: 손님 판 iTunes lookup · 심사 `make asc-status` · 다음 빌드 = ASC 최고 빌드 +1 · 코드 `git log origin/main`. 출시 이력 = git log · `.dev/release-notes/`.
 - **Firebase**: 11.9.0
 - **Firestore**: 35개 컬렉션 상수 (24 기본 + 9 pregnancy[v3에서 pregnancyVitals/contractionSessions/pregnancyMoods 추가] + weeklyMetrics/highlightCache). rules/index deploy 완료
 - **Remote Config**: 18개 파라미터 (pregnancy 2 + weight 9 + insight 5 + highlight 2). `highlight_enabled=false` / `highlight_ticker_pct=0` 기본
-- **테스트**: 단위 테스트 함수 **745** (2026-09-02 실측 — `grep -rh "func test"`). **745개 통과·실패 0 · arch R1-4=0 · lint 0 err** — 2026-08-26 `#78` 게이트 실행분이 마지막(그 뒤 코드 변경 없음·랜딩/문서만). ⚠️ `make test` 는 `-quiet` 라 개수가 안 보인다 — 숫자를 보려면 `-only-testing:BabyCareTests` 를 `-quiet` 없이 따로 돌린다
+- **테스트**: 개수는 적지 않는다 — `make test` 는 `-quiet` 라 안 보이므로 `-only-testing:BabyCareTests` 를 `-quiet` 없이 따로 돌려 「Executed N」을 본다. Firestore 규칙 = `make rules-test` · 실제 Swift 코드 ↔ 규칙 = `make emulator-test` · 지우기 범위 = `make data-layout-check`
 - **규모**: **385** Swift 파일(앱 타깃) + 15(위젯), 23개 VM, 35개 Firestore 컬렉션 상수 (2026-09-02 실측 — 385+15 변동 없음)
 - **AdMob**: 완전 폐기 (2026-05-10 `ddb63d1`) — SDK/UI/Info.plist/SKAdNetwork/app-ads.txt/privacy.html 일괄 제거 12 파일 -467 lines
 - **Admin**: Vercel 자동 배포 (Insights ML 탭 + lastAccessedAt fallback + Weekly Highlights worker `c283ef5`)

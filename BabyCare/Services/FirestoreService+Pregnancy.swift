@@ -36,21 +36,12 @@ extension FirestoreService {
 
     func deletePregnancy(_ pregnancyId: String, userId: String) async throws {
         let ref = pregnancyRef(userId: userId).document(pregnancyId)
-        // 하위 컬렉션 cascade 삭제
-        let subcollections = [
-            FirestoreCollections.kickSessions,
-            FirestoreCollections.prenatalVisits,
-            FirestoreCollections.pregnancyChecklists,
-            FirestoreCollections.pregnancyWeights,
-            FirestoreCollections.pregnancySymptoms
-        ]
-        for sub in subcollections {
-            let docs = try await ref.collection(sub).getDocuments()
-            for doc in docs.documents {
-                try await doc.reference.delete()
-            }
+        // 하위 컬렉션 cascade 삭제 — 목록은 한 곳(pregnancyChildren). 손으로 적던 목록은 v3 의
+        // vitals·contractions·moods 를 빠뜨렸다(2026-11-14).
+        for child in FirestoreCollections.pregnancyChildren {
+            try await deleteAllDocuments(in: ref.collection(child))
         }
-        try await ref.delete()
+        try await deleteConfirmed(ref)
     }
 
     // MARK: - Kick Session

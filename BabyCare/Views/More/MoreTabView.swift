@@ -22,7 +22,7 @@ struct MoreTabView: View {
         case nil:
             NavigationStack {
                 List {
-                    row(.health, title: "건강", icon: "heart.text.clipboard.fill")
+                    row(.health, title: "건강", icon: SFSymbolFallback.prefer("heart.text.clipboard.fill", else: "heart.text.square.fill"))
                     row(.settings, title: "설정", icon: "gearshape.fill")
                 }
                 .listStyle(.insetGrouped)

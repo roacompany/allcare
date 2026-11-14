@@ -15,7 +15,77 @@ enum TripBookingForm {
         b.company = text(b.company)
         b.pickupPlace = text(b.pickupPlace)
         b.returnPlace = text(b.returnPlace)
+        b.pickupAddress = text(b.pickupAddress)
+        b.returnAddress = text(b.returnAddress)
         return b
+    }
+
+    // MARK: - 렌터카 인수·반납 · 일정 출발·도착 — 찾아 고른 곳은 주소까지(숙소와 같은 규칙)
+
+    enum RentalSpot { case pickup, carReturn }
+    enum MoveEnd { case from, to }
+
+    /// 렌터카 인수·반납 장소를 찾아 골랐다 — 이름과 주소를 함께(숙소 `pickingHotel` 과 같은 규칙:
+    /// 지도가 주소를 안 줬어도 같은 이름을 다시 고른 것뿐이면 지닌 주소를 지킨다).
+    static func pickingRentalPlace(_ pick: PlaceSearchModel.Pick, at spot: RentalSpot, into booking: TripBooking) -> TripBooking {
+        var b = booking
+        switch spot {
+        case .pickup:
+            if pick.address != nil || pick.name != booking.pickupPlace { b.pickupAddress = pick.address }
+            b.pickupPlace = pick.name
+        case .carReturn:
+            if pick.address != nil || pick.name != booking.returnPlace { b.returnAddress = pick.address }
+            b.returnPlace = pick.name
+        }
+        return b
+    }
+
+    /// 칩·직접 입력으로 이름만 바뀌었다 — 다른 이름이면 그 칸의 주소를 비운다(옛 주소로 길을 찾으면 다른 곳으로 간다).
+    static func typingRentalPlace(_ text: String?, at spot: RentalSpot, into booking: TripBooking) -> TripBooking {
+        var b = booking
+        switch spot {
+        case .pickup:
+            if text != booking.pickupPlace { b.pickupAddress = nil }
+            b.pickupPlace = text
+        case .carReturn:
+            if text != booking.returnPlace { b.returnAddress = nil }
+            b.returnPlace = text
+        }
+        return b
+    }
+
+    /// 일정 출발지·도착지를 찾아 골랐다 — 이름과 주소를 함께(같은 규칙).
+    static func pickingMovePlace(_ pick: PlaceSearchModel.Pick, at end: MoveEnd, into move: TripMove) -> TripMove {
+        var m = move
+        switch end {
+        case .from:
+            if pick.address != nil || pick.name != move.fromLabel { m.fromAddress = pick.address }
+            m.fromLabel = pick.name
+        case .to:
+            if pick.address != nil || pick.name != move.toLabel { m.toAddress = pick.address }
+            m.toLabel = pick.name
+        }
+        return m
+    }
+
+    /// 칩·직접 입력으로 이름만 바뀌었다 — 다른 이름이면 그 칸의 주소를 비운다.
+    static func typingMovePlace(_ text: String, at end: MoveEnd, into move: TripMove) -> TripMove {
+        var m = move
+        switch end {
+        case .from:
+            if text != move.fromLabel { m.fromAddress = nil }
+            m.fromLabel = text
+        case .to:
+            if text != move.toLabel { m.toAddress = nil }
+            m.toLabel = text
+        }
+        return m
+    }
+
+    /// 일정 넣는 창이 차 시간을 물을 글자 — 찾아 고른 주소가 있으면 주소, 없으면 이름.
+    static func routeText(for move: TripMove, at end: MoveEnd) -> String {
+        let (label, address) = end == .from ? (move.fromLabel, move.fromAddress) : (move.toLabel, move.toAddress)
+        return text(address) ?? label
     }
 
     /// 숙소를 고른 결과 — 이름과 주소를 함께 바꾼다.

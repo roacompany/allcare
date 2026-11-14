@@ -13,8 +13,7 @@ struct HealthRecordView: View {
     var onSaved: (() -> Void)? = nil
 
     @State private var selectedHealthType: HealthType = .temperature
-    @State private var isSaving = false
-    @State private var productCandidates: [BabyProduct] = []
+    @State private var saveFlow = RecordSaveFlow<Void>()
 
     // MARK: - Health sub-types
     enum HealthType: String, CaseIterable, Identifiable {
@@ -121,23 +120,14 @@ struct HealthRecordView: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            SaveBar(isSaving: isSaving, color: accent, action: save)
+            SaveBar(isSaving: saveFlow.isSaving, color: accent, action: save)
         }
-        .sheet(isPresented: Binding(
-            get: { !productCandidates.isEmpty },
-            set: { if !$0 { productCandidates = [] } }
-        )) {
-            ProductPickerSheet(products: productCandidates) { selected in
-                Task {
-                    guard let userId = authVM.currentUserId else { return }
-                    await productVM.deductFromProduct(selected, userId: userId)
-                }
-                productCandidates = []
-                isSaving = false
-                onSaved?()
+        .productPicker(flow: $saveFlow, onSelect: { selected in
+            Task {
+                guard let userId = authVM.currentUserId else { return }
+                await productVM.deductFromProduct(selected, userId: userId)
             }
-            .presentationDetents([.medium])
-        }
+        }, onFinished: { onSaved?() })
     }
 
     // MARK: - Actions
@@ -146,7 +136,7 @@ struct HealthRecordView: View {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-        isSaving = true
+        saveFlow.begin()
         Task {
             await activityVM.saveActivity(
                 userId: dataUserId,
@@ -155,15 +145,11 @@ struct HealthRecordView: View {
                 type: selectedHealthType.activityType
             )
             guard activityVM.errorMessage == nil else {
-                isSaving = false
+                saveFlow.failed()
                 return
             }
-            if let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: currentUserId) {
-                productCandidates = candidates
-            } else {
-                isSaving = false
-                onSaved?()
-            }
+            let candidates = await productVM.deductStockForActivity(selectedHealthType.activityType, userId: currentUserId)
+            if saveFlow.saved((), candidates: candidates) != nil { onSaved?() }
         }
     }
 }

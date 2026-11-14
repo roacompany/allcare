@@ -7,6 +7,8 @@ final class HealthViewModel: LoadingStateful, OptimisticReplaceable {
     var hospitalVisits: [HospitalVisit] = []
     var isLoading = false
     var errorMessage: String?
+    /// 성장 위젯에서 열었을 때 1회성 — 건강 화면이 소비해 성장기록까지 push 한다(공지 푸시 pendingOpenFromPush 와 같은 꼴).
+    var pendingOpenGrowth = false
 
     private var currentBabyName: String = "아기"
     private let firestoreService = FirestoreService.shared

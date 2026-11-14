@@ -14,6 +14,24 @@ final class PregnancyFlowTests: XCTestCase {
     /// 아무 상관없는 판이 `make deploy` 앞에서 막힌다(실제로 3개월간 그랬다 — CI 는 `make verify` 만
     /// 돌아 `ui-test` 를 안 태워 아무도 못 봤다).
     /// ⛔ 테스트를 **지우지 않는다** — 건너뛰게만 한다. 플래그를 다시 켜는 날 **자동으로 다시 돈다**.
+    /// 건강·설정 열기 — 여행 칸이 켜지면(FeatureFlags.travelEnabled) 둘 다 「더 보기」 안으로 들어가 아래 탭에 없다.
+    /// UI_TESTING_TAB=3·4 로 열면 앱이 그 화면을 「더 보기」 안에 이미 열어 둔다(ContentView.onAppear) — 그대로 쓴다.
+    /// 🩸 2026-11-14 까지 이 시험들이 「건강」·「설정」 탭을 찾다 여행 칸이 켜진 판(2.8.13~)에서 실패했다.
+    @MainActor
+    private func openSection(_ app: XCUIApplication, _ title: String, file: StaticString = #filePath, line: UInt = #line) {
+        guard FeatureFlags.travelEnabled else {
+            let tab = app.tabBars.buttons[title]
+            XCTAssertTrue(tab.waitForExistence(timeout: 5), "\(title) 탭 존재 필수", file: file, line: line)
+            tab.tap()
+            return
+        }
+        let more = app.tabBars.buttons["더 보기"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5), "「더 보기」 탭 존재 필수(여행 칸이 켜진 판)", file: file, line: line)
+        if !more.isSelected { more.tap() }
+        let row = app.buttons[title]
+        if row.waitForExistence(timeout: 2) { row.tap() } // 목록이 보이면 그 줄 · 이미 그 화면이면 그대로
+    }
+
     private func skipUnlessPregnancyUIEnabled() throws {
         try XCTSkipUnless(
             FeatureFlags.pregnancyModeEnabled,
@@ -396,12 +414,7 @@ final class PregnancyFlowTests: XCTestCase {
         app.launch()
 
         // 건강 탭 이동 확인
-        let healthTab = app.tabBars.buttons["건강"]
-        XCTAssertTrue(
-            healthTab.waitForExistence(timeout: 5),
-            "건강 탭 존재 필수 (tabBar 내)"
-        )
-        healthTab.tap()
+        openSection(app, "건강")
 
         // baby 건강 섹션이 존재해야 함 (예방접종 카드)
         let vaccinationCard = app.staticTexts.matching(
@@ -466,12 +479,7 @@ final class PregnancyFlowTests: XCTestCase {
         app.launch()
 
         // 설정 탭 확인
-        let settingsTab = app.tabBars.buttons["설정"]
-        XCTAssertTrue(
-            settingsTab.waitForExistence(timeout: 5),
-            "설정 탭 존재 필수"
-        )
-        settingsTab.tap()
+        openSection(app, "설정")
 
         // 설정 화면에서 임신 관련 행이 있는지 탐색
         // "임신 관리" 또는 "임신 종료" 텍스트 탐색 (SettingsView 임신 섹션)
@@ -516,9 +524,7 @@ final class PregnancyFlowTests: XCTestCase {
         app.launch()
 
         // 설정 탭 이동
-        let settingsTab = app.tabBars.buttons["설정"]
-        XCTAssertTrue(settingsTab.waitForExistence(timeout: 5))
-        settingsTab.tap()
+        openSection(app, "설정")
 
         // "출산 완료 등록" 또는 "아기 등록" 진입 경로 탐색
         let birthRow = app.buttons.matching(

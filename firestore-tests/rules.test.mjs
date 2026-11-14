@@ -8,7 +8,7 @@ import {
   initializeTestEnvironment, assertFails, assertSucceeds,
 } from '@firebase/rules-unit-testing';
 import {
-  doc, setDoc, getDoc, getDocs, deleteDoc, collection, Timestamp,
+  doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, query, where, limit, Timestamp,
 } from 'firebase/firestore';
 
 const OWNER = 'ownerA';
@@ -156,4 +156,98 @@ test('C1. 레거시 마이그레이션 지점: inviteCode 없는 composite share
   const self = env.authenticatedContext('family').firestore();
   await assertFails(setDoc(doc(self, 'users', 'family', 'sharedAccess', DOCID),
     sharedAccessPayload())); // inviteCode 없음
+});
+
+// ── 새 앱(2.8.14~) 초대 받기 전 과정 — 앱이 보내는 순서·모양 그대로 ─────────────
+// FamilySharingViewModel.joinFamily: 코드로 단건 조회 → 공유 문서(inviteCode 담음) 만들기 → 초대 「사용함」.
+// 문서 모양은 Swift Codable 이 실제로 쓰는 칸 전부(FamilyInvite · SharedBabyAccess — id 칸 포함).
+function appInvite(extra = {}) {
+  return {
+    id: '7D1A0B44-5C2E-4F0B-9E1A-3B2C1D0E9F88', code: CODE, ownerUserId: OWNER, babyId: BABY,
+    babyName: '아기', createdAt: Timestamp.now(), expiresAt: future(), isUsed: false, ...extra,
+  };
+}
+function appSharedAccess(uid, extra = {}) {
+  return {
+    id: DOCID, ownerUserId: OWNER, babyId: BABY, babyName: '아기', role: 'editor',
+    joinedAt: Timestamp.now(), relationship: 'father', inviteCode: CODE, ...extra,
+  };
+}
+
+test('N1. 새 앱 초대 받기 전 과정 — 만들기 → 찾기 → 공유 문서 → 사용함 표시', async () => {
+  const own = env.authenticatedContext(OWNER).firestore();
+  await assertSucceeds(setDoc(doc(own, 'invites', CODE), appInvite()));
+  const fam = env.authenticatedContext('family').firestore();
+  const found = await assertSucceeds(getDoc(doc(fam, 'invites', CODE)));
+  if (!found.exists() || found.data().isUsed !== false) throw new Error('수락자가 초대를 그대로 읽어야 한다');
+  await assertSucceeds(setDoc(doc(fam, 'users', 'family', 'sharedAccess', DOCID), appSharedAccess('family')));
+  await assertSucceeds(updateDoc(doc(fam, 'invites', CODE), { isUsed: true }));
+  // 공유가 실제로 열렸나 — 아기 기록 읽기
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users', OWNER, 'babies', BABY, 'activities', 'a1'), { type: 'diaper' });
+  });
+  await assertSucceeds(getDoc(doc(fam, 'users', OWNER, 'babies', BABY, 'activities', 'a1')));
+});
+
+test('N2. 쓴 코드로 다른 사람이 들어오기 — 공유 문서 만들기 거부', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'invites', CODE), appInvite({ isUsed: true }));
+  });
+  const other = env.authenticatedContext('family2').firestore();
+  await assertFails(setDoc(doc(other, 'users', 'family2', 'sharedAccess', DOCID), appSharedAccess('family2')));
+});
+
+test('N3. 수락자는 「사용함」 칸만 false→true — 다른 칸·되돌리기는 거부', async () => {
+  await seedInvite();
+  const fam = env.authenticatedContext('family').firestore();
+  await assertFails(updateDoc(doc(fam, 'invites', CODE), { expiresAt: Timestamp.fromMillis(Date.now() + 365 * 864e5) }));
+  await assertFails(updateDoc(doc(fam, 'invites', CODE), { isUsed: true, babyId: 'otherBaby' }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), 'invites', CODE), { isUsed: true });
+  });
+  await assertFails(updateDoc(doc(fam, 'invites', CODE), { isUsed: false }));
+});
+
+test('N4. 같은 코드가 이미 남의 초대 — 덮어쓰기 거부(앱은 「초대 코드 생성에 실패」로 다시 만들게 한다)', async () => {
+  await seedInvite(); // OWNER 의 초대
+  const otherOwner = env.authenticatedContext('ownerB').firestore();
+  await assertFails(setDoc(doc(otherOwner, 'invites', CODE),
+    appInvite({ ownerUserId: 'ownerB', babyId: 'babyB' })));
+});
+
+// ── 소유자는 「자기 초대」만 목록으로 볼 수 있다(2026-11-14 보완) ─────────────────────────
+// 2.8.13(손님 판)은 아기 삭제·계정 삭제 끝에 「내가 만든 초대」를 ownerUserId 조건 목록으로 찾아 지운다.
+// 11/11 규칙이 목록을 통째로 막아 그 조회가 던지고 → 아기 삭제가 「실패」로 뜨고 사진 정리를 건너뛰었다.
+// 열거 구멍(남의 초대 수집)은 계속 닫혀 있어야 한다 — 조건이 「나」인 목록만 연다.
+test('O1. 소유자가 자기 초대를 목록으로(ownerUserId == 나) — 허용', async () => {
+  await seedInvite();
+  const own = env.authenticatedContext(OWNER).firestore();
+  await assertSucceeds(getDocs(query(collection(own, 'invites'), where('ownerUserId', '==', OWNER))));
+});
+
+test('O2. 소유자가 그 아기의 초대를 목록으로 찾아 지우기 — 허용', async () => {
+  await seedInvite();
+  const own = env.authenticatedContext(OWNER).firestore();
+  await assertSucceeds(getDocs(query(collection(own, 'invites'),
+    where('ownerUserId', '==', OWNER), where('babyId', '==', BABY))));
+  await assertSucceeds(deleteDoc(doc(own, 'invites', CODE)));
+});
+
+test('O3. 침입자가 남의 ownerUserId 로 목록 — 거부', async () => {
+  await seedInvite();
+  const intr = env.authenticatedContext('intruder').firestore();
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('ownerUserId', '==', OWNER))));
+});
+
+test('O4. 침입자가 code·isUsed 조건으로 목록 — 거부', async () => {
+  await seedInvite();
+  const intr = env.authenticatedContext('intruder').firestore();
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('code', '==', CODE))));
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('isUsed', '==', false), limit(1))));
+});
+
+test('O5. 로그인 없이 자기 것처럼 목록 — 거부', async () => {
+  await seedInvite();
+  const anon = env.unauthenticatedContext().firestore();
+  await assertFails(getDocs(query(collection(anon, 'invites'), where('ownerUserId', '==', OWNER))));
 });

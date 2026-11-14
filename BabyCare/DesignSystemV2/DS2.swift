@@ -84,6 +84,20 @@ enum DS2 {
         static let caption2 = SwiftUI.Font.caption2
     }
 
+    // MARK: - IconSize (SF Symbol 점 크기 — 글자 스타일이 아니라 그림 크기라 Font 토큰과 따로 · 2026-11-14)
+    enum IconSize {
+        /// 첫 화면 큰 상징(온보딩 하트 원 안)
+        static let hero: CGFloat = 72
+        /// 로그인 브랜드 하트
+        static let brand: CGFloat = 64
+        /// 시트 머리 그림(비밀번호 재설정 열쇠)
+        static let sheetHeader: CGFloat = 40
+        /// 결과 그림(메일 보냈어요 체크)
+        static let result: CGFloat = 36
+        /// 줄 안 작은 상태 그림(검진 완료 체크)
+        static let inlineStatus: CGFloat = 13
+    }
+
     // MARK: - Shadow
     struct Shadow {
         let color: SwiftUI.Color

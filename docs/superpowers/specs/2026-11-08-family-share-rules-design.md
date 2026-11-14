@@ -77,7 +77,7 @@
 
 ## 코드 리뷰 반영 (2026-11-08, 독립 리뷰어)
 
-- **C1 (Critical) — 레거시 UUID sharedAccess 마이그레이션 소멸**: `fetchSharedAccess`(FirestoreService+Family.swift)가 2026-03-23(313e01c) 이전 UUID-keyed 공유를 composite 로 옮길 때 비대기 `setData(from:)` 를 썼다. 강화된 create 규칙이 inviteCode 없는 composite 를 거부하는데 비대기라 catch 가 안 돌고, 바로 뒤 `await delete()` 로 원본만 지워져 **공유가 소멸**. → `await` 로 고쳐 거부를 잡고 원본 보존(소멸 방지). 레거시 가족을 **되살리는 것**은 아래 배포 절차 ①(서버 마이그레이션).
+- **C1 (Critical) — 레거시 UUID sharedAccess 마이그레이션 소멸**: `fetchSharedAccess`(FirestoreService+Family.swift)가 2026-03-23(313e01c) 이전 UUID-keyed 공유를 composite 로 옮길 때 비대기 `setData(from:)` 를 썼다. 강화된 create 규칙이 inviteCode 없는 composite 를 거부하는데 비대기라 catch 가 안 돌고, 바로 뒤 `await delete()` 로 원본만 지워져 **공유가 소멸**. → `await` 로 고쳐 거부를 잡고 원본 보존(소멸 방지). ⚠️ 2026-11-14 정정: `setData(from:)`(Codable 판)는 동기라 `await` 가 아무것도 기다리지 않았다 — 거부는 계속 삼켜졌다. 서버 확인 쓰기(`setDataConfirmed`)로 다시 고침. 레거시 가족을 **되살리는 것**은 아래 배포 절차 ①(서버 마이그레이션).
 - **I1 (Important) — 삭제 시 invites 잔존**: 만료(`expiresAt`)는 사용 불가일 뿐 문서 삭제가 아니다(TTL 정책 부재 확인). 계정/아기 삭제 시 babyName 이 영구 잔존. → 배포 절차 ②(TTL 정책)로 해소.
 - **I2 (Important) — create 거부 안 보임**: `saveSharedAccess`·`saveInvite` 가 비대기 `setData` 라 서버 거부를 앱이 성공으로 오인. → `await` 로 고침.
 - Minor: code 충돌 재시도 없음(M1, await 로 표면화됨) · get 단건 brute-force(M2, 비범위) · markInviteUsed best-effort(M3) · owner 취소 불가(M4, 기존) · 테스트 갭(M5, 하위호환 update/delete 테스트 추가).
@@ -95,7 +95,7 @@ FIREBASE_SERVICE_ACCOUNT="$SA" node migrate-sharedaccess-composite.mjs --apply  
 
 **② (I1) invites TTL 정책 — 만료 초대 자동 삭제**
 ```bash
-gcloud firestore fields ttl update expiresAt --collection-group=invites --enable-ttl --project=babycare-allcare
+gcloud firestore fields ttls update expiresAt --collection-group=invites --enable-ttl --project=babycare-allcare   # ⚠️ `ttls`(복수) · 결제(Blaze) 켜진 프로젝트만 — 2026-11-10 「billing disabled」로 막힘 → 앱의 deleteMyInvites 로 대신(2026-11-14)
 ```
 (또는 Firebase 콘솔 › Firestore › TTL 에서 `invites.expiresAt` 등록.)
 
@@ -108,3 +108,13 @@ make deploy-rules   # firestore.rules (idempotent)
 **참고**: 옛 미사용 초대(문서ID=UUID)는 새 규칙에서 수락 불가 → 재발급 필요. 라이브 미사용 수는 ①의 dry-run 출력(`invites` 아님 — 별도 확인 시 count 스크립트)으로 파악.
 
 승인 전까지 로컬만. push·커밋·배포 모두 PO 승인.
+
+## 2026-11-14 보완 — 소유자는 「자기 초대」만 목록으로 (미배포 · 배포는 PO 승인)
+
+- 사실(11/14 에뮬레이터): 11/11 배포 뒤 2.8.13(손님 판)의 **아기 삭제 끝 초대 정리 조회**(ownerUserId·babyId 조건 목록)가
+  `allow list: if false` 에 막혀 던졌다 → 아기는 지워졌는데 「아기 삭제에 실패했습니다.」 + 목록에 다시 뜸 + 사진 정리 건너뜀.
+  계정 삭제 끝의 같은 조회도 막혔다(계정 삭제는 그와 별개로 3월부터 기록을 못 지운다 — 앱 고침은 2.8.14).
+- 고침: `allow list: if request.auth != null && resource.data.ownerUserId == request.auth.uid;`
+  조건이 「나」인 목록만 열린다 — 남의 초대 열거(원래 구멍)는 계속 막힌다(시험 3·O3·O4·O5).
+- 시험: firestore-tests O1~O5 · 규칙을 일부러 느슨하게 바꾼 두 판(로그인만 하면 전부 · 로그인 없이)에서 각각 빨강 확인.
+- 배포 순서: 규칙을 **푸는** 쪽이라 앱보다 먼저 나가도 어느 판에도 해가 없다(2.8.13 아기 삭제가 바로 살아난다).

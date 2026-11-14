@@ -96,18 +96,28 @@ struct TripBookingEditSheet: View {
         }
         TripEntryBand()
         TripEntrySection(title: "인수 장소") {
-            TripPlaceField(title: "인수 장소", text: text(\.pickupPlace), choices: vm.entryPlaces, search: search)
+            TripPlaceField(title: "인수 장소", text: rentalPlace(.pickup), choices: vm.entryPlaces, search: search) { pick in
+                draft = TripBookingForm.pickingRentalPlace(pick, at: .pickup, into: draft)
+            }
             TripWhenField(timeTitle: "인수 시각", days: vm.days, value: $draft.pickup, calendar: cal)
         }
         TripEntryBand()
         TripEntrySection(title: "반납 장소") {
-            TripPlaceField(title: "반납 장소", text: text(\.returnPlace), choices: vm.entryPlaces, search: search)
+            TripPlaceField(title: "반납 장소", text: rentalPlace(.carReturn), choices: vm.entryPlaces, search: search) { pick in
+                draft = TripBookingForm.pickingRentalPlace(pick, at: .carReturn, into: draft)
+            }
             TripWhenField(timeTitle: "반납 시각", days: vm.days, value: $draft.carReturn, calendar: cal)
         }
         TripEntryBand()
         TripEntrySection(title: "무료 취소") {
             TripFreeCancelChips(anchor: draft.pickup, value: $draft.freeCancel, calendar: cal)
         }
+    }
+
+    /// 인수·반납 장소 칸 — 칩·직접 입력으로 다른 이름이 되면 그 칸의 주소를 비운다(TripBookingForm).
+    private func rentalPlace(_ spot: TripBookingForm.RentalSpot) -> Binding<String> {
+        Binding(get: { (spot == .pickup ? draft.pickupPlace : draft.returnPlace) ?? "" },
+                set: { draft = TripBookingForm.typingRentalPlace($0.isEmpty ? nil : $0, at: spot, into: draft) })
     }
 
     private func text(_ kp: WritableKeyPath<TripBooking, String?>) -> Binding<String> {
@@ -153,6 +163,12 @@ struct TripMoveEditSheet: View {
             && hasStart
     }
 
+    /// 출발지·도착지 칸 — 칩·직접 입력으로 다른 이름이 되면 그 칸의 주소를 비운다(TripBookingForm).
+    private func movePlace(_ end: TripBookingForm.MoveEnd) -> Binding<String> {
+        Binding(get: { end == .from ? draft.fromLabel : draft.toLabel },
+                set: { draft = TripBookingForm.typingMovePlace($0, at: end, into: draft) })
+    }
+
     private var minutes: Binding<Int> {
         Binding(get: { draft.minutes }, set: {
             draft.minutes = $0
@@ -166,10 +182,14 @@ struct TripMoveEditSheet: View {
             dismiss()
         } content: {
             TripEntrySection(title: "출발지") {
-                TripPlaceField(title: "출발지", text: $draft.fromLabel, choices: vm.entryPlaces, search: search)
+                TripPlaceField(title: "출발지", text: movePlace(.from), choices: vm.entryPlaces, search: search) { pick in
+                    draft = TripBookingForm.pickingMovePlace(pick, at: .from, into: draft)
+                }
             }
             TripEntrySection(title: "도착지", top: 0) {
-                TripPlaceField(title: "도착지", text: $draft.toLabel, choices: vm.entryPlaces, search: search)
+                TripPlaceField(title: "도착지", text: movePlace(.to), choices: vm.entryPlaces, search: search) { pick in
+                    draft = TripBookingForm.pickingMovePlace(pick, at: .to, into: draft)
+                }
             }
             TripEntryBand()
             TripEntrySection(title: "출발") {
@@ -212,7 +232,7 @@ struct TripMoveEditSheet: View {
             }
         }
         .task { await search.bias(toCity: vm.trip.city) }
-        .task(id: "\(draft.fromLabel)\u{1F}\(draft.toLabel)") {
+        .task(id: "\(TripBookingForm.routeText(for: draft, at: .from))\u{1F}\(TripBookingForm.routeText(for: draft, at: .to))") {
             await estimate()
         }
     }
@@ -243,8 +263,9 @@ struct TripMoveEditSheet: View {
 
     /// 두 곳이 정해지면 차 시간 — 적는 중에는 묻지 않는다(0.6초 쉼).
     private func estimate() async {
-        let from = draft.fromLabel.trimmingCharacters(in: .whitespaces)
-        let to = draft.toLabel.trimmingCharacters(in: .whitespaces)
+        // 찾아 고른 곳은 주소로 묻는다(같은 이름이 다른 지역에도 있다 · 2026-11-14)
+        let from = TripBookingForm.routeText(for: draft, at: .from).trimmingCharacters(in: .whitespaces)
+        let to = TripBookingForm.routeText(for: draft, at: .to).trimmingCharacters(in: .whitespaces)
         guard !from.isEmpty, !to.isEmpty else {
             route = nil
             routeMissing = false

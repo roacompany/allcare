@@ -83,7 +83,7 @@ struct TodaySummaryWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://dashboard"))
+        .widgetURL(WidgetLink.home.url)
     }
 
     // MARK: Medium
@@ -163,7 +163,7 @@ struct TodaySummaryWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://dashboard"))
+        .widgetURL(WidgetLink.home.url)
     }
 
     // MARK: - Components

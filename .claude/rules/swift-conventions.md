@@ -5,6 +5,7 @@ globs: "**/*.swift"
 # Swift Conventions
 
 - Swift 6.0, iOS 17+, 100% SF Symbols
+- **SF Symbol 이름은 지원 판(iOS 17)에 있는 것만** — 없는 이름·나중 판 이름은 오류 없이 빈칸으로 그려진다(🩸 2026-11-14 후기 이유식 `bowl.fill` · iOS 18 이름 6곳). 새 이름은 같은 그림의 옛 이름(별칭)이 있으면 그것을, 없으면 `SFSymbolFallback.prefer("새", else: "옛")`. 검사 = `make symbols-check`.
 - 모델: `Identifiable, Codable, Hashable` 채택, 신규 필드 optional
 
 ## Forward-compat: `Activity.ActivityType.unknown` 센티넬 (2026-06-09)

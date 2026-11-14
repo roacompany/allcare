@@ -6,7 +6,7 @@ extension PatternReportView {
 
     func healthSection(_ h: HealthPattern) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("건강", systemImage: "heart.text.clipboard.fill")
+            Label("건강", systemImage: SFSymbolFallback.prefer("heart.text.clipboard.fill", else: "heart.text.square.fill"))
                 .font(.headline)
                 .foregroundStyle(healthColor)
 

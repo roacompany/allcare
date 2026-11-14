@@ -16,14 +16,17 @@ final class AuthViewModel {
 
     private let authService = AuthService.shared
     private let migration: AuthMigrationProviding
+    private let accountData: AccountDataErasing
     private let storageService: StorageServiceProviding
     nonisolated(unsafe) private var listenerHandle: AuthStateDidChangeListenerHandle?
 
     init(
         migration: AuthMigrationProviding = FirestoreService.shared,
+        accountData: AccountDataErasing = FirestoreService.shared,
         storageService: StorageServiceProviding = StorageService.shared
     ) {
         self.migration = migration
+        self.accountData = accountData
         self.storageService = storageService
         // UI 테스트 모드: Firebase 없이 인증 완료 상태로 시작
         if CommandLine.arguments.contains("UI_TESTING") {
@@ -125,46 +128,28 @@ final class AuthViewModel {
     func deleteAccount() async {
         isLoading = true
         errorMessage = nil
-        do {
-            // 1. Auth 계정 먼저 삭제 (requiresRecentLogin 에러 발생 가능)
-            //    실패하면 데이터 손실 없이 중단됨
-            let userId = currentUserId
-            try await authService.deleteAccount()
-            // 2. Auth 삭제 성공 후 데이터 정리 (실패해도 계정은 이미 삭제됨)
-            await FCMTokenService.shared.deleteToken()
-            if let userId {
-                do {
-                    try await deleteUserData(userId: userId)
-                } catch {
-                    logSilent("계정 데이터 정리 실패 (Auth는 이미 삭제됨)", error: error, logger: AppLogger.auth)
-                }
-                // Storage 사진 정리 (PII 잔존 방지) — Firestore 정리와 독립 시도
-                do {
-                    try await storageService.deleteUserStorage(userId: userId)
-                } catch {
-                    logSilent("계정 Storage 사진 정리 실패 (Auth는 이미 삭제됨)", error: error, logger: AppLogger.storage)
-                }
-            }
+        // 기록 먼저, 로그인 나중 — 순서는 AccountDeletion 이 쥔다.
+        // (로그인을 먼저 지우면 그 뒤 정리 요청이 로그인 없이 나가 규칙에 막힌다 — 3월~2.8.13 기록이 하나도 안 지워졌다)
+        let deletion = AccountDeletion(
+            auth: authService.accountAuth,
+            data: accountData,
+            photos: storageService,
+            pushToken: { await FCMTokenService.shared.deleteToken() },
+            now: { Date() }
+        )
+        switch await deletion.run() {
+        case .deleted:
             // Auth state listener가 isAuthenticated=false로 전환 → ContentView가 LoginView 표시
             // 하지만 싱글톤 ViewModel들의 상태는 남아있으므로 명시적 초기화
             clearForm()
             isAuthenticated = false
             currentUserId = nil
-        } catch {
-            let nsError = error as NSError
-            if nsError.code == AuthErrorCode.requiresRecentLogin.rawValue {
-                errorMessage = "보안을 위해 재로그인이 필요합니다. 로그아웃 후 다시 로그인해주세요."
-            } else {
-                logSilent("계정 삭제 실패", error: error, logger: AppLogger.auth)
-                errorMessage = "계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
-            }
+        case .needsRecentLogin:
+            errorMessage = "보안을 위해 재로그인이 필요합니다. 로그아웃 후 다시 로그인해주세요."
+        case .failed:
+            errorMessage = "계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요."
         }
         isLoading = false
-    }
-
-    /// 계정 + 모든 서브컬렉션 데이터 삭제. 실제 batch 로직은 FirestoreService+User 에 위치.
-    private func deleteUserData(userId: String) async throws {
-        try await migration.deleteAllUserData(userId: userId)
     }
 
     /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션. 실제 batch 로직은 FirestoreService+User 에 위치.

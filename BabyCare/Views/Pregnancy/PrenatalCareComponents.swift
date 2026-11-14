@@ -275,7 +275,7 @@ struct PrenatalScheduleNodeRow: View {
         switch progress {
         case .done:
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13))
+                .font(.system(size: DS2.IconSize.inlineStatus))
                 .foregroundStyle(.green)
         case .logged:
             Circle().fill(DS2.Color.pregnancy).frame(width: 12, height: 12)

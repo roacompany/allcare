@@ -30,9 +30,36 @@ struct FamilyInvite: Identifiable, Codable, Hashable {
         self.isUsed = isUsed
     }
 
+    /// 초대 코드에 쓰는 글자 — 헷갈리는 I·O·0·1 은 뺐다. 만들기·고르기·거르기가 모두 이 한 곳을 본다.
+    static let codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    static let codeLength = 6
+
     static func generateCode() -> String {
-        let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return String((0..<6).map { _ in chars.randomElement()! })
+        String((0..<codeLength).map { _ in codeAlphabet.randomElement()! })
+    }
+
+    /// 초대 문서 ID 로 써도 되는 코드인가 — 정확히 6글자 · 모두 `codeAlphabet`.
+    /// 2026-11-11 규칙부터 문서 ID = 코드라서 입력이 그대로 경로가 된다. 「/」가 섞이면 경로가 바뀌고,
+    /// 홀수 경로는 Firestore SDK 가 잡을 수 없는 예외(NSException)로 앱을 끈다 → 조회 전에 반드시 거른다.
+    static func isWellFormedCode(_ code: String) -> Bool {
+        code.count == codeLength && code.allSatisfy { codeAlphabet.contains($0) }
+    }
+
+    /// 받는 쪽 입력 칸 정리(onChange 에서 다시 불려도 같은 값 — 이미 정리된 글자는 그대로).
+    /// - 공유 문구(`shareText()`)를 통째로 붙여 넣으면 그 안의 코드 덩어리만 남긴다.
+    /// - 그 밖엔 영문 대문자·숫자만 남기고 6글자까지. 「/」·기호·한글은 칸에 남지 않는다.
+    static func codeInput(from raw: String) -> String {
+        let upper = raw.uppercased()
+        let chunks = upper.split { !isASCIILetterOrDigit($0) }.map(String.init)
+        if let pasted = chunks.last(where: isWellFormedCode) {
+            return pasted
+        }
+        return String(upper.filter(isASCIILetterOrDigit).prefix(codeLength))
+    }
+
+    private static func isASCIILetterOrDigit(_ character: Character) -> Bool {
+        guard character.isASCII else { return false }
+        return character.isLetter || character.isNumber
     }
 
     /// 공유 시트로 보내는 초대 문구. 받는 사람은 여기 적힌 이름으로 앱스토어를 검색하므로

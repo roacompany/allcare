@@ -156,7 +156,7 @@ struct PregnancyDDayWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://pregnancy"))
+        .widgetURL(WidgetLink.pregnancy.url)
     }
 
     // MARK: Medium
@@ -227,7 +227,7 @@ struct PregnancyDDayWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://pregnancy"))
+        .widgetURL(WidgetLink.pregnancy.url)
     }
 
     // MARK: Lock Screen Circular
@@ -243,7 +243,7 @@ struct PregnancyDDayWidgetView: View {
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(.pink)
-            .widgetURL(URL(string: "babycare://pregnancy"))
+            .widgetURL(WidgetLink.pregnancy.url)
         } else {
             Gauge(value: 0.0) {
                 Image(systemName: "heart")

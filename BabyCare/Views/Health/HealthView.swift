@@ -164,7 +164,7 @@ struct HealthView: View {
                                 CryAnalysisView()
                             } label: {
                                 HealthSectionCard(
-                                    icon: "waveform.badge.microphone",
+                                    icon: "waveform.and.mic", // 같은 그림의 옛 이름(iOS 15~) — 새 이름은 iOS 18 부터
                                     iconColor: AppColors.indigoColor,
                                     title: "울음 분석",
                                     subtitle: "아기 울음소리 패턴 분석 (베타)",
@@ -282,6 +282,7 @@ struct HealthView: View {
                     await healthVM.loadAll(userId: dataUserId, babyId: baby.id)
                 }
             }
+            .modifier(OpenGrowthFromWidget())
         }
     }
 
@@ -505,5 +506,28 @@ private struct HealthSectionCard: View {
         .padding(16)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+/// 성장 위젯 → 건강 화면 → 성장기록 push(1회성 깃발 소비). 설정의 공지 푸시(pendingOpenFromPush)와 같은 꼴.
+/// onAppear = 건강 화면이 처음 열릴 때 · onChange = 이미 건강 화면에 있을 때.
+private struct OpenGrowthFromWidget: ViewModifier {
+    @Environment(HealthViewModel.self) private var healthVM
+    @State private var showGrowth = false
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(isPresented: $showGrowth) {
+                GrowthView()
+            }
+            .onAppear(perform: consume)
+            .onChange(of: healthVM.pendingOpenGrowth) { _, _ in consume() }
+    }
+
+    private func consume() {
+        guard healthVM.pendingOpenGrowth else { return }
+        healthVM.pendingOpenGrowth = false
+        // 건강 화면이 처음 그려지는 바로 그 순간의 push 는 SwiftUI 가 버릴 때가 있다 — 한 박자 뒤에 연다(2026-11-14 검토)
+        Task { @MainActor in showGrowth = true }
     }
 }

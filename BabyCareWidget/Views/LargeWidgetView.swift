@@ -91,13 +91,13 @@ struct LargeWidgetView: View {
 
             // MARK: 액션 버튼
             HStack(spacing: 8) {
-                Link(destination: URL(string: "babycare://record/feeding")!) {
+                Link(destination: WidgetLink.recordFeeding.url) {
                     actionButton(icon: "cup.and.saucer.fill", label: "수유", color: WidgetColors.feeding(colorScheme))
                 }
-                Link(destination: URL(string: "babycare://record/diaper")!) {
+                Link(destination: WidgetLink.recordDiaper.url) {
                     actionButton(icon: "humidity.fill", label: "기저귀", color: WidgetColors.diaper(colorScheme))
                 }
-                Link(destination: URL(string: "babycare://record")!) {
+                Link(destination: WidgetLink.record.url) {
                     actionButton(icon: "plus", label: "기록", color: WidgetColors.sleep(colorScheme))
                 }
             }

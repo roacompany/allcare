@@ -22,6 +22,11 @@ final class AuthService: Sendable {
         currentUser != nil
     }
 
+    /// 계정 삭제(AccountDeletion)가 쓰는 이 앱의 로그인.
+    var accountAuth: FirebaseAccountAuth {
+        FirebaseAccountAuth(auth: Auth.auth())
+    }
+
     func signUp(email: String, password: String) async throws -> User {
         let result = try await Auth.auth().createUser(withEmail: email, password: password)
         return result.user
@@ -51,10 +56,6 @@ final class AuthService: Sendable {
         let changeRequest = user.createProfileChangeRequest()
         changeRequest.displayName = name
         try await changeRequest.commitChanges()
-    }
-
-    func deleteAccount() async throws {
-        try await currentUser?.delete()
     }
 
     func addStateListener(_ handler: @escaping @Sendable (User?) -> Void) -> AuthStateDidChangeListenerHandle {

@@ -878,6 +878,14 @@ final class BabyCareTests: XCTestCase {
         XCTAssertEqual(PumpingAnalytics.bucket(500), "180+")
     }
 
+    /// pumping_recorded 값 — 유축을 저장하는 두 길(수유 기록 화면 · 통합 기록 시트)이 같은 함수로 같은 값을 보낸다.
+    /// 6/10 GA4 감사 #8: 길마다 값이 달랐다(양 구간·좌우 누락) — 지금은 맞지만 두 곳이 같은 묶음을 따로 적어 다시 어긋날 수 있었다.
+    /// 양은 구간으로만(원래 mL 은 보내지 않는다 · 민감 건강정보).
+    func testPumpingRecordedParameters_bucketAndSideOnly() {
+        XCTAssertEqual(PumpingAnalytics.recordedParameters(amount: 130, side: .left), ["amount_bucket": "120-179", "side": "L"])
+        XCTAssertEqual(PumpingAnalytics.recordedParameters(amount: nil, side: .both), ["amount_bucket": "unknown", "side": "B"])
+    }
+
     // MARK: - Consecutive Fever Days Tests
 
     func testConsecutiveFeverDays_threeDays() {
