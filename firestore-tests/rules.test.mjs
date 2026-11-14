@@ -8,7 +8,7 @@ import {
   initializeTestEnvironment, assertFails, assertSucceeds,
 } from '@firebase/rules-unit-testing';
 import {
-  doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, Timestamp,
+  doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, query, where, limit, Timestamp,
 } from 'firebase/firestore';
 
 const OWNER = 'ownerA';
@@ -213,4 +213,41 @@ test('N4. 같은 코드가 이미 남의 초대 — 덮어쓰기 거부(앱은 �
   const otherOwner = env.authenticatedContext('ownerB').firestore();
   await assertFails(setDoc(doc(otherOwner, 'invites', CODE),
     appInvite({ ownerUserId: 'ownerB', babyId: 'babyB' })));
+});
+
+// ── 소유자는 「자기 초대」만 목록으로 볼 수 있다(2026-11-14 보완) ─────────────────────────
+// 2.8.13(손님 판)은 아기 삭제·계정 삭제 끝에 「내가 만든 초대」를 ownerUserId 조건 목록으로 찾아 지운다.
+// 11/11 규칙이 목록을 통째로 막아 그 조회가 던지고 → 아기 삭제가 「실패」로 뜨고 사진 정리를 건너뛰었다.
+// 열거 구멍(남의 초대 수집)은 계속 닫혀 있어야 한다 — 조건이 「나」인 목록만 연다.
+test('O1. 소유자가 자기 초대를 목록으로(ownerUserId == 나) — 허용', async () => {
+  await seedInvite();
+  const own = env.authenticatedContext(OWNER).firestore();
+  await assertSucceeds(getDocs(query(collection(own, 'invites'), where('ownerUserId', '==', OWNER))));
+});
+
+test('O2. 소유자가 그 아기의 초대를 목록으로 찾아 지우기 — 허용', async () => {
+  await seedInvite();
+  const own = env.authenticatedContext(OWNER).firestore();
+  await assertSucceeds(getDocs(query(collection(own, 'invites'),
+    where('ownerUserId', '==', OWNER), where('babyId', '==', BABY))));
+  await assertSucceeds(deleteDoc(doc(own, 'invites', CODE)));
+});
+
+test('O3. 침입자가 남의 ownerUserId 로 목록 — 거부', async () => {
+  await seedInvite();
+  const intr = env.authenticatedContext('intruder').firestore();
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('ownerUserId', '==', OWNER))));
+});
+
+test('O4. 침입자가 code·isUsed 조건으로 목록 — 거부', async () => {
+  await seedInvite();
+  const intr = env.authenticatedContext('intruder').firestore();
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('code', '==', CODE))));
+  await assertFails(getDocs(query(collection(intr, 'invites'), where('isUsed', '==', false), limit(1))));
+});
+
+test('O5. 로그인 없이 자기 것처럼 목록 — 거부', async () => {
+  await seedInvite();
+  const anon = env.unauthenticatedContext().firestore();
+  await assertFails(getDocs(query(collection(anon, 'invites'), where('ownerUserId', '==', OWNER))));
 });
