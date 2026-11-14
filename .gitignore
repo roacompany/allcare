@@ -41,3 +41,7 @@ Pods/
 
 # SDD 작업 스크래치(계획 실행 원장·리뷰 패키지)
 .superpowers/
+
+# Firebase 에뮬레이터 로그(make emulator-test 가 레포 뿌리에서 띄운다)
+firebase-debug.log
+firestore-debug.log
