@@ -107,6 +107,8 @@ struct CapturedBooking: Identifiable, Equatable, Sendable {
     var selected: Bool
     /// 항공편 날 — 시각을 몰라도 날짜는 안다(시간표로 비는 칸을 채울 때 쓴다).
     var day: Date?
+    /// 「이미 있음」이면 그 여행의 어느 예약과 같은가 — 넣을 때 새로 더하지 않고 그 예약을 고친다(2026-11-14).
+    var existingBookingId: String? = nil
 }
 
 // MARK: - 날짜 · 시각 읽기 — 순수 함수
@@ -379,6 +381,11 @@ enum CaptureBookingBuilder {
             }
             return i
         }
+    }
+
+    /// 「이미 있음」 예약을 넣을 때 — 있던 예약을 캡처(사람이 고친 값)로 고친다. RED 판: 고치기 전 동작 그대로(캡처를 그대로).
+    static func merged(_ captured: TripBooking, into existing: TripBooking, calendar: Calendar) -> TripBooking {
+        captured
     }
 
     /// 확인 필요 칸 — 예약만 보고(사람이 고친 뒤에도 같은 판정).
