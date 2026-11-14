@@ -15,11 +15,15 @@ struct TodoView: View {
                                     todoVM.startEditing(todo)
                                 }
                         }
+                        // 지연된 할 일은 이 칸에만 나온다 — 밀어서 지우기도 여기서(전엔 「할 일」 칸에 겹쳐 나온 쪽으로만 지웠다)
+                        .onDelete { indexSet in
+                            delete(indexSet, from: todoVM.overdueTodos)
+                        }
                     }
                 }
 
-                Section("할 일 (\(todoVM.pendingTodos.count))") {
-                    ForEach(todoVM.pendingTodos) { todo in
+                Section("할 일 (\(todoVM.upcomingTodos.count))") {
+                    ForEach(todoVM.upcomingTodos) { todo in
                         TodoRowView(todo: todo)
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -27,13 +31,7 @@ struct TodoView: View {
                             }
                     }
                     .onDelete { indexSet in
-                        Task {
-                            guard let userId = authVM.currentUserId else { return }
-                            for index in indexSet {
-                                let todo = todoVM.pendingTodos[index]
-                                await todoVM.deleteTodo(todo, userId: userId)
-                            }
-                        }
+                        delete(indexSet, from: todoVM.upcomingTodos)
                     }
                 }
 
@@ -121,6 +119,17 @@ struct TodoView: View {
                 guard let userId = authVM.currentUserId else { return }
                 await todoVM.loadTodos(userId: userId)
             }
+    }
+
+    /// 밀어서 지우기 — 지울 줄은 그 칸이 보여 준 목록에서 고른다(칸마다 목록이 달라 다른 목록의 번호로 고르면 엉뚱한 할 일이 지워진다).
+    private func delete(_ indexSet: IndexSet, from shown: [TodoItem]) {
+        let targets = indexSet.compactMap { shown.indices.contains($0) ? shown[$0] : nil }
+        Task {
+            guard let userId = authVM.currentUserId else { return }
+            for todo in targets {
+                await todoVM.deleteTodo(todo, userId: userId)
+            }
+        }
     }
 }
 

@@ -33,21 +33,29 @@ final class TodoViewModel {
         showCompleted ? completedTodosCache : []
     }
 
+    /// 「지연됨」 칸 — 기한이 지난 안 끝난 할 일.
     var overdueTodos: [TodoItem] {
-        let now = Date()
-        return pendingTodos.filter { todo in
-            guard let due = todo.dueDate else { return false }
-            return due < now
-        }
+        Self.partition(pendingTodos, now: Date()).overdue
     }
 
-    /// 안 끝난 할 일을 「지연됨」과 「할 일」로 나눈다. RED 판: 고치기 전 동작 그대로(할 일 = 안 끝난 것 전부 — 지연된 것도 다시).
+    /// 「할 일」 칸 — 기한 전이거나 기한 없는 안 끝난 할 일(지연된 것은 「지연됨」 칸에만).
+    var upcomingTodos: [TodoItem] {
+        Self.partition(pendingTodos, now: Date()).upcoming
+    }
+
+    /// 안 끝난 할 일을 「지연됨」과 「할 일」로 나눈다 — 한 할 일은 한 칸에만(전엔 지연된 것이 두 칸에 다 나왔다).
+    /// 칸 안 순서는 넣은 순서(기한 순) 그대로.
     nonisolated static func partition(_ pending: [TodoItem], now: Date) -> (overdue: [TodoItem], upcoming: [TodoItem]) {
-        let overdue = pending.filter { todo in
-            guard let due = todo.dueDate else { return false }
-            return due < now
+        var overdue: [TodoItem] = []
+        var upcoming: [TodoItem] = []
+        for todo in pending {
+            if let due = todo.dueDate, due < now {
+                overdue.append(todo)
+            } else {
+                upcoming.append(todo)
+            }
         }
-        return (overdue, pending)
+        return (overdue, upcoming)
     }
 
     var isFormValid: Bool {
