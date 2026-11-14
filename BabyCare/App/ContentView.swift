@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(ProductViewModel.self) private var productVM
     @Environment(AnnouncementViewModel.self) private var announcementVM
     @Environment(PregnancyViewModel.self) private var pregnancyVM
+    @Environment(HealthViewModel.self) private var healthVM
     @State private var selectedTab: Int = {
         if let tabArg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("UI_TESTING_TAB=") }),
            let tab = Int(tabArg.replacingOccurrences(of: "UI_TESTING_TAB=", with: "")) {
@@ -308,11 +309,16 @@ struct ContentView: View {
 
         switch destination {
         case .record, .recordCategory:
-            initialRecordingCategory = nil
+            // 위젯의 수유·수면·기저귀 단추는 그 칸으로 연다(칸 없는 「기록」은 기본 칸)
+            initialRecordingCategory = destination.recordingCategory
             showRecording = true
 
-        case .home, .growth:
-            break // RED 판: 고치기 전 동작 그대로(앱만 열린다)
+        case .home:
+            selectedTab = 0
+
+        case .growth:
+            openHealthTab()
+            healthVM.pendingOpenGrowth = true // 건강 화면이 플래그를 소비해 성장기록까지 push
 
         case .quickSave(let quickType):
             guard let currentUserId = authVM.currentUserId,
@@ -389,6 +395,16 @@ struct ContentView: View {
     }
 
     // MARK: - Main Tab View (홈 | 캘린더 | + | 건강 | 설정) · 여행 칸이 켜지면 (홈 | 캘린더 | + | 여행 | 더 보기)
+
+    /// 건강 화면으로 — 여행 칸이 켜져 있으면 「더 보기 > 건강」.
+    private func openHealthTab() {
+        if FeatureFlags.travelEnabled {
+            moreSelection = .health
+            selectedTab = 6
+        } else {
+            selectedTab = 3
+        }
+    }
 
     /// 설정 화면으로 — 여행 칸이 켜져 있으면 「더 보기 > 설정」.
     private func openSettingsTab() {

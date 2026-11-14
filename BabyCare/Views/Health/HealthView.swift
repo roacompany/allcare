@@ -282,6 +282,7 @@ struct HealthView: View {
                     await healthVM.loadAll(userId: dataUserId, babyId: baby.id)
                 }
             }
+            .modifier(OpenGrowthFromWidget())
         }
     }
 
@@ -505,5 +506,27 @@ private struct HealthSectionCard: View {
         .padding(16)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+/// 성장 위젯 → 건강 화면 → 성장기록 push(1회성 깃발 소비). 설정의 공지 푸시(pendingOpenFromPush)와 같은 꼴.
+/// onAppear = 건강 화면이 처음 열릴 때 · onChange = 이미 건강 화면에 있을 때.
+private struct OpenGrowthFromWidget: ViewModifier {
+    @Environment(HealthViewModel.self) private var healthVM
+    @State private var showGrowth = false
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(isPresented: $showGrowth) {
+                GrowthView()
+            }
+            .onAppear(perform: consume)
+            .onChange(of: healthVM.pendingOpenGrowth) { _, _ in consume() }
+    }
+
+    private func consume() {
+        guard healthVM.pendingOpenGrowth else { return }
+        healthVM.pendingOpenGrowth = false
+        showGrowth = true
     }
 }

@@ -25,8 +25,15 @@ enum DeepLinkRouter {
             case diaperWet
         }
 
-        /// 기록 시트를 열 때 미리 고를 칸. RED 판: 고치기 전 동작 그대로(늘 nil — 늘 기본 칸).
-        var recordingCategory: Activity.ActivityCategory? { nil }
+        /// 기록 시트를 열 때 미리 고를 칸(`.recordCategory` 만 — 나머지는 칸을 고르지 않는다).
+        var recordingCategory: Activity.ActivityCategory? {
+            guard case .recordCategory(let category) = self else { return nil }
+            switch category {
+            case .feeding: return .feeding
+            case .sleep: return .sleep
+            case .diaper: return .diaper
+            }
+        }
     }
 
     /// URL → Destination 파싱
@@ -50,6 +57,16 @@ enum DeepLinkRouter {
                 return .quickSave(quickType)
             }
             return nil
+
+        case "dashboard":
+            return .home
+
+        case "health":
+            return pathComponents.first == "growth" ? .growth : nil
+
+        case "pregnancy":
+            // 임신 화면은 꺼져 있다(FeatureFlags.pregnancyModeEnabled) — 홈으로(홈에 임신 카드가 붙는다)
+            return .home
 
         default:
             return nil
