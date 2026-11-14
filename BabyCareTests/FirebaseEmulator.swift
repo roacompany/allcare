@@ -103,14 +103,23 @@ enum FirebaseEmulator {
         let ids = try await send("POST", port: firestorePort, path: documentsPath(docPath) + ":listCollectionIds",
                                  json: ["pageSize": 300])?["collectionIds"] as? [String] ?? []
         for collection in ids {
-            let listed = try await send("GET", port: firestorePort,
-                                        path: documentsPath("\(docPath)/\(collection)") + "?pageSize=300&showMissing=true")
-            for doc in listed?["documents"] as? [[String: Any]] ?? [] {
-                guard let name = doc["name"] as? String,
-                      let range = name.range(of: "/documents/") else { continue }
-                let childPath = String(name[range.upperBound...])
-                found += try await adminDocumentPaths(under: childPath)
-            }
+            var pageToken: String?
+            repeat {
+                var query = "?pageSize=300&showMissing=true"
+                if let pageToken,
+                   let encoded = pageToken.addingPercentEncoding(withAllowedCharacters: .alphanumerics) {
+                    query += "&pageToken=\(encoded)"
+                }
+                let listed = try await send("GET", port: firestorePort,
+                                            path: documentsPath("\(docPath)/\(collection)") + query)
+                for doc in listed?["documents"] as? [[String: Any]] ?? [] {
+                    guard let name = doc["name"] as? String,
+                          let range = name.range(of: "/documents/") else { continue }
+                    let childPath = String(name[range.upperBound...])
+                    found += try await adminDocumentPaths(under: childPath)
+                }
+                pageToken = listed?["nextPageToken"] as? String
+            } while pageToken?.isEmpty == false
         }
         return found
     }
