@@ -64,7 +64,7 @@ struct MediumWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record"))
+        .widgetURL(WidgetLink.record.url)
     }
 
     private func activityRow(icon: String, color: Color, label: String, time: Date?) -> some View {

@@ -45,6 +45,6 @@ struct SmallWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record/feeding"))
+        .widgetURL(WidgetLink.recordFeeding.url)
     }
 }

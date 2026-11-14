@@ -24,7 +24,7 @@ struct EnhancedLockScreenCircularView: View {
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(remaining < 30 ? .orange : .blue)
-            .widgetURL(URL(string: "babycare://record/feeding"))
+            .widgetURL(WidgetLink.recordFeeding.url)
         } else {
             // Overdue 또는 데이터 없음
             Gauge(value: entry.isFeedingOverdue ? 1.0 : 0.0) {
@@ -35,7 +35,7 @@ struct EnhancedLockScreenCircularView: View {
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(entry.isFeedingOverdue ? .red : .gray)
-            .widgetURL(URL(string: "babycare://record/feeding"))
+            .widgetURL(WidgetLink.recordFeeding.url)
         }
     }
 }
@@ -95,7 +95,7 @@ struct EnhancedLockScreenRectangularView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .widgetURL(URL(string: "babycare://dashboard"))
+        .widgetURL(WidgetLink.home.url)
     }
 }
 

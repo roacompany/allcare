@@ -311,6 +311,9 @@ struct ContentView: View {
             initialRecordingCategory = nil
             showRecording = true
 
+        case .home, .growth:
+            break // RED 판: 고치기 전 동작 그대로(앱만 열린다)
+
         case .quickSave(let quickType):
             guard let currentUserId = authVM.currentUserId,
                   let baby = babyVM.selectedBaby else { return }

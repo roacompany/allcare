@@ -84,7 +84,7 @@ struct NextFeedingWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record/feeding"))
+        .widgetURL(WidgetLink.recordFeeding.url)
     }
 
     // MARK: Medium
@@ -164,7 +164,7 @@ struct NextFeedingWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://record/feeding"))
+        .widgetURL(WidgetLink.recordFeeding.url)
     }
 
     private func statRow(icon: String, label: String, value: String) -> some View {

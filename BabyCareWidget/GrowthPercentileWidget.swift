@@ -114,7 +114,7 @@ struct GrowthPercentileWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://health/growth"))
+        .widgetURL(WidgetLink.growth.url)
     }
 
     // MARK: Medium
@@ -209,7 +209,7 @@ struct GrowthPercentileWidgetView: View {
             ContainerRelativeShape()
                 .fill(WidgetGradient.background(colorScheme))
         }
-        .widgetURL(URL(string: "babycare://health/growth"))
+        .widgetURL(WidgetLink.growth.url)
     }
 
     // MARK: - Components

@@ -11,6 +11,10 @@ enum DeepLinkRouter {
         case recordCategory(ActivityCategory)
         /// 빠른 저장 (시트 없이 즉시 기록)
         case quickSave(QuickSaveType)
+        /// 홈 탭 — 「오늘 요약」 위젯 · 잠금 화면 한 줄 · 임신 위젯(임신 화면이 꺼져 있다)
+        case home
+        /// 건강 › 성장기록 — 성장 백분위 위젯
+        case growth
 
         enum ActivityCategory: String {
             case feeding, diaper, sleep
@@ -20,6 +24,9 @@ enum DeepLinkRouter {
             case feedingBreast
             case diaperWet
         }
+
+        /// 기록 시트를 열 때 미리 고를 칸. RED 판: 고치기 전 동작 그대로(늘 nil — 늘 기본 칸).
+        var recordingCategory: Activity.ActivityCategory? { nil }
     }
 
     /// URL → Destination 파싱
