@@ -42,6 +42,9 @@ enum TripRoutePlace {
            let address = nonEmpty(hotel.address) {
             return address
         }
+        if let address = pickedAddress(for: text, in: trip) {
+            return address
+        }
         let lower = text.lowercased()
         if airportWords.contains(where: { lower.contains($0) }) {
             if let a = airports.first(where: { a in a.names.contains { text.contains($0) } }) { return a.query }
@@ -71,6 +74,19 @@ enum TripRoutePlace {
         if let time = booking.depart?.time { return time }
         if let time = booking.arrive?.time { return time }
         return .distantFuture
+    }
+
+    /// 렌터카 인수·반납 · 일정 출발·도착을 찾아 골랐을 때 지닌 주소(같은 이름이 다른 지역에도 있다 · 2026-11-14).
+    private static func pickedAddress(for text: String, in trip: Trip) -> String? {
+        for rental in trip.bookings where rental.kind == .rentalCar {
+            if sameName(rental.pickupPlace, text), let address = nonEmpty(rental.pickupAddress) { return address }
+            if sameName(rental.returnPlace, text), let address = nonEmpty(rental.returnAddress) { return address }
+        }
+        for move in trip.moves {
+            if sameName(move.fromLabel, text), let address = nonEmpty(move.fromAddress) { return address }
+            if sameName(move.toLabel, text), let address = nonEmpty(move.toAddress) { return address }
+        }
+        return nil
     }
 
     private static func sameName(_ name: String?, _ text: String) -> Bool {
