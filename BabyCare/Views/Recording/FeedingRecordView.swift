@@ -12,8 +12,7 @@ struct FeedingRecordView: View {
     let type: Activity.ActivityType
     var onSaved: (() -> Void)? = nil
 
-    @State private var isSaving = false
-    @State private var productCandidates: [BabyProduct] = []
+    @State private var saveFlow = RecordSaveFlow<Void>()
 
     // Save is allowed unless bottle feeding with no amount entered
     private var canSave: Bool {
@@ -50,7 +49,7 @@ struct FeedingRecordView: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            SaveBar(isSaving: isSaving, isEnabled: canSave, color: accentColor, action: save)
+            SaveBar(isSaving: saveFlow.isSaving, isEnabled: canSave, color: accentColor, action: save)
         }
         .onAppear {
             AnalyticsService.shared.trackScreen(AnalyticsScreens.feedRecording)
@@ -83,22 +82,13 @@ struct FeedingRecordView: View {
                 activityVM.selectedFeedingContent = content
             }
         }
-        .sheet(isPresented: Binding(
-            get: { !productCandidates.isEmpty },
-            set: { if !$0 { productCandidates = [] } }
-        )) {
-            ProductPickerSheet(products: productCandidates) { selected in
-                Task {
-                    guard let userId = authVM.currentUserId else { return }
-                    let feedAmount = Int(activityVM.amount)
-                    await productVM.deductFromProduct(selected, userId: userId, recordedAmount: feedAmount)
-                }
-                productCandidates = []
-                isSaving = false
-                onSaved?()
+        .productPicker(flow: $saveFlow, onSelect: { selected in
+            Task {
+                guard let userId = authVM.currentUserId else { return }
+                let feedAmount = Int(activityVM.amount)
+                await productVM.deductFromProduct(selected, userId: userId, recordedAmount: feedAmount)
             }
-            .presentationDetents([.medium])
-        }
+        }, onFinished: { onSaved?() })
     }
 
     // MARK: - Body Sections
@@ -311,24 +301,21 @@ struct FeedingRecordView: View {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-        isSaving = true
+        saveFlow.begin()
         Task {
             await activityVM.saveActivity(userId: dataUserId, currentUserId: currentUserId, babyId: baby.id, type: type)
             guard activityVM.errorMessage == nil else {
-                isSaving = false
+                saveFlow.failed()
                 return
             }
             trackSaveSuccess()
             let feedAmount = Int(activityVM.amount)
             // 유축한 모유 병수유는 분유 재고를 차감하지 않는다 (모유 ≠ formula)
             let skipFormulaDeduction = (type == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
-            if !skipFormulaDeduction,
-               let candidates = await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount) {
-                productCandidates = candidates
-            } else {
-                isSaving = false
-                onSaved?()
-            }
+            let candidates = skipFormulaDeduction
+                ? nil
+                : await productVM.deductStockForActivity(type, userId: currentUserId, recordedAmount: feedAmount)
+            if saveFlow.saved((), candidates: candidates) != nil { onSaved?() }
         }
     }
 

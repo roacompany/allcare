@@ -40,9 +40,13 @@ struct RecordSaveFlow<Saved> {
         productCandidates = []
     }
 
-    /// 고르기 창이 닫혔다. RED 판: 고치기 전 동작 그대로 — 「건너뛰기」·내리기로 닫히면 끝나지 않는다.
+    /// 고르기 창이 닫혔다 — 골랐든 「건너뛰기」든 아래로 내렸든. 저장 중이었으면 끝(저장한 값을 돌려준다),
+    /// 이미 끝났거나 저장 중이 아니면 nil(끝은 한 번만).
     mutating func pickerClosed() -> Saved? {
         productCandidates = []
-        return nil
+        guard isSaving, let value = pending else { return nil }
+        isSaving = false
+        pending = nil
+        return value
     }
 }

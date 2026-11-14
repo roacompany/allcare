@@ -17,8 +17,7 @@ struct UnifiedRecordSheet: View {
     var contentPreset: Activity.FeedingContent? = nil
     var onSaved: ((Activity) -> Void)? = nil
 
-    @State private var isSaving = false
-    @State private var productCandidates: [BabyProduct] = []
+    @State private var saveFlow = RecordSaveFlow<Activity>()
 
     /// 유축 허브 모드 (A안, 2026-08-20 PO 승인) — [유축(생산) | 먹이기(섭취=모유(병))] 한 공간.
     private enum PumpHubMode { case pump, feed }
@@ -56,7 +55,7 @@ struct UnifiedRecordSheet: View {
                 .padding(.top, 8)
             }
             .safeAreaInset(edge: .bottom) {
-                SaveBar(isSaving: isSaving, isEnabled: canSave, color: accent, action: save)
+                SaveBar(isSaving: saveFlow.isSaving, isEnabled: canSave, color: accent, action: save)
             }
             .navigationTitle(navTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -67,22 +66,14 @@ struct UnifiedRecordSheet: View {
                 }
             }
             .onAppear { onAppear() }
-            .sheet(isPresented: Binding(
-                get: { !productCandidates.isEmpty },
-                set: { if !$0 { productCandidates = [] } }
-            )) {
-                ProductPickerSheet(products: productCandidates) { selected in
-                    Task {
-                        guard let userId = authVM.currentUserId else { return }
-                        let feedAmount = Int(activityVM.amount)
-                        await productVM.deductFromProduct(selected, userId: userId, recordedAmount: feedAmount)
-                    }
-                    let last = activityVM.todayActivities.first
-                    productCandidates = []
-                    finishSave(last)
+            // 끝은 방금 저장한 그 기록으로(전엔 고른 길만 끝났고, 그때도 todayActivities.first — 시각을 앞당겨 저장하면 다른 기록이었다)
+            .productPicker(flow: $saveFlow, onSelect: { selected in
+                Task {
+                    guard let userId = authVM.currentUserId else { return }
+                    let feedAmount = Int(activityVM.amount)
+                    await productVM.deductFromProduct(selected, userId: userId, recordedAmount: feedAmount)
                 }
-                .presentationDetents([.medium])
-            }
+            }, onFinished: { saved in finishSave(saved) })
         }
         .presentationDetents([.large])   // 전체 높이로 표시 — 반높이(.medium)면 폼이 잘려 "레이어 안 올라옴"
         .presentationDragIndicator(.visible)
@@ -472,26 +463,23 @@ struct UnifiedRecordSheet: View {
         // 유축 허브 '먹이기' 모드 = 모유(병) 기록 — 저장 타입은 feedingBottle + breastMilk (섭취 통계·재고 차감 그대로).
         let saveType: Activity.ActivityType = isPumpFeedMode ? .feedingBottle : type
         if isPumpFeedMode { activityVM.selectedFeedingContent = .breastMilk }
-        isSaving = true
+        saveFlow.begin()
         Task {
             let draft = activityVM.makeDraft(type: saveType, babyId: baby.id)
             let saved = await activityVM.commit(draft: draft, userId: dataUserId, currentUserId: currentUserId)
-            guard let saved, activityVM.errorMessage == nil else { isSaving = false; return }
+            guard let saved, activityVM.errorMessage == nil else { saveFlow.failed(); return }
             trackSaveSuccess(saveType: saveType)
             let feedAmount = Int(activityVM.amount)
             let skipFormula = (saveType == .feedingBottle && activityVM.selectedFeedingContent == .breastMilk)
-            if !skipFormula,
-               let candidates = await productVM.deductStockForActivity(saveType, userId: currentUserId, recordedAmount: feedAmount) {
-                productCandidates = candidates   // ProductPickerSheet → finishSave
-            } else {
-                finishSave(saved)
-            }
+            let candidates = skipFormula
+                ? nil
+                : await productVM.deductStockForActivity(saveType, userId: currentUserId, recordedAmount: feedAmount)
+            if let done = saveFlow.saved(saved, candidates: candidates) { finishSave(done) }   // 고를 게 있으면 창 → 닫힐 때 finishSave
         }
     }
 
-    private func finishSave(_ activity: Activity?) {
-        isSaving = false
-        if let activity { onSaved?(activity) }
+    private func finishSave(_ activity: Activity) {
+        onSaved?(activity)
         activityVM.resetForm()
         dismiss()
     }

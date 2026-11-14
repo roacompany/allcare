@@ -12,8 +12,7 @@ struct DiaperRecordView: View {
     var onSaved: (() -> Void)? = nil
 
     @State private var selectedDiaperType: Activity.ActivityType = .diaperWet
-    @State private var isSaving = false
-    @State private var productCandidates: [BabyProduct] = []
+    @State private var saveFlow = RecordSaveFlow<Void>()
 
     // 액센트 = 선택한 타입의 강조색 (소변=앰버 · 대변/소변+대변=브라운) — 홈 정본과 같은 색 언어 (2026-08-20 재작업).
     private var accentColor: Color { Color(selectedDiaperType.emphasisColor) }
@@ -64,26 +63,17 @@ struct DiaperRecordView: View {
             .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            SaveBar(isSaving: isSaving, color: accentColor, action: quickSave)
+            SaveBar(isSaving: saveFlow.isSaving, color: accentColor, action: quickSave)
         }
         .onAppear {
             AnalyticsService.shared.trackScreen(AnalyticsScreens.diaperRecording)
         }
-        .sheet(isPresented: Binding(
-            get: { !productCandidates.isEmpty },
-            set: { if !$0 { productCandidates = [] } }
-        )) {
-            ProductPickerSheet(products: productCandidates) { selected in
-                Task {
-                    guard let userId = authVM.currentUserId else { return }
-                    await productVM.deductFromProduct(selected, userId: userId)
-                }
-                productCandidates = []
-                isSaving = false
-                onSaved?()
+        .productPicker(flow: $saveFlow, onSelect: { selected in
+            Task {
+                guard let userId = authVM.currentUserId else { return }
+                await productVM.deductFromProduct(selected, userId: userId)
             }
-            .presentationDetents([.medium])
-        }
+        }, onFinished: { onSaved?() })
     }
 
     // MARK: - Actions
@@ -92,7 +82,7 @@ struct DiaperRecordView: View {
         guard let currentUserId = authVM.currentUserId,
               let baby = babyVM.selectedBaby else { return }
         let dataUserId = babyVM.dataUserId(currentUserId: currentUserId) ?? currentUserId
-        isSaving = true
+        saveFlow.begin()
         Task {
             await activityVM.saveActivity(
                 userId: dataUserId,
@@ -101,17 +91,13 @@ struct DiaperRecordView: View {
                 type: selectedDiaperType
             )
             guard activityVM.errorMessage == nil else {
-                isSaving = false
+                saveFlow.failed()
                 return
             }
             // 저장 성공 후 발화. category = 영어 rawValue (diaper_wet/diaper_dirty/diaper_both)
             AnalyticsService.shared.trackEvent(AnalyticsEvents.diaperRecordSave, parameters: [AnalyticsParams.category: selectedDiaperType.rawValue])
-            if let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: currentUserId) {
-                productCandidates = candidates
-            } else {
-                isSaving = false
-                onSaved?()
-            }
+            let candidates = await productVM.deductStockForActivity(selectedDiaperType, userId: currentUserId)
+            if saveFlow.saved((), candidates: candidates) != nil { onSaved?() }
         }
     }
 
