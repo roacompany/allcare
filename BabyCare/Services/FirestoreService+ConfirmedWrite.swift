@@ -32,13 +32,30 @@ extension FirestoreService {
 
     /// 새로 만드는 쓰기 — 서버 답을 기다리되, 시간 안에 답이 없으면 `retract`(방금 쓴 것을 거두는 지우기)를 줄 세우고 `.timedOut`.
     /// Firestore 는 답이 늦어도 쓰기를 기기에 남겼다가 망이 돌아오면 보낸다 → 「실패」라고 알린 초대·공유가 나중에 생겨 버린다.
-    /// RED 판: 고치기 전 동작 그대로 — 거두지 않는다.
+    /// 규칙 거부는 SDK 가 기기에서도 지우므로 거두지 않는다(거부를 그대로 던진다).
     static func confirmOrRetract(
         timeout: TimeInterval = serverConfirmationTimeout,
         _ write: (@escaping @Sendable (Error?) -> Void) -> Void,
         retract: () -> Void
     ) async throws {
-        try await awaitServerConfirmation(timeout: timeout, write)
+        do {
+            try await awaitServerConfirmation(timeout: timeout, write)
+        } catch ServerConfirmationError.timedOut {
+            retract()
+            throw ServerConfirmationError.timedOut
+        }
+    }
+
+    /// 없던 문서를 새로 만들고 서버 확인을 기다린다 — 시간 안에 답이 없으면 거둔다(지우기를 기기 쓰기 줄에 세운다).
+    /// 그러면 망이 돌아왔을 때 「쓰기 → 지우기」 순서로 가서, 화면이 말한 「실패」와 끝 상태가 같다.
+    /// ⚠️ 없던 문서에만 — 있던 문서를 덮어쓰는 데 쓰면 시간 초과 때 있던 것까지 지운다(레거시 이전은 `setDataConfirmed`).
+    func createConfirmed<T: Encodable>(_ value: T, at ref: DocumentReference) async throws {
+        let data = try Firestore.Encoder().encode(value)
+        try await Self.confirmOrRetract({ done in
+            ref.setData(data, completion: done)
+        }, retract: {
+            ref.delete(completion: nil)
+        })
     }
 
     /// 객체를 저장하고 서버가 받아들일 때까지 기다린다(거부·시간 초과는 던진다).

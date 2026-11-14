@@ -9,7 +9,8 @@ extension FirestoreService {
         let ref = db.collection(FirestoreCollections.invites).document(invite.code)
         // 서버 확인까지 기다린다 — 코드가 남의 초대와 겹치면(남의 문서 → update 규칙 거부) 그 거부를 받아
         // 「초대 코드 생성에 실패했습니다.」로 끝낸다. 삼키면 남의 아기 초대 코드를 내 것처럼 보여 준다.
-        try await setDataConfirmed(invite, at: ref)
+        // 시간 안에 답이 없으면 거둔다 — 「실패」라고 알린 초대가 나중에 생기지 않게(지우기 규칙은 주인만이라 남의 초대는 못 건드린다).
+        try await createConfirmed(invite, at: ref)
     }
 
     func findInviteByCode(_ code: String) async throws -> FamilyInvite? {
@@ -41,7 +42,8 @@ extension FirestoreService {
             .document(access.id)
         // 서버 확인까지 기다린다 — 초대코드 교차검증 규칙이 거부하면(만료·사용됨·코드 불일치)
         // joinFamily 가 성공으로 오인하지 않고 에러를 받는다(「참여에 실패했습니다.」).
-        try await setDataConfirmed(access, at: ref)
+        // 시간 안에 답이 없으면 거둔다 — 안 거두면 「실패」 뒤에 공유가 열리고 초대는 「사용함」 표시 없이 남는다(2026-11-14 검토).
+        try await createConfirmed(access, at: ref)
     }
 
     func fetchSharedAccess(userId: String) async throws -> [SharedBabyAccess] {
