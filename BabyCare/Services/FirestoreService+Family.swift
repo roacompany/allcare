@@ -66,8 +66,7 @@ extension FirestoreService {
         }
 
         // Batch-check existence of new composite-ID documents in parallel for legacy docs
-        // Use Firestore.firestore() singleton inside the closure to avoid capturing
-        // non-Sendable locals (Swift 6 sending parameter requirement)
+        // 닫힘 안에서는 Sendable 인 self 의 db 를 쓴다 — 지역 CollectionReference(비 Sendable)를 잡지 않는다
         let legacyExpectedIds = docInfos.filter { $0.isLegacy }.map { $0.expectedId }
         let collectionPath = collectionRef.path  // String — Sendable
         let existingMap: [String: Bool]
@@ -77,8 +76,7 @@ extension FirestoreService {
             existingMap = await withTaskGroup(of: (String, Bool).self) { group in
                 for expectedId in legacyExpectedIds {
                     group.addTask {
-                        // Obtain the Firestore singleton directly — avoids capturing a local
-                        let ref = Firestore.firestore().collection(collectionPath).document(expectedId)
+                        let ref = self.db.collection(collectionPath).document(expectedId)
                         do {
                             let snap = try await ref.getDocument()
                             return (expectedId, snap.exists)

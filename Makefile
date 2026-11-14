@@ -125,7 +125,7 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy deploy-rules rules-test rules-drift
+.PHONY: deploy deploy-rules rules-test rules-drift emulator-test
 
 ## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
 ## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
@@ -141,6 +141,12 @@ rules-test:
 ## 배포본 규칙 ↔ 레포 firestore.rules 대조 (읽기 전용 · gcloud 로그인 필요)
 rules-drift:
 	@bash scripts/rules_drift.sh
+
+## 아이폰 SDK ↔ 에뮬레이터 통합 시험 — 실제 Swift 코드(FirestoreService·VM)를 레포 firestore.rules 에 태운다.
+## 단위 시험 전체를 에뮬레이터를 띄운 채 돌려 Emulator* 시험까지 실행(평소 make test 에선 건너뜀 · 이름을 적지 않는다).
+## Java 21 + 시뮬레이터 실행 권한 필요. 운영 서버엔 안 닿는다(시험 쪽 FirebaseApp 이 전부 127.0.0.1).
+emulator-test: generate
+	@PATH="$$(brew --prefix openjdk@21)/bin:$$PATH" firebase emulators:exec -c firebase.emulator-ios.json --only firestore,auth --project=demo-babycare "xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -destination $(DEST) -only-testing:BabyCareTests"
 
 ## 원커맨드 배포: PLAN검증 → verify → smoke → QA evidence → rules → bump → upload
 ## sub-make로 호출하여 bump 후 generate가 다시 실행되도록 한다

@@ -71,7 +71,7 @@ extension FirestoreService {
             let existingMap = await withTaskGroup(of: (String, Bool).self) { group in
                 for docId in docIds {
                     group.addTask {
-                        let ref = Firestore.firestore().collection(newRefPath).document(docId)
+                        let ref = self.db.collection(newRefPath).document(docId)
                         do {
                             let snap = try await ref.getDocument()
                             return (docId, snap.exists)
