@@ -95,6 +95,11 @@ struct TravelSpaceView: View {
                 await model.loadRoutes()  // 망이 끊겨 못 받은 구간을 다시 묻는다
             }
         }
+        .onChange(of: NetworkMonitor.shared.isConnected) { _, connected in
+            // 화면을 보는 채로 망이 돌아오면 못 받은 구간을 다시 묻는다(「길이 없다」로 기억한 구간은 안 묻는다)
+            guard connected, let model = detail else { return }
+            Task { await model.loadRoutes() }
+        }
         .onChange(of: selectedTripId) { _, _ in
             // 여행을 바꾸면 거르기·칸·고른 날·밀어 연 화면을 처음으로(보이지 않는 거르기가 남지 않게 · 검토 11/5).
             assigneeFilter = .all

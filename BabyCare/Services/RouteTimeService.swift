@@ -78,8 +78,16 @@ final class AppleMapsRouteTimeService: RouteTimeProviding {
     private static func compute(from: String, to: String, near area: TripRouteArea) async throws -> RouteEstimate {
         let center = try? await search(cityQuery(area.city), region: nil)?.placemark.coordinate
         let region = center.map { MKCoordinateRegion(center: $0, span: MKCoordinateSpan(latitudeDelta: 1.5, longitudeDelta: 1.5)) }
-        guard let source = try? await search(from, region: region),
-              let destination = try? await search(to, region: region) else { throw RouteTimeError.notFound }
+        // 찾기·계산의 오류는 가른다 — 「길이 없다」만 notFound(다시 안 묻는다), 망·서버·횟수 제한은 failed(나중에 다시)
+        let source: MKMapItem?
+        let destination: MKMapItem?
+        do {
+            source = try await search(from, region: region)
+            destination = try await search(to, region: region)
+        } catch {
+            throw routeError(for: error)
+        }
+        guard let source, let destination else { throw RouteTimeError.notFound }
         let request = MKDirections.Request()
         request.source = source
         request.destination = destination
@@ -88,7 +96,7 @@ final class AppleMapsRouteTimeService: RouteTimeProviding {
         do {
             eta = try await MKDirections(request: request).calculateETA()
         } catch {
-            throw RouteTimeError.notFound
+            throw routeError(for: error)
         }
         return RouteEstimate(minutes: max(1, Int((eta.expectedTravelTime / 60).rounded())),
                              fromName: source.name, toName: destination.name, source: .apple)
@@ -103,9 +111,18 @@ final class AppleMapsRouteTimeService: RouteTimeProviding {
     }
 
     /// 애플 지도 오류 → 「길이 없다」(다시 묻지 않음) / 「못 받음」(나중에 다시 묻는다).
-    /// RED 판: 고치기 전 동작 그대로 — 무엇이든 「길이 없다」.
+    /// 장소·길을 못 찾음만 「길이 없다」 — 망 끊김·서버 오류·횟수 제한·모르는 오류는 「못 받음」(2026-11-14 전엔 전부 「길이 없다」).
     static func routeError(for error: Error) -> RouteTimeError {
-        .notFound
+        let ns = error as NSError
+        if ns.domain == MKErrorDomain, let code = MKError.Code(rawValue: UInt(ns.code)) {
+            switch code {
+            case .placemarkNotFound, .directionsNotFound:
+                return .notFound
+            default:
+                return .failed("애플 지도 \(code.rawValue)")
+            }
+        }
+        return .failed(ns.domain == NSURLErrorDomain ? "네트워크" : "애플 지도")
     }
 
     /// 「오사카·교토」 → 「오사카」 — 첫 도시로 동네를 잡는다.
