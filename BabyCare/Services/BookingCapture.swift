@@ -372,10 +372,7 @@ enum CaptureBookingBuilder {
         var seen = Set<String>()
         items = items.filter { seen.insert(key($0.booking, day: $0.day, calendar: calendar)).inserted }
         // 여행에 이미 있는 예약은 「이미 있음」 — 기본으로 끈다. 어느 예약과 같은지 기억한다(넣을 때 그 예약을 고친다).
-        var existing: [String: String] = [:]
-        for booking in trip.bookings where existing[key(booking, day: nil, calendar: calendar)] == nil {
-            existing[key(booking, day: nil, calendar: calendar)] = booking.id
-        }
+        let existing = existingBookingIds(in: trip, calendar: calendar)
         return items.map { item in
             var i = item
             if let matched = existing[key(i.booking, day: i.day, calendar: calendar)] {
@@ -385,6 +382,15 @@ enum CaptureBookingBuilder {
             }
             return i
         }
+    }
+
+    /// 여행에 이미 있는 예약 — 같은 예약 열쇠 → 그 예약 id(열쇠가 겹치면 먼저 넣은 것). 「이미 있음」 판정은 이 한 곳.
+    private static func existingBookingIds(in trip: Trip, calendar: Calendar) -> [String: String] {
+        var existing: [String: String] = [:]
+        for booking in trip.bookings where existing[key(booking, day: nil, calendar: calendar)] == nil {
+            existing[key(booking, day: nil, calendar: calendar)] = booking.id
+        }
+        return existing
     }
 
     /// 「이미 있음」 예약을 넣을 때 — 있던 예약을 캡처(사람이 고친 값)로 고친다.
@@ -454,13 +460,16 @@ enum CaptureBookingBuilder {
         return n.sorted()
     }
 
-    /// 사람이 「수정」에서 고친 뒤 — 확인 필요를 다시 잰다.
-    /// RED 판(2026-11-14 검토): trip 을 아직 안 본다 — 고치기 전 동작 그대로(처음 맞춘 예약을 그대로 기억).
+    /// 사람이 「수정」에서 고친 뒤 — 확인 필요를 다시 재고, 여행의 예약과 **다시 맞춘다**(고친 값이 어느 예약과 같은가).
+    /// 🩸 2026-11-14 검토: 다시 맞추지 않아, 「이미 있음」 줄을 다른 편으로 고쳐도 처음 맞춘 예약을 기억해 넣을 때 있던 편을 덮어썼다.
     static func edited(_ item: CapturedBooking, booking: TripBooking, trip: Trip, calendar: Calendar) -> CapturedBooking {
         var out = item
         out.booking = booking
         out.day = (booking.depart ?? booking.arrive)?.startOfDay(calendar) ?? item.day
         out.needs = needs(for: booking, day: out.day)
+        let matched = existingBookingIds(in: trip, calendar: calendar)[key(booking, day: out.day, calendar: calendar)]
+        out.existingBookingId = matched
+        out.isDuplicate = matched != nil
         return out
     }
 
