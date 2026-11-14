@@ -102,6 +102,12 @@ final class AppleMapsRouteTimeService: RouteTimeProviding {
         return try await MKLocalSearch(request: request).start().mapItems.first
     }
 
+    /// 애플 지도 오류 → 「길이 없다」(다시 묻지 않음) / 「못 받음」(나중에 다시 묻는다).
+    /// RED 판: 고치기 전 동작 그대로 — 무엇이든 「길이 없다」.
+    static func routeError(for error: Error) -> RouteTimeError {
+        .notFound
+    }
+
     /// 「오사카·교토」 → 「오사카」 — 첫 도시로 동네를 잡는다.
     static func cityQuery(_ city: String) -> String {
         let first = city.split(whereSeparator: { "·,/ ".contains($0) }).first.map(String.init) ?? city
