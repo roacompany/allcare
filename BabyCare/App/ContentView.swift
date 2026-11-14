@@ -179,7 +179,10 @@ struct ContentView: View {
             openPendingDeepLink()
         }
         .onChange(of: babyVM.hasInitialLoad) { _, _ in openPendingDeepLink() }
-        .onChange(of: authVM.isAuthenticated) { _, _ in openPendingDeepLink() }
+        .onChange(of: authVM.isAuthenticated) { _, signedIn in
+            // 로그아웃하면 들고 있던 위젯 주소를 버린다 — 다음에 로그인한 사람에게 열리지 않게
+            if signedIn { openPendingDeepLink() } else { deepLinkGate.clear() }
+        }
         .onReceive(NotificationRouter.shared.$pendingDestination) { destination in
             guard let destination else { return }
             closeTravelSpace { handleNotificationDestination(destination) }

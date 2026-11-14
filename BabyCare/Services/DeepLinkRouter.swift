@@ -10,6 +10,11 @@ struct DeepLinkGate {
         pending = destination
     }
 
+    /// 들고 있던 목적지를 버린다 — 로그아웃 때(다음에 로그인한 사람에게 열리지 않게 · 2026-11-14 재검토).
+    mutating func clear() {
+        pending = nil
+    }
+
     /// 준비됐으면 들고 있던 목적지를 한 번 내준다(준비 전이면 계속 들고 있는다).
     mutating func take(isReady: Bool) -> DeepLinkRouter.Destination? {
         guard isReady, let destination = pending else { return nil }

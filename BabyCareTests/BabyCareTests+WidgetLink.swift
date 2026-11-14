@@ -71,4 +71,12 @@ final class DeepLinkGateTests: XCTestCase {
         gate.receive(.home)
         XCTAssertEqual(gate.take(isReady: true), .home)
     }
+
+    /// 로그아웃하면 버린다 — 다음에 로그인한 사람에게 앞 사람이 누른 위젯 화면이 열리지 않게.
+    func test_signOut_dropsTheHeldLink() {
+        var gate = DeepLinkGate()
+        gate.receive(.growth)
+        gate.clear()
+        XCTAssertNil(gate.take(isReady: true))
+    }
 }
