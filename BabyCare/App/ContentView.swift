@@ -354,7 +354,7 @@ struct ContentView: View {
                             .fill(DS2.Color.accent.opacity(0.12))
                             .frame(width: 120, height: 120)
                         Image(systemName: "heart.circle.fill")
-                            .font(.system(size: 72))
+                            .font(.system(size: DS2.IconSize.hero))
                             .foregroundStyle(DS2.Color.accent)
                     }
                     VStack(spacing: DS2.Spacing.xs) {

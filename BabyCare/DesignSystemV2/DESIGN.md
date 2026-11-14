@@ -37,6 +37,7 @@ DS2는 ROA 토큰 JSON의 **실용 8pt-grid subset**이며 통일하지 **않는
 ## 3. 사용 규칙
 
 1. spacing/radius/color/font/shadow는 **반드시 `DS2.*` 토큰** 사용. 생 `CGFloat` 레이아웃 리터럴(`.padding(16)`, `cornerRadius: 12`) 금지.
+   SF Symbol **그림 크기**(`.font(.system(size:))`)는 글자 스타일이 아니라 `DS2.IconSize` — `DS2.Font` 로 바꾸면 72pt 상징이 34pt 로 줄어든다(2026-11-14 「폰트 토큰 우회 5곳」은 전부 그림 크기였다 · 값 그대로 토큰화).
 2. **시스템 시맨틱 색은 의도적 비-토큰**(PO 결정 2026-06-09 = 유지): `Color(.systemGroupedBackground)` / `(.secondarySystemGroupedBackground)` / `(.systemGray5)`는 iOS가 light/dark/대비 자동 대응 — DS2가 일부러 모델하지 않음. `HealthStyleFavoriteCard:84`의 `secondarySystemGroupedBackground`는 Apple HIG 강제(inset-grouped 룩).
 3. **Apple Health 스펙 고정 리터럴은 예외**: HealthStyleFavoriteCard의 5/3pt 마이크로 간격, 13/28/12pt 폰트, 84pt 카드높이는 Apple Health Favorites 스펙 핀 — 토큰화 금지(`// Apple Health spec` 주석).
 

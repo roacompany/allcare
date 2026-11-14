@@ -28,7 +28,7 @@ struct ForgotPasswordSheet: View {
                     VStack(spacing: 28) {
                         VStack(spacing: 10) {
                             Image(systemName: "key.fill")
-                                .font(.system(size: 40))
+                                .font(.system(size: DS2.IconSize.sheetHeader))
                                 .foregroundStyle(accentPurple)
                                 .padding(.top, 8)
 
@@ -45,7 +45,7 @@ struct ForgotPasswordSheet: View {
                         if isSent {
                             VStack(spacing: 10) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 36))
+                                    .font(.system(size: DS2.IconSize.result))
                                     .foregroundStyle(.green)
 
                                 Text("재설정 링크를 발송했습니다.")
