@@ -10,6 +10,11 @@ extension FirestoreService: AccountDataErasing {
     /// ⚠️ 앱이 닿지 못하는 것: 문서는 이미 지워졌는데 하위 컬렉션만 남은 고아(예: 2.8.13 까지 아기를 지울 때 남은 trips) —
     /// 앱 SDK 는 없는 부모 문서를 목록에 올리지 못한다. 서버(관리자)에서 지워야 한다.
     func eraseAllUserData(userId: String) async throws {
+        // 기기에 아직 안 보낸 쓰기를 먼저 보낸다 — 지운 뒤에 들어가 기록이 되살아나지 않게(로그인이 지워지면 아무도 못 지운다).
+        // 망이 없으면 시간 초과로 실패 → 다시 누르면 된다(2026-11-14 검토).
+        try await Self.awaitServerConfirmation { done in
+            db.waitForPendingWrites(completion: done)
+        }
         let userRef = db.collection(FirestoreCollections.users).document(userId)
         try await eraseParentsAndChildren(userRef.collection(FirestoreCollections.babies),
                                           children: FirestoreCollections.babyChildren)
@@ -26,7 +31,7 @@ extension FirestoreService: AccountDataErasing {
             guard Self.mayIgnoreInviteCleanupFailure(error) else { throw error }
             logSilent("내 초대 목록이 막힘(규칙 배포 전) — 계정 삭제는 계속", error: error, logger: AppLogger.firestore)
         }
-        try await userRef.delete()
+        try await deleteConfirmed(userRef)
     }
 
     /// 부모 문서들(아기·임신)의 하위 컬렉션을 먼저 지우고 부모를 지운다(부모만 지우면 그 아래가 남는다).

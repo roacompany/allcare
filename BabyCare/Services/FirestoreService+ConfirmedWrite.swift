@@ -66,6 +66,25 @@ extension FirestoreService {
         }
     }
 
+    /// 지우기 묶음의 기다리는 시간 — 400건 묶음도 서버는 금방 받는다. 망이 끊기면 시간 초과로 「실패」(묶음은 기기 줄에 남아
+    /// 망이 돌아오면 마저 간다 — 지우기는 몇 번 해도 같다).
+    static let batchConfirmationTimeout: TimeInterval = 30
+
+    /// 묶음을 보내고 서버 확인을 기다린다(거부·시간 초과는 던진다).
+    /// `batch.commit()`(async 판)은 망이 끊기면 끝없이 기다린다 — 계정·아기 삭제 화면이 「삭제 중」에서 멈췄다(2026-11-14 검토).
+    func commitConfirmed(_ batch: WriteBatch) async throws {
+        try await Self.awaitServerConfirmation(timeout: Self.batchConfirmationTimeout) { done in
+            batch.commit(completion: done)
+        }
+    }
+
+    /// 문서를 지우고 서버 확인을 기다린다(거부·시간 초과는 던진다).
+    func deleteConfirmed(_ ref: DocumentReference) async throws {
+        try await Self.awaitServerConfirmation { done in
+            ref.delete(completion: done)
+        }
+    }
+
     /// 칸 몇 개를 고치고 서버가 받아들일 때까지 기다린다(거부·시간 초과는 던진다).
     func updateDataConfirmed(_ fields: [String: Any], at ref: DocumentReference) async throws {
         try await Self.awaitServerConfirmation { done in

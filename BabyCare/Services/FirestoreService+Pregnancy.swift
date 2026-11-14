@@ -41,7 +41,7 @@ extension FirestoreService {
         for child in FirestoreCollections.pregnancyChildren {
             try await deleteAllDocuments(in: ref.collection(child))
         }
-        try await ref.delete()
+        try await deleteConfirmed(ref)
     }
 
     // MARK: - Kick Session

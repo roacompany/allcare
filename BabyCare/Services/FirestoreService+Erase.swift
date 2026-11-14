@@ -19,13 +19,13 @@ extension FirestoreService {
             batch.deleteDocument(document.reference)
             pending += 1
             if pending == Self.eraseBatchSize {
-                try await batch.commit()
+                try await commitConfirmed(batch)
                 batch = db.batch()
                 pending = 0
             }
         }
         if pending > 0 {
-            try await batch.commit()
+            try await commitConfirmed(batch)
         }
         return snapshot.documents.count
     }

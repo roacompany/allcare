@@ -53,13 +53,17 @@ extension FirestoreService {
             try await deleteAllDocuments(in: babyRef.collection(child))
         }
 
-        try await babyRef.delete()
+        try await deleteConfirmed(babyRef)
 
-        // user doc의 babyCount -1 (denormalized counter)
-        try await userRef.setData(
-            ["babyCount": FieldValue.increment(Int64(-1))],
-            merge: true
-        )
+        // user doc의 babyCount -1 (denormalized counter) — 아기는 이미 지워졌다: 여기 실패는 기록만 한다.
+        // 전엔 던져서 화면이 지운 아기를 다시 띄우고 사진 정리를 건너뛰었다(2026-11-14 검토).
+        do {
+            try await Self.awaitServerConfirmation { done in
+                userRef.setData(["babyCount": FieldValue.increment(Int64(-1))], merge: true, completion: done)
+            }
+        } catch {
+            logSilent("아기 수 줄이기 실패(아기 삭제는 끝남)", error: error, logger: AppLogger.firestore)
+        }
 
         // 이 아기의 내 초대도 지운다(아기 이름이 든 개인정보 · 남겨 두면 받은 사람이 빈 아기 공유에 들어간다).
         // 「내 초대」 목록 규칙(2026-11-14 보완)이 배포되기 전엔 막히므로 실패해도 아기 삭제는 끝난 것으로 본다.
