@@ -125,7 +125,7 @@ upload: export
 # 5단계: 배포 (Deployment)
 # ═══════════════════════════════════════
 
-.PHONY: deploy deploy-rules rules-test rules-drift emulator-test
+.PHONY: deploy deploy-rules rules-test rules-drift emulator-test data-layout-check
 
 ## Firestore rules 배포 (idempotent — 변경 없으면 "already up to date")
 ## 하네스 원칙: 새 컬렉션/규칙 변경은 빌드 업로드 전에 라이브 반영되어야 함
@@ -141,6 +141,10 @@ rules-test:
 ## 배포본 규칙 ↔ 레포 firestore.rules 대조 (읽기 전용 · gcloud 로그인 필요)
 rules-drift:
 	@bash scripts/rules_drift.sh
+
+## 지우기 범위 검사 — 앱이 쓰는 컬렉션 이름이 전부 FirestoreCollections 범위 목록에 선언됐나(빠지면 지워도 서버에 남는다)
+data-layout-check:
+	@python3 scripts/data_layout_check.py
 
 ## 아이폰 SDK ↔ 에뮬레이터 통합 시험 — 실제 Swift 코드(FirestoreService·VM)를 레포 firestore.rules 에 태운다.
 ## 단위 시험 전체를 에뮬레이터를 띄운 채 돌려 Emulator* 시험까지 실행(평소 make test 에선 건너뜀 · 이름을 적지 않는다).

@@ -151,6 +151,17 @@ enum FirestoreCollections {
     static let trips = "trips"
 
     // MARK: - 지우기 범위 — 아기 삭제·계정 삭제가 이 목록만 본다(한 곳)
+    // 앱이 `.collection(FirestoreCollections.X)` 로 쓰는 X 는 아래 목록 중 하나에 있어야 한다 —
+    // `scripts/data_layout_check.py` 가 코드와 대조한다(빠진 이름의 기록은 지워도 서버에 남는다).
+
+    /// 최상위 컬렉션(사용자 아래가 아님). 계정 삭제는 사용자 아래만 지운다(내가 만든 초대는 따로).
+    static let topLevel: [String] = [users, invites, announcements, productCatalog, sounds]
+
+    /// 사용자 아래의 부모 — 그 아래 하위 컬렉션(babyChildren · pregnancyChildren)부터 지우고 부모를 지운다.
+    static let scopeParents: [String] = [babies, pregnancies]
+
+    /// 앱이 읽지도 지우지도 못하는 옛 자리(firestore.rules 에 규칙이 없다) — 남아 있다면 서버(관리자)에서 지운다.
+    static let unreachableLegacy: [String] = [familySharing]
 
     /// 아기 문서(users/{uid}/babies/{babyId}) 아래 하위 컬렉션 전부.
     /// ⚠️ 아기 밑에 새 컬렉션을 쓰면 여기에 더한다 — 안 더하면 아기·계정을 지워도 그 기록이 서버에 남는다
