@@ -1,13 +1,9 @@
 import FirebaseFirestore
 import Foundation
 
-/// AuthViewModel 의 계정 삭제 + 가족 공유 마이그레이션 narrow protocol (ISP).
-///
-/// 헤비 데이터 작업(서브컬렉션 일괄 삭제 / familySharing → sharedAccess 이관)을
-/// FirestoreService 로 모아 AuthViewModel 에서 Firestore.firestore() 직접 호출 제거.
-/// Mock 으로 호출 검증 가능.
+/// AuthViewModel 의 가족 공유 마이그레이션 narrow protocol (ISP).
+/// 계정 삭제는 `AccountDataErasing`(FirestoreService+AccountErase) — 순서는 `AccountDeletion` 이 쥔다.
 protocol AuthMigrationProviding: Sendable {
-    func deleteAllUserData(userId: String) async throws
     func migrateFamilySharingIfNeeded(userId: String) async
 }
 
@@ -18,40 +14,6 @@ extension FirestoreService {
 
     private static let lastAccessedAtKey = "BabyCare.lastAccessedAt.persistedAt"
     private static let lastAccessedAtThrottleSeconds: TimeInterval = 60 * 60
-
-    /// 사용자 계정 삭제 시 서브컬렉션 전체 일괄 삭제 (원자적, 배치 500개 단위).
-    /// "familySharing"(구형) + "sharedAccess"(신형) 모두 삭제.
-    /// invites 컬렉션에서 내가 만든 초대도 삭제 후 users/{uid} 문서 자체 삭제.
-    func deleteAllUserData(userId: String) async throws {
-        let userDoc = db.collection(FirestoreCollections.users).document(userId)
-        let subcollections = [
-            "premiumStatus", FirestoreCollections.babies, FirestoreCollections.activities,
-            FirestoreCollections.hospitalVisits, FirestoreCollections.vaccinations,
-            FirestoreCollections.milestones, "diaryEntries", FirestoreCollections.todos,
-            FirestoreCollections.routines, FirestoreCollections.products,
-            "purchaseRecords", FirestoreCollections.sharedAccess, FirestoreCollections.familySharing
-        ]
-        var batch = db.batch()
-        var count = 0
-        for name in subcollections {
-            let snapshot = try await userDoc.collection(name).getDocuments()
-            for doc in snapshot.documents {
-                batch.deleteDocument(doc.reference)
-                count += 1
-                if count >= 400 {
-                    try await batch.commit()
-                    batch = db.batch()
-                    count = 0
-                }
-            }
-        }
-
-        // 내가 만든 초대(invites)는 정리하지 않는다: 규칙이 열거(list)를 차단하므로
-        // ownerUserId 쿼리가 불가능하다. 소유자 데이터가 삭제되면 떠도는 초대는 무해하며
-        // (수락해도 빈 아기), 7일 뒤 만료된다.
-        batch.deleteDocument(userDoc)
-        try await batch.commit()
-    }
 
     /// familySharing(구형) → sharedAccess(신형) 인라인 마이그레이션.
     /// 신형 문서가 이미 존재하면 setData 스킵, 구형은 항상 삭제. 실패 시 원자성 보장

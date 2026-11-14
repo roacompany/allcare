@@ -159,6 +159,23 @@ enum FirestoreCollections {
         activities, growth, diary, vaccinations, milestones, hospitalVisits, purchases,
         hospitalReports, allergies, cryRecords, weeklyMetrics, highlightCache, trips,
     ]
+
+    /// 임신 문서(users/{uid}/pregnancies/{id}) 아래 하위 컬렉션 전부(v3 의 vitals·contractions·moods 포함).
+    static let pregnancyChildren: [String] = [
+        kickSessions, prenatalVisits, pregnancyChecklists, pregnancyWeights, pregnancySymptoms,
+        pregnancyVitals, contractionSessions, pregnancyMoods,
+    ]
+
+    /// 옛 판(2026-03 이전)의 프리미엄 상태 자리 — 지금 쓰는 코드는 없고 규칙만 남아 있다. 계정 삭제가 지운다.
+    static let premiumStatus = "premiumStatus"
+
+    /// 사용자 문서(users/{uid}) 바로 아래 하위 컬렉션 — 아기·임신은 따로(그 아래가 또 있다).
+    /// ⚠️ 규칙이 없는 옛 이름(activities·diaryEntries·purchaseRecords·familySharing 을 사용자 바로 아래에 쓰던 자리)은
+    /// 앱이 읽지도 지우지도 못한다 — 남아 있다면 서버(관리자)에서 지워야 한다.
+    static let userChildren: [String] = [
+        todos, routines, dayPlans, dayRuns, products, purchases, hospitalVisits, vaccinations, milestones, diary,
+        premiumStatus, sharedAccess, fcmTokens, badges, stats,
+    ]
 }
 
 enum CoupangConfig {
