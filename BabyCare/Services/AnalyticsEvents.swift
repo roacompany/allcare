@@ -136,6 +136,12 @@ enum PumpingAnalytics {
         default: return "180+"
         }
     }
+
+    /// pumping_recorded 이벤트 값 — 유축을 저장하는 길(수유 기록 화면 · 통합 기록 시트)이 모두 이것만 쓴다
+    /// (6/10 GA4 감사 #8: 길마다 값이 어긋났다). 양은 구간으로만.
+    static func recordedParameters(amount: Double?, side: Activity.BreastSide) -> [String: String] {
+        [AnalyticsParams.amountBucket: bucket(amount), AnalyticsParams.side: side.rawValue]
+    }
 }
 
 // MARK: - User Properties

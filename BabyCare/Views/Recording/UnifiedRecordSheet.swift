@@ -488,10 +488,8 @@ struct UnifiedRecordSheet: View {
     /// 허브 '먹이기' 모드는 실제 저장 타입(feedingBottle)으로 발화 — GA4 차원 일관.
     private func trackSaveSuccess(saveType: Activity.ActivityType) {
         if saveType == .feedingPumping {
-            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
-                AnalyticsParams.amountBucket: PumpingAnalytics.bucket(Double(activityVM.amount)),
-                AnalyticsParams.side: activityVM.selectedSide.rawValue
-            ])
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters:
+                PumpingAnalytics.recordedParameters(amount: Double(activityVM.amount), side: activityVM.selectedSide))
             return
         }
         var params = [AnalyticsParams.category: saveType.rawValue]

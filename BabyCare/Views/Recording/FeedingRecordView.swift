@@ -323,10 +323,8 @@ struct FeedingRecordView: View {
     /// 유축은 섭취가 아니므로 feed_record_save 대신 pumping_recorded (생산/섭취 의료 격리와 동일 원칙).
     private func trackSaveSuccess() {
         if type == .feedingPumping {
-            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters: [
-                AnalyticsParams.amountBucket: PumpingAnalytics.bucket(Double(activityVM.amount)),
-                AnalyticsParams.side: activityVM.selectedSide.rawValue
-            ])
+            AnalyticsService.shared.trackEvent(AnalyticsEvents.pumpingRecorded, parameters:
+                PumpingAnalytics.recordedParameters(amount: Double(activityVM.amount), side: activityVM.selectedSide))
             return
         }
         var params = [AnalyticsParams.category: type.rawValue]
