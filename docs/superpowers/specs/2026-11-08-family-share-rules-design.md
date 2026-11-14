@@ -77,7 +77,7 @@
 
 ## 코드 리뷰 반영 (2026-11-08, 독립 리뷰어)
 
-- **C1 (Critical) — 레거시 UUID sharedAccess 마이그레이션 소멸**: `fetchSharedAccess`(FirestoreService+Family.swift)가 2026-03-23(313e01c) 이전 UUID-keyed 공유를 composite 로 옮길 때 비대기 `setData(from:)` 를 썼다. 강화된 create 규칙이 inviteCode 없는 composite 를 거부하는데 비대기라 catch 가 안 돌고, 바로 뒤 `await delete()` 로 원본만 지워져 **공유가 소멸**. → `await` 로 고쳐 거부를 잡고 원본 보존(소멸 방지). 레거시 가족을 **되살리는 것**은 아래 배포 절차 ①(서버 마이그레이션).
+- **C1 (Critical) — 레거시 UUID sharedAccess 마이그레이션 소멸**: `fetchSharedAccess`(FirestoreService+Family.swift)가 2026-03-23(313e01c) 이전 UUID-keyed 공유를 composite 로 옮길 때 비대기 `setData(from:)` 를 썼다. 강화된 create 규칙이 inviteCode 없는 composite 를 거부하는데 비대기라 catch 가 안 돌고, 바로 뒤 `await delete()` 로 원본만 지워져 **공유가 소멸**. → `await` 로 고쳐 거부를 잡고 원본 보존(소멸 방지). ⚠️ 2026-11-14 정정: `setData(from:)`(Codable 판)는 동기라 `await` 가 아무것도 기다리지 않았다 — 거부는 계속 삼켜졌다. 서버 확인 쓰기(`setDataConfirmed`)로 다시 고침. 레거시 가족을 **되살리는 것**은 아래 배포 절차 ①(서버 마이그레이션).
 - **I1 (Important) — 삭제 시 invites 잔존**: 만료(`expiresAt`)는 사용 불가일 뿐 문서 삭제가 아니다(TTL 정책 부재 확인). 계정/아기 삭제 시 babyName 이 영구 잔존. → 배포 절차 ②(TTL 정책)로 해소.
 - **I2 (Important) — create 거부 안 보임**: `saveSharedAccess`·`saveInvite` 가 비대기 `setData` 라 서버 거부를 앱이 성공으로 오인. → `await` 로 고침.
 - Minor: code 충돌 재시도 없음(M1, await 로 표면화됨) · get 단건 brute-force(M2, 비범위) · markInviteUsed best-effort(M3) · owner 취소 불가(M4, 기존) · 테스트 갭(M5, 하위호환 update/delete 테스트 추가).
@@ -95,7 +95,7 @@ FIREBASE_SERVICE_ACCOUNT="$SA" node migrate-sharedaccess-composite.mjs --apply  
 
 **② (I1) invites TTL 정책 — 만료 초대 자동 삭제**
 ```bash
-gcloud firestore fields ttl update expiresAt --collection-group=invites --enable-ttl --project=babycare-allcare
+gcloud firestore fields ttls update expiresAt --collection-group=invites --enable-ttl --project=babycare-allcare   # ⚠️ `ttls`(복수) · 결제(Blaze) 켜진 프로젝트만 — 2026-11-10 「billing disabled」로 막힘 → 앱의 deleteMyInvites 로 대신(2026-11-14)
 ```
 (또는 Firebase 콘솔 › Firestore › TTL 에서 `invites.expiresAt` 등록.)
 
