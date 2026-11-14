@@ -43,6 +43,36 @@ final class EmulatorBabyDeletionTests: XCTestCase {
         XCTAssertEqual(user?["babyCount"] as? Int, 1)
     }
 
+    /// 아기를 지우면 그 아기의 초대도 지운다(초대엔 아기 이름이 있다) — 다른 아기·남의 초대는 그대로.
+    /// 고치기 전: 아기를 지워도 초대가 남아, 7일 안엔 받은 사람이 빈 아기 공유에 들어갈 수 있었고 이름은 영영 남았다.
+    func test_deleteBaby_alsoDeletesThatBabysInvites() async throws {
+        let owner = try await FirebaseEmulator.signUp("owner")
+        let uid = owner.uid
+        try await FirebaseEmulator.adminSet("users/\(uid)/babies/b1", ["name": "콩이"])
+        try await seedInvite("AAAA22", owner: uid, baby: "b1")
+        try await seedInvite("BBBB33", owner: uid, baby: "b1")
+        try await seedInvite("CCCC44", owner: uid, baby: "b2")
+        try await seedInvite("DDDD55", owner: "someoneElse", baby: "b1")
+
+        try await owner.service.deleteBaby("b1", userId: uid)
+
+        let aaaa = try await FirebaseEmulator.adminGet("invites/AAAA22")
+        let bbbb = try await FirebaseEmulator.adminGet("invites/BBBB33")
+        let cccc = try await FirebaseEmulator.adminGet("invites/CCCC44")
+        let dddd = try await FirebaseEmulator.adminGet("invites/DDDD55")
+        XCTAssertNil(aaaa, "지운 아기의 초대가 남았다")
+        XCTAssertNil(bbbb, "지운 아기의 초대가 남았다")
+        XCTAssertNotNil(cccc, "다른 아기 초대는 그대로")
+        XCTAssertNotNil(dddd, "남의 초대는 그대로")
+    }
+
+    private func seedInvite(_ code: String, owner: String, baby: String) async throws {
+        try await FirebaseEmulator.adminSet("invites/\(code)", [
+            "code": code, "ownerUserId": owner, "babyId": baby, "babyName": "콩이",
+            "createdAt": Date(), "expiresAt": Date().addingTimeInterval(86_400), "isUsed": false,
+        ])
+    }
+
     /// 기록이 많은 아기(한 묶음 400개를 넘는 기록)도 끝까지 지운다.
     func test_deleteBaby_withMoreRecordsThanOneBatch_deletesAll() async throws {
         let owner = try await FirebaseEmulator.signUp("owner")

@@ -59,6 +59,32 @@ final class EmulatorAccountDeletionTests: XCTestCase {
         XCTAssertEqual(Set(other), ["users/stayer", "users/stayer/babies/sb", "users/stayer/babies/sb/activities/a1"])
     }
 
+    /// 계정을 지우면 내가 만든 초대도 전부 지운다(아기 이름이 든 개인정보) — 남의 초대는 그대로.
+    /// 고치기 전: 계정 삭제 뒤에도 초대가 영영 남았다(만료는 「못 씀」일 뿐 지우지 않는다 · 무료 요금제라 TTL 도 없다).
+    func test_eraseAllUserData_alsoDeletesMyInvites() async throws {
+        let person = try await FirebaseEmulator.signUp("leaver")
+        let uid = person.uid
+        for (code, baby) in [("AAAA22", "b1"), ("BBBB33", "b2")] {
+            try await FirebaseEmulator.adminSet("invites/\(code)", [
+                "code": code, "ownerUserId": uid, "babyId": baby, "babyName": "콩이",
+                "createdAt": Date(), "expiresAt": Date().addingTimeInterval(86_400), "isUsed": false,
+            ])
+        }
+        try await FirebaseEmulator.adminSet("invites/DDDD55", [
+            "code": "DDDD55", "ownerUserId": "someoneElse", "babyId": "x", "babyName": "남의 아기",
+            "createdAt": Date(), "expiresAt": Date().addingTimeInterval(86_400), "isUsed": false,
+        ])
+
+        try await person.service.eraseAllUserData(userId: uid)
+
+        let mine1 = try await FirebaseEmulator.adminGet("invites/AAAA22")
+        let mine2 = try await FirebaseEmulator.adminGet("invites/BBBB33")
+        let theirs = try await FirebaseEmulator.adminGet("invites/DDDD55")
+        XCTAssertNil(mine1)
+        XCTAssertNil(mine2)
+        XCTAssertNotNil(theirs, "남의 초대는 그대로")
+    }
+
     /// 실제 로그인(Auth 에뮬레이터)으로 전 과정: 기록 → 로그인. 끝나면 계정도 기록도 없다.
     /// 고치기 전 순서(로그인 먼저)에선 기록 정리가 로그인 없이 나가 규칙에 막혀, 기록이 전부 남은 채 「삭제됨」이었다.
     func test_accountDeletion_withRealLogin_removesRecordsThenLogin() async throws {
