@@ -40,7 +40,7 @@ extension FirestoreService {
         return decodeDocuments(snapshot.documents, as: Baby.self)
     }
 
-    /// Baby 삭제 시 하위 컬렉션(activities, growth, diary 등)도 함께 삭제.
+    /// Baby 삭제 시 하위 컬렉션(`FirestoreCollections.babyChildren` 전부 — 여행 포함)도 함께 삭제.
     /// 삭제 완료 후 users/{uid}.babyCount -1.
     func deleteBaby(_ babyId: String, userId: String) async throws {
         let userRef = db.collection(FirestoreCollections.users).document(userId)
@@ -48,26 +48,9 @@ extension FirestoreService {
             .collection(FirestoreCollections.babies)
             .document(babyId)
 
-        // 하위 컬렉션 cascade 삭제 (RC3: allergies/cryRecords/weeklyMetrics/highlightCache 누락분 추가 — orphan 잔존 방지)
-        let subcollections = [
-            FirestoreCollections.activities,
-            FirestoreCollections.growth,
-            FirestoreCollections.diary,
-            FirestoreCollections.vaccinations,
-            FirestoreCollections.milestones,
-            FirestoreCollections.hospitalVisits,
-            FirestoreCollections.purchases,
-            FirestoreCollections.hospitalReports,
-            FirestoreCollections.allergies,
-            FirestoreCollections.cryRecords,
-            FirestoreCollections.weeklyMetrics,
-            FirestoreCollections.highlightCache
-        ]
-        for subcollection in subcollections {
-            let docs = try await babyRef.collection(subcollection).getDocuments()
-            for doc in docs.documents {
-                try await doc.reference.delete()
-            }
+        // 하위 컬렉션 cascade 삭제 — 목록은 한 곳(babyChildren). 여기 손으로 적던 목록은 trips 를 빠뜨렸다(2026-11-14).
+        for child in FirestoreCollections.babyChildren {
+            try await deleteAllDocuments(in: babyRef.collection(child))
         }
 
         try await babyRef.delete()

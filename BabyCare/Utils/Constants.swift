@@ -149,6 +149,16 @@ enum FirestoreCollections {
     /// 여행 준비. 경로: users/{uid}/babies/{bid}/trips/{tripId} — 여행 하나 = 문서 하나(예약·할 일 상태·이동은 배열).
     /// 아기 아래 한 단계라 지금 firestore.rules 가 소유자·공유 보호자 둘 다 허용한다. ⛔하위 컬렉션 금지(규칙에 안 걸린다).
     static let trips = "trips"
+
+    // MARK: - 지우기 범위 — 아기 삭제·계정 삭제가 이 목록만 본다(한 곳)
+
+    /// 아기 문서(users/{uid}/babies/{babyId}) 아래 하위 컬렉션 전부.
+    /// ⚠️ 아기 밑에 새 컬렉션을 쓰면 여기에 더한다 — 안 더하면 아기·계정을 지워도 그 기록이 서버에 남는다
+    /// (2.8.13 여행 `trips` 가 빠져 있었다 · 2026-11-14). Firestore 는 문서를 지워도 그 아래를 지우지 않는다.
+    static let babyChildren: [String] = [
+        activities, growth, diary, vaccinations, milestones, hospitalVisits, purchases,
+        hospitalReports, allergies, cryRecords, weeklyMetrics, highlightCache, trips,
+    ]
 }
 
 enum CoupangConfig {
