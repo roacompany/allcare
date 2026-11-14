@@ -15,7 +15,59 @@ enum TripBookingForm {
         b.company = text(b.company)
         b.pickupPlace = text(b.pickupPlace)
         b.returnPlace = text(b.returnPlace)
+        b.pickupAddress = text(b.pickupAddress)
+        b.returnAddress = text(b.returnAddress)
         return b
+    }
+
+    // MARK: - 렌터카 인수·반납 · 일정 출발·도착 — 찾아 고른 곳은 주소까지(숙소와 같은 규칙)
+
+    enum RentalSpot { case pickup, carReturn }
+    enum MoveEnd { case from, to }
+
+    /// RED 판: 고치기 전 동작 그대로 — 이름만 넣는다.
+    static func pickingRentalPlace(_ pick: PlaceSearchModel.Pick, at spot: RentalSpot, into booking: TripBooking) -> TripBooking {
+        var b = booking
+        switch spot {
+        case .pickup: b.pickupPlace = pick.name
+        case .carReturn: b.returnPlace = pick.name
+        }
+        return b
+    }
+
+    /// RED 판: 고치기 전 동작 그대로 — 이름만 바꾼다.
+    static func typingRentalPlace(_ text: String?, at spot: RentalSpot, into booking: TripBooking) -> TripBooking {
+        var b = booking
+        switch spot {
+        case .pickup: b.pickupPlace = text
+        case .carReturn: b.returnPlace = text
+        }
+        return b
+    }
+
+    /// RED 판: 고치기 전 동작 그대로 — 이름만 넣는다.
+    static func pickingMovePlace(_ pick: PlaceSearchModel.Pick, at end: MoveEnd, into move: TripMove) -> TripMove {
+        var m = move
+        switch end {
+        case .from: m.fromLabel = pick.name
+        case .to: m.toLabel = pick.name
+        }
+        return m
+    }
+
+    /// RED 판: 고치기 전 동작 그대로 — 이름만 바꾼다.
+    static func typingMovePlace(_ text: String, at end: MoveEnd, into move: TripMove) -> TripMove {
+        var m = move
+        switch end {
+        case .from: m.fromLabel = text
+        case .to: m.toLabel = text
+        }
+        return m
+    }
+
+    /// 일정 넣는 창이 차 시간을 물을 글자. RED 판: 고치기 전 동작 그대로 — 이름.
+    static func routeText(for move: TripMove, at end: MoveEnd) -> String {
+        end == .from ? move.fromLabel : move.toLabel
     }
 
     /// 숙소를 고른 결과 — 이름과 주소를 함께 바꾼다.

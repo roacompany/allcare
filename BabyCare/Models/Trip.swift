@@ -182,6 +182,10 @@ struct TripBooking: Identifiable, Codable, Hashable {
     var company: String?
     var pickupPlace: String?
     var returnPlace: String?
+    /// 인수·반납 장소를 찾아 골랐을 때의 주소 — 길찾기가 이름 대신 이것을 본다(같은 이름이 다른 지역에도 있다 · 2026-11-14).
+    /// 이름을 칩·직접 입력으로 바꾸면 비운다(옛 주소로 길을 찾지 않게 · TripBookingForm).
+    var pickupAddress: String?
+    var returnAddress: String?
     // 일시 — 시각까지 알면 …At, 시각 미정이면 …Day 하나만 쓴다(ADR-0001).
     // 🔴 밖에서는 depart 처럼 TripWhen 으로만 읽는다 — 칸을 직접 읽으면 시각 미정을 00:00 으로 읽는 길이 다시 열린다.
     //    같은 키의 타입을 바꾸면 옛 빌드가 여행 문서를 통째로 버리므로 칸을 둘로 둔다.
@@ -216,8 +220,10 @@ struct TripBooking: Identifiable, Codable, Hashable {
         checkInUntilMinute: Int? = nil,
         company: String? = nil,
         pickupPlace: String? = nil,
+        pickupAddress: String? = nil,
         pickup: TripWhen? = nil,
         returnPlace: String? = nil,
+        returnAddress: String? = nil,
         carReturn: TripWhen? = nil,
         freeCancel: TripWhen? = nil
     ) {
@@ -232,7 +238,9 @@ struct TripBooking: Identifiable, Codable, Hashable {
         self.checkInUntilMinute = checkInUntilMinute
         self.company = company
         self.pickupPlace = pickupPlace
+        self.pickupAddress = pickupAddress
         self.returnPlace = returnPlace
+        self.returnAddress = returnAddress
         self.depart = depart
         self.arrive = arrive
         self.checkIn = checkIn
@@ -346,6 +354,9 @@ struct TripMove: Identifiable, Codable, Hashable {
     var minutes: Int
     var fromLabel: String
     var toLabel: String
+    /// 출발지·도착지를 찾아 골랐을 때의 주소 — 차 시간을 물을 때 이름 대신 이것을 본다(같은 이름 다른 지역 · 2026-11-14).
+    var fromAddress: String? = nil
+    var toAddress: String? = nil
 
     var endAt: Date { startAt.addingTimeInterval(TimeInterval(minutes * 60)) }
 }
