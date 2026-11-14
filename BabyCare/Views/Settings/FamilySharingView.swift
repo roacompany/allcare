@@ -197,7 +197,9 @@ private struct JoinFamilySheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 40)
                     .onChange(of: code) { _, newValue in
-                        code = String(newValue.uppercased().prefix(6))
+                        // 공유 문구를 통째로 붙여 넣어도 코드만 남고, 「/」 같은 글자는 칸에 남지 않는다.
+                        let cleaned = FamilyInvite.codeInput(from: newValue)
+                        if cleaned != newValue { code = cleaned }
                     }
 
                 ViewThatFits(in: .horizontal) {

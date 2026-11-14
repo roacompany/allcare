@@ -30,9 +30,24 @@ struct FamilyInvite: Identifiable, Codable, Hashable {
         self.isUsed = isUsed
     }
 
+    /// 초대 코드에 쓰는 글자 — 헷갈리는 I·O·0·1 은 뺐다. 만들기·고르기·거르기가 모두 이 한 곳을 본다.
+    static let codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    static let codeLength = 6
+
     static func generateCode() -> String {
-        let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return String((0..<6).map { _ in chars.randomElement()! })
+        String((0..<codeLength).map { _ in codeAlphabet.randomElement()! })
+    }
+
+    /// 초대 문서 ID 로 써도 되는 코드인가 — 정확히 6글자 · 모두 `codeAlphabet`.
+    /// 2026-11-11 규칙부터 문서 ID = 코드라서 입력이 그대로 경로가 된다. 「/」가 섞이면 경로가 바뀌고,
+    /// 홀수 경로는 Firestore SDK 가 잡을 수 없는 예외(NSException)로 앱을 끈다 → 조회 전에 반드시 거른다.
+    static func isWellFormedCode(_ code: String) -> Bool {
+        true // RED 판: 아직 거르지 않는다(고치기 전 동작)
+    }
+
+    /// 받는 쪽 입력 칸 정리. RED 판: 고치기 전 화면 동작 그대로(대문자 + 앞 6글자).
+    static func codeInput(from raw: String) -> String {
+        String(raw.uppercased().prefix(codeLength))
     }
 
     /// 공유 시트로 보내는 초대 문구. 받는 사람은 여기 적힌 이름으로 앱스토어를 검색하므로
