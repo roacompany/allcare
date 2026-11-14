@@ -41,6 +41,15 @@ final class TodoViewModel {
         }
     }
 
+    /// 안 끝난 할 일을 「지연됨」과 「할 일」로 나눈다. RED 판: 고치기 전 동작 그대로(할 일 = 안 끝난 것 전부 — 지연된 것도 다시).
+    nonisolated static func partition(_ pending: [TodoItem], now: Date) -> (overdue: [TodoItem], upcoming: [TodoItem]) {
+        let overdue = pending.filter { todo in
+            guard let due = todo.dueDate else { return false }
+            return due < now
+        }
+        return (overdue, pending)
+    }
+
     var isFormValid: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
