@@ -360,6 +360,13 @@
         "title" : "치즈리조또"
       }
     ],
+    "screen" : {
+      "allergyNotice" : "새로운 식재료는 하나씩 4~5일 간격으로 도입하세요. 발진, 두드러기, 구토 등의 증상이 나타나면 즉시 중단하고 소아과에 방문하세요.",
+      "allergyTitle" : "알레르기 주의",
+      "disclaimerTitle" : "소아과 상담 권고",
+      "firstFeedingNote" : "처음 먹일 때는 소량부터 시작하고 4~5일 후 반응을 확인하세요.",
+      "honeyTitle" : "꿀 경고"
+    },
     "stages" : [
       {
         "key" : "early",
