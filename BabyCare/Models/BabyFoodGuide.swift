@@ -21,6 +21,14 @@ enum BabyFoodStage: Int, CaseIterable, Identifiable {
         }
     }
 
+    /// 이유식 가이드 머리글 — 첫 단계 이름엔 이미 「단계」와 괄호가 있어 짧게(「지금은 준비 단계 (…) 단계예요」 겹침 방지 · 2026-11-15).
+    var currentHeadline: String {
+        switch self {
+        case .early:                          "지금은 준비 단계예요"
+        case .earlyMid, .mid, .late, .toddler: "지금은 \(title) 단계예요"
+        }
+    }
+
     var subtitle: String {
         switch self {
         case .early:    "미음 단계"
@@ -94,7 +102,7 @@ struct BabyFoodRecipe: Identifiable {
 enum BabyFoodGuideData {
     static let disclaimerText = "이유식 시작 시기는 아기마다 다릅니다. 소아과 전문의와 상담 후 시작하세요. WHO는 생후 6개월까지 완전 모유수유를 권장합니다."
 
-    static let honeyWarning = "⚠️ 꿀은 12개월 미만 아기에게 절대 금지입니다. 유아 보톨리즘 위험이 있습니다."
+    static let honeyWarning = "⚠️ 꿀은 12개월 미만 아기에게 절대 금지입니다. 유아 보툴리즘 위험이 있습니다."
 
     static let allRecipes: [BabyFoodRecipe] = early + earlyMid + mid + late + toddler
 

@@ -135,14 +135,23 @@ final class AdminContentSnapshotTests: XCTestCase {
         (try? JSONDecoder().decode(Snapshot.self, from: saved)) == current
     }
 
-    /// 첫 다른 줄 — 번호(1부터)와 두 줄(각 120자까지).
+    /// 첫 다른 줄 — 번호(1부터)와 두 줄의 「처음 다른 글자」 둘레(앞 40 · 뒤 80자 · 잘린 쪽은 …) — 긴 본문 뒤쪽이 달라도 차이가 보이게.
     private static func firstDifference(saved: String, now: String) -> String {
         let a = saved.components(separatedBy: "\n")
         let b = now.components(separatedBy: "\n")
         var i = 0
         while i < a.count, i < b.count, a[i] == b[i] { i += 1 }
-        func line(_ lines: [String]) -> String { i < lines.count ? String(lines[i].prefix(120)) : "(없음)" }
-        return "\(i + 1)번째 줄 — 스냅숏: \(line(a)) / 지금 앱: \(line(b))"
+        let lineA = i < a.count ? Array(a[i]) : []
+        let lineB = i < b.count ? Array(b[i]) : []
+        var c = 0
+        while c < lineA.count, c < lineB.count, lineA[c] == lineB[c] { c += 1 }
+        func around(_ line: [Character], exists: Bool) -> String {
+            guard exists else { return "(없음)" }
+            let start = max(0, c - 40)
+            let end = min(line.count, c + 80)
+            return (start > 0 ? "…" : "") + String(line[start..<end]) + (end < line.count ? "…" : "")
+        }
+        return "\(i + 1)번째 줄 \(c + 1)번째 글자부터 — 스냅숏: \(around(lineA, exists: i < a.count)) / 지금 앱: \(around(lineB, exists: i < b.count))"
     }
 
     /// 스냅숏 파일의 내용이 지금 앱 값과 같다. 기록 모드는 쓰고 나서 늘 실패로 끝난다(CI 에서 조용히 통과하지 않게).
@@ -187,6 +196,15 @@ final class AdminContentSnapshotTests: XCTestCase {
             XCTAssertTrue(e.source.contains("Text(\"\(e.text)\")"),
                           "관리자가 그대로 보여 주는 앱 화면 글 「\(e.text)」이 \(e.file) 에 없습니다 — 화면 글을 바꿨다면 이 시험의 screenText 를 같은 글로 고치고, \(Self.fixSteps)")
         }
+    }
+
+    /// 긴 줄(카드 본문 160~340자)의 뒤쪽이 달라도 실패 글의 발췌가 그 자리를 보여 준다 — 맨 앞 120자만 자르면 두 줄이 같아 보였다(관리자 미룬 것 점검 30).
+    func test_firstDifference_showsTheDifferingPartOfALongLine() {
+        let head = String(repeating: "가", count: 200)
+        let message = Self.firstDifference(saved: "같은 줄\n\(head)옛 글 뒤", now: "같은 줄\n\(head)새 글 뒤")
+        XCTAssertTrue(message.contains("2번째 줄"), message)
+        XCTAssertTrue(message.contains("옛 글"), message)
+        XCTAssertTrue(message.contains("새 글"), message)
     }
 
     /// 같은 내용이면 글 모양(빈칸 · 줄바꿈 · 키 순서)이 달라도 같다 — 스냅숏을 쓴 기계(맥)와 견주는 기계(CI 의 아이폰)의 인코더 모양이 달라도 빨개지지 않게.
