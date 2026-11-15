@@ -85,7 +85,7 @@ private struct CurrentStageHeaderView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if let stage = currentStage {
-                        Text("지금은 \(stage.title) 단계예요")
+                        Text(stage.currentHeadline)
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
                     } else if ageMonths < 4 {

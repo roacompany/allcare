@@ -2,7 +2,7 @@
   "_note" : "앱(BabyCare) 이유식 가이드 · 발달 콘텐츠 글 — AdminContentSnapshotTests 가 앱 값으로 쓴다. 손으로 고치지 말 것. 관리자(babycare-admin)는 이 파일을 그대로 복사해 보여 준다(npm run content:sync).",
   "babyFood" : {
     "disclaimer" : "이유식 시작 시기는 아기마다 다릅니다. 소아과 전문의와 상담 후 시작하세요. WHO는 생후 6개월까지 완전 모유수유를 권장합니다.",
-    "honeyWarning" : "⚠️ 꿀은 12개월 미만 아기에게 절대 금지입니다. 유아 보톨리즘 위험이 있습니다.",
+    "honeyWarning" : "⚠️ 꿀은 12개월 미만 아기에게 절대 금지입니다. 유아 보툴리즘 위험이 있습니다.",
     "recipes" : [
       {
         "allergyWarnings" : [
